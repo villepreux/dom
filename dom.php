@@ -4635,6 +4635,8 @@
     function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_alert           (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
     function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_amp             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
     
+    function svg_loading        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_amp             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 50 50" to="360 50 50" repeatCount="indefinite" /></path>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                $w, $h, $label === null ? "Loading"           : $label,   0,   0,  24,      24,     $align); }
+
     function svg_dark_and_light ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_dark_and_light  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12, -12, 640,     640,     $align); }
     
     function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_leboncoin       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
@@ -4649,6 +4651,7 @@
     function img_tumblr         ($blogname   = false, $size_code = false)   { return img(url_img_tumblr     ($blogname),                "img-tumblr"    ); }
     
     function img_loading        ($attributes = false, $size_code = false)   { return img(url_img_loading(), $attributes); }    
+//  function img_loading        ($attributes = false, $size_code = false)   { return svg_loading(); }    
 
     // IMAGES URLs
  
@@ -5081,16 +5084,25 @@
             ;
     }
 
+    function toolbar_row_banner($icon_entries = false)
+    {
+        return toolbar_row(toolbar_row_banner_html($icon_entries), "toolbar-row-1");
+    }
+
+    function toolbar_row_nav($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
+    {
+        return toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu"),        array("id" => "toolbar-row-2",        "class" => "toolbar-row-2"))         . if_then(AMP(), ''
+             . toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu-static"), array("id" => "toolbar-row-2-static", "class" => "toolbar-row-2 static"))  );
+    }
+
     function toolbar($title = false, $menu_entries = false, $icon_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
     {
         debug_track_timing();
         
         return toolbar_header
         (
-            toolbar_row(toolbar_row_banner_html($icon_entries),                                                                                          "toolbar-row-1")
-    
-        .   toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu"),        array("id" => "toolbar-row-2",        "class" => "toolbar-row-2"))         . if_then(AMP(), ''
-        .   toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu-static"), array("id" => "toolbar-row-2-static", "class" => "toolbar-row-2 static"))  )
+            toolbar_row_banner($icon_entries)
+        .   toolbar_row_nav($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit)
         );
     }
     

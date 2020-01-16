@@ -53,6 +53,10 @@ doc_output(
             "Cards seem to be a popular web component nowadays. So we got it. And we also got social networks accounts cards pulling.").            
 
             "").
+          
+            hr().
+
+            p("Image courtesy of unsplash.com. Photo ".a("https://unsplash.com/photos/ThIY-N_LLfY","© Gabriel Garcia Marengo").".").
 
       ""). // This is just a convenient pattern i'm used to with this framework
 
