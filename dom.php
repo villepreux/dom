@@ -1,38 +1,28 @@
 <?php // https://github.com/villepreux/dom
 
     #region DEPENDENCIES
-    ##########################################################################################################################################################
-
+    ######################################################################################################################################
+    
                                         @include dirname(__FILE__)."/"."tokens.php";
     if (!function_exists("markdown"))   @include dirname(__FILE__)."/"."php/vendors/markdown.php";
                                         @include dirname(__FILE__)."/"."php/vendors/smartypants.php";
         
     #endregion
-    #region ROADMAP
-    ##########################################################################################################################################################
-    #
-    # Make API calls more robust : ie. if pinterest returns false, handle error correctly
-    # If a 3rd-party token is not provided by the user, skip the 3rd-party source
-    # Use a schema.org schema as 3rd-parties metada (and so as cards metadata)
-    # Use standard font stack : -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, Cantarell, “Fira Sans”, “Droid Sans”, “Helvetica Neue”, Arial, sans-serif
-    # TODO FIX HREFLANG ALTERNATE
-    #
-    #endregion
     #region API : GET/SET
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
-    if (!function_exists("at"))         { function at($a, $k, $d = false)                               { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } } }
-    if (!function_exists("get_all"))    { function get_all($get = true, $post = true, $session = false) { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; } }
-    if (!function_exists("has"))        { function has($k_or_a, $__or_k = false)                        { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all()); } }
-    if (!function_exists("get"))        { function get($k_or_a, $d_or_k = false, $__or_d = false)       { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all(), $k_or_a, $d_or_k); } }
-    if (!function_exists("del"))        { function del($k)                                              { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); } }
-    if (!function_exists("set"))        { function set($k, $v = true, $aname = false)                   { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } } }
+    if (!function_exists("at"))         { function at($a, $k, $d = false)                                                                   { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } } }
+    if (!function_exists("get_all"))    { function get_all($get = true, $post = true, $session = false)                                     { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; } }
+    if (!function_exists("has"))        { function has($k_or_a, $__or_k = false)                                                            { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all()); } }
+    if (!function_exists("get"))        { function get($k_or_a, $d_or_k = false, $__or_d = false)                                           { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all(), $k_or_a, $d_or_k); } }
+    if (!function_exists("del"))        { function del($k)                                                                                  { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); } }
+    if (!function_exists("set"))        { function set($k, $v = true, $aname = false)                                                       { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } } }
 
     #endregion
     #region CONGIG : PHP SETTINGS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
-    if (!function_exists("is_localhost")) { function is_localhost() { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); } }
+    if (!function_exists("is_localhost")) { function is_localhost()                                                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); } }
 
     if (is_localhost())
     {
@@ -52,7 +42,7 @@
     
     #endregion
     #region CONFIG : USER OPTIONS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     // API Constants
     
@@ -186,7 +176,7 @@
 
     #endregion
     #region HELPERS : AJAX / ASYNC
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     define ("AJAX_PARAMS_SEPARATOR1", "-_-");
     define ("AJAX_PARAMS_SEPARATOR2", "_-_");
@@ -331,7 +321,7 @@
 
     #endregion
     #region HELPERS : DOM COMPONENTS: TAG ATTRIBUTES
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function attributes($attributes, $pan = 0)
     {
@@ -497,7 +487,7 @@
 
     #endregion
     #region HELPERS : PROFILING
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     $debug_timing_t0   = microtime(true);
     $debug_timings_log = array();
@@ -539,7 +529,7 @@
 
     #endregion
     #region HELPERS : LOCALIZATION
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function T($label, $default = false, $lang = false)
     { 
@@ -551,7 +541,7 @@
     
     #endregion
     #region HELPERS : MISC
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function AMP() { return false !== get("amp", false) && 0 !== get("amp", false) && "0" !== get("amp", false); }
 
@@ -783,7 +773,7 @@
 
     #endregion
     #region HELPERS : HOOKS & PAGINATION
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function hook_title($title)
     {
@@ -1106,7 +1096,7 @@
         
     #endregion
     #region HELPERS : JSON API END-POINTS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function json_pinterest_pin($pin, $token = false)
     {
@@ -1544,7 +1534,7 @@
     
     #endregion
     #region HELPERS : JSON METADATA FROM SOCIAL NETWORKS 
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function sort_cmp_post_timestamp($a,$b)
     {
@@ -2498,7 +2488,7 @@
     
     #endregion
     #region HELPERS : DEBUG
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     function raw_array_debug($content, $html_entities = false, $fields_sep = " ")
     {
@@ -2511,7 +2501,7 @@
     
     #endregion
     #region HELPERS : MINIFIERS (QUICK AND DIRTY)
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function minify_html($html)
     {
@@ -2539,7 +2529,7 @@
 
     #endregion
     #region API : CACHE SYSTEM
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function cache_start()
     {
@@ -2594,7 +2584,7 @@
     
     #endregion
     #region API : PHP DOCUMENT
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function doc_redirect($url)
     {   
@@ -2808,7 +2798,7 @@
     
     #endregion
     #region API : DOM : URLS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"]; $host = rtrim($host,"/"); $host .= "/"; return $host; }
     function relative_uri($params = false)      { $uri = explode('?', $_SERVER['REQUEST_URI'], 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
@@ -2846,7 +2836,7 @@
     
     #endregion
     #region API : DOM : COLORS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     // https://paulund.co.uk/social-media-colours
 
@@ -2879,7 +2869,7 @@
    
     #endregion
     #region API : DOM : HTML COMPONENTS : SPECIAL TAGS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     /**
      * Special helper / low level components
@@ -3086,7 +3076,7 @@
 
     #endregion
     #region API : DOM : HTML COMPONENTS : DOCUMENT ROOT
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function jsonfeed($json = false)
     {
@@ -3215,7 +3205,7 @@
 
     #endregion
     #region API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function head($html = false, $async_css = false)
     { 
@@ -3603,7 +3593,7 @@
     picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
     figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
     img, amp-img                                    { max-width: 100%; object-fit: cover; }
-    .grid                                           { display: grid }
+    .grid                                           { display: grid; grid-gap: var(--content_default_margin); }
 
     /* Back-to-top style */    
     
@@ -4152,7 +4142,7 @@
     
     #endregion
     #region API : DOM : HTML COMPONENTS : MARKUP : BODY
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function comment($text) { return (has("rss")) ? '' : ('<!-- ' . $text . ' //-->'); }
     
@@ -5106,7 +5096,7 @@
     
     #endregion
     #region API : DOM : HTML COMPONENTS : ASYNC
-    ##########################################################################################################################################################
+    ######################################################################################################################################
     
     $call_asyncs_started = false;
 
@@ -5214,7 +5204,7 @@
 
     #endregion
     #region API : DOM : RSS
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function rss_sanitize($html) { return trim(htmlspecialchars($html, ENT_QUOTES, 'utf-8')); }
     
@@ -5261,7 +5251,7 @@
     
     #endregion
     #region API : DOM : TILE
-    ##########################################################################################################################################################
+    ######################################################################################################################################
 
     function tile_sanitize($html) { return trim(htmlspecialchars($html, ENT_QUOTES, 'utf-8')); }
     
