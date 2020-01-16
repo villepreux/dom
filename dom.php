@@ -2776,21 +2776,70 @@
             "";
     }
 
+    function string_loading_svg($beautify = false)
+    {
+        return '<svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
+            <g transform="rotate(0 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(36 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(72 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.7s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(108 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(144 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(180 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(216 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(252 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.2s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(288 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.1s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g><g transform="rotate(324 50 50)" style="animation-play-state: running; animation-delay: 0s;">
+                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
+                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="0s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
+                </rect>
+            </g>
+        </svg>';
+    }
+
     function generate_manifest          ($force = false, $beautify = false) { return generate_file("manifest.json",     string_manifest         ($beautify), $force); }
     function generate_ms_browserconfig  ($force = false, $beautify = false) { return generate_file("browserconfig.xml", string_ms_browserconfig ($beautify), $force); }
     function generate_ms_badge          ($force = false, $beautify = false) { return generate_file("badge.xml",         string_ms_badge         ($beautify), $force); }
     function generate_robots            ($force = false, $beautify = false) { return generate_file("robots.txt",        string_robots           ($beautify), $force); }
     function generate_human             ($force = false, $beautify = false) { return generate_file("human.txt",         string_human            ($beautify), $force); }
+    function generate_loading_svg       ($force = false, $beautify = false) { return generate_file("loading.svg",       string_loading_svg      ($beautify), $force); }
 
     function generate_all($force = false, $beautify = false)
     {
         $prev_beautify = false; if ($beautify) { $prev_beautify = get("beautify"); set("beautify", $beautify); }
 
-        generate_manifest($force);
-        generate_ms_browserconfig($force);
-        generate_ms_badge($force);
-        generate_robots();
-        generate_human();
+        generate_manifest           ($force);
+        generate_ms_browserconfig   ($force);
+        generate_ms_badge           ($force);
+        generate_robots             ($force);
+        generate_human              ($force);
+        generate_loading_svg        ($force);
 
         if ($beautify) { set("beautify", $prev_beautify); }
     }
@@ -4655,7 +4704,7 @@
 
     // IMAGES URLs
  
-    function url_img_loading () { return ROOT."img/loading.svg"; }
+    function url_img_loading () { return ROOT."loading.svg"; }
     function url_img_blank   () { return ROOT."img/blank.gif";   }
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
