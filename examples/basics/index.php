@@ -40,7 +40,8 @@
                 grid(
                     card(
                         img(get("my_example_img_src")), "We love cards",
-                        "Cards seem to be a popular web component nowadays. So we got it. And we also got social networks accounts cards pulling."
+                        "Cards seem to be a popular web component nowadays.".
+                        "So we got it. And we also got social networks accounts cards pulling."
                         ).
                     card(
                         img(get("my_example_img_src")), "We love cards",
@@ -48,11 +49,13 @@
                         ).
                     card(
                         img(get("my_example_img_src")), "We love cards",
-                        "Cards seem to be a popular web component nowadays. So we got it. And we also got social networks accounts cards pulling."
+                        "Cards seem to be a popular web component nowadays.".
+                        "So we got it. And we also got social networks accounts cards pulling."
                         ).
                     card(
                         img(get("my_example_img_src")), "We love cards",
-                        "Cards seem to be a popular web component nowadays. So we got it. And we also got social networks accounts cards pulling."
+                        "Cards seem to be a popular web component nowadays.".
+                        "So we got it. And we also got social networks accounts cards pulling."
                         )
                     ).
                 article( // Some more random content
