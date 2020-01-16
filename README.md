@@ -2,6 +2,8 @@
 
 Web **Do**cument PHP **M**arkup framework
 
+https://villepreux.github.io/dom/
+
 ## Intention
 
   * Writing web documents quickly.
@@ -63,9 +65,13 @@ doc_output(
 
       style(" 
         
-        .toolbar .row:first-child { background: center/cover url(https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2); }"
+        .toolbar .row:first-child { 
+          
+          background: center/cover url(https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2);
+          
+          }
         
-        ). // Some inline CSS for a shorter and self-contained example, 
+        "). // Some inline CSS for a shorter and self-contained example, 
            // but of course could be defined in a separated .css stylesheet
 
       content( // My main content section
