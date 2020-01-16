@@ -23,7 +23,7 @@ https://villepreux.github.io/dom/
 ## Getting started
 
 Why not start with [examples](./examples/)?
-The standard [Hello World](./examples/hellowordl/) one first, then more complete examples.
+The standard [Hello World](./examples/helloworld/) one first, then more complete examples.
 
 ## Known issues
 
