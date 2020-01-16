@@ -65,7 +65,8 @@ doc_output(
         
         .toolbar .row:first-child { background: center/cover url(https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2); }"
         
-        ). // Some inline CSS for a shorter and self-contained example, but of course could be defined in a separated .css stylesheet
+        ). // Some inline CSS for a shorter and self-contained example, 
+           // but of course could be defined in a separated .css stylesheet
 
       content( // My main content section
 
@@ -91,7 +92,7 @@ doc_output(
       "")
     ).
 
-    rss(). // I'm also interseted in having a RSS feed and json-content from my content
+    rss(). // I'm also interested in having a RSS feed and json-content from my content
     jsonfeed().
 
   "");
