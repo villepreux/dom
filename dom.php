@@ -85,6 +85,12 @@
             }
         }
         
+        if (file_exists("dom.php")) // :-( This is so ugly. TODO.
+        {
+            if (!defined("SYSTEM_ROOT")) define("SYSTEM_ROOT", str_replace("\\","/",dirname(realpath("dom.php"))));
+            if (!defined("ROOT"))        define("ROOT", "./");
+        }
+        
         if (!defined("SYSTEM_ROOT")) define("SYSTEM_ROOT", $root.$root_suffix);
         if (!defined("ROOT"))        define("ROOT",        substr($_SERVER['REQUEST_URI'], 0, 1 + stripos($_SERVER['REQUEST_URI'], '/', 1)).$root_suffix);
     }
@@ -104,10 +110,9 @@
 
 //  set("title",                             "Blog");
 	set("keywords",                          "");
-	
-	set("canonical",                         absolute_host());
-	set("url",                               absolute_uri());
-  
+
+	set("canonical",                         absolute_host()."/".relative_uri());
+    set("url",                               absolute_uri());  
                                                      if (server_file_exists(SYSTEM_ROOT."DTD/xhtml-target.dtd"))
     set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "/DTD/xhtml-target.dtd"');
 
@@ -757,6 +762,24 @@
     
         return $text;
     }
+
+    #endregion
+    #region LOREM IPSUM
+
+    function lorem_ipsum($nb_paragraphs = 5, $tag = "p")
+    {
+        $html = "";
+
+        if ($nb_paragraphs >= 1) $html .= tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa. Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. Donec vehicula vulputate enim, vitae vulputate sapien auctor et. Ut imperdiet non augue quis suscipit. Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
+        if ($nb_paragraphs >= 2) $html .= tag($tag, "Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
+        if ($nb_paragraphs >= 3) $html .= tag($tag, "Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
+        if ($nb_paragraphs >= 4) $html .= tag($tag, "Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
+        if ($nb_paragraphs >= 5) $html .= tag($tag, "Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
+        
+        return $html;
+    }
+
+    function lorem($nb_paragraphs = 5, $tag = "p") { return lorem_ipsum($nb_paragraphs, $tag); }
 
     #endregion
     #region HELPERS : HOOKS & PAGINATION
@@ -2690,8 +2713,20 @@
         $pos = stripos($short_title, " ");
         if (false !== $pos) $short_title = substr($short_title, 0, $pos);
         if (strlen($short_title) > 10) $short_title = substr($short_title, 0, 10);
+        
+        $icons = array();
 
-        return array(
+        foreach (array(36 => 0.75, 48 => 1.0, 72 => 1.5, 96 => 2.0, 144 => 3.0, 192 => 4.0, 512 => 4.0) as $w => $density)
+        {            
+            $filename = get("canonical")."/android-icon-$w"."x"."$w.png";
+
+            if (file_exists($filename))
+            {
+                $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
+            }
+        }
+
+        $json = array(
 
             "name"             => get("title"),
             "short_name"       => $short_title,
@@ -2708,18 +2743,10 @@
 
                 ),
            
-            "icons"=> array(
-            
-                array( "src"=> get("canonical")."/android-icon-36x36.png",   "sizes"=> "36x36",   "type"=> "image/png", "density"=> "0.75", "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-48x48.png",   "sizes"=> "48x48",   "type"=> "image/png", "density"=> "1.0",  "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-72x72.png",   "sizes"=> "72x72",   "type"=> "image/png", "density"=> "1.5",  "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-96x96.png",   "sizes"=> "96x96",   "type"=> "image/png", "density"=> "2.0",  "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-144x144.png", "sizes"=> "144x144", "type"=> "image/png", "density"=> "3.0",  "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-192x192.png", "sizes"=> "192x192", "type"=> "image/png", "density"=> "4.0",  "purpose"=> "maskable any" ),
-                array( "src"=> get("canonical")."/android-icon-512x512.png", "sizes"=> "512x512", "type"=> "image/png", "density"=> "4.0",  "purpose"=> "maskable any" )
-            
-                )
+            "icons"=> $icons
             );
+
+        return $json;
     }
 
     function string_manifest($beautify = false) { return (($beautify && defined("JSON_PRETTY_PRINT")) ? json_encode(json_manifest(), JSON_PRETTY_PRINT) : json_encode(json_manifest())); }
@@ -2783,10 +2810,11 @@
     #region API : DOM : URLS
     ##########################################################################################################################################################
 
-    function absolute_host()     { return ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"]; }
-    function absolute_uri()      { return absolute_host() . $_SERVER["REQUEST_URI"]; }
-    function relative_uri_ex()   { $uri = explode('?', $_SERVER['REQUEST_URI'], 2); $uri = '//'  . $_SERVER['HTTP_HOST'] . $uri[0] . "?"; foreach (get_all() as $key => $val) $uri .= "&$key=$val"; return $uri; }
-
+    function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"]; $host = rtrim($host,"/"); $host .= "/"; return $host; }
+    function relative_uri($params = false)      { $uri = explode('?', $_SERVER['REQUEST_URI'], 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
+    function relative_uri_ex()                  { return relative_uri(true); }
+    function absolute_uri($params = false)      { return absolute_host() . relative_uri($params); }
+    
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? get("pinterest_user")  : $username; 
                                                                                   $board    = ($board    === false) ? get("pinterest_board") : $board;    return "https://www.pinterest.com/$username/$board/";                      }
     function url_instagram_user             ($username = false)                 { $username = ($username === false) ? get("instagram_user")  : $username; return "https://www.instagram.com/$username/";                             }
@@ -2822,31 +2850,32 @@
 
     // https://paulund.co.uk/social-media-colours
 
-    function color_facebook     () { return '#3B5998'; }
-    function color_twitter      () { return '#00ACED'; }
-    function color_linkedin     () { return '#0077B5'; }
-    function color_google       () { return array('#EB4132', '#FBBD01', '#31A952', '#4086F4'); } function color_googlenews() { return color_google(); }
-    function color_youtube      () { return '#BB0000'; }
-    function color_instagram    () { return '#517FA4'; }
-    function color_pinterest    () { return '#CB2027'; }
-    function color_flickr       () { return array('#FF0084','#0063DC'); }
-    function color_tumblr       () { return '#32506D'; }
-    function color_foursquare   () { return '#0072B1'; }
-    function color_dribbble     () { return '#EA4C89'; }
-    function color_vine         () { return '#00BF8F'; }
-    function color_behance      () { return '#1769FF'; }
-    function color_github       () { return '#171516'; }
-    function color_skype        () { return '#00AFF0'; }
-    function color_snapchat     () { return '#FFFA37'; }
-    function color_whatsapp     () { return '#64D448'; }
-    function color_rss          () { return '#FF6F00'; }
-    function color_printer      () { return '#FFFFFF'; }
-    function color_numerama     () { return '#E9573F'; }
-    function color_messenger    () { return '#0083FF'; }
-    function color_alert        () { return '#EE0000'; }
-    function color_leboncoin    () { return '#EA6B30'; }
-    function color_seloger      () { return '#E00034'; }
-    function color_amp          () { return '#0379C4'; }
+    function color_facebook         () { return '#3B5998'; }
+    function color_twitter          () { return '#00ACED'; }
+    function color_linkedin         () { return '#0077B5'; }
+    function color_google           () { return array('#EB4132', '#FBBD01', '#31A952', '#4086F4'); } function color_googlenews() { return color_google(); }
+    function color_youtube          () { return '#BB0000'; }
+    function color_instagram        () { return '#517FA4'; }
+    function color_pinterest        () { return '#CB2027'; }
+    function color_flickr           () { return array('#FF0084','#0063DC'); }
+    function color_tumblr           () { return '#32506D'; }
+    function color_foursquare       () { return '#0072B1'; }
+    function color_dribbble         () { return '#EA4C89'; }
+    function color_vine             () { return '#00BF8F'; }
+    function color_behance          () { return '#1769FF'; }
+    function color_github           () { return '#171516'; }
+    function color_skype            () { return '#00AFF0'; }
+    function color_snapchat         () { return '#FFFA37'; }
+    function color_whatsapp         () { return '#64D448'; }
+    function color_rss              () { return '#FF6F00'; }
+    function color_printer          () { return '#FFFFFF'; }
+    function color_numerama         () { return '#E9573F'; }
+    function color_messenger        () { return '#0083FF'; }
+    function color_alert            () { return '#EE0000'; }
+    function color_leboncoin        () { return '#EA6B30'; }
+    function color_seloger          () { return '#E00034'; }
+    function color_amp              () { return '#0379C4'; }
+    function color_dark_and_light   () { return '#FFFFFF'; }
    
     #endregion
     #region API : DOM : HTML COMPONENTS : SPECIAL TAGS
@@ -3261,7 +3290,7 @@
 
     function _script_amp_iframe             () { return if_then(has_amp_requirement("iframe"),              eol(1) . '<script async custom-element="amp-iframe'              . '" src="https://cdn.ampproject.org/v0/amp-iframe'             . '-0.1.js"></script>'); }
     function _script_amp_sidebar            () { return if_then(has_amp_requirement("sidebar"),             eol(1) . '<script async custom-element="amp-sidebar'             . '" src="https://cdn.ampproject.org/v0/amp-sidebar'            . '-0.1.js"></script>'); }
-    function _script_amp_position_observer  () { return if_then(has_amp_requirement("position_observer"),   eol(1) . '<script async custom-element="amp-position-observer'   . '" src="https://cdn.ampproject.org/v0/amp-position-observer'  . '-0.1.js"></script>'); }
+    function _script_amp_position_observer  () { return if_then(has_amp_requirement("position-observer"),   eol(1) . '<script async custom-element="amp-position-observer'   . '" src="https://cdn.ampproject.org/v0/amp-position-observer'  . '-0.1.js"></script>'); }
     function _script_amp_animation          () { return if_then(has_amp_requirement("animation"),           eol(1) . '<script async custom-element="amp-animation'           . '" src="https://cdn.ampproject.org/v0/amp-animation'          . '-0.1.js"></script>'); }
     function _script_amp_form               () { return if_then(has_amp_requirement("form"),                eol(1) . '<script async custom-element="amp-form'                . '" src="https://cdn.ampproject.org/v0/amp-form'               . '-0.1.js"></script>'); }
     function _script_amp_youtube            () { return if_then(has_amp_requirement("youtube"),             eol(1) . '<script async custom-element="amp-youtube'             . '" src="https://cdn.ampproject.org/v0/amp-youtube'            . '-0.1.js"></script>'); }
@@ -3522,19 +3551,33 @@
     /* Font stack */
 
     body,h1,h2,h3,h4,h5,h6                          { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; }
+
+    /* Colors */
     
+    body                                           { background-color: var(--background_color); }
+   
     /* Layout */
     
-     body                                           { text-align: center; min-height: 100vh }
+     body                                           { text-align: center; min-height: 100vh; }
      main                                           { text-align: left; padding-top: unset; margin-top: 0px; margin-right: auto; margin-bottom: 0px; margin-left: auto; max-width: var(--main_max_width) }
 
-     body                                           { background-color: var(--background_color); }
+     /* Main content inflate (makes footer sticky) */
 
-    .toolbar                                        { width: 100%; z-index: 1; }
+     body                                           { display: flex; flex-direction: column; min-height: 100vh; } 
+     body>main                                      { flex: 1; }
+
+     /* Toolbar */
+ 
+     .toolbar .row:nth-child(2),
+     .toolbar .row:nth-child(2) a,
+     .toolbar .row:nth-child(3),
+     .toolbar .row:nth-child(3) a                  { background-color: var(--theme_color); color: var(--background_color); }
+
+     .toolbar                                       { width: 100%; z-index: 1; }
     .toolbar .row                                   { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; /*overflow: hidden;*/ }
     .toolbar .row:nth-child(1)                      { background-color: var(--background_color); height: var(--header_height); min-height: var(--header_min_height); }
     .toolbar .row:nth-child(2),                  
-    .toolbar .row:nth-child(3)                      { background-color: var(--theme_color); height: var(--header_toolbar_height); align-items: center; }
+    .toolbar .row:nth-child(3)                      { height: var(--header_toolbar_height); align-items: center; }
     .toolbar .row .cell                             { /*white-space: nowrap; */ overflow: hidden; }
     .toolbar .row:nth-child(2) .cell:nth-child(1),
     .toolbar .row:nth-child(3) .cell:nth-child(1)   { width: calc(100vw / 2 - var(--scrollbar_width) / 2 - var(--main_max_width) / 2); min-width: var(--header_toolbar_height); }
@@ -3555,7 +3598,7 @@
     .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
 
-    body>.footer                                    { background-color: var(--theme_color); padding: 1em }
+    body>.footer                                    { background-color: var(--theme_color); color: var(--background_color); }
 
     picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
     figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
@@ -3564,7 +3607,7 @@
 
     /* Back-to-top style */    
     
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme_color); text-align: center; color: white; line-height: 40px; visibility: hidden; opacity: 0 }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme_color); text-align: center; color: var(--background_color); line-height: 40px; visibility: hidden; opacity: 0 }
     .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
     .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
     .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
@@ -3581,7 +3624,7 @@
 
     /* Other utilities */    
     
-    .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; }
+/*  .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; } */
     .app-install                                    { display: none }
     .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header_toolbar_height) - var(--header_min_height)) }
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
@@ -4198,7 +4241,8 @@
     function button         ($html = "", $attributes = false) {                         return                     tag ('button',                     $html,                     attributes_add_class(   $attributes, component_class('button'))                             );                      }
     function button_label   ($html = "", $attributes = false) {                         return                     tag ('span',                       $html,                     attributes_add_class(   $attributes, component_class('button-label'))                       );                      }
 
-    function h          ($h, $html = "", $attributes = false, $anchor = false)  {       return  cosmetic(eol(1)).
+    function h          ($h, $html = "", $attributes = false, $anchor = false)  {       if ($h == 1) hook_title($html);
+                                                                                        return  cosmetic(eol(1)).
                                                                                                 (($h>=2)?anchor(!!$anchor ? $anchor : $html):'').
                                                                                                                    tag ('h'.$h,                       $html,                     attributes_add_class(   $attributes, component_class('headline'.$h))                        );                      }
 
@@ -4575,8 +4619,10 @@
         return img($path, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
     }
 
-    function svg($paths, $w = 24, $h = 24, $label = "", $x0 = false, $x1 = false, $y0 = false, $y1 = false, $align = true) 
+    function svg($paths, $w = 24, $h = 24, $label = "", $x0 = false, $x1 = false, $y0 = false, $y1 = false, $align = null) 
     {
+        if ($align === null) $align = false;
+
         if ($x0 === false) $x0 = 0; if ($x1 === false) $x1 = $w; 
         if ($y0 === false) $y0 = 0; if ($y1 === false) $y1 = $h; 
 
@@ -4585,27 +4631,27 @@
 
     // https://materialdesignicons.com/
     
-    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_flickr    (); $colors = (is_array($color)) ? $color : array($color,$color); return svg('<path fill="'.$colors[1].'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path fill="'.$colors[0].'" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      $w, $h, $label === null ? "Flickr"            : $label,   0,   0, 232.422, 232.422, $align); }
-    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_facebook  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_twitter   (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_linkedin  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                 																																																										         $w, $h, $label === null ? "Linkedin"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_instagram (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_pinterest (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_tumblr    (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,   0,  24,      24,     $align); }
-    function svg_rss            ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_rss       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,   0,  24,      24,     $align); }
-    function svg_printer        ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_printer   (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_printer   (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,   0,  24,      24,     $align); }
-    function svg_messenger		($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_messenger (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_alert          ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_alert     (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
-    function svg_amp            ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_amp       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
-
-    function svg_dark_and_light ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_amp       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight" : $label, -12, -12, 640,     640,     $align); }
+    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_flickr          (); $colors = (is_array($color)) ? $color : array($color,$color); return svg('<path fill="'.$colors[1].'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path fill="'.$colors[0].'" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      $w, $h, $label === null ? "Flickr"            : $label,   0,   0, 232.422, 232.422, $align); }
+    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_facebook        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,   0,  24,      24,     $align); }
+    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_twitter         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,   0,  24,      24,     $align); }
+    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_linkedin        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Linkedin"          : $label,   0,   0,  24,      24,     $align); }
+    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_instagram       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_pinterest       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_tumblr          (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,   0,  24,      24,     $align); }
+    function svg_rss            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_rss             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,   0,  24,      24,     $align); }
+    function svg_printer        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_printer         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,   0,  24,      24,     $align); }
+    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_printer         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,   0,  24,      24,     $align); }
+    function svg_messenger		($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_messenger       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_alert           (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
+    function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_amp             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
     
-    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_leboncoin (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
-    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_seloger   (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                    $w, $h, $label === null ? "Seloger"   : $label, 0, 0, 152.0, 152.0, $align); }
+    function svg_dark_and_light ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_dark_and_light  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12, -12, 640,     640,     $align); }
+    
+    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_leboncoin       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
+    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_seloger         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                    $w, $h, $label === null ? "Seloger"   : $label, 0, 0, 152.0, 152.0, $align); }
 
-    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_numerama  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path fill="'.$color.    '" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path fill="'.$color.'" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "Numerama"   : $label, 0, 0,  80.0,    80.0,   $align); }
-    function svg_googlenews     ($w = 24, $h = 24, $color = false, $align = false, $label = null) { if ($color === false) $color = color_google    (); $colors = (is_array($color)) ? $color : array($color);        return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/><path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                                                   $w, $h, $label === null ? "Googlenews" : $label, 0, 0,  48,      48,     $align); }
+    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_numerama        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path fill="'.$color.    '" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path fill="'.$color.'" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "Numerama"   : $label, 0, 0,  80.0,    80.0,   $align); }
+    function svg_googlenews     ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_google          (); $colors = (is_array($color)) ? $color : array($color);        return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/><path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                                                   $w, $h, $label === null ? "Googlenews" : $label, 0, 0,  48,      48,     $align); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code),  "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                     "img-pinterest" ); }
@@ -5024,9 +5070,10 @@
         return $amp_anim . header_FIX($html . $amp_observer, attributes_add_class($attributes, component_class('toolbar')));
     }
     
-    function toolbar_row    ($html,  $attributes = false) { hook_toolbar();      return div        (   $html,           attributes_add_class($attributes, component_class("toolbar-row") ." ".component_class("row"))   ); }
-    function toolbar_section($html,  $attributes = false) {                      return section    (   $html,           attributes_add_class($attributes, component_class("toolbar-cell")." ".component_class("cell"))  ); }
-    function toolbar_title  ($title, $attributes = false) { hook_title($title);  return div  (a('.',h1($title)),       attributes_add_class($attributes, component_class("toolbar-title"))                             ); }
+    function toolbar_row    ($html,  $attributes = false) { hook_toolbar();      return div     (   $html,  attributes_add_class($attributes, component_class("toolbar-row") ." ".component_class("row"))   ); }
+    function toolbar_section($html,  $attributes = false) {                      return section (   $html,  attributes_add_class($attributes, component_class("toolbar-cell")." ".component_class("cell"))  ); }
+    function toolbar_title  ($title, $attributes = false) { hook_title($title);  return div     (a('.',if_then(false === stripos($title,"<h1"), h1($title),$title)),
+                                                                                                            attributes_add_class($attributes, component_class("toolbar-title"))                             ); }
 
     function toolbar_row_banner_html($icon_entries = false)
     {
