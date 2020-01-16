@@ -120,11 +120,13 @@ WIP
 
 ## TODO List
 
+  * Refactoring: Make a facade (without changing current user interface)
   * Options for CSS automatic classes naming conventions
   * Optimize server-side performances
   * Where possible, use sub-components aggregation instead of multiple parameters
   * Where possible, use named, unordered & optional parameters
   * Refactor of toolbar component
+  * Make internal css boilerplate smaller and also optionnal
 
 ----
 
