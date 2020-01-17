@@ -6,3 +6,15 @@ examples/basics/robots.txt
 examples/basics/img/loading.svg
 examples/basics/loading.svg
 examples/basics/img/loading.svg
+examples/helloworld/sw.js
+examples/helloworld/robots.txt
+examples/helloworld/manifest.json
+examples/helloworld/loading.svg
+examples/helloworld/install-service-worker.html
+examples/helloworld/human.txt
+examples/helloworld/browserconfig.xml
+examples/helloworld/badge.xml
+examples/helloworld/#
+examples/basics/sw.js
+examples/basics/install-service-worker.html
+examples/basics/#

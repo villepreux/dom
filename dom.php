@@ -148,7 +148,7 @@
 	set("geo_position_x",                   48.862808);
     set("geo_position_y",                    2.348237);
 
-    set("support_service_worker",           !!dom_path('sw.js'));
+    set("support_service_worker",           true);
     
 //	set("fonts",                            "Roboto:300,400,500");
     
@@ -2675,13 +2675,15 @@
             if ($attachement_length !== false)              @header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
         }
 
-        generate_all(false, get("beautify"));
+        generate_all_preprocess();
 
         cache_start();
     }
 
     function dom_output($doc = "")
     {
+        $doc .= generate_all(get("beautify"));
+
         if (get("encoding") == "gzip") ob_start("ob_gzhandler");
 
         echo $doc;
@@ -2779,22 +2781,6 @@
 
     function string_manifest($beautify = false) { return (($beautify && defined("JSON_PRETTY_PRINT")) ? json_encode(json_manifest(), JSON_PRETTY_PRINT) : json_encode(json_manifest())); }
 
-    function generate_file($path, $content_function, $force = false, $beautify = false)
-    {
-        if (!$force && !!dom_path($path))        return "";
-        if (!$force && !!dom_path($path.".php")) return "";
-
-        $f = fopen($path, "w+");
-        if (!$f) return "";
-
-        $content = $content_function($beautify);
-
-        fwrite($f, utf8_encode($content));
-        fclose($f);
-
-        return "";
-    }
-
     function string_robots($beautify = false)
     {
         return "User-agent: *".eol()."Disallow:";
@@ -2831,23 +2817,188 @@
             '</svg>';
     }
 
-    function generate_manifest          ($force = false, $beautify = false) { return generate_file("manifest.json",     "string_manifest",          $force, $beautify); }
-    function generate_ms_browserconfig  ($force = false, $beautify = false) { return generate_file("browserconfig.xml", "string_ms_browserconfig",  $force, $beautify); }
-    function generate_ms_badge          ($force = false, $beautify = false) { return generate_file("badge.xml",         "string_ms_badge",          $force, $beautify); }
-    function generate_robots            ($force = false, $beautify = false) { return generate_file("robots.txt",        "string_robots",            $force, $beautify); }
-    function generate_human             ($force = false, $beautify = false) { return generate_file("human.txt",         "string_human",             $force, $beautify); }
-    function generate_loading_svg       ($force = false, $beautify = false) { return generate_file("loading.svg",       "string_loading_svg",       $force, $beautify); }
+    function string_service_worker_install($beautify = false)
+    {
+        return '<!doctype html><html><head><title>Installing service worker</title><script type="text/javascript">'.
+            ''.
+            'var swsource = "https://web.cyanide-studio.coml/bloodbowl/sw.js";'.
+            ''.
+            'if ("serviceWorker" in navigator)'.
+            '{'.
+            '    navigator.serviceWorker.register(swsource).then(function(reg)'.
+            '    {'.
+            '        console.log("AMP ServiceWorker scope: ", reg.scope);'.
+            '    })'.
+            '    .catch(function(err)'.
+            '    {'.
+            '        console.log("AMP ServiceWorker registration failed: ", err);'.
+            '    });'.
+            '};'.
+            ''.
+        '</script></head><body></body></html>';
+    }
 
-    function generate_all($force = false, $beautify = false)
+    function string_loading_svg_src_base64($beautify = false)
+    {
+        return "data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPgo8c3ZnIHdpZHRoPSI0MHB4IiBoZWlnaHQ9IjQwcHgiIHZpZXdCb3g9IjAgMCA0MCA0MCIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBzdHlsZT0iZmlsbC1ydWxlOmV2ZW5vZGQ7Y2xpcC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlLWxpbmVqb2luOnJvdW5kO3N0cm9rZS1taXRlcmxpbWl0OjEuNDE0MjE7IiB4PSIwcHgiIHk9IjBweCI+CiAgICA8ZGVmcz4KICAgICAgICA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWwogICAgICAgICAgICBALXdlYmtpdC1rZXlmcmFtZXMgc3BpbiB7CiAgICAgICAgICAgICAgZnJvbSB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIC13ZWJraXQtdHJhbnNmb3JtOiByb3RhdGUoLTM1OWRlZykKICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KICAgICAgICAgICAgQGtleWZyYW1lcyBzcGluIHsKICAgICAgICAgICAgICBmcm9tIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKDBkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICAgIHRvIHsKICAgICAgICAgICAgICAgIHRyYW5zZm9ybTogcm90YXRlKC0zNTlkZWcpCiAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgICAgIHN2ZyB7CiAgICAgICAgICAgICAgICAtd2Via2l0LXRyYW5zZm9ybS1vcmlnaW46IDUwJSA1MCU7CiAgICAgICAgICAgICAgICAtd2Via2l0LWFuaW1hdGlvbjogc3BpbiAxLjVzIGxpbmVhciBpbmZpbml0ZTsKICAgICAgICAgICAgICAgIC13ZWJraXQtYmFja2ZhY2UtdmlzaWJpbGl0eTogaGlkZGVuOwogICAgICAgICAgICAgICAgYW5pbWF0aW9uOiBzcGluIDEuNXMgbGluZWFyIGluZmluaXRlOwogICAgICAgICAgICB9CiAgICAgICAgXV0+PC9zdHlsZT4KICAgIDwvZGVmcz4KICAgIDxnIGlkPSJvdXRlciI+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwwQzIyLjIwNTgsMCAyMy45OTM5LDEuNzg4MTMgMjMuOTkzOSwzLjk5MzlDMjMuOTkzOSw2LjE5OTY4IDIyLjIwNTgsNy45ODc4MSAyMCw3Ljk4NzgxQzE3Ljc5NDIsNy45ODc4MSAxNi4wMDYxLDYuMTk5NjggMTYuMDA2MSwzLjk5MzlDMTYuMDA2MSwxLjc4ODEzIDE3Ljc5NDIsMCAyMCwwWiIgc3R5bGU9ImZpbGw6YmxhY2s7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNNS44NTc4Niw1Ljg1Nzg2QzcuNDE3NTgsNC4yOTgxNSA5Ljk0NjM4LDQuMjk4MTUgMTEuNTA2MSw1Ljg1Nzg2QzEzLjA2NTgsNy40MTc1OCAxMy4wNjU4LDkuOTQ2MzggMTEuNTA2MSwxMS41MDYxQzkuOTQ2MzgsMTMuMDY1OCA3LjQxNzU4LDEzLjA2NTggNS44NTc4NiwxMS41MDYxQzQuMjk4MTUsOS45NDYzOCA0LjI5ODE1LDcuNDE3NTggNS44NTc4Niw1Ljg1Nzg2WiIgc3R5bGU9ImZpbGw6cmdiKDIxMCwyMTAsMjEwKTsiLz4KICAgICAgICA8L2c+CiAgICAgICAgPGc+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0yMCwzMi4wMTIyQzIyLjIwNTgsMzIuMDEyMiAyMy45OTM5LDMzLjgwMDMgMjMuOTkzOSwzNi4wMDYxQzIzLjk5MzksMzguMjExOSAyMi4yMDU4LDQwIDIwLDQwQzE3Ljc5NDIsNDAgMTYuMDA2MSwzOC4yMTE5IDE2LjAwNjEsMzYuMDA2MUMxNi4wMDYxLDMzLjgwMDMgMTcuNzk0MiwzMi4wMTIyIDIwLDMyLjAxMjJaIiBzdHlsZT0iZmlsbDpyZ2IoMTMwLDEzMCwxMzApOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksMjguNDkzOUMzMC4wNTM2LDI2LjkzNDIgMzIuNTgyNCwyNi45MzQyIDM0LjE0MjEsMjguNDkzOUMzNS43MDE5LDMwLjA1MzYgMzUuNzAxOSwzMi41ODI0IDM0LjE0MjEsMzQuMTQyMUMzMi41ODI0LDM1LjcwMTkgMzAuMDUzNiwzNS43MDE5IDI4LjQ5MzksMzQuMTQyMUMyNi45MzQyLDMyLjU4MjQgMjYuOTM0MiwzMC4wNTM2IDI4LjQ5MzksMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxMDEsMTAxLDEwMSk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMy45OTM5LDE2LjAwNjFDNi4xOTk2OCwxNi4wMDYxIDcuOTg3ODEsMTcuNzk0MiA3Ljk4NzgxLDIwQzcuOTg3ODEsMjIuMjA1OCA2LjE5OTY4LDIzLjk5MzkgMy45OTM5LDIzLjk5MzlDMS43ODgxMywyMy45OTM5IDAsMjIuMjA1OCAwLDIwQzAsMTcuNzk0MiAxLjc4ODEzLDE2LjAwNjEgMy45OTM5LDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoMTg3LDE4NywxODcpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTUuODU3ODYsMjguNDkzOUM3LjQxNzU4LDI2LjkzNDIgOS45NDYzOCwyNi45MzQyIDExLjUwNjEsMjguNDkzOUMxMy4wNjU4LDMwLjA1MzYgMTMuMDY1OCwzMi41ODI0IDExLjUwNjEsMzQuMTQyMUM5Ljk0NjM4LDM1LjcwMTkgNy40MTc1OCwzNS43MDE5IDUuODU3ODYsMzQuMTQyMUM0LjI5ODE1LDMyLjU4MjQgNC4yOTgxNSwzMC4wNTM2IDUuODU3ODYsMjguNDkzOVoiIHN0eWxlPSJmaWxsOnJnYigxNjQsMTY0LDE2NCk7Ii8+CiAgICAgICAgPC9nPgogICAgICAgIDxnPgogICAgICAgICAgICA8cGF0aCBkPSJNMzYuMDA2MSwxNi4wMDYxQzM4LjIxMTksMTYuMDA2MSA0MCwxNy43OTQyIDQwLDIwQzQwLDIyLjIwNTggMzguMjExOSwyMy45OTM5IDM2LjAwNjEsMjMuOTkzOUMzMy44MDAzLDIzLjk5MzkgMzIuMDEyMiwyMi4yMDU4IDMyLjAxMjIsMjBDMzIuMDEyMiwxNy43OTQyIDMzLjgwMDMsMTYuMDA2MSAzNi4wMDYxLDE2LjAwNjFaIiBzdHlsZT0iZmlsbDpyZ2IoNzQsNzQsNzQpOyIvPgogICAgICAgIDwvZz4KICAgICAgICA8Zz4KICAgICAgICAgICAgPHBhdGggZD0iTTI4LjQ5MzksNS44NTc4NkMzMC4wNTM2LDQuMjk4MTUgMzIuNTgyNCw0LjI5ODE1IDM0LjE0MjEsNS44NTc4NkMzNS43MDE5LDcuNDE3NTggMzUuNzAxOSw5Ljk0NjM4IDM0LjE0MjEsMTEuNTA2MUMzMi41ODI0LDEzLjA2NTggMzAuMDUzNiwxMy4wNjU4IDI4LjQ5MzksMTEuNTA2MUMyNi45MzQyLDkuOTQ2MzggMjYuOTM0Miw3LjQxNzU4IDI4LjQ5MzksNS44NTc4NloiIHN0eWxlPSJmaWxsOnJnYig1MCw1MCw1MCk7Ii8+CiAgICAgICAgPC9nPgogICAgPC9nPgo8L3N2Zz4K";
+    }
+
+    function string_loading_html($beautify = false)
+    {
+        $css_font_family = '-apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"';
+
+        return '<html>'
+        .      '<head>'
+        .          '<title>Please wait...</title>'
+        .          '<meta charset="utf-8" /><meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1" />'
+        .          '<meta http-equiv="Content-type" content="text/html;charset=utf-8" />'
+        .          '<meta http-equiv="content-language" content="en" />'
+        .          '<meta name="format-detection" content="telephone=no" />'
+        .          '<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />'
+        .          '<meta http-equiv="refresh" content="3;URL=.">'
+        .      '</head>'
+        .      '<body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: '.$css_font_family.'; padding-top: calc(50vh - 2em - 64px);">'
+        .          '<p>OFFLINE<br>Please wait...</p>'
+        .          '<p><img alt="Please wait..." src="'.string_loading_svg_src_base64($beautify).'" /></p>'
+        .      '</body>'
+        .  '</html>';
+    }
+
+    function string_service_worker($beautify = false)
+    {
+        return '
+
+importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
+
+if (workbox)
+{
+    const LOCALHOST = ("localhost" == self.location.host);
+    
+    const VERSION = "0.0.0.1";
+
+    const  cache_prefix = "'.strtoupper(to_classname(get("canonical"))).'";
+    const  cache_suffix = VERSION;
+    
+    const FALLBACK_HTML_URL = "index.php";
+    const FALLBACK_IMG_URL  = "loading.svg";
+    
+    if (LOCALHOST) console.log("Worbox debugging");
+    workbox.setConfig({debug: LOCALHOST});
+        
+    self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
+    self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });
+
+    self.addEventListener("install", (event) => { event.waitUntil(caches.open(workbox.core.cacheNames.runtime).then((cache) => cache.addAll([
+    
+    //  FALLBACK_HTML_URL,
+        FALLBACK_IMG_URL
+    
+    ]))); });
+
+    workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime", googleAnalytics: "ga" });
+//  workbox.core.skipWaiting();
+//  workbox.core.clientsClaim();
+
+    var expiration = new workbox.expiration.Plugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60 });
+
+//  workbox.routing.registerRoute(new RegExp(".+\\\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));
+    workbox.routing.registerRoute(new RegExp(".+\\\\.css$"),                      new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-css"    + "-" + cache_suffix, plugins: [expiration] }));
+    workbox.routing.registerRoute(new RegExp("\.(?:png|jpg|jpeg|svg|gif)$"),    new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-images" + "-" + cache_suffix, plugins: [expiration] }));
+//  workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.NetworkFirst(         { cacheName: cache_prefix + "-" + "cache-POST"   + "-" + cache_suffix, plugins: [expiration] }), "POST");
+    workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-GET"    + "-" + cache_suffix, plugins: [expiration] }), "GET");
+    workbox.routing.setDefaultHandler(                                          new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-OTHERS" + "-" + cache_suffix, plugins: [expiration] }));
+
+    workbox.routing.setCatchHandler(function(event) 
+    {
+        if (event && !event.request && event.event) event = event.event;
+
+        if (event && event.request)
+        {
+            if (event.request.destination)
+            {
+                var default_html = \''.string_loading_html($beautify).'\';
+
+                switch (event.request.destination)
+                { 
+                    case "style":       break;
+                    case "script":      break;
+                //  case "document":    return caches.match(FALLBACK_HTML_URL); break;
+                    case "document":    return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
+                    case "audio":       break;
+                    case "video":       break;
+                    case "manifest":    break;
+                    case "image":       return caches.match(FALLBACK_IMG_URL);  break;
+                    case "font":        break;
+                    case "unknown":     return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
+                //  default:            return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
+                //  default:            return Response.error();
+                }
+            }
+        }
+
+        return Response.error();
+    });
+
+    workbox.googleAnalytics.initialize();  
+} 
+else 
+{
+    console.log("Could not load workbox framework!");
+}';
+
+    }
+
+    $__dom_generated = array(
+
+        array("path" => "manifest.json",                 "generated" => false, "function" => "string_manifest"),
+        array("path" => "browserconfig.xml",             "generated" => false, "function" => "string_ms_browserconfig"),
+        array("path" => "badge.xml",                     "generated" => false, "function" => "string_ms_badge"),
+        array("path" => "robots.txt",                    "generated" => false, "function" => "string_robots"),
+        array("path" => "human.txt",                     "generated" => false, "function" => "string_human"),
+        array("path" => "loading.svg",                   "generated" => false, "function" => "string_loading_svg"),
+        array("path" => "sw.js",                         "generated" => false, "function" => "string_service_worker"),
+        array("path" => "install-service-worker.html",   "generated" => false, "function" => "string_service_worker_install")
+
+        );
+
+    function generate_all_preprocess()
+    {
+        global $__dom_generated;
+
+        foreach ($__dom_generated as &$generated)
+        { 
+            $generated["generated"] = true;
+
+            if (!get("generate"))
+            {
+                if (dom_path($generated["path"]))        { $generated["generated"] = false; continue; }
+                if (dom_path($generated["path"].".php")) { $generated["generated"] = false; continue; }
+            }
+
+            $f = fopen($generated["path"], "w+");
+            fclose($f);
+        }
+    }
+    
+    function generate_all($beautify = false)
     {
         $prev_beautify = false; if ($beautify) { $prev_beautify = get("beautify"); set("beautify", $beautify); }
 
-        generate_manifest           ($force);
-        generate_ms_browserconfig   ($force);
-        generate_ms_badge           ($force);
-        generate_robots             ($force);
-        generate_human              ($force);
-        generate_loading_svg        ($force);
+        global $__dom_generated;
+
+        foreach ($__dom_generated as $generated)
+        { 
+            if ($generated["generated"])
+            {           
+                $f = fopen($generated["path"], "w+");
+                if (!$f) continue;
+
+                $content = $generated["function"]($beautify);
+
+                fwrite($f, utf8_encode($content));
+                fclose($f);
+            }
+        }
 
         if ($beautify) { set("beautify", $prev_beautify); }
     }

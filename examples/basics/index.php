@@ -8,7 +8,7 @@
 
     ######################################################################################################################################
 
-    set("theme_color", "#f57e42"); // There are lot of configurable defaults/options
+    set("theme_color", "#ff590d"); // There are lot of configurable defaults/options
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 
@@ -25,10 +25,10 @@
                 toolbar(h1("Hello World!")). // A toolbar, where I decide to put my level-1 headline
 
                 style(" 
-                    
-                    .toolbar .row:first-child { background: center/cover url(".get("my_example_img_src")."); }
 
-                    main .grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+                    .toolbar>.row:first-child { background: center/cover url(".get("my_example_img_src")."); }
+                    .main>.grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+                     body>.footer { background-color: dimgray }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated .css stylesheet
 
