@@ -46,12 +46,14 @@
 
     // API Constants
     
-    define("AUTHOR",        "Antoine Villepreux");                
-    define("INTERNAL_LINK", "_self");
-    define("EXTERNAL_LINK", "_blank");
-    define("VERSION",       "0.2");
+    define("DOM_AUTHOR",        "Antoine Villepreux"); // DOM internals
+    define("DOM_VERSION",       "0.2");
+    
+    define("INTERNAL_LINK",     "_self"); // DOM external API. So the non-prefixed syntax
+    define("EXTERNAL_LINK",     "_blank");
+    
 
-    $root_suffix = "";
+  /*$root_suffix = "";
     {
         if (defined("ROOT_SUBDIR"))
         {
@@ -94,6 +96,28 @@
         {
             if (!defined("SYSTEM_ROOT")) define("SYSTEM_ROOT", '/'.$root_suffix);
         }
+    }*/
+
+    define("DOM_PATH_MAX_DEPTH", 16);
+
+    function dom_path($path, $search = true, $default = false, $max_depth = DOM_PATH_MAX_DEPTH)
+    {
+        if (file_exists($path)) { return $path; }
+        if ((DOM_PATH_MAX_DEPTH == $max_depth) && url_exists($path)) { return $path; }
+        if ($max_depth <= 0) { return $default; }
+
+        if ($search)
+        {
+            $pathinfo   = pathinfo($path);
+            $dirname    = at($pathinfo, "dirname");
+            $basename   = at($pathinfo, "basename");
+
+            if (file_exists($dirname."/".get("root_file_hint","#"))) { return $default; }
+
+            return dom_path("../$dirname/$basename", $search, $default, $max_depth - 1);
+        }
+
+        return $default;
     }
 
     // Cannot be modified at browser URL level
@@ -101,10 +125,9 @@
 //  set("title",                             "Blog");
 	set("keywords",                          "");
 
-	set("canonical",                         absolute_host()."/".relative_uri());
-    set("url",                               absolute_uri());  
-                                                     if (server_file_exists(SYSTEM_ROOT."DTD/xhtml-target.dtd"))
-    set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "/DTD/xhtml-target.dtd"');
+	set("canonical",                         absolute_uri(false));
+    set("url",                               absolute_uri());                         if (dom_path("DTD/xhtml-target.dtd"))
+    set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd").'"');
 
     set("normalize",                        "sanitize");
 
@@ -123,7 +146,9 @@
 	set("geo_region",                       "FR-75");
 	set("geo_placename",                    "Paris");
 	set("geo_position_x",                   48.862808);
-	set("geo_position_y",                    2.348237);
+    set("geo_position_y",                    2.348237);
+
+    set("support_service_worker",           !!dom_path('sw.js'));
     
 //	set("fonts",                            "Roboto:300,400,500");
     
@@ -163,16 +188,16 @@
     set("version_prefixfree",               "1.0.7");
     set("version_h5bp",                     "7.1.0");
     
-    set("cache_time",                       1*60*60);   // 1h
+    set("cache_time",                       1*60*60); // 1h
 
     // Can be modified at browser URL level
 
-    set("framework",                        get("framework",    "NONE"  ));
-    set("amp",                              get("amp",          false   ));
-    set("cache",                            get("cache",        false   ));
-    set("minify",                           get("minify",       false   ));
-    set("page",                             get("page",         1       ));
-    set("n",                                get("n",            12      ));
+    set("framework",                        get("framework",    "NONE"                  ));
+    set("amp",                              get("amp",          false                   ));
+    set("cache",                            get("cache",        false                   ));
+    set("minify",                           get("minify",       !get("beautify",false)  )); // Performances first
+    set("page",                             get("page",         1                       ));
+    set("n",                                get("n",            12                      ));
 
     #endregion
     #region HELPERS : AJAX / ASYNC
@@ -264,7 +289,9 @@
     
     function ajax_script_head()
     {
-        return  eol() . tab(1) .   'var dom_ajax_pending_calls = [];'
+        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+            .   eol()
+            .   eol() . tab(1) .   'var dom_ajax_pending_calls = [];'
             .   eol()
             .   eol() . tab(1) .   'function dom_ajax(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
@@ -275,7 +302,9 @@
     
     function ajax_script_body()
     {
-        return  eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
+        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+            .   eol()
+            .   eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
             .   eol() . tab(2) .       'if (typeof onsuccess    === "undefined") onsuccess  = null;'
             .   eol() . tab(2) .       'if (typeof period       === "undefined") period     = 0;'
@@ -2535,10 +2564,12 @@
     {
         if (!!get("cache"))
         {
-            if (has("cache_reset") && is_dir("cache")) foreach (array_diff(scandir("cache"), array('.','..')) as $basename) @unlink("cache/$basename");
+            $cache_dir = "/cache";
 
-            $cache_basename         = md5(absolute_uri() . VERSION);
-            $cache_filename         = server_file_name(SYSTEM_ROOT.'cache/'.$cache_basename, false);
+            if (has("cache_reset") && is_dir("/cache")) foreach (array_diff(scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
+
+            $cache_basename         = md5(absolute_uri() . DOM_VERSION);
+            $cache_filename         = "$cache_dir/$cache_basename";
             $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
             $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache_time", 1*60*60)) < filemtime($cache_filename));
             
@@ -2554,7 +2585,7 @@
                     fclose($cache_file);            
                 }
 
-                echo eol().comment("Cached copy, generated ".date('Y-m-d H:i', filemtime($cache_filename)).(!!get("debug") ? ("Root: ".SYSTEM_ROOT) : ""));
+                echo eol().comment("Cached copy, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
                 exit;
             }
         
@@ -2575,7 +2606,7 @@
             }
             else if (!has("ajax"))
             {
-                if ("html" == get("doctype",false)) echo eol().comment("Could not generate cache! " . get("cache_filename").(!!get("debug") ? ("Root: ".SYSTEM_ROOT) : ""));
+                if ("html" == get("doctype",false)) echo eol().comment("Could not generate cache! " . get("cache_filename"));
             }
             
             ob_end_flush();
@@ -2586,13 +2617,18 @@
     #region API : PHP DOCUMENT
     ######################################################################################################################################
 
-    function doc_redirect($url)
+    function dom_include($path)
+    {
+        include($path);
+    }
+
+    function dom_redirect($url)
     {   
         header("Location: ".href($url));
         exit;
     }
     
-    function doc_redirect_https()
+    function dom_redirect_https()
     {        
         if ($_SERVER['SERVER_NAME'] != "localhost" && !isset($_SERVER['HTTPS']) && !has("ajax"))
         {
@@ -2601,11 +2637,11 @@
             $url .= ($_SERVER["SERVER_PORT"] != "80" && $_SERVER["SERVER_PORT"] != "443") ? (":".$_SERVER["SERVER_PORT"]) : "";
             $url .=  $_SERVER["REQUEST_URI"];
 
-            doc_redirect($url);
+            dom_redirect($url);
         }
     }
     
-    function doc_header($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
+    function dom_header($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
         if ($doctype  === false) $doctype  = get("doctype",  has("rss") ? ((get("rss") == "" || get("rss") == false) ? "rss" : get("rss","rss")) : "html");
         if ($encoding === false) $encoding = get("encoding", has("iso") ? "ISO-8859-1"  : "utf-8");
@@ -2639,10 +2675,12 @@
             if ($attachement_length !== false)              @header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
         }
 
+        generate_all(false, get("beautify"));
+
         cache_start();
     }
 
-    function doc_output($doc = "")
+    function dom_output($doc = "")
     {
         if (get("encoding") == "gzip") ob_start("ob_gzhandler");
 
@@ -2671,9 +2709,9 @@
                 $w = $dim[0];
                 $h = $dim[1];
 
-                $path = "/ms-icon-".$w."x".$h.".png";
+                $path = dom_path("ms-icon-".$w."x".$h.".png");
 
-                if (server_file_exists($path))
+                if ($path)
                 {
                     $xml_icons .= $tab.tag((($w==$h)?"square":"wide").$w."x".$h."logo", false, array("src" => $path), true, true);
                 }
@@ -2708,9 +2746,9 @@
 
         foreach (array(36 => 0.75, 48 => 1.0, 72 => 1.5, 96 => 2.0, 144 => 3.0, 192 => 4.0, 512 => 4.0) as $w => $density)
         {            
-            $filename = get("canonical")."/android-icon-$w"."x"."$w.png";
+            $filename = dom_path("android-icon-$w"."x"."$w.png");
 
-            if (file_exists($filename))
+            if ($filename)
             {
                 $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
             }
@@ -2741,16 +2779,15 @@
 
     function string_manifest($beautify = false) { return (($beautify && defined("JSON_PRETTY_PRINT")) ? json_encode(json_manifest(), JSON_PRETTY_PRINT) : json_encode(json_manifest())); }
 
-    function generate_file($path, $content, $force = false)
+    function generate_file($path, $content_function, $force = false, $beautify = false)
     {
-        if (!$force)
-        {
-            if (server_file_exists($path))          return "";
-            if (server_file_exists($path.".php"))   return "";
-        }
+        if (!$force && !!dom_path($path))        return "";
+        if (!$force && !!dom_path($path.".php")) return "";
 
         $f = fopen($path, "w+");
         if (!$f) return "";
+
+        $content = $content_function($beautify);
 
         fwrite($f, utf8_encode($content));
         fclose($f);
@@ -2778,57 +2815,28 @@
 
     function string_loading_svg($beautify = false)
     {
-        return '<svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
-            <g transform="rotate(0 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(36 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(72 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.7s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(108 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(144 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(180 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(216 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(252 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.2s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(288 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.1s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g><g transform="rotate(324 50 50)" style="animation-play-state: running; animation-delay: 0s;">
-                <rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;">
-                <animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="0s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate>
-                </rect>
-            </g>
-        </svg>';
+        return '<svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">'.
+
+                '<g transform="rotate(0 50 50)"   style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(36 50 50)"  style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(72 50 50)"  style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.7s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(108 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(144 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(180 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(216 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(252 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.2s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(288 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.1s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+                '<g transform="rotate(324 50 50)" style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="#FF8800" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.0s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>'.
+
+            '</svg>';
     }
 
-    function generate_manifest          ($force = false, $beautify = false) { return generate_file("manifest.json",     string_manifest         ($beautify), $force); }
-    function generate_ms_browserconfig  ($force = false, $beautify = false) { return generate_file("browserconfig.xml", string_ms_browserconfig ($beautify), $force); }
-    function generate_ms_badge          ($force = false, $beautify = false) { return generate_file("badge.xml",         string_ms_badge         ($beautify), $force); }
-    function generate_robots            ($force = false, $beautify = false) { return generate_file("robots.txt",        string_robots           ($beautify), $force); }
-    function generate_human             ($force = false, $beautify = false) { return generate_file("human.txt",         string_human            ($beautify), $force); }
-    function generate_loading_svg       ($force = false, $beautify = false) { return generate_file("loading.svg",       string_loading_svg      ($beautify), $force); }
+    function generate_manifest          ($force = false, $beautify = false) { return generate_file("manifest.json",     "string_manifest",          $force, $beautify); }
+    function generate_ms_browserconfig  ($force = false, $beautify = false) { return generate_file("browserconfig.xml", "string_ms_browserconfig",  $force, $beautify); }
+    function generate_ms_badge          ($force = false, $beautify = false) { return generate_file("badge.xml",         "string_ms_badge",          $force, $beautify); }
+    function generate_robots            ($force = false, $beautify = false) { return generate_file("robots.txt",        "string_robots",            $force, $beautify); }
+    function generate_human             ($force = false, $beautify = false) { return generate_file("human.txt",         "string_human",             $force, $beautify); }
+    function generate_loading_svg       ($force = false, $beautify = false) { return generate_file("loading.svg",       "string_loading_svg",       $force, $beautify); }
 
     function generate_all($force = false, $beautify = false)
     {
@@ -2852,7 +2860,7 @@
     function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"]; $host = rtrim($host,"/"); $host .= "/"; return $host; }
     function relative_uri($params = false)      { $uri = explode('?', $_SERVER['REQUEST_URI'], 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
     function relative_uri_ex()                  { return relative_uri(true); }
-    function absolute_uri($params = false)      { return absolute_host() . relative_uri($params); }
+    function absolute_uri($params = false)      { return absolute_host().relative_uri($params); }
     
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? get("pinterest_user")  : $username; 
                                                                                   $board    = ($board    === false) ? get("pinterest_board") : $board;    return "https://www.pinterest.com/$username/$board/";                      }
@@ -2926,7 +2934,7 @@
     
     function self($html) { return $html; }
 
-    function server_file_name($filename, $existing_only = true)
+  /*function server_file_name($filename, $existing_only = true)
     {
         if ($existing_only)
         {
@@ -2954,26 +2962,26 @@
                 if (false !== $realpath && (PHP_VERSION_ID < 50300) && !file_exists($realpath)) { $realpath = false; }  
                 if (false !== $realpath) return $realpath;
             }
-        /*    
-            if (false === realpath($filename))  return false;
-        
-            if (@file_exists($filename)) return $filename;
             
-            if ($filename[0] == '/')
-            {
-                if (@file_exists(                          '/'.$filename)) return                           '/'.$filename;
-                if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $filename)) return $_SERVER['DOCUMENT_ROOT'].    $filename;
-                if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$filename;   
-            }
-            else
-            {
-                $path = str_replace("index.php","",$_SERVER['PHP_SELF']);
+        //  if (false === realpath($filename))  return false;
+        //
+        //  if (@file_exists($filename)) return $filename;
+        //  
+        //  if ($filename[0] == '/')
+        //  {
+        //      if (@file_exists(                          '/'.$filename)) return                           '/'.$filename;
+        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $filename)) return $_SERVER['DOCUMENT_ROOT'].    $filename;
+        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$filename;   
+        //  }
+        //  else
+        //  {
+        //      $path = str_replace("index.php","",$_SERVER['PHP_SELF']);
+        //
+        //      if (@file_exists(                          '/'.$path.$filename)) return                           '/'.$path.$filename;
+        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $path.$filename)) return $_SERVER['DOCUMENT_ROOT'].    $path.$filename;
+        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename;
+        //  }  
         
-                if (@file_exists(                          '/'.$path.$filename)) return                           '/'.$path.$filename;
-                if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $path.$filename)) return $_SERVER['DOCUMENT_ROOT'].    $path.$filename;
-                if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename;
-            }  
-        */
             return false;            
         }
         else
@@ -3006,27 +3014,17 @@
         return ""    !=  $filename 
             && false !== $filename 
             && false !== server_file_name($filename);
-    }
+    }*/
 
     function include_file($filename)
     {
-        if (0 === stripos($filename, "http"))
-        {
-            $content = @file_get_contents($filename);
-            
-            if (false !== $content)
-            {
-                return $content;
-            }
-        }
-        
-        if (!server_file_exists($filename)) $filename = get($filename);
-        if ( server_file_exists($filename))
-        {
-            ob_start();
-            include server_file_name($filename);
-            return ob_get_clean();
-        }
+        $content = @file_get_contents($filename);
+        if (false !== $content) { return $content; }
+
+        ob_start();
+        @include $filename;
+        $content = @ob_get_clean();
+        if (false !== $content) { return $content; }
 
         return "";
     }
@@ -3207,7 +3205,7 @@
         }
     }
 
-    function html($html = "", $generate_files_if_needed = true)
+    function html($html = "")
     {
         debug_track_timing();
 
@@ -3217,8 +3215,6 @@
         {
             if (!has("ajax"))
             {
-                if ($generate_files_if_needed) generate_all(false, get("beautify"));
-
                 foreach (get("delayed_components", array()) as $delayed_component => $param)
                 {
                     $html = str_replace(comment($delayed_component), call_user_func($delayed_component, $param), $html);
@@ -3264,75 +3260,76 @@
         
         if (false === $html)
         {
-           $html =          title()
+            $path_manifest      = dom_path("manifest.json");
+            $path_manifest_php  = dom_path("manifest.json.php");
+            $path_css           = dom_path("main.css");
+            $path_css_php       = dom_path("main.css.php");
+
+            $html =         title()
+
                  . eol(2) . comment("Metadata")
-                 . eol(2) . metas()
-                 . eol(2) . (server_file_exists(            "manifest.json.php") ? link_rel("manifest",      "manifest.json.php", false, 17) : 
-                            (server_file_exists(SYSTEM_ROOT."manifest.json.php") ? link_rel("manifest", ROOT."manifest.json.php", false, 17) : 
-                            (server_file_exists(            "manifest.json")     ? link_rel("manifest",      "manifest.json",     false, 17) : 
-                            (server_file_exists(SYSTEM_ROOT."manifest.json")     ? link_rel("manifest", ROOT."manifest.json",     false, 17) : ''))))
-                 . eol(2) . comment("Framework styles")
+                 . eol(2) . metas()                                                   . ($path_manifest_php ? (""
+                 . eol(2) . link_rel("manifest", $path_manifest_php, false, 17)     ) : ($path_manifest     ? (""
+                 . eol(2) . link_rel("manifest", $path_manifest,     false, 17)     ) : ''))
+                 
+                 . eol(2) . comment("DOM CSS boilerplate")
                  . eol(2) . link_styles($async_css)
                  . eol(2) . styles()
-                 . eol(2) . comment("Main style")
-                 . eol(2) . (server_file_exists(            "css/main.css.php") ?      style(     "css/main.css.php") :
-                            (server_file_exists(         "../css/main.css.php") ?      style(  "../css/main.css.php") :
-                            (server_file_exists(SYSTEM_ROOT."css/main.css.php") ?      style(ROOT."css/main.css.php") :
-                            (server_file_exists(            "css/main.css.php") ? link_style(     "css/main.css.php") :
-                            (server_file_exists(         "../css/main.css.php") ? link_style(  "../css/main.css.php") :
-                            (server_file_exists(SYSTEM_ROOT."css/main.css.php") ? link_style(ROOT."css/main.css.php") : 
-                            (server_file_exists(            "css/main.css")     ?      style(     "css/main.css")     : 
-                            (server_file_exists(         "../css/main.css")     ?      style(  "../css/main.css")     : 
-                            (server_file_exists(SYSTEM_ROOT."css/main.css")     ?      style(ROOT."css/main.css")     : '')))))))))
-                 . eol(2) . comment("Scripts")
+                 
+                 . eol(2) . comment("Main style")     . ($path_css_php ? (""
+                 . eol(2) . style($path_css_php)    ) : ($path_css     ? (""
+                 . eol(2) . style($path_css)        ) : ''))
+                 
+                 . eol(2) . comment("DOM Javascript boilerplate")
                  . eol(2) . scripts_head();
         }
         
         $html         = css_postprocess($html);
         $hook_amp_css = css_postprocess($hook_amp_css);
+
+        if (get("support_service_worker", false))
+        {
+            hook_amp_require("install-serviceworker");
+        }
         
-        return  tag
-                (
-                    'head'
-                ,   eol(2) . $html 
-                .   eol(2) . if_then(AMP(), ''
-                        
-                    .   eol(2) . '<style amp-custom>' . $hook_amp_css . '</style>'
-                        
-                    .   eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>"
-                        
-                    .   eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'
+        return tag('head',
 
-                    .   script_amp_iframe              ()
-                    .   script_amp_sidebar             ()
-                    .   script_amp_position_observer   ()
-                    .   script_amp_animation           ()
-                    .   script_amp_form                ()
-                    .   script_amp_youtube             ()
+                    eol(2) . $html .
+                    eol(2) . if_then(AMP(), "".
+                        
+                        eol(2) . '<style amp-custom>' . $hook_amp_css . '</style>'.                        
+                        eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
+                        eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
 
-                    .   if_then(get("support_service_worker", false), ''
+                        script_amp_iframe                   ().
+                        script_amp_sidebar                  ().
+                        script_amp_position_observer        ().
+                        script_amp_animation                ().
+                        script_amp_form                     ().
+                        script_amp_youtube                  ().
+                        script_amp_install_serviceworker    ().
 
-                            .   eol(1) . '<script async custom-element="amp-install-serviceworker'  . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker'  . '-0.1.js"></script>'
-                            )
-                    )
-                ); 
+                        "")
+                    ); 
     }
 
     function delayed_component($callback, $arg) { set("delayed_components", array_merge(get("delayed_components", array()), array($callback => $arg))); return comment($callback); }
     
-    function script_amp_iframe              () { return delayed_component("_script_amp_iframe"            , false); }
-    function script_amp_sidebar             () { return delayed_component("_script_amp_sidebar"           , false); }
-    function script_amp_position_observer   () { return delayed_component("_script_amp_position_observer" , false); }
-    function script_amp_animation           () { return delayed_component("_script_amp_animation"         , false); }
-    function script_amp_form                () { return delayed_component("_script_amp_form"              , false); }
-    function script_amp_youtube             () { return delayed_component("_script_amp_youtube"           , false); }
+    function script_amp_install_serviceworker   () { return delayed_component("_script_amp_install_serviceworker"   , false); }
+    function script_amp_iframe                  () { return delayed_component("_script_amp_iframe"                  , false); }
+    function script_amp_sidebar                 () { return delayed_component("_script_amp_sidebar"                 , false); }
+    function script_amp_position_observer       () { return delayed_component("_script_amp_position_observer"       , false); }
+    function script_amp_animation               () { return delayed_component("_script_amp_animation"               , false); }
+    function script_amp_form                    () { return delayed_component("_script_amp_form"                    , false); }
+    function script_amp_youtube                 () { return delayed_component("_script_amp_youtube"                 , false); }
 
-    function _script_amp_iframe             () { return if_then(has_amp_requirement("iframe"),              eol(1) . '<script async custom-element="amp-iframe'              . '" src="https://cdn.ampproject.org/v0/amp-iframe'             . '-0.1.js"></script>'); }
-    function _script_amp_sidebar            () { return if_then(has_amp_requirement("sidebar"),             eol(1) . '<script async custom-element="amp-sidebar'             . '" src="https://cdn.ampproject.org/v0/amp-sidebar'            . '-0.1.js"></script>'); }
-    function _script_amp_position_observer  () { return if_then(has_amp_requirement("position-observer"),   eol(1) . '<script async custom-element="amp-position-observer'   . '" src="https://cdn.ampproject.org/v0/amp-position-observer'  . '-0.1.js"></script>'); }
-    function _script_amp_animation          () { return if_then(has_amp_requirement("animation"),           eol(1) . '<script async custom-element="amp-animation'           . '" src="https://cdn.ampproject.org/v0/amp-animation'          . '-0.1.js"></script>'); }
-    function _script_amp_form               () { return if_then(has_amp_requirement("form"),                eol(1) . '<script async custom-element="amp-form'                . '" src="https://cdn.ampproject.org/v0/amp-form'               . '-0.1.js"></script>'); }
-    function _script_amp_youtube            () { return if_then(has_amp_requirement("youtube"),             eol(1) . '<script async custom-element="amp-youtube'             . '" src="https://cdn.ampproject.org/v0/amp-youtube'            . '-0.1.js"></script>'); }
+    function _script_amp_install_serviceworker  () { return if_then(has_amp_requirement("install-serviceworker"),   eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>'); }
+    function _script_amp_iframe                 () { return if_then(has_amp_requirement("iframe"),                  eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>'); }
+    function _script_amp_sidebar                () { return if_then(has_amp_requirement("sidebar"),                 eol(1) . '<script async custom-element="amp-sidebar'               . '" src="https://cdn.ampproject.org/v0/amp-sidebar'               . '-0.1.js"></script>'); }
+    function _script_amp_position_observer      () { return if_then(has_amp_requirement("position-observer"),       eol(1) . '<script async custom-element="amp-position-observer'     . '" src="https://cdn.ampproject.org/v0/amp-position-observer'     . '-0.1.js"></script>'); }
+    function _script_amp_animation              () { return if_then(has_amp_requirement("animation"),               eol(1) . '<script async custom-element="amp-animation'             . '" src="https://cdn.ampproject.org/v0/amp-animation'             . '-0.1.js"></script>'); }
+    function _script_amp_form                   () { return if_then(has_amp_requirement("form"),                    eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>'); }
+    function _script_amp_youtube                () { return if_then(has_amp_requirement("youtube"),                 eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>'); }
 
     function title  ($title = false) { return delayed_component("_title", $title); }
     function _title ($title = false) { return ($title === false) ? tag('title', get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')) : tag('title', $title); }
@@ -3382,9 +3379,9 @@
         }
 
         $info   = pathinfo($name);
-        $dir    = array_key_exists('dirname',   $info) ? $info['dirname']   : false;
-        $ext    = array_key_exists('extension', $info) ? $info['extension'] : $ext;
-        $name   = array_key_exists('filename',  $info) ? $info['filename']  : $name;
+        $dir    = at($info, 'dirname',   false);
+        $ext    = at($info, 'extension', $ext);
+        $name   = at($info, 'filename',  $name);
         $name   = (!!$dir)  ? "$dir/$name"  : $name;
         $name   = (!!$size) ? "$name-$size" : $name;
 
@@ -3394,8 +3391,9 @@
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext";
         if (!!$media)                           $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
 
-        return  (server_file_exists("./"       ."$name.$ext") ? link_rel($type,      "$name.$ext", $attributes) : 
-                (server_file_exists(SYSTEM_ROOT."$name.$ext") ? link_rel($type, ROOT."$name.$ext", $attributes) : ''));
+        $path = dom_path($name.$ext);
+
+        return  $path ? link_rel($type, $path, $attributes) : '';
     }
     
     function metas  () { return delayed_component("_metas", false); }
@@ -3418,8 +3416,8 @@
         //  .   eol() . meta('robots',                              'NOODP') // Deprecated
         //  .   eol() . meta('googlebot',                           'NOODP')
             .   eol() . meta('description',                         get('description', get('title')))
-            .   eol() . meta('author',                              get('author',AUTHOR))
-            .   eol() . meta('copyright',                           get('author',AUTHOR).' 2000-'.date('Y'))
+            .   eol() . meta('author',                              get('author',DOM_AUTHOR))
+            .   eol() . meta('copyright',                           get('author',DOM_AUTHOR).' 2000-'.date('Y'))
             .   eol() . meta('title',                               get('title'))
             .   eol() . meta('theme-color',                         get("theme_color"))
             .   eol()       
@@ -3437,10 +3435,10 @@
             .   eol() . meta('twitter:url',                         get('canonical'))
             .   eol() . meta('twitter:title',                       get('title'))
             .   eol() . meta('twitter:description',                 get('description', get('title')))
-            .   eol() . meta('twitter:image',                       get('canonical').'/'.get('image'))
+            .   eol() . meta('twitter:image',                       dom_path(get('image')))
             .   eol()       
             .   eol() . meta_property('og:site_name',               get('og_site_name', get('title')))
-            .   eol() . meta_property('og:image',                   get('canonical').'/'.get('image'))
+            .   eol() . meta_property('og:image',                   dom_path(get('image')))
             .   eol() . meta_property('og:title',                   get('title'))
             .   eol() . meta_property('og:description',             get('description'))
             .   eol() . meta_property('og:url',                     get('canonical'))            
@@ -3452,28 +3450,28 @@
             .   eol() . meta('google-site-verification',            get("google_site_verification"))        )
             .   eol()
             .   eol() . meta('msapplication-TileColor',            	get("theme_color"))
-            .   eol() . meta('msapplication-TileImage',            	'ms-icon-144x144.png')
+            .   eol() . meta('msapplication-TileImage',            	dom_path('ms-icon-144x144.png'))
             .   eol()
-            .   eol() . meta('msapplication-square70x70logo',		'ms-icon-70x70.png')
-            .   eol() . meta('msapplication-square150x150logo',    	'ms-icon-150x150.png')
-            .   eol() . meta('msapplication-wide310x150logo',      	'ms-icon-310x150.png')
-            .   eol() . meta('msapplication-square310x310logo',    	'ms-icon-310x310.png')
+            .   (dom_path('ms-icon-70x70.png'    ) ? (eol() . meta('msapplication-square70x70logo',     dom_path('ms-icon-70x70.png'    ))) : '')
+            .   (dom_path('ms-icon-150x150.png'  ) ? (eol() . meta('msapplication-square150x150logo',   dom_path('ms-icon-150x150.png'  ))) : '')
+            .   (dom_path('ms-icon-310x150.png'  ) ? (eol() . meta('msapplication-wide310x150logo',     dom_path('ms-icon-310x150.png'  ))) : '')
+            .   (dom_path('ms-icon-310x310.png'  ) ? (eol() . meta('msapplication-square310x310logo',   dom_path('ms-icon-310x310.png'  ))) : '')
             .   eol()
             .   eol() . meta('msapplication-notification',         	'frequency=30;'
-                                                                .   'polling-uri' .'='./*urlencode*/(get('canonical').'/?rss=tile&id=1').';'
-                                                                .   'polling-uri2'.'='./*urlencode*/(get('canonical').'/?rss=tile&id=2').';'
-                                                                .   'polling-uri3'.'='./*urlencode*/(get('canonical').'/?rss=tile&id=3').';'
-                                                                .   'polling-uri4'.'='./*urlencode*/(get('canonical').'/?rss=tile&id=4').';'
-                                                                .   'polling-uri5'.'='./*urlencode*/(get('canonical').'/?rss=tile&id=5').'; cycle=1')
+                                                                .   'polling-uri' .'=/?rss=tile&id=1;'
+                                                                .   'polling-uri2'.'=/?rss=tile&id=2;'
+                                                                .   'polling-uri3'.'=/?rss=tile&id=3;'
+                                                                .   'polling-uri4'.'=/?rss=tile&id=4;'
+                                                                .   'polling-uri5'.'=/?rss=tile&id=5; cycle=1')
                                                                 
             // TODO FIX HREFLANG ALTERNATE
-            
-            .   eol()   
-            .   eol() .  (server_file_exists(SYSTEM_ROOT."rss") ?   link_rel("alternate",   get('canonical')."/rss", array("type" => "application/rss+xml", "title" => "RSS")) : '')
-            .   eol() .                                             link_rel("alternate",   get("url"),              array("hreflang" => "fr-fr"))                                              . if_then(AMP(), '', ''
-            .   eol() .                                             link_rel("amphtml",     get("canonical")."/?amp=1")                                                                         )
-            .   eol() .                                             link_rel("canonical",   get('canonical')) 
 
+            .   eol()   
+            .   eol() . link_rel("alternate",   "/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
+            .   eol() . link_rel("alternate",   "/?lang=en", array("hreflang" => "en-EN"))
+            .   eol() . link_rel("alternate",   "/?lang=fr", array("hreflang" => "fr-fr"))                              . if_then(AMP(), '', ''
+            .   eol() . link_rel("amphtml",     "/?amp=1")                                                              )
+            .   eol() . link_rel("canonical",   get('canonical')) 
             .   eol()
             .   eol() . link_rel_icon(get("image"))
             .   eol()
@@ -3510,13 +3508,13 @@
 //  function link_style($href, $media = "screen")                           {                       return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
     function link_style($href, $media = "screen", $async = false)           { if (!!get("no_css")) return ''; return (AMP() || !!get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style  ($filename_or_code = "")                                                            { $css = eol().(server_file_exists($filename_or_code) ? include_css($filename_or_code) : (url_exists($filename_or_code) ? include_css($filename_or_code) : raw_css ($filename_or_code))).eol(); if (AMP()) hook_amp_css($css); return AMP() ? '' : tag(if_then(AMP(), 'style amp-custom', 'style'), $css); }
-    function script ($filename_or_code = "", $type = "text/javascript",                 $force = false) {                                return if_then(!$force && AMP(), '', tag('script', eol().(server_file_exists($filename_or_code) ? include_js ($filename_or_code) : (url_exists($filename_or_code) ? include_js ($filename_or_code) : raw_js  ($filename_or_code))).eol(),                                            array("type" => $type))); }
+    function style  ($filename_or_code = "")                                                            { $filename = dom_path($filename_or_code);                                             $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (AMP()) hook_amp_css($css); return AMP() ? '' : tag(if_then(AMP(), 'style amp-custom', 'style'), $css); }
+    function script ($filename_or_code = "", $type = "text/javascript",                 $force = false) { $filename = dom_path($filename_or_code); return if_then(!$force && AMP(), '', tag('script', eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(),                                                 array("type" => $type))); }
     function script_src($src,                $type = "text/javascript", $extra = false, $force = false) { if (!!get("no_js")) return ''; return if_then(!$force && AMP(), '', tag('script', '',                                                                                                                   ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script_ajax_head()                                             { return if_then(AMP(), "", script(ajax_script_head())); }
-    function script_ajax_body()                                             { return if_then(AMP(), "", script(ajax_script_body())); }
+    function script_ajax_head()                                             { return if_then(!AMP(), script(ajax_script_head())); }
+    function script_ajax_body()                                             { return if_then(!AMP(), script(ajax_script_body())); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -3537,21 +3535,30 @@
     {
         if ($fonts === false) $fonts = get("fonts");
 
-        return          
-                                                                                                                                                                                                                                                                                                                                                                                 (("normalize" == get("normalize")) ? (""
-            .               ((server_file_exists(SYSTEM_ROOT."css/normalize.min.css")               ) ? link_style(ROOT."css/normalize.min.css",                  "screen", false)    : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == get("normalize")) ? (""
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/sanitize.min.css")                ) ? link_style(ROOT."css/sanitize.min.css",                   "screen", false)    : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
-        //  .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/h5bp/main.css")                   ) ? link_style(ROOT."css/h5bp/main.css",                      "screen", false)    : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
-                                                                                                                                                                                                                                                                                                                                                                               . (("material"  == get("framework")) ? (""
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/material-components-web.min.css") ) ? link_style(ROOT."css/material-components-web.min.css",    "screen", false)    : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == get("framework")) ? (""
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/bootstrap.min.css")               ) ? link_style(ROOT."css/bootstrap.min.css",                  "screen", false)    : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == get("framework")) ? (""
-            .   eol() .                                                                                                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
-            .   eol() .                                                                                                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .   eol() .                                                                                                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                         ) : "") . (!!$fonts                          ? (""
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/google-fonts.css")                ) ? link_style(ROOT."css/google-fonts.css",                   "screen", $async)   : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                             "screen", $async    ))         ) : "") . (("material"  == get("framework")) ? ("" 
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/material-icons.css")              ) ? link_style(ROOT."css/material-icons.css",                 "screen", $async)   : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                           "screen", $async    ))         ) : "") . (!!get("support_sliders", false)   ? (""
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/slick.css")                       ) ? link_style(ROOT."css/slick.css",                          "screen", $async)   : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . get("version_slick")     . '/slick.css',                               "screen", $async    ))
-            .   eol() .     ((server_file_exists(SYSTEM_ROOT."css/slick-theme.css")                 ) ? link_style(ROOT."css/slick-theme.css",                    "screen", $async)   : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . get("version_slick")     . '/slick-theme.css',                         "screen", $async    ))         ) : "")
+        $path_normalize         = dom_path("css/normalize.min.css");
+        $path_sanitize          = dom_path("css/sanitize.min.css");
+        $path_h5bp              = dom_path("css/h5bp/main.css");
+        $path_material          = dom_path("css/material-components-web.min.css");
+        $path_bootstrap         = dom_path("css/bootstrap.min.css");
+        $path_google_fonts      = dom_path("css/google-fonts.css");
+        $path_material_icons    = dom_path("css/material-icons.css");
+        $path_slick             = dom_path("css/slick.css");
+        $path_slick             = dom_path("css/slick-theme.css");
+
+        return                                                                                                                                                                                                                                                                                 (("normalize" == get("normalize")) ? (""
+            .           ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == get("normalize")) ? (""
+            .   eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
+        //  .   eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
+                                                                                                                                                                                                                                                                                             . (("material"  == get("framework")) ? (""
+            .   eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == get("framework")) ? (""
+            .   eol() . ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == get("framework")) ? (""
+            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
+            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
+            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                         ) : "") . (!!$fonts                          ? (""
+            .   eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                             "screen", $async    ))         ) : "") . (("material"  == get("framework")) ? ("" 
+            .   eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                           "screen", $async    ))         ) : "") . (!!get("support_sliders", false)   ? (""
+            .   eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . get("version_slick")     . '/slick.css',                               "screen", $async    ))
+            .   eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . get("version_slick")     . '/slick-theme.css',                         "screen", $async    ))         ) : "")
             ;
     }
     
@@ -3561,7 +3568,7 @@
     {
         return !!get("no_css") ? '' : ('
 
-    /* OPINIONATED DEFAULTS */
+    /* DOM CSS boilerplate */
 
     :root
     {
@@ -3813,9 +3820,9 @@
     
     function scripts_body()
     {
-        $jquery_local_filename = 'js/jquery-'.get("version_jquery").'.min.js';
+        $jquery_local_filename = dom_path('js/jquery-'.get("version_jquery").'.min.js');
 
-        return  ((!AMP() && server_file_exists(SYSTEM_ROOT.$jquery_local_filename)) ? script_src(ROOT.$jquery_local_filename) : 
+        return  ((!AMP() && $jquery_local_filename) ? script_src($jquery_local_filename) : 
                 (
                     script_src('https://code.jquery.com/jquery-'                . get("version_jquery") . '.min.js',        false, 'crossorigin="anonymous"')
                 //  script_src('https://ajax.googleapis.com/ajax/libs/jquery/'  . get("version_jquery") . '/jquery.min.js', false, 'crossorigin="anonymous"')
@@ -4041,7 +4048,7 @@
                             .   eol(1) . tab(5) .                   '{' 
                             .   eol(1) . tab(6) .                       'console.log("Service Worker is supported. Registering...");'
                             .   eol(1) . tab(1)      
-                            .   eol(1) . tab(6) .                       'navigator.serviceWorker.register("'.ROOT.'sw.js").then(function(registration) '
+                            .   eol(1) . tab(6) .                       'navigator.serviceWorker.register("'.dom_path('sw.js').'").then(function(registration) '
                             .   eol(1) . tab(6) .                       '{'
                             .   eol(1) . tab(7) .                           'console.log("ServiceWorker registration successful with scope: ", registration.scope);'
                             .   eol(1) . tab(7) .                           ''
@@ -4227,19 +4234,23 @@
         );
         
         global $hook_amp_sidebars;
+
+        $app_js = dom_path("js/app.js");
         
         $body = ''
-        . eol(2) .  if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
-        . eol(2) .  if_then(get("support_metadata_person",       false), script_json_ld($properties_person))
-        . eol(2) .  if_then(get("support_metadata_organization", false), script_json_ld($properties_organization))
-        . eol(2) .  $html
-        . eol(2) .  $hook_amp_sidebars
-        . eol(2) .  scripts_body()
-        . eol(2) .  (server_file_exists(SYSTEM_ROOT."js/app.js") ? script_src(ROOT."js/app.js") : 
-                    (server_file_exists(          "./js/app.js") ? script_src(   "./js/app.js") : '<!-- Could not find js/app.js default user script //-->'))
-        . eol(2) .  $html_post_scripts
 
-        . eol(2) .  if_then(AMP() && get("support_service_worker", false), '<amp-install-serviceworker src="'.ROOT.'sw.js" layout="nodisplay" data-iframe-src="'.ROOT.'install-service-worker.html"></amp-install-serviceworker>')
+        . eol(2) . if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
+        . eol(2) . if_then(get("support_metadata_person",       false), script_json_ld($properties_person))
+        . eol(2) . if_then(get("support_metadata_organization", false), script_json_ld($properties_organization))
+        
+        . eol(2) . $html
+        . eol(2) . $hook_amp_sidebars
+
+        . eol(2) . comment("DOM Javascript boilerplate")
+        . eol(2) . scripts_body()
+        . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find js/app.js default user script'))
+        . eol(2) . $html_post_scripts
+        . eol(2) . if_then(AMP() && get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
 
         debug_track_timing("end");
@@ -4704,8 +4715,8 @@
 
     // IMAGES URLs
  
-    function url_img_loading () { return ROOT."loading.svg"; }
-    function url_img_blank   () { return ROOT."img/blank.gif";   }
+    function url_img_loading () { return dom_path("loading.svg");   }
+    function url_img_blank   () { return dom_path("img/blank.gif"); }
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
@@ -4938,7 +4949,7 @@
             );
 
             if (get("genre")                    !== false) $properties["genre"]         = get("genre", "Website");
-            if (get("publisher")                !== false) $properties["publisher"]     = array("@type" => "Organization","name" => get("publisher", AUTHOR), "logo" => array("@type" => "ImageObject", "url"=> get("canonical").'/'.get("image")));
+            if (get("publisher")                !== false) $properties["publisher"]     = array("@type" => "Organization","name" => get("publisher", DOM_AUTHOR), "logo" => array("@type" => "ImageObject", "url"=> get("canonical").'/'.get("image")));
             
             if (at($metadata, "post_text")      !== false) $properties["keywords"]      = implode(' ', array_hashtags(          at($metadata, "post_text")));
             if (at($metadata, "post_text")      !== false) $properties["articleBody"]   =                                       at($metadata, "post_text");
@@ -5304,11 +5315,11 @@
     function rss_link           ($html = "")                        { return                 tag('link',                     $html,  false,         true); }
     function rss_title          ($html = "")                        { return                 tag('title',       rss_sanitize($html), false,         true); }
     function rss_description    ($html = "", $attributes = false)   { return                 tag('description', rss_sanitize($html), $attributes,   true); }
-                    
+
     function rss_lastbuilddate  ($date = false)                     { return                 tag('lastBuildDate', (false === $date) ? date(DATE_RSS) : date(DATE_RSS, $date), false, true); }
     function rss_pubDate        ($date = false)                     { return                 tag('pubDate',       (false === $date) ? date(DATE_RSS) : date(DATE_RSS, $date), false, true); }
-                    
-    function rss_copyright      ($author = false)                   { return                 tag('copyright', "Copyright " . ((false === $author) ? get("author", AUTHOR) : $author), false, true); }
+
+    function rss_copyright      ($author = false)                   { return                 tag('copyright', "Copyright " . ((false === $author) ? get("author", DOM_AUTHOR) : $author), false, true); }
     
     #endregion
     #region API : DOM : TILE
