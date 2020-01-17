@@ -1,4 +1,4 @@
-# DOM
+# DOM.PHP
 
 Web **Do**cument PHP **M**arkup framework
 
