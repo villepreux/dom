@@ -2,8 +2,8 @@
 
 Web **Do**cument PHP **M**arkup framework
 
-https://github.com/villepreux/dom
-https://villepreux.github.io/dom
+  * https://github.com/villepreux/dom
+  * https://villepreux.github.io/dom
 
 ## Intention
 
