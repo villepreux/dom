@@ -22,8 +22,9 @@ https://villepreux.github.io/dom/
 
 ## Getting started
 
-Why not start with [examples](./examples/)?
-The standard [Hello World](./examples/helloworld/index.php) one first, then more complete [examples](./examples/).
+Why not start with [examples](https://github.com/villepreux/dom/tree/master/examples)?
+The standard [Hello World](https://github.com/villepreux/dom/tree/master/examples/helloworld/index.php) one first, then more complete [examples](https://github.com/villepreux/dom/tree/master/examples).
+
 
 ## Known issues
 
