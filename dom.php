@@ -28,7 +28,7 @@
     if (!function_exists("ajax_classes"))               { function ajax_classes     ($ajax_params, $extra = false)                                          { return dom_ajax_classes   ($ajax_params, $extra);                } }
     if (!function_exists("ajax_container"))             { function ajax_container   ($ajax_params, $placeholder = false, $period = -1)                      { return dom_ajax_container ($ajax_params, $placeholder, $period); } }
             
-    if (!function_exists("async"))                      { function async            ($f)                                                                    { return dom_async_FUNC_ARGS($f, func_get_args()); } }
+    if (!function_exists("async"))                      { function async            ($f)                                                                    { return $args = func_get_args(); dom_async_FUNC_ARGS($f, $args); } }
 
     #endregion
     #region JAVASCRIPT SNIPPETS
@@ -60,6 +60,8 @@
     #endregion
     #region ... WIP
     ######################################################################################################################################
+
+    function a($html, $url = false, $attributes = false, $target = false) { return dom_a($html, $url, $attributes, $target); }
 
     # ... WIP
 
@@ -292,7 +294,8 @@
 
     function dom_ajax_call($f)
     {            
-        return dom_ajax_call_FUNC_ARGS($f, func_get_args());
+        $args = func_get_args();
+        return dom_ajax_call_FUNC_ARGS($f, $args);
     }
         
     function dom_ajax_call_FUNC_ARGS($f, $args)
@@ -436,10 +439,10 @@
 
     //	If absolute path and localhost then use root trick if available 
 
-        if (is_localhost() && !!get("localhost_root") && ($max_depth == $depth) && (false === stripos($path, get("localhost_root"))) 
+        if (is_localhost() && !!dom_get("localhost_root") && ($max_depth == $depth) && (false === stripos($path, dom_get("localhost_root"))) 
         &&  (strlen($path) > 0 && $path{0} == "/")) 
         {
-            $path = substr_replace($path, get("localhost_root"), 0, 1);
+            $path = substr_replace($path, dom_get("localhost_root"), 0, 1);
         }
 
     //	If path exists then directly return it
@@ -453,7 +456,7 @@
 
     //	If we have reached designated root then return fallback
 
-        if (@file_exists("./".get("root_file_hint","#"))) { return $default; }
+        if (@file_exists("./".dom_get("root_file_hint","#"))) { return $default; }
 
     //	If requested then search in parent folder
 
@@ -471,7 +474,8 @@
 
     function dom_path_coalesce()
     {
-        return dom_path_coalesce_FUNC_ARGS(func_get_args());
+        $args = func_get_args();
+        return dom_path_coalesce_FUNC_ARGS($args);
     }
 
     function dom_path_coalesce_FUNC_ARGS($args)
@@ -834,14 +838,15 @@
                                                 function eol($n = 1)                                    { if (!!dom_get("minify",false)) return ''; switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dup("\r\n",$n); case 'DAR': return dup("\r",$n);  } return dup("\n",$n); }
     if (!function_exists("tab"))            {   function tab($n = 1)                                    { if (!!dom_get("minify",false)) return ' '; return dup(' ', 4*$n); }    }
                                                 function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x; $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
-                                                function cat()                                          { return cat_FUNC_ARGS(func_get_args()); }
+                                                function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
                                                 function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
                                                 function if_then($e, $html_if, $html_else = '')         { return (!!$e) ? $html_if : $html_else; }
                                                 function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
     
     function wrap_each($a, $glue = "", $transform = "self", $flatten_array = true)
     {
-        return wrap_each_FUNC_ARGS($a, $glue, $transform, $flatten_array, func_get_args());
+        $args = func_get_args();
+        return wrap_each_FUNC_ARGS($a, $glue, $transform, $flatten_array, $args);
     }
 
     function wrap_each_FUNC_ARGS($a, $glue, $transform, $flatten_array, $args)
@@ -890,7 +895,7 @@
                 $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
             }
             
-            $hashtag = a($url, '#'.$hashtag, EXTERNAL_LINK);
+            $hashtag = a('#'.$hashtag, $url, EXTERNAL_LINK);
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -961,9 +966,10 @@
         }        
     }
     
-    function hook_toolbar()
+    function hook_toolbar($row)
     {
-        dom_set("toolbar", true);
+        dom_set("toolbar",      true);
+        dom_set("toolbar_$row", true);
     }
     
     $hook_amp_sidebars = "";
@@ -3352,8 +3358,10 @@ else
         return $css;
     }
 
-    function css_var($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return 'var(--'.$var.')';                                                           return pan('--'.$var . ': ', $pan) . $val . '; '; }
-    function css_env($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.$var . ': ', $pan) . $val . '; '; }
+    function css_name($name) { return trim(str_replace("_","-",$name)); }
+
+    function css_var($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_env($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
 
     function css_env_add($vars, $pre_processing = false)
     {
@@ -3510,12 +3518,26 @@ else
         {
             if (!dom_has("ajax"))
             {
+            //  Lazy html generation
+
                 foreach (dom_get("delayed_components", array()) as $delayed_component => $param)
                 {
                     $html = str_replace(comment($delayed_component), call_user_func($delayed_component, $param), $html);
                 }
+
+            //  Clean html
+
+                if (!dom_get("minify"))
+                {
+                    while (true)
+                    {
+                        $pos = stripos($html, eol(3)); if (false === $pos) break;
+                        $html = substr_replace($html, eol(2), $pos, strlen(eol(3)));
+                    }
+                }
+
+            //  Return html
                 
-            //  return raw_html('<!' . if_then(dom_AMP(), 'doctype html', 'DOCTYPE html') . ((dom_has("DTD") && !dom_AMP()) ? (' ' . dom_get("DTD")) : '') . '>'
                 return raw_html('<!doctype html>'
                 
                 . eol()
@@ -3859,7 +3881,11 @@ else
 
     function _include_css_main_toolbar_adaptation()
     {
-        return ".main { margin-top: calc(var(--header_height) + var(--header_toolbar_height)); }";
+        if (!!dom_get("toolbar_banner") && !!dom_get("toolbar_nav")) return ".main { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
+        if (!!dom_get("toolbar_banner"))                             return ".main { margin-top: calc(var(--header-height)); }";
+        if (!!dom_get("toolbar_nav"))                                return ".main { margin-top: calc(var(--header-toolbar-height)); }";
+
+        return "";
     }
 
     function include_css_boilerplate()
@@ -3870,27 +3896,27 @@ else
 
     :root
     {
-    	' . env("theme_color", 	           dom_get("theme_color")                   )
-          . env("link_color", 		       dom_get("link_color")                    )
-          . env("background_color",        dom_get("background_color")              )
+    	' . eol() . tab(2) . env("theme_color", 	           dom_get("theme_color")                )
+          . eol() . tab(2) . env("link_color", 		       dom_get("link_color")                     )
+          . eol() . tab(2) . env("background_color",        dom_get("background_color")              )
           
-          . env("header_height",           dom_get("header_height")                 )
-          . env("header_min_height",       dom_get("header_min_height")             )
-          . env("header_toolbar_height",   dom_get("header_toolbar_height")         )
+          . eol() . tab(2) . env("header_height",           dom_get("header_height")                 )
+          . eol() . tab(2) . env("header_min_height",       dom_get("header_min_height")             )
+          . eol() . tab(2) . env("header_toolbar_height",   dom_get("header_toolbar_height")         )
           
-          . env("main_max_width",          "1024px"                             )
+          . eol() . tab(2) . env("main_max_width",          "1024px"                                 )
           
-          . env("content_default_margin",  "10px"                               )
+          . eol() . tab(2) . env("content_default_margin",  "10px"                                   )
           
-          . env("default_image_width",     dom_get("default_image_width",  300)     )
-          . env("default_image_height",    dom_get("default_image_height", 200)     )
-          . env("default_image_ratio",     "calc(var(--default_image_width) / var(--default_image_height))")
+          . eol() . tab(2) . env("default_image_width",     dom_get("default_image_width",  300)     )
+          . eol() . tab(2) . env("default_image_height",    dom_get("default_image_height", 200)     )
+          . eol() . tab(2) . env("default_image_ratio",     "calc(var(--default-image-width) / var(--default-image-height))")
           
-          . env("scrollbar_width",         "17px").'
+          . eol() . tab(2) . env("scrollbar_width",         "17px").'
     }
 
-                                                                            :root { --main_width: 100vw;                                  }
-    @media screen and (min-width: '.env("main_max_width", false, true).') { :root { --main_width: '.env("main_max_width", false, true).'; } }
+                                  '.str_pad(" ", strlen(get("main_max_width"))).'    :root { --main-width: 100vw; }
+    @media screen and (min-width: '.         env("main_max_width", false, true).') { :root { --main-width: '.env("main_max_width", false, true).'; } }
     
     /* Font stack */
 
@@ -3898,13 +3924,13 @@ else
 
     /* Colors */
     
-    body                                            { background-color: var(--background_color); }
-    a, a:hover, a:visited                           { color: var(--link_color); }
+    body                                            { background-color: var(--background-color); }
+    a, a:hover, a:visited                           { color: var(--link-color); }
    
     /* Layout */
     
      body                                           { text-align: center; min-height: 100vh; }
-     main                                           { text-align: left; padding-top: unset; margin-top: 0px; margin-right: auto; margin-bottom: 0px; margin-left: auto; width: 100%; max-width: var(--main_max_width) }
+     main                                           { text-align: left; padding-top: unset; margin-top: 0px; margin-right: auto; margin-bottom: 0px; margin-left: auto; width: 100%; max-width: var(--main-max-width) }
 
      /* Main content inflate (makes footer sticky) */
 
@@ -3912,53 +3938,51 @@ else
      body>main                                      { flex: 1; }
 
      /* Toolbar */
- 
-     .toolbar .row:nth-child(2),
-     .toolbar .row:nth-child(2) a,
-     .toolbar .row:nth-child(3),
-     .toolbar .row:nth-child(3) a                  { background-color: var(--theme_color); color: var(--background_color); }
 
     .toolbar                                        { width: 100%; z-index: 1; }
-    .toolbar .row                                   { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; /*overflow: hidden;*/ }
-    .toolbar .row:nth-child(1)                      { background-color: var(--background_color); height: var(--header_height); min-height: var(--header_min_height); }
-    .toolbar .row:nth-child(2),                  
-    .toolbar .row:nth-child(3)                      { height: var(--header_toolbar_height); align-items: center; }
-    .toolbar .row .cell                             { /*white-space: nowrap; */ overflow: hidden; }
-    .toolbar .row:nth-child(2) .cell:nth-child(1),
-    .toolbar .row:nth-child(3) .cell:nth-child(1)   { width: calc(100vw / 2 - var(--scrollbar_width) / 2 - var(--main_max_width) / 2); min-width: var(--header_toolbar_height); }
+     
+    .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
 
-    .toolbar .row:nth-child(2) .cell:nth-child(2),
-    .toolbar .row:nth-child(3) .cell:nth-child(2)   { flex: 0 1 auto; text-align: left; }
-    .toolbar .row:nth-child(2) .cell:nth-child(3),
-    .toolbar .row:nth-child(3) .cell:nth-child(3)   { flex: 1 0 auto; text-align: right; margin-right:var(--content_default_margin) } 
-    .toolbar .row:nth-child(2) .cell:nth-child(3) a,
-    .toolbar .row:nth-child(3) .cell:nth-child(3) a { margin-left: var(--content_default_margin); }
+    .toolbar-row                                    { background-color: var(--theme-color);      color: var(--background-color); }
+    .toolbar-row-banner                             { background-color: var(--background-color); color: default;                 }
+    
+    .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
+    .toolbar-row-banner                             { height: var(--header-height); min-height: var(--header-min-height); }
+
+    .toolbar-row-nav a                              { background-color: var(--theme-color); color: var(--background-color); }
+
+    .toolbar-row     .cell                          { overflow: hidden; }
+    .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
+    .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left; }
+    .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; margin-right:var(--content-default-margin) } 
+
+    .toolbar-row-nav .cell:nth-child(3) a           { margin-left: var(--content-default-margin); }
 
     .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
     .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
 
-    .menu-toggle                                    { width: var(--header_toolbar_height); }
+    .menu-toggle                                    { width: var(--header-toolbar-height); }
     .menu-toggle a,       .toolbar-title a,
     .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
     .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
 
-    body>.footer                                    { background-color: var(--theme_color); color: var(--background_color); }
+    body>.footer                                    { background-color: var(--theme-color); color: var(--background-color); }
 
     picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
     figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
     img, amp-img                                    { max-width: 100%; object-fit: cover; }
-    .grid                                           { display: grid; grid-gap: var(--content_default_margin); }
+    .grid                                           { display: grid; grid-gap: var(--content-default-margin); }
 
     /* Back-to-top style */    
     
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme_color); text-align: center; color: var(--background_color); line-height: 40px; visibility: hidden; opacity: 0 }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme-color); text-align: center; color: var(--background-color); line-height: 40px; visibility: hidden; opacity: 0 }
     .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
     .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
     .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
     .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
     .cd-top.cd-fade-out                             { opacity: .5; }
-    .cd-top:hover                                   { background-color: var(--theme_color); opacity: 1; text-decoration: none }
+    .cd-top:hover                                   { background-color: var(--theme-color); opacity: 1; text-decoration: none }
     
     @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
@@ -3971,13 +3995,13 @@ else
     
 /*  .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; } */
     .app-install                                    { display: none }
-    .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header_toolbar_height) - var(--header_min_height)) }
+    .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
     
         
     /* Menu open/close button layout */
 
-    .menu-switch-symbol, .menu-close-symbol { height: var(--header_toolbar_height); line-height: var(--header_toolbar_height); }
+    .menu-switch-symbol, .menu-close-symbol { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
 
     /* Menu open/close mechanism */
 
@@ -3985,16 +4009,16 @@ else
 
     /* Menu list */
 
-    .menu          { position: absolute; background-color: var(--background_color); max-height: 0; transition: max-height 1s ease-out; text-align: left; box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
+    .menu          { position: absolute; background-color: var(--background-color); max-height: 0; transition: max-height 1s ease-out; text-align: left; box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
     .menu ul       { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .menu li:hover { background-color: #EEEEEE }
-    .menu li span  { display: inline-block; width: 100%; padding: var(--content_default_margin); }
+    .menu li span  { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     /* Main images */
         
     main figure           { display: inline-block; }
     main figure > picture,
-    main figure > amp-img { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default_image_ratio)); overflow: hidden; position: relative; }
+    main figure > amp-img { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default-image-ratio)); overflow: hidden; position: relative; }
     
     main figure img { /* position: absolute; */ left: 0px; top: 0px; width: 100%; height: 100%;}
     
@@ -4003,11 +4027,11 @@ else
 
     /* Scrollbar */
     
-    body          { scrollbar-width: var(--scrollbar_width); }
-    body::-webkit-scrollbar { width: var(--scrollbar_width); }
+    body          { scrollbar-width: var(--scrollbar-width); }
+    body::-webkit-scrollbar { width: var(--scrollbar-width); }
     
-    body {                           scrollbar-color: var(--theme_color)                                                      var(--background_color); }
-    body::-webkit-scrollbar-thumb { background-color: var(--theme_color); } body::-webkit-scrollbar-track { background-color: var(--background_color); }
+    body {                           scrollbar-color: var(--theme-color)                                                      var(--background-color); }
+    body::-webkit-scrollbar-thumb { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
 
     /* Aspect Ratio wrappers */
 
@@ -4026,6 +4050,8 @@ else
     
 
 '/*<-- !AMP */.(!!dom_AMP() ? '' : '
+
+    /* Toolbar */
 
     .toolbar    { position: fixed; top: 0px; }
     '.include_css_main_toolbar_adaptation().'
@@ -4049,7 +4075,7 @@ else
     
     .menu              { display: block } /* AMP DYNAMIC MENU SUPPORTED */
     
-    amp-sidebar        { background-color: var(--background_color); }
+    amp-sidebar        { background-color: var(--background-color); }
     amp-sidebar        { text-align: left; }
     amp-sidebar .menu  { position: relative; }
     amp-sidebar ul     { list-style-type: none; padding-left: 0px } 
@@ -4063,9 +4089,9 @@ else
     
     :root
     {
-    	--mdc-theme-primary:    var(--theme_color);
-        --mdc-theme-secondary:  var(--link_color);
-        --mdc-theme-background: var(--background_color);
+    	--mdc-theme-primary:    var(--theme-color);
+        --mdc-theme-secondary:  var(--link-color);
+        --mdc-theme-background: var(--background-color);
     }
     
     .toolbar .row .cell { overflow: visible }
@@ -4076,11 +4102,11 @@ else
 
     .menu { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
 
-    .mdc-top-app-bar--dense .mdc-top-app-bar__row { height: var(--header_toolbar_height); /*align-items: center;*/ }
+    .mdc-top-app-bar--dense .mdc-top-app-bar__row { height: var(--header-toolbar-height); /*align-items: center;*/ }
     .mdc-top-app-bar { '.(dom_AMP() ? 'position: inherit;' : '').' }
     .mdc-top-app-bar__section { flex: 0 1 auto; }
     .mdc-top-app-bar--dense .mdc-top-app-bar__title { padding-left: 0px; }
-    .mdc-menu--open  { margin-top: var(--header_toolbar_height); }
+    .mdc-menu--open  { margin-top: var(--header-toolbar-height); }
     
 ')./* material -->*/'
 
@@ -4097,9 +4123,9 @@ else
 
     /* SPECTRE DEFAULTS */
     
-    .text-primary:      var(--theme_color);
-    .text-secondary:    var(--link_color);
-    .bg-primary:        var(--background_color);
+    .text-primary:      var(--theme-color);
+    .text-secondary:    var(--link-color);
+    .bg-primary:        var(--background-color);
     
 ')./* spectre -->*/'
 
@@ -4129,7 +4155,7 @@ else
 
                 ))
         
-            .   eol(2) . a('#0', '&#x25B2;'/*'&#x21E7''^'*//*'⏶'*/, "cd-top")
+            .   eol(2) . a("▲", url_void(), "cd-top")
             
             .   if_then(dom_get("support_sliders", false),   eol(2) . script_src('https://cdn.jsdelivr.net/jquery.slick/'            . dom_get("version_slick")     . '/slick.min.js'))            
             .   if_then("material"  == dom_get("framework"), eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web.min.js'))
@@ -4184,7 +4210,7 @@ else
                             .   eol(1) . tab(1) 
                             .   eol(1) . tab(2) .       'function updateToolbarHeight()'
                             .   eol(1) . tab(2) .       '{'
-                            .   eol(1) . tab(3) .           '$(".toolbar-row:first-child").css("height", "calc(' . dom_get("header_height")     . ' - " + $(window).scrollTop() + "px)");'
+                            .   eol(1) . tab(3) .           '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height")     . ' - " + $(window).scrollTop() + "px)");'
                             .   eol(1) . tab(2) .       '}'
                             
                         . (("material" != dom_get("framework")) ? '' : (''
@@ -4313,7 +4339,7 @@ else
                             
                     //  . ((("material" != dom_get("framework")) && ("bootstrap" != dom_get("framework"))) ? '' : (''
                         
-                            .   eol(1) . tab(8) .                               '$(".toolbar-row:first-child").css("background-image", "url(" + urls[index_url] + ")");'
+                            .   eol(1) . tab(8) .                               '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
                             
                     //  )) // material
                         
@@ -4475,10 +4501,10 @@ else
                             .   eol(1) . tab(6) .                       ''
                             .   eol(1) . tab(6) .                       'deferredPrompt.userChoice.then(function(choiceResult)'
                             .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(6) .                           'if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");'
-                            .   eol(1) . tab(6) .                           'else                                     console.log("User dismissed the A2HS prompt");'
-                            .   eol(1) . tab(6) .                           ''
-                            .   eol(1) . tab(6) .                           'deferredPrompt = null;'
+                            .   eol(1) . tab(7) .                           'if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");'
+                            .   eol(1) . tab(7) .                           'else                                     console.log("User dismissed the A2HS prompt");'
+                            .   eol(1) . tab(7) .                           ''
+                            .   eol(1) . tab(7) .                           'deferredPrompt = null;'
                             .   eol(1) . tab(6) .                       '});'
                             .   eol(1) . tab(5) .                   '}'
                             .   eol(1) . tab(5) .                   'else'
@@ -4547,7 +4573,7 @@ else
 
         . eol(2) . comment("DOM Javascript boilerplate")
         . eol(2) . scripts_body()
-        . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find js/app.js default user script'))
+        . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
         . eol(2) . $html_post_scripts
         . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
@@ -4608,8 +4634,10 @@ else
 
     function clearfix       () { return div("","clearfix"); }
 
-    function content        ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('main',     cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes, dom_component_class('main') . (!!dom_get("toolbar") ? (' ' . dom_component_class('main-below-toolbar')) : ''))    ).cosmetic(eol(1)); }
-    function footer         ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('footer',   cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes, dom_component_class('footer'))                                                                            );                  }
+    function content        ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('main',     cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('main')                 .                           ' ' . 
+                                                                                                                                                                                                                                        dom_component_class('content')              . (!!dom_get("toolbar") ? ( ' ' . 
+                                                                                                                                                                                                                                        dom_component_class('main-below-toolbar')   ) : '')) ).cosmetic(eol(1)); }
+    function footer         ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('footer',   cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
     
     function icon           ($icon, $attributes = false) { return      i($icon,      dom_attributes_add_class($attributes, 'material-icons')); }
     function button_icon    ($icon, $label      = false) { return button(icon($icon, dom_component_class('action-button-icon')), array("class" => dom_component_class("action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
@@ -4670,9 +4698,9 @@ else
             .'&amp;'.'ctz'				.'=Europe%2FParis';
         }
         
-        if (dom_AMP()) return a($src, 'https://calendar.google.com', EXTERNAL_LINK);
+        if (dom_AMP()) return a('https://calendar.google.com', $src, EXTERNAL_LINK);
         
-		return iframe($src, "Google Calendar", "google-calendar", $w, $h).a($src, 'https://calendar.google.com', EXTERNAL_LINK);
+		return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, EXTERNAL_LINK);
 	}
         
 	function google_map($embed_url, $w = false, $h = false)
@@ -4751,12 +4779,12 @@ else
             $images .= img($photo_url, array("onError" => "this.src='".url_img_blank()."';"), "Photo");
         }
 
-        return a($url, div($images), EXTERNAL_LINK);
+        return a(div($images), $url, EXTERNAL_LINK);
     }
 	
     // Components with BlogPosting microdata
 
-    function article            ($html = "", $attributes = false) { return cosmetic(eol(1)).tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ $attributes); }
+    function article            ($html = "", $attributes = false) { return cosmetic(eol(1)).tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ dom_attributes_add_class($attributes, "article")); }
     
     function span_author        ($html)             { return span ($html/*, array("itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person" )*/); }
     function span_name          ($html)             { return span ($html/*, array("itemprop" => "name"                                                                 )*/); }
@@ -4780,19 +4808,19 @@ else
         return $extended_link;
     }
   
-    function a($link, $text = false, $attributes = false, $target = false)
+    function dom_a($html, $url = false, $attributes = false, $target = false)
     {
-        if (($attributes === INTERNAL_LINK || $attributes === EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
-        if ($target === false) { $target = ((0 === stripos($link, "http")) || (0 === stripos($link, "//"))) ? EXTERNAL_LINK : INTERNAL_LINK; }
-        
-        $extended_link = href($link);
+        if ($url === false) $url = $html;
 
-        $internal_attributes = array("href" => (($link === false) ? url_void() : $extended_link), "target" => $target);
+        if (($attributes === INTERNAL_LINK || $attributes === EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
+        if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? EXTERNAL_LINK : INTERNAL_LINK; }
+        
+        $extended_link = href($url);
+
+        $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
         
-        if ($text === false) { $text = $link; }
-        
-        return tag('a', $text, dom_attributes($internal_attributes) . dom_attributes($attributes));
+        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes($attributes));
     }
 
     function a_email($email, $text = false, $attributes = false)
@@ -4801,7 +4829,7 @@ else
         
         if (dom_AMP())
         {
-            return a("mailto:" . $email, $text, $attributes, EXTERNAL_LINK);
+            return a($text, "mailto:" . $email, $attributes, EXTERNAL_LINK);
         }
         else
         {
@@ -4826,7 +4854,7 @@ else
     {
         $id = anchor_name($name, $tolower);
         
-        return a(false, (false === $character) ? nbsp() : ((true === $character) ? '?' : $character), array("name" => $id, "id" => $id, "class" => "anchor"));
+        return a((false === $character) ? nbsp() : ((true === $character) ? '?' : $character), false, array("name" => $id, "id" => $id, "class" => "anchor"));
     }
     
     // GRID
@@ -5125,8 +5153,30 @@ else
     function url_img_tumblr    ($blogname = false) { return dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(json_tumblr_blog   (($blogname === false) ? dom_get("tumblr_blog")   : $blogname, "posts"),        "response"),"posts"),0),"trail"),0),"blog"),"theme"),"header_image", url_img_blank()); }
 
     // CARDS
-  
-    function card($media = false, $title = false, $text = false, $button = false, $attributes = false, $horizontal = false)
+
+    function dom_clean_social_media_text($text)
+    {
+        $text = str_replace("<br/>\n",      "<br>",     $text);
+        $text = str_replace("<br>\n",       "<br>",     $text);
+        $text = str_replace("<br/>",        "<br>",     $text);
+        $text = str_replace("\r\n",         "<br>",     $text);
+        $text = str_replace("\r",           "<br>",     $text);
+        $text = str_replace("\n",           "<br>",     $text);
+        $text = str_replace("<br>-<br>",    "<br><br>", $text);
+        
+        $text = transform_lines($text, "---");
+        $text = transform_lines($text, "___");
+        
+        $text = str_replace("<hr><br>",     "<hr>",     $text);
+        $text = str_replace("<hr>>",        "<hr> >",   $text);
+        $text = str_replace("<br>>",        "<br> >",   $text);
+        $text = str_replace("=>",           "→",        $text);
+        $text = str_replace(">>",           "→",        $text);
+
+        return $text;
+    }
+
+    function card_title($title = false)
     {
         $title_main         =       dom_at($title, "title",           dom_at($title, 0, $title)           );
         $title_sub          =       dom_at($title, "subtitle",        dom_at($title, 1, false)            );
@@ -5142,44 +5192,48 @@ else
         $title = "";
         
         if ($title_icon !== false) $title  = img(                $title_icon,         array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false) $title  = a(                  $title_link, $title,                  dom_component_class('card-title-link'), EXTERNAL_LINK);
+        if ($title_link !== false) $title  = a($title,           $title_link,                          dom_component_class('card-title-link'), EXTERNAL_LINK);
         if ($title_main !== false) $title .= h($title_level,     $title_main,         array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
         if ($title_sub  !== false) $title .= h($title_level + 1, $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
-        
-        if ($button     !== false) $button = button($button, dom_component_class('card-action-button'));
-        
-        if ($text !== false)
-        {
-            $text = str_replace("<br/>\n",      "<br>",     $text);
-            $text = str_replace("<br>\n",       "<br>",     $text);
-            $text = str_replace("<br/>",        "<br>",     $text);
-            $text = str_replace("\r\n",         "<br>",     $text);
-            $text = str_replace("\r",           "<br>",     $text);
-            $text = str_replace("\n",           "<br>",     $text);
-            $text = str_replace("<br>-<br>",    "<br><br>", $text);
-            
-            $text = transform_lines($text, "---");
-            $text = transform_lines($text, "___");
-            
-            $text = str_replace("<hr><br>",     "<hr>",     $text);
-            $text = str_replace("<hr>>",        "<hr> >",   $text);
-            $text = str_replace("<br>>",        "<br> >",   $text);
-            $text = str_replace("=>",           "→",        $text);
-            $text = str_replace(">>",           "→",        $text);
-        }
-        
-        return article
-        (                 
-            (($title    !== "")    ? section($title,    dom_component_class("card-title"))   : "")
-        .   (($media    !== false) ? section($media,    dom_component_class("card-media"))   : "")
-        .   (($text     !== false) ? section($text,     dom_component_class("card-text"))    : "")
-        .   (($button   !== false) ? section($button,   dom_component_class("card-actions")) : "")
 
-        ,   dom_attributes_add_class($attributes, dom_component_class("card") . ($horizontal ? dom_component_class("card-horizontal") : ''))
-        
-        ). cosmetic(eol());
+        return (($title !== "") ? section($title, dom_component_class("card-title")) : "");
     }
 
+    function card_media($media = false)
+    {
+        return (($media !== false) ? section($media, dom_component_class("card-media")) : "");
+    }
+
+    function card_text($text = false)
+    {
+        if ($text !== false)
+        {
+            $text = dom_clean_social_media_text($text);
+        }
+        
+        return (($text !== false) ? section($text, dom_component_class("card-text")) : "");
+    }
+
+    function card_actions($button = false)
+    {
+             if ($button !== false) $button = button($button, dom_component_class('card-action-button'));
+        return (($button !== false)        ? section($button, dom_component_class("card-actions")) : "");
+    }
+  
+    function card($html, $attributes = false, $horizontal = false)
+    {   
+        return article($html, dom_attributes_add_class($attributes, dom_component_class("card") . ($horizontal ? dom_component_class("card-horizontal") : ''))). cosmetic(eol());
+    }
+
+/*  function card_builder($media = false, $title = false, $text = false, $button = false, $attributes = false, $horizontal = false)
+    {   
+        return card(
+            card_title  ($title).
+            card_media  ($media).
+            card_text   ($text).
+            card_actions($button), $attributes, $horizontal);
+    }
+*/
     function card_from_metadata($metadata, $attributes = false)
     {
     //  CARD INFO FROM METADATA
@@ -5218,8 +5272,8 @@ else
             }
         }
     
-        $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($metadata["post_url"], $data["content"], false, EXTERNAL_LINK)                                  : $data["content"];
-        $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat(                       $data["content"], wrap_each($metadata["post_figcaption"], eol(), "div")) : $data["content"];
+        $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, EXTERNAL_LINK)                                  : $data["content"];
+        $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], eol(), "div")) : $data["content"];
 
         $data["title_main"]     = dom_at($metadata, "post_title");
         $data["title_img_src"]  = dom_at($metadata, "user_img_url");
@@ -5230,8 +5284,8 @@ else
         $data["title_sub"]      =  dom_has($metadata, "post_timestamp") ? span_datepublished(date("d/m/y", dom_at($metadata, "post_timestamp")),           dom_at($metadata, "post_timestamp")  ) 
                                 : (dom_has($metadata, "post_date")      ? span_datepublished(              dom_at($metadata, "post_date", ''  ), strtotime(dom_at($metadata, "post_date"))      ) : '');
         
-        $data["title_sub"]      = dom_has($metadata, "user_name")       ? cat(                       $data["title_sub"],' ',span_author(span_name($metadata["user_name"]))) : $data["title_sub"];
-        $data["title_sub"]      = dom_has($metadata, "user_url")        ?   a($metadata["user_url"], $data["title_sub"], false, EXTERNAL_LINK)                              : $data["title_sub"];
+        $data["title_sub"]      = dom_has($metadata, "user_name")       ? cat($data["title_sub"],' ',span_author(span_name($metadata["user_name"]))) : $data["title_sub"];
+        $data["title_sub"]      = dom_has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, EXTERNAL_LINK)                              : $data["title_sub"];
         
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
         
@@ -5284,20 +5338,25 @@ else
         
     //  RETURN CARD + JSON-LD
 
-        return card
-        (            
-            dom_at($data,"content")
-            
-        ,   (   dom_at($data, "title_main")     === false 
-            &&  dom_at($data, "title_sub")      === false
-            &&  dom_at($data, "title_img_src")  === false
-            &&  dom_at($data, "title_link")     === false) ? false : array(dom_at($data, "title_main"), dom_at($data, "title_sub"), dom_at($data, "title_img_src"), dom_at($data, "title_link"))
+        return card(
 
-        ,   dom_at($data, "desc")
-        ,   false        
-        ,   $attributes/*.' name="'.$anchor_name.'"'*/
-        ) 
-        . if_then($properties !== false && dom_get("jsonld",true), script_json_ld($properties));
+            card_title(
+
+                (   dom_at($data, "title_main")     === false 
+                &&  dom_at($data, "title_sub")      === false
+                &&  dom_at($data, "title_img_src")  === false
+                &&  dom_at($data, "title_link")     === false) ? false : array(dom_at($data, "title_main"), dom_at($data, "title_sub"), dom_at($data, "title_img_src"), dom_at($data, "title_link"))
+                ).
+
+            card_media  (dom_at($data,"content")).
+            card_text   (dom_at($data, "desc")).
+
+            card_actions(false),
+            
+            $attributes
+            ).
+
+            if_then($properties !== false && dom_get("jsonld",true), script_json_ld($properties));
     }
 
     function img_from_metadata($metadata, $attributes = false)
@@ -5366,7 +5425,7 @@ else
                 
                 if (false !== $id) $attributes = array_merge($attributes, array("id" => $id)); 
     
-                $icons .= eol() . a($link, $icon, $attributes, $target);
+                $icons .= eol() . a($icon, $link, $attributes, $target);
             }
             
             return $icons;
@@ -5378,16 +5437,20 @@ else
     }
     
     // MENU
+
+    define("DOM_MENU_ID","menu");
     
     function menu_entry($text = "", $link = false)
     {
         return ($link === false) ? $text : array($text, $link);
     }
   
-    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK, $menu_id = "menu")
+    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK)
     {
         $menu_lis = "";
         {
+            if (!is_array($menu_entries)) $menu_entries = array($menu_entries);
+
             if (false != $menu_entries) foreach ($menu_entries as $menu_entry)
             {
                 if ($menu_entry == array() || $menu_entry == "")
@@ -5403,33 +5466,123 @@ else
                     $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
                     $attributes = false;
                     
-                    $menu_lis .= eol() . li(a($link, span($item), $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= eol() . li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
                 }
             }
         }
 
-             if (dom_AMP())                             { hook_amp_sidebar(cosmetic(eol(1)).tag('amp-sidebar id="'.$menu_id.'" layout="nodisplay"', ul($menu_lis, array("class" => dom_component_class('menu-list'). " " . dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true")))); return span("","placeholder-amp-sidebar"); }
-        else if (dom_get("framework") == "bootstrap")   { return                                                                                   div($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"));  }
-        else                                            { return                                                                                    ul($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true"));                    }
+             if (dom_AMP())                             { hook_amp_sidebar(cosmetic(eol(1)).tag('amp-sidebar id="'.DOM_MENU_ID.'" layout="nodisplay"', ul($menu_lis, array("class" => dom_component_class('menu-list'). " " . dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true")))); return span("","placeholder-amp-sidebar"); }
+        else if (dom_get("framework") == "bootstrap")   { return                                                                                      div($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"));  }
+        else                                            { return                                                                                       ul($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true"));                    }
     }
 
-    function menu_switch    ($menu_id = "menu")         { return if_then(dom_get("framework") == "material",  a(url_void(),     span("☰", "menu-switch-symbol menu-toggle-content"), array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => "tap:$menu_id.toggle"                                                                )))
-                                                            .    if_then(dom_get("framework") == "bootstrap", a(url_void(),     span("☰", "menu-switch-symbol menu-toggle-content"), array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => "tap:$menu_id.toggle", "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                                            .    if_then(dom_get("framework") == "spectre",   a(url_void(),     span("☰", "menu-switch-symbol menu-toggle-content"), array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => "tap:$menu_id.toggle", "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                                            .    if_then(dom_get("framework") == "NONE",      a("#menu-open",   span("☰", "menu-switch-symbol menu-toggle-content")
-                                                                                                        . a("#menu-close",  span("✕", "menu-close-symbol  menu-close-content"),  array("class" => "menu-switch-link nav-link material-icons", "aria-label" => "Menu Toggle"))
-                                                                                                                                                                               ,  array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => "tap:$menu_id.toggle"                                                                )))
-                                                        //  .    if_then(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => "tap:$menu_id.toggle", "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
+    function menu_switch() { return if_then(dom_get("framework") == "material",  a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
+                                .   if_then(dom_get("framework") == "bootstrap", a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
+                                .   if_then(dom_get("framework") == "spectre",   a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
+                                .   if_then(dom_get("framework") == "NONE",      a(span("☰", "menu-switch-symbol menu-toggle-content")   
+                                                                               . a(span("✕", "menu-close-symbol  menu-close-content"), "#menu-close",  array("class" => "menu-switch-link nav-link material-icons", "aria-label" => "Menu Toggle"))
+                                                                                                                                     , "#menu-open",   array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
+                            //  .   if_then(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,    array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
                                                             ; 
     }
 
-    function menu_entries   ($menu_entries = array(), $default_target = INTERNAL_LINK, $menu_id = "menu")   {                            $ul_menu = ul_menu($menu_entries, $default_target, $menu_id); return if_then(dom_get("framework") != "bootstrap", div($ul_menu, dom_component_class("menu")), $ul_menu); }
-    function menu_toggle    ($menu_entries = array(), $default_target = INTERNAL_LINK, $menu_id = "menu")   { return div(menu_switch($menu_id).menu_entries($menu_entries, $default_target, $menu_id), array("id" => "menu-open", "class" => dom_component_class("menu-toggle"))); }
-
     // TOOLBAR
 
-    function toolbar_header ($html, $attributes = false) 
+    function toolbar_row    ($html,  $attributes = false) {                      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
+    function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
+/*  function toolbar_title  ($title, $attributes = false) { hook_title($title);  return div      (a('.',if_then(false === stripos($title,"<h1"), h1($title),$title)),
+                                                                                                            dom_attributes_add_class($attributes, dom_component_class("toolbar-title"))                             ); }
+*/
+    function toolbar_banner_sections_builder($icon_entries = false)
     {
+        return  ((true)                    ? (toolbar_section("")                                                                 ) : '')
+            .   ((true)                    ? (toolbar_section("")                                                                 ) : '')
+            .   (($icon_entries !== false) ? (toolbar_section(icon_entries($icon_entries), dom_component_class("toolbar-cell-right")) ) : '')
+            ;
+    }
+/*
+    function toolbar_nav_sections_builder($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false, $default_target = INTERNAL_LINK)
+    {
+        return  toolbar_section(($menu_entries === false) ? '' : menu_toggle($menu_entries, $default_target),        dom_component_class("toolbar-cell-left")  . ($menu_entries_shrink_to_fit ? (' '.dom_component_class("toolbar-cell-right-shrink")) : ""))
+            .   toolbar_section(($title        === false) ? '' : toolbar_title($title),                              dom_component_class("toolbar-cell-center")                                                                                         )
+            .   toolbar_section(($toolbar      === false) ? '' : $toolbar,    array("role" => "toolbar", "class" => (dom_component_class("toolbar-cell-right") .                                 ' '.dom_component_class("toolbar-cell-right-shrink"))     ))
+            ;
+    }
+*/
+    function toolbar_banner($icon_entries = false)
+    {
+        hook_toolbar("banner");
+
+        return toolbar_row(toolbar_banner_sections_builder($icon_entries), "toolbar-row-banner");
+    }
+
+/*  function toolbar_nav_builder($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
+    {
+        hook_toolbar("nav");
+
+        return toolbar_row(toolbar_nav_sections_builder($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, DOM_MENU_ID),           array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"))         . if_then(dom_AMP(), ''
+             . toolbar_row(toolbar_nav_sections_builder($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, DOM_MENU_ID."-static"), array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"))  );    
+    }
+*/
+    
+/*
+    function menu_entries_from_array   ($menu_entries = array(), $default_target = INTERNAL_LINK)   {                               $ul_menu = ul_menu($menu_entries, $default_target); return if_then(dom_get("framework") != "bootstrap", div($ul_menu, dom_component_class("menu")), $ul_menu); }
+    function menu_toggle_from_array    ($menu_entries = array(), $default_target = INTERNAL_LINK)   { return div(menu_switch().menu_entries_from_array($menu_entries, $default_target), array("id" => "menu-open", "class" => dom_component_class("menu-toggle"))); }
+*/
+    function menu_entries($html)
+    {
+        $html = if_then(false === stripos($html, "menu-list"), ul_menu($html), $html);
+
+        return if_then(dom_get("framework") != "bootstrap", div($html, "menu-entries " . dom_component_class("menu")), $html);
+    }
+    
+    function menu_toggle($html)
+    {
+        $html = if_then(false === stripos($html, "menu-entries"), menu_entries($html), $html);
+        $html = if_then(false === stripos($html, "menu-switch"),  menu_switch().$html, $html);
+
+        return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
+    }
+
+    function toolbar_nav_menu($html, $attributes = false, $menu_entries_shrink_to_fit = false)
+    {
+        $html = if_then(false !== $html && false === stripos($html, "menu-toggle"), menu_toggle($html), $html);
+        
+        return toolbar_section(($html === false) ? '' : $html,  dom_component_class("toolbar-cell-left") . ($menu_entries_shrink_to_fit ? (' '.
+                                                                dom_component_class("toolbar-cell-right-shrink")    ) : ""));
+    }
+
+    function toolbar_nav_title($html, $attributes = false)
+    {
+        hook_title($html);
+
+        $html = if_then(false === stripos($html,"<h1"),   h1($html),                    $html);
+        $html = if_then(false === stripos($html,"<a"),     a($html,'.'),                $html);
+        $html = if_then(false === stripos($html,"<div"), div($html, "toolbar-title"),   $html);
+        
+        return toolbar_section(($html === false) ? '' : $html, dom_component_class("toolbar-cell-center"));
+    }
+
+    function toolbar_nav($html, $attributes = false)
+    {
+        hook_toolbar("nav");
+
+        $html = if_then(false === stripos($html,"toolbar-cell"), toolbar_nav_menu(false).toolbar_nav_title($html), $html);
+        
+        $menu_id_amp = DOM_MENU_ID."-static";
+        
+        $html_amp = $html;
+        $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
+        $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
+
+        return toolbar_row($html,     array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"))         . if_then(dom_AMP(), ''
+             . toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"))  );    
+    }
+
+    function toolbar($html, $attributes = false)
+    {
+        $html = if_then(false === stripos($html,"toolbar-row"), toolbar_banner().toolbar_nav($html), $html);
+        
         $amp_observer = "";
         $amp_anim     = "";
         
@@ -5438,56 +5591,13 @@ else
             hook_amp_require("animation");
             hook_amp_require("position-observer");
 
-            $amp_anim     = '<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-2-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
-                          . '<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-2-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
+            $amp_anim     = '<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
+                          . '<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
 
-            $amp_observer = '<amp-position-observer target="toolbar-row-2" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
+            $amp_observer = '<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
         }
 
         return $amp_anim . header_FIX($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class('toolbar')));
-    }
-    
-    function toolbar_row    ($html,  $attributes = false) { hook_toolbar();      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
-    function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
-    function toolbar_title  ($title, $attributes = false) { hook_title($title);  return div     (a('.',if_then(false === stripos($title,"<h1"), h1($title),$title)),
-                                                                                                            dom_attributes_add_class($attributes, dom_component_class("toolbar-title"))                             ); }
-
-    function toolbar_row_banner_html($icon_entries = false)
-    {
-        return  ((true)                    ? (toolbar_section("")                                                                 ) : '')
-            .   ((true)                    ? (toolbar_section("")                                                                 ) : '')
-            .   (($icon_entries !== false) ? (toolbar_section(icon_entries($icon_entries), dom_component_class("toolbar-cell-right")) ) : '')
-            ;
-    }
-    
-    function toolbar_row_menu_html($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false, $default_target = INTERNAL_LINK, $menu_id = "menu")
-    {
-        return  toolbar_section(($menu_entries === false) ? '' : menu_toggle($menu_entries, $default_target, $menu_id),  dom_component_class("toolbar-cell-left")  . ($menu_entries_shrink_to_fit ? (' '.dom_component_class("toolbar-cell-right-shrink")) : ""))
-            .   toolbar_section(($title        === false) ? '' : toolbar_title($title),                                  dom_component_class("toolbar-cell-center")                                                                                         )
-            .   toolbar_section(($toolbar      === false) ? '' : $toolbar,        array("role" => "toolbar", "class" => (dom_component_class("toolbar-cell-right") .                                 ' '.dom_component_class("toolbar-cell-right-shrink"))     ))
-            ;
-    }
-
-    function toolbar_row_banner($icon_entries = false)
-    {
-        return toolbar_row(toolbar_row_banner_html($icon_entries), "toolbar-row-1");
-    }
-
-    function toolbar_row_nav($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
-    {
-        return toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu"),        array("id" => "toolbar-row-2",        "class" => "toolbar-row-2"))         . if_then(dom_AMP(), ''
-             . toolbar_row(toolbar_row_menu_html($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, "menu-static"), array("id" => "toolbar-row-2-static", "class" => "toolbar-row-2 static"))  );    
-    }
-
-    function toolbar($title = false, $menu_entries = false, $icon_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
-    {
-        dom_debug_track_timing();
-        
-        return toolbar_header
-        (
-            toolbar_row_banner($icon_entries)
-        .   toolbar_row_nav($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit)
-        );
     }
     
     #endregion
@@ -5533,7 +5643,8 @@ else
     
     function dom_async($f)
     {
-        return dom_async_FUNC_ARGS($f, func_get_args());
+        $args = func_get_args();
+        return dom_async_FUNC_ARGS($f, $args);
     }
     
     function dom_async_FUNC_ARGS($f, $args)
