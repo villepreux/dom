@@ -3628,13 +3628,13 @@ else
 
     function delayed_component($callback, $arg = false) { dom_set("delayed_components", array_merge(dom_get("delayed_components", array()), array($callback => $arg))); return comment($callback); }
     
-    function script_amp_install_serviceworker   () { return delayed_component("_script_amp_install_serviceworker"   , false); }
-    function script_amp_iframe                  () { return delayed_component("_script_amp_iframe"                  , false); }
-    function script_amp_sidebar                 () { return delayed_component("_script_amp_sidebar"                 , false); }
-    function script_amp_position_observer       () { return delayed_component("_script_amp_position_observer"       , false); }
-    function script_amp_animation               () { return delayed_component("_script_amp_animation"               , false); }
-    function script_amp_form                    () { return delayed_component("_script_amp_form"                    , false); }
-    function script_amp_youtube                 () { return delayed_component("_script_amp_youtube"                 , false); }
+    function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_iframe                  () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_sidebar                 () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_position_observer       () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_animation               () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_form                    () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false); }
 
     function _script_amp_install_serviceworker  () { return if_then(has_amp_requirement("install-serviceworker"),   eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>'); }
     function _script_amp_iframe                 () { return if_then(has_amp_requirement("iframe"),                  eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>'); }
@@ -3644,7 +3644,7 @@ else
     function _script_amp_form                   () { return if_then(has_amp_requirement("form"),                    eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>'); }
     function _script_amp_youtube                () { return if_then(has_amp_requirement("youtube"),                 eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>'); }
 
-    function title  ($title = false) { return delayed_component("_title", $title); }
+    function title  ($title = false) { return delayed_component("_".__FUNCTION__, $title); }
     function _title ($title = false) { return ($title === false) ? tag('title', dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')) : tag('title', $title); }
 
     function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = null)
@@ -3709,7 +3709,7 @@ else
         return  $path ? link_rel($type, $path, $attributes) : '';
     }
     
-    function metas  () { return delayed_component("_metas", false); }
+    function metas  () { return delayed_component("_".__FUNCTION__, false); }
     function _metas ()
     {
         dom_debug_track_timing();
@@ -3877,7 +3877,7 @@ else
     
     define("IMPORTANT", !!dom_AMP() ? '' : ' !important');
     
-    function include_css_main_toolbar_adaptation() { return delayed_component("_include_css_main_toolbar_adaptation"); }
+    function include_css_main_toolbar_adaptation() { return delayed_component("_".__FUNCTION__); }
 
     function _include_css_main_toolbar_adaptation()
     {
