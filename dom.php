@@ -1303,6 +1303,8 @@
         $end_point  = "https://api.pinterest.com/v1/boards/".$username."/".$board."/pins/?access_token=".$token; // EXTERNAL ACCESS
         
         $result = array_open_url($end_point);
+
+    //  echo comment(print_r(array_merge(array("url" => $end_point), $result), true));
         
         if (dom_at($result, "status") == "failure")
         {
@@ -1348,15 +1350,15 @@
     }
 
     function json_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
-    {/*
+    {
         dom_debug_track_timing($username);        
         $end_point = endpoint_facebook($username, $fields_page, $fields_post, $fields_attachements, $token);
         if ($end_point === false) return array();
         
         $result = array_open_url($end_point);
-        
+        /*
         if ((false !== $username) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
-                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))*/
+                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))
         {
             $result = array("data" => array());
         
@@ -1387,7 +1389,7 @@
                 if (false !== $limit && count($result["data"]) >= $limit) break;
             }   
         }
-        
+        */
         return $result;
     }
     
@@ -1455,7 +1457,7 @@
                     $result[$i] = $result[$i]["children"][0]["children"][1];
                 }
 
-                echo comment((print_r($result, true)));
+            //  echo comment((print_r($result, true)));
                 
                 echo "<pre>";
                 print_r($result);
