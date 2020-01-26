@@ -61,7 +61,7 @@
     #region ... WIP
     ######################################################################################################################################
 
-    function a($html, $url = false, $attributes = false, $target = false) { return dom_a($html, $url, $attributes, $target); }
+    if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                             { return dom_a($html, $url, $attributes, $target); } }
 
     # ... WIP
 
@@ -187,6 +187,7 @@
 
         dom_set("background_color",                 "#FFF");
         dom_set("theme_color",                      "#000");
+        dom_set("text_color",                       "#000");
         dom_set("link_color",                       "#00F");
         
         dom_set("header_height",                    "256px");
@@ -263,19 +264,6 @@
         define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
         define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
     }
-
-    #endregion
-    #region INIT
-    ######################################################################################################################################
-
-    function dom_init()
-    {
-        dom_init_php();
-        dom_init_options();
-        dom_init_internals();
-    }
-
-    dom_init();
 
     #endregion
     #region HELPERS : AJAX / ASYNC
@@ -950,12 +938,23 @@
     #region HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
+    function hook_headline($h, $title)
+    {
+        if ($h == 1) hook_title($title);
+        if ($h == 2) hook_section($title);
+    }
+
     function hook_title($title)
     {
         if (!!$title && false === dom_get("title", false))
         {
             dom_set("title", $title);
         }        
+    }
+
+    function hook_section($title)
+    {
+        dom_set("hook_sections", array_merge(dom_get("hook_sections", array()), array($title)));
     }
     
     function hook_heading($heading)
@@ -1328,7 +1327,7 @@
     }
 
     function endpoint_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
-    {
+    {                   
         dom_debug_track_timing($username);
         if ($token    === false && !defined("TOKEN_FACEBOOK")) return false;
         if ($username === false && !dom_has("facebook_page"))  return false;
@@ -1349,20 +1348,20 @@
     }
 
     function json_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
-    {
+    {/*
         dom_debug_track_timing($username);        
         $end_point = endpoint_facebook($username, $fields_page, $fields_post, $fields_attachements, $token);
         if ($end_point === false) return array();
         
         $result = array_open_url($end_point);
         
-    /*  if ((false !== $username) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
-                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))
+        if ((false !== $username) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
+                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))*/
         {
             $result = array("data" => array());
         
             $json_articles_page = json_facebook_from_content("https://www.facebook.com/pg/".dom_get("facebook_page")."/posts/?ref=page_internal");
-            $json_articles_page = dom_at($json_articles_page, "require");
+            $json_articles_page = dom_at($json_articles_page, "require", array());
             
             foreach ($json_articles_page as $entry)
             {
@@ -1387,7 +1386,7 @@
 
                 if (false !== $limit && count($result["data"]) >= $limit) break;
             }   
-        }*/
+        }
         
         return $result;
     }
@@ -1415,17 +1414,72 @@
         $html    = @file_get_contents($url, false, $context);
 
         if ($html)
-        {          
-            $tag_bgn = 'dir="ltr">';
+        {   
+            while (true)
+            {
+                $tag_bgn = '<div id="globalContainer" class="uiContextualLayerParent">';
+                $tag_end = '</body>';
+                
+                $pos_bgn = stripos($html, $tag_bgn, 0);                             if (false == $pos_bgn) break;
+                $pos_end = stripos($html, $tag_end, $pos_bgn + strlen($tag_bgn));   if (false == $pos_bgn) break;
+                
+                $html =  substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+
+            //  echo comment(htmlentities($html));
+
+                $result = dom_doc_load_from_html($html);
+
+                $nodes  = array($result);
+                $result = array();
+
+                while (count($nodes) > 0)
+                {
+                    $node = array_shift($nodes);
+
+                    if (is_array($node))
+                    {
+                        if (array_key_exists("class", $node) && false !== stripos($node["class"], "userContentWrapper"))
+                        {
+                            $result[] = $node;
+                        }
+
+                        if (array_key_exists("children", $node) && is_array($node["children"]))
+                        {
+                            $nodes = array_merge($nodes, $node["children"]);
+                        }
+                    }
+                }
+
+                for ($i = 0; $i < count($result); ++$i)
+                {
+                    $result[$i] = $result[$i]["children"][0]["children"][1];
+                }
+
+                echo comment((print_r($result, true)));
+                
+                echo "<pre>";
+                print_r($result);
+                echo "</pre>";
+
+                return $result;
+
+                break;
+            }
+
+            
+            /*
+            $tag_bgn = 'dir="ltr"><script';
             $tag_end = '<script>';
             
             $pos_bgn = strpos($html, $tag_bgn, 0);
-            $pos_end = strpos($html, $tag_end, $pos_bgn);
-            
+            $pos_end = strpos($html, $tag_end, $pos_bgn + strlen($tag_bgn));
+
             if (false !== $pos_bgn && false !== $pos_end)
-            {
-                $html   = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+            {            
+                $html = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
                 
+                echo comment("$url [$pos_bgn - $pos_end] = (".htmlentities($html).")");
+        
                 $result = dom_doc_load_from_html($html);
                 
                 $result = $result["children"][0]["children"][0]["children"];
@@ -1437,7 +1491,7 @@
                 echo "</pre>";
 
                 return $result;
-            }
+            }*/
         }
         
         return false;
@@ -2661,7 +2715,7 @@
     function array_imgs_from_metadata  ($metadatas, $attributes = false) { if (!is_array($metadatas)) return  img_from_metadata($metadatas, $attributes); $imgs  = array(); foreach ($metadatas as $metadata) { $imgs  [] =  img_from_metadata($metadata, $attributes); } return $imgs;  }
     function array_cards_from_metadata ($metadatas, $attributes = false) { if (!is_array($metadatas)) return card_from_metadata($metadatas, $attributes); $cards = array(); foreach ($metadatas as $metadata) { $cards [] = card_from_metadata($metadata, $attributes); } return $cards; }
     
-    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return        card_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                          $attributes); }
+    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return        card_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                  $attributes); }
     function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return  array_imgs_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('img-thumb'))  : $attributes); }
     function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return array_cards_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('card-thumb')) : $attributes); }
     
@@ -2790,9 +2844,14 @@
             dom_redirect($url);
         }
     }
-    
-    function dom_header($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
+
+    dom_init_php();
+    dom_init_options();
+    dom_init_internals();
+
+    function dom_init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
+        
         if ($doctype  === false) $doctype  = dom_get("doctype",  dom_has("rss") ? ((dom_get("rss") == "" || dom_get("rss") == false) ? "rss" : dom_get("rss","rss")) : "html");
         if ($encoding === false) $encoding = dom_get("encoding", dom_has("iso") ? "ISO-8859-1"  : "utf-8");
 
@@ -3153,6 +3212,27 @@ else
         if ($beautify) { dom_set("beautify", $prev_beautify); }
     }
 
+    #endregion
+    #region CSS snippets
+    ######################################################################################################################################
+
+    function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
+    {
+        return "/* Text gradient */".
+
+            " "."background: linear-gradient(-45deg, $to 0%, $from 100%);".
+            " "."color: $from;".
+            
+            " "."display: inline-block;".
+
+            " "."-webkit-background-clip: text;".
+            " ".   "-moz-background-clip: text;".
+            " ".     "-o-background-clip: text;".
+            " ".       "background-clip: text;".
+
+            "-webkit-text-fill-color: transparent;".
+        "";
+    }
     
     #endregion
     #region API : DOM : URLS
@@ -3525,6 +3605,8 @@ else
                     $html = str_replace(comment($delayed_component), call_user_func($delayed_component, $param), $html);
                 }
 
+                dom_del("delayed_components");
+
             //  Clean html
 
                 if (!dom_get("minify"))
@@ -3896,20 +3978,21 @@ else
 
     :root
     {
-    	' . eol() . tab(2) . env("theme_color", 	           dom_get("theme_color")                )
-          . eol() . tab(2) . env("link_color", 		       dom_get("link_color")                     )
-          . eol() . tab(2) . env("background_color",        dom_get("background_color")              )
+    	' . eol() . tab(2) . env("theme_color", 	        dom_get("theme_color")                  )
+          . eol() . tab(2) . env("text_color", 		        dom_get("text_color")                   )
+          . eol() . tab(2) . env("link_color", 		        dom_get("link_color")                   )
+          . eol() . tab(2) . env("background_color",        dom_get("background_color")             )
           
-          . eol() . tab(2) . env("header_height",           dom_get("header_height")                 )
-          . eol() . tab(2) . env("header_min_height",       dom_get("header_min_height")             )
-          . eol() . tab(2) . env("header_toolbar_height",   dom_get("header_toolbar_height")         )
+          . eol() . tab(2) . env("header_height",           dom_get("header_height")                )
+          . eol() . tab(2) . env("header_min_height",       dom_get("header_min_height")            )
+          . eol() . tab(2) . env("header_toolbar_height",   dom_get("header_toolbar_height")        )
           
-          . eol() . tab(2) . env("main_max_width",          "1024px"                                 )
+          . eol() . tab(2) . env("main_max_width",          "1024px"                                )
           
-          . eol() . tab(2) . env("content_default_margin",  "10px"                                   )
+          . eol() . tab(2) . env("content_default_margin",  "10px"                                  )
           
-          . eol() . tab(2) . env("default_image_width",     dom_get("default_image_width",  300)     )
-          . eol() . tab(2) . env("default_image_height",    dom_get("default_image_height", 200)     )
+          . eol() . tab(2) . env("default_image_width",     dom_get("default_image_width",  300)    )
+          . eol() . tab(2) . env("default_image_height",    dom_get("default_image_height", 200)    )
           . eol() . tab(2) . env("default_image_ratio",     "calc(var(--default-image-width) / var(--default-image-height))")
           
           . eol() . tab(2) . env("scrollbar_width",         "17px").'
@@ -3944,12 +4027,11 @@ else
     .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
 
     .toolbar-row                                    { background-color: var(--theme-color);      color: var(--background-color); }
+    .toolbar-row a                                  { background-color: var(--theme-color);      color: var(--background-color); }
     .toolbar-row-banner                             { background-color: var(--background-color); color: default;                 }
     
     .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
     .toolbar-row-banner                             { height: var(--header-height); min-height: var(--header-min-height); }
-
-    .toolbar-row-nav a                              { background-color: var(--theme-color); color: var(--background-color); }
 
     .toolbar-row     .cell                          { overflow: hidden; }
     .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
@@ -3988,7 +4070,7 @@ else
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
     
     /* Animations */
-    
+
     a, a svg path   { transition: .6s ease-in-out }
 
     /* Other utilities */    
@@ -4009,10 +4091,13 @@ else
 
     /* Menu list */
 
-    .menu          { position: absolute; background-color: var(--background-color); max-height: 0; transition: max-height 1s ease-out; text-align: left; box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
-    .menu ul       { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .menu li:hover { background-color: #EEEEEE }
-    .menu li span  { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    .menu               { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
+    .menu a:hover       { background-color: var(--background-color); color: var(--theme-color); }
+
+    .menu               { position: absolute; max-height: 0; transition: max-height 1s ease-out; text-align: left; }
+    .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
+    .menu a             { display: inline-block; }
+    .menu li span       { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     /* Main images */
         
@@ -4616,7 +4701,7 @@ else
     function button         ($html = "", $attributes = false) {                             return                     tag ('button',                     $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button'))                             );                      }
     function button_label   ($html = "", $attributes = false) {                             return                     tag ('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
 
-    function h          ($h, $html = "", $attributes = false, $anchor = false)  { if ($h == 1) hook_title($html);
+    function h          ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
                                                                                             return  cosmetic(eol(1)).
                                                                                                     (($h>=2)?anchor(!!$anchor ? $anchor : $html):'').
                                                                                                                        tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline'.$h))                        );                      }
@@ -4627,13 +4712,14 @@ else
     function h4             ($html = "", $attributes = false, $anchor = false) {            return                     h(4,                               $html,                                                $attributes, $anchor                                                );                      }
     function h5             ($html = "", $attributes = false, $anchor = false) {            return                     h(5,                               $html,                                                $attributes, $anchor                                                );                      }
     function section        ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('section',                    $html,                     dom_attributes_add_class(  $attributes, 'section')                                             );                      }
-    function header_FIX     ($html = "", $attributes = false) { dom_debug_track_timing();   return    cosmetic(eol(1)).tag ('header',                     $html.cosmetic(eol(1)),    dom_attributes_add_class(  $attributes, 'header')                                              ).cosmetic(eol(1));     }
+    function dom_header     ($html = "", $attributes = false) { dom_debug_track_timing();   return    cosmetic(eol(1)).tag ('header',                     $html.cosmetic(eol(1)),    dom_attributes_add_class(  $attributes, 'header')                                              ).cosmetic(eol(1));     }
                    
     function hr             (            $attributes = false) {                             return    cosmetic(eol(1)).tag ('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return                     tag ('br',                         false,                                                $attributes, false, true                                            );                      }
 
     function clearfix       () { return div("","clearfix"); }
 
+    function dom_main       ($html = "", $attributes = false) { return content($html, $attributes); }
     function content        ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('main',     cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('main')                 .                           ' ' . 
                                                                                                                                                                                                                                         dom_component_class('content')              . (!!dom_get("toolbar") ? ( ' ' . 
                                                                                                                                                                                                                                         dom_component_class('main-below-toolbar')   ) : '')) ).cosmetic(eol(1)); }
@@ -4843,7 +4929,8 @@ else
 
     function char_phone() { return "☎"; }
     function char_email() { return "✉"; }
-    function char_unsec() { return " "; }
+  //function char_unsec() { return " "; }
+    function char_unsec() { return "&nbsp;"; }
     
 //  function nbsp($count = 1) { return str_repeat("&nbsp;",     $count); }
     function nbsp($count = 1) { return str_repeat(char_unsec(), $count); }
@@ -5196,7 +5283,7 @@ else
         if ($title_main !== false) $title .= h($title_level,     $title_main,         array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
         if ($title_sub  !== false) $title .= h($title_level + 1, $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
-        return (($title !== "") ? section($title, dom_component_class("card-title")) : "");
+        return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }
 
     function card_media($media = false)
@@ -5459,7 +5546,8 @@ else
                 }
                 else
                 {    
-                    if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
+                //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
+                    if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
                             
                     $item       = dom_get($menu_entry, "item",   dom_get($menu_entry, 0, ""));
                     $link       = dom_get($menu_entry, "link",   dom_get($menu_entry, 1, false));
@@ -5544,9 +5632,22 @@ else
         return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
     }
 
-    function toolbar_nav_menu($html, $attributes = false, $menu_entries_shrink_to_fit = false)
+    function toolbar_nav_toolbar($html)
+    {
+        return toolbar_section(($html === false) ? '' : $html,  array(
+            
+            "role"  => "toolbar",
+            "class" => (dom_component_class("toolbar-cell-right") . ' ' . 
+                        dom_component_class("toolbar-cell-right-shrink"))));
+    }
+   
+    function  menu_toggle_auto() { return delayed_component("_".__FUNCTION__, false); }
+    function _menu_toggle_auto() { return menu_toggle(ul_menu(get("hook_sections"))); }
+
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false)
     {
         $html = if_then(false !== $html && false === stripos($html, "menu-toggle"), menu_toggle($html), $html);
+        $html = if_then(false === $html,                                            menu_toggle_auto(), $html);
         
         return toolbar_section(($html === false) ? '' : $html,  dom_component_class("toolbar-cell-left") . ($menu_entries_shrink_to_fit ? (' '.
                                                                 dom_component_class("toolbar-cell-right-shrink")    ) : ""));
@@ -5567,7 +5668,7 @@ else
     {
         hook_toolbar("nav");
 
-        $html = if_then(false === stripos($html,"toolbar-cell"), toolbar_nav_menu(false).toolbar_nav_title($html), $html);
+        $html = if_then(false === stripos($html,"toolbar-cell"), toolbar_nav_menu().toolbar_nav_title($html), $html);
         
         $menu_id_amp = DOM_MENU_ID."-static";
         
@@ -5597,7 +5698,7 @@ else
             $amp_observer = '<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
         }
 
-        return $amp_anim . header_FIX($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class('toolbar')));
+        return $amp_anim . dom_header($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class('toolbar')));
     }
     
     #endregion
