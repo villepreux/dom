@@ -6,8 +6,6 @@
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 
-    set("facebook_page", "pariszigzag");
-
     dom_init();
 
     dom_output(
@@ -33,6 +31,9 @@
                     
                     .footer             { background-color: dimgray }
                     .footer a           { padding: var(--content-default-margin); }
+
+                    .card .headline1,
+                    .card .headline2 { font-size: 1em; margin: 0px; text-overflow: ellipsis; overflow: hidden; height: 24px; }
     
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
@@ -47,13 +48,19 @@
                         ).
 
                     article(
+
                         dom_header(
                             h2("Cards section").
                             p(date("d/m/Y")." - Cards section")
                             ).
-                        grid(
 
-                        //  card_async("facebook","posts").
+                        h3("Social networks").
+
+                        grid(cards_async("socials", "posts", array("instagram" => "mimines_et_risettes"))).
+
+                        h3("Examples").
+
+                        grid(
 
                             card(
                                 card_title("We love cards").

@@ -938,10 +938,21 @@
     #region HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
+    $__dom_last_headline_level = false;
+
     function hook_headline($h, $title)
     {
+        global $__dom_last_headline_level;
+        $__dom_last_headline_level = (int)$h;
+
         if ($h == 1) hook_title($title);
         if ($h == 2) hook_section($title);
+    }
+
+    function get_last_headline()
+    {
+        global $__dom_last_headline_level;
+        return $__dom_last_headline_level;
     }
 
     function hook_title($title)
@@ -1331,6 +1342,7 @@
     function endpoint_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
     {                   
         dom_debug_track_timing($username);
+
         if ($token    === false && !defined("TOKEN_FACEBOOK")) return false;
         if ($username === false && !dom_has("facebook_page"))  return false;
         
@@ -1652,7 +1664,7 @@
         if ($token    === false && !defined("TOKEN_INSTAGRAM")) return array();
         if ($username === false && !dom_has("instagram_user"))  return array();
         
-        $token      = ($token    === false) ? TOKEN_INSTAGRAM       : $token;
+        $token      = ($token    === false) ? TOKEN_INSTAGRAM           : $token;
         $username   = ($username === false) ? dom_get("instagram_user") : $username;
         $tag        = ($tag      === false) ? dom_get("instagram_tag")  : $tag;
 
@@ -1664,6 +1676,8 @@
         );
 
         $result = array_open_url($end_points);
+
+        echo comment(print_r($result, true));
         
         if ((false !== $tag) && (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200"))
         {
@@ -1853,6 +1867,8 @@
         $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"));
         $posts   = array();
 
+        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
+    
         foreach (dom_at($content, "data",  array()) as $item)
         {
             if (!dom_pagination_is_within()) continue;
@@ -2347,6 +2363,8 @@
         ,   "DEBUG_SOURCE"      => array("content" => $content)
         ,   "LAZY"              => true
         ));*/
+
+        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
     
         $articles   = array_facebook_articles(dom_get("facebook_page"));
         
@@ -2716,10 +2734,13 @@
 
     function array_imgs_from_metadata  ($metadatas, $attributes = false) { if (!is_array($metadatas)) return  img_from_metadata($metadatas, $attributes); $imgs  = array(); foreach ($metadatas as $metadata) { $imgs  [] =  img_from_metadata($metadata, $attributes); } return $imgs;  }
     function array_cards_from_metadata ($metadatas, $attributes = false) { if (!is_array($metadatas)) return card_from_metadata($metadatas, $attributes); $cards = array(); foreach ($metadatas as $metadata) { $cards [] = card_from_metadata($metadata, $attributes); } return $cards; }
+
+    $__dom_card_headline = 2;
+    function dom_get_card_headline() { global $__dom_card_headline; return $__dom_card_headline; }
     
-    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return        card_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                  $attributes); }
-    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return  array_imgs_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('img-thumb'))  : $attributes); }
-    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { return array_cards_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('card-thumb')) : $attributes); }
+    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                            return  array_imgs_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('img-thumb'))  : $attributes); }
+    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__dom_card_headline; $__dom_card_headline = 1+get_last_headline(); return        card_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                  $attributes); }
+    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__dom_card_headline; $__dom_card_headline = 1+get_last_headline(); return array_cards_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('card-thumb')) : $attributes); }
     
     #endregion
     #region HELPERS : DEBUG
@@ -5434,7 +5455,17 @@ else
                 (   dom_at($data, "title_main")     === false 
                 &&  dom_at($data, "title_sub")      === false
                 &&  dom_at($data, "title_img_src")  === false
-                &&  dom_at($data, "title_link")     === false) ? false : array(dom_at($data, "title_main"), dom_at($data, "title_sub"), dom_at($data, "title_img_src"), dom_at($data, "title_link"))
+                &&  dom_at($data, "title_link")     === false) ? false : array(
+                    
+                    dom_at($data, "title_main"),        // title
+                    dom_at($data, "title_sub"),         // subtitle
+                    dom_at($data, "title_img_src"),     // icon
+                    dom_at($data, "title_link"),        // link/link_main
+                    false,                              // link_subtitle
+                    false,                              // link_icon
+                    1/*dom_get_card_headline()*/        // level
+                    
+                    )
                 ).
 
             card_media  (dom_at($data,"content")).
