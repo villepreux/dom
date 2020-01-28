@@ -345,7 +345,7 @@
                 if ($arg === "TRUE")  $arg = true;
             }    
 
-            return comment("Ajax callback $f ".to_string($args)).call_user_func_array($f, $args);
+            return comment("Ajax callback $f(".to_string($args).")").call_user_func_array($f, $args);
         }
     }
 
