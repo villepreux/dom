@@ -793,10 +793,7 @@
     
     function to_string($a)
     {
-        if (!is_array($a)) return (string)$a;
-        ob_start();
-        print_r($a);
-        return ob_get_clean();
+        return is_array($a) ? print_r($a, true) : (string)$a;
     }
 
     function is_array_filtered($a, $required_values, $unwanted_values = false)
@@ -1677,7 +1674,7 @@
 
         $result = array_open_url($end_points);
 
-        echo comment(print_r($result, true));
+    //  echo comment(print_r($result, true));
         
         if ((false !== $tag) && (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200"))
         {
@@ -1867,7 +1864,7 @@
         $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"));
         $posts   = array();
 
-        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
+    //  if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
     
         foreach (dom_at($content, "data",  array()) as $item)
         {
@@ -2364,7 +2361,7 @@
         ,   "LAZY"              => true
         ));*/
 
-        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
+    //  if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
     
         $articles   = array_facebook_articles(dom_get("facebook_page"));
         
