@@ -173,7 +173,7 @@
         // Cannot be modified at browser URL level
 
         define("DOM_AUTHOR",                        "Antoine Villepreux");
-        define("DOM_VERSION",                       "0.2");
+        define("DOM_VERSION",                       "0.3");
         define("DOM_PATH_MAX_DEPTH",                16);
 
     //  dom_set("title",                             "Blog");
@@ -3648,7 +3648,7 @@ else
                 . eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
                 . eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
                 . eol()
-                . eol()). $html . raw_html(
+                . eol()). $html . comment("DOM.PHP ".DOM_VERSION) . raw_html(
                   eol()
                 . eol() . '</html>');
             }
