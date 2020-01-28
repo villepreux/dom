@@ -345,7 +345,7 @@
                 if ($arg === "TRUE")  $arg = true;
             }    
 
-            return comment("Ajax callback $f(".to_string($args).")").call_user_func_array($f, $args);
+            return call_user_func_array($f, $args);
         }
     }
 
@@ -1674,6 +1674,35 @@
 
         $result = array_open_url($end_points);
 
+        // DEBUG ---->
+
+        $result = array_merge($result, array("data" => array(array
+        (
+            "id"    => "666"
+        ,   "user"  => array
+            (
+                "full_name"         => "John Doe"
+            ,   "username"          => "Johnny"
+            ,   "profile_picture"   => "https://web.cyanide-studio.com/image.png"
+            )
+        ,   "caption" => array
+            (
+                "text" => "Loremp ipsum est!"
+            )
+        ,   "created_time"  => date("d/m/Y")
+        ,   "link"          => "https://web.cyanide-studio.com"
+        ,   "images"        => array
+            (
+                "low_resolution" => array
+                (
+                    "url" => "https://web.cyanide-studio.com/image.png"
+                )
+            )
+
+        ))));
+
+        // DEBUG ---->
+
     //  echo comment(print_r($result, true));
         
         if ((false !== $tag) && (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200"))
@@ -1687,14 +1716,14 @@
                 $result = array("data" => array());
             
                 foreach ($edges as $edge)
-            {
+                {
                     $node = dom_at($edge,"node");
                 
                     $post_url = url_instagram_post(dom_at($node, "shortcode"));
                 
                     $owner = dom_at(json_instagram_from_content($post_url), array("entry_data","PostPage",0,"graphql","shortcode_media","owner"));
                     
-                    $item = array
+                    $result["data"][] = array
                     (
                         "id"    => dom_at($node, "id")
                     ,   "user"  => array
@@ -1705,7 +1734,7 @@
                         )
                     ,   "caption" => array
                         (
-                            "text" => dom_at($node, array("edge_media_to_caption","edges",0,"node","text"))
+                            "text" => ltrim(dom_at($node, array("edge_media_to_caption","edges",0,"node","text")), "|| ")
                         )
                     ,   "created_time"  => dom_at($node, "taken_at_timestamp")
                     ,   "link"          => $post_url
@@ -1717,10 +1746,6 @@
                             )
                         )
                     );
-                    
-                    $item["caption"]["text"] = ltrim($item["caption"]["text"], "|| ");
-                    
-                    $result["data"][] = $item;
     
                     if (false !== $limit && count($result["data"]) >= $limit) break;
                 }
