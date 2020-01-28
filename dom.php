@@ -121,14 +121,10 @@
     #region PRIVATE API
     ######################################################################################################################################
     
-    #region DEPENDENCIES
-    ######################################################################################################################################
-    
-                                        @include dirname(__FILE__)."/"."tokens.php";
-    if (!function_exists("markdown"))   @include dirname(__FILE__)."/"."php/vendors/markdown.php";
-                                        @include dirname(__FILE__)."/"."php/vendors/smartypants.php";
-        
-    #endregion
+    define("DOM_AUTHOR",            "Antoine Villepreux");
+    define("DOM_VERSION",           "0.3");
+    define("DOM_PATH_MAX_DEPTH",    16);
+
     #region API : GET/SET
     ######################################################################################################################################
 
@@ -141,6 +137,14 @@
 
     function dom_is_localhost()                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); }
 
+    #endregion
+    #region DEPENDENCIES
+    ######################################################################################################################################
+    
+                                        @include dom_path("tokens.php");
+    if (!function_exists("markdown"))   @include dom_path("php/vendors/markdown.php");
+                                        @include dom_path("php/vendors/smartypants.php");
+        
     #endregion
     #region CONFIG : PHP SETTINGS
     ######################################################################################################################################
@@ -171,10 +175,6 @@
     function dom_init_options()
     {
         // Cannot be modified at browser URL level
-
-        define("DOM_AUTHOR",                        "Antoine Villepreux");
-        define("DOM_VERSION",                       "0.3");
-        define("DOM_PATH_MAX_DEPTH",                16);
 
     //  dom_set("title",                             "Blog");
         dom_set("keywords",                          "");
@@ -1675,7 +1675,7 @@
         $result = array_open_url($end_points);
 
         // DEBUG ---->
-
+        /*
         $result = array_merge($result, array("data" => array(array
         (
             "id"    => "666"
@@ -1700,7 +1700,7 @@
             )
 
         ))));
-
+        */
         // DEBUG ---->
 
     //  echo comment(print_r($result, true));
@@ -1823,11 +1823,12 @@
         if ($sources !== false && !is_array($sources)) $sources = array($sources);
         if ($sources === false)                        $sources = array();
         
-        foreach ($sources as $social_source => $username)
-        {            
-            if (((string)(int)$social_source ==  $social_source)
-            &&  (        (int)$social_source === $social_index)) { $social_source = $username; $username = false; }
-            
+        foreach ($sources as $source)
+        {   
+            $source        = explode(":", $source);
+            $social_source = dom_at($source, 0);
+            $username      = dom_at($source, 1);
+
             // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
             
             if (is_callable("array_".$social_source."_posts"))
@@ -1841,7 +1842,7 @@
             }
             else if (!!dom_get("debug"))
             {
-                echo "UNDEFINED SOCIAL SOURCE: $social_source";
+                echo "UNDEFINED SOCIAL SOURCE: ".to_string($sources).to_string($filter);
             }
             
             ++$social_index;
@@ -1889,8 +1890,6 @@
         $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"));
         $posts   = array();
 
-    //  if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
-    
         foreach (dom_at($content, "data",  array()) as $item)
         {
             if (!dom_pagination_is_within()) continue;
@@ -2386,8 +2385,6 @@
         ,   "LAZY"              => true
         ));*/
 
-    //  if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
-    
         $articles   = array_facebook_articles(dom_get("facebook_page"));
         
         $tags_in    = explode(',',$tags_in);

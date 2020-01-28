@@ -9,7 +9,7 @@
     dom_init();
 
     dom_output(
-	
+
         html( // HTML document
 
             head(). // Header. Keeping defaults.
@@ -56,7 +56,7 @@
 
                         h3("Social networks").
 
-                        grid(cards_async("socials", "posts", array("instagram" => "mimines_et_risettes"))).
+                        grid(cards_async("socials", "posts", array("instagram:mimines_et_risettes"))).
 
                         h3("Examples").
 
