@@ -355,20 +355,20 @@
     
     function dom_string_script_ajax_head()
     {
-        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_ajax_pending_calls = [];'
             .   eol()
             .   eol() . tab(1) .   'function dom_ajax(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
             .   eol() . tab(2) .       'dom_ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));'
-            .   eol() . tab(1) .   '}'
+            .   eol() . tab(1) .   '};'
             .   eol();
     }
     
     function dom_string_script_ajax_body()
     {
-        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
@@ -880,7 +880,7 @@
                 $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
             }
             
-            $hashtag = a('#'.$hashtag, $url, EXTERNAL_LINK);
+            $hashtag = a('#'.$hashtag, $url, "hashtag", EXTERNAL_LINK);
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -4746,7 +4746,7 @@ else
     function h          ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
                                                                                             return  cosmetic(eol(1)).
                                                                                                     (($h>=2)?anchor(!!$anchor ? $anchor : $html):'').
-                                                                                                                       tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline'.$h))                        );                      }
+                                                                                                                       tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
     function h2             ($html = "", $attributes = false, $anchor = false) {            return                     h(2,                               $html,                                                $attributes, $anchor                                                );                      }
@@ -4948,7 +4948,7 @@ else
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
         
-        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes($attributes));
+        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes_add_class($attributes, "a"));
     }
 
     function a_email($email, $text = false, $attributes = false)
@@ -5141,8 +5141,8 @@ else
 
         if (!!dom_get("no_js")) $lazy = false;
 
-        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img-responsive lazy loading"), false, !dom_AMP() && $content == '')
-                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img-responsive immediate"),    false, !dom_AMP() && $content == '');
+        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
+                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
     }
     
     function img_svg($path, $attributes = false)
@@ -5157,7 +5157,17 @@ else
         if ($x0 === false) $x0 = 0; if ($x1 === false) $x1 = $w; 
         if ($y0 === false) $y0 = 0; if ($y1 === false) $y1 = $h; 
 
-        return tag('span', '<svg role="img"'.(($label!="" && $label!=false)?(' aria-label="'.$label.'"'):('')).' style="width:'.$w.'px;height:'.$h.'px" viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', array('class' => 'div-svg-icon-container', 'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'));
+        return tag('span', 
+                    '<svg '. 'class="svg" '.
+                              'role="img"'.(($label!="" && $label!=false)?(' '.
+                        'aria-label="'.$label.'"'):('')).' '.
+                             'style="width:'.$w.'px;height:'.$h.'px" '.
+                           'viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', 
+                    array(
+                        'class' => 'span-svg-wrapper span-svg-icon-container div-svg-icon-container',
+                        'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'
+                        )
+                    );
     }
 
     // https://materialdesignicons.com/
@@ -5320,10 +5330,10 @@ else
         
         $title = "";
         
-        if ($title_icon !== false) $title  = img(                $title_icon,         array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false) $title  = a($title,           $title_link,                          dom_component_class('card-title-link'), EXTERNAL_LINK);
-        if ($title_main !== false) $title .= h($title_level,     $title_main,         array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
-        if ($title_sub  !== false) $title .= h($title_level + 1, $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_icon !== false) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false) $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), EXTERNAL_LINK);
+        if ($title_main !== false) $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+        if ($title_sub  !== false) $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }

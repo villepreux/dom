@@ -18,22 +18,29 @@
 
                 style("
 
-                    :root               { --header-min-height: 64px }
+                    :root                   { --header-min-height: 64px }
 
-                    .toolbar-row-banner { background: center/cover url(".get("my_example_img_src")."); }
-    
-                    .headline2          { ".css_gradient()." }
+                    .a                      { text-decoration: none      }
+                    .a:hover                { text-decoration: underline }
+
+                    .toolbar-row-banner     { background: center/cover url(".get("my_example_img_src")."); }
                 
-                    .grid               { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-                    .card               { border: 1px solid #DDD }
-                    .card-text,
-                    .card-title         { padding: var(--content-default-margin); }
-                    
-                    .footer             { background-color: dimgray }
-                    .footer a           { padding: var(--content-default-margin); }
+                    .headline2              { ".css_gradient()." }
 
-                    .card .headline1,
-                    .card .headline2 { font-size: 1em; margin: 0px; text-overflow: ellipsis; overflow: hidden; height: 24px; }
+                    .grid                   { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+
+                    .card                   { border: 1px solid #DDD; border-radius: 4px; box-shadow: 2px 2px 7px 2px #DDD; }
+                    .card-text, .card-title { padding: var(--content-default-margin); }
+                    .card-title p           { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    .card-title-sub 
+                    .span-svg-wrapper       { padding-right: 10px }
+                    .card .img              { width: 100% }
+                    .card .hashtag          { font-size: 0.8em }
+
+                    .footer                 { background-color: dimgray }
+                    .footer a               { padding: var(--content-default-margin); }
+
+                    .card .headline         { font-size: 1em; margin: 0px; text-overflow: ellipsis; overflow: hidden; height: 24px; }
     
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
