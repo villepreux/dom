@@ -18,3 +18,5 @@ examples/helloworld/#
 examples/basics/sw.js
 examples/basics/install-service-worker.html
 examples/basics/#
+examples/basics/tokens.php
+examples/basics/git.dom.php
