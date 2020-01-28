@@ -19,4 +19,7 @@ examples/basics/sw.js
 examples/basics/install-service-worker.html
 examples/basics/#
 examples/basics/tokens.php
+<<<<<<< HEAD
 examples/basics/git.dom.php
+=======
+>>>>>>> a394a6f0d78b9393d5c65b00ca8b1d83fa027cd6
