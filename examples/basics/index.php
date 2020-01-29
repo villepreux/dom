@@ -18,23 +18,28 @@
 
                 style("
 
-                    :root               { --header-min-height: 64px }
+                    :root                           { --header-min-height: 64px }
 
-                    .toolbar-row-banner { background: center/cover url(".get("my_example_img_src")."); }
-    
-                    .headline2          { ".css_gradient()." }
-                
-                    .grid               { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-                    .card               { border: 1px solid #DDD }
+                    .toolbar-row-banner             { background: center/cover url(".get("my_example_img_src")."); }
+
+                    .headline2                      { ".css_gradient()." }
+
+                    .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+
+                    .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #DDD; }
+                    .card img                       { width: 100% }
                     .card-text,
-                    .card-title         { padding: var(--content-default-margin); }
-                    
-                    .footer             { background-color: dimgray }
-                    .footer a           { padding: var(--content-default-margin); }
+                    .card-title                     { padding: var(--content-default-margin); }
+                    .card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
+                    .card .headline                 { font-size: 1em; margin: 0px; }                    
+                    .card-title-main,       
+                    .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-                    .card .headline1,
-                    .card .headline2 { font-size: 1em; margin: 0px; text-overflow: ellipsis; overflow: hidden; height: 24px; }
-    
+                    .footer                         { background-color: dimgray }
+                    .footer a                       { padding: var(--content-default-margin); }
+
+                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
+
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
 
@@ -56,7 +61,7 @@
 
                         h3("Social networks").
 
-                        grid(cards_async("socials", "posts", array("instagram" => "mimines_et_risettes"))).
+                        grid(cards_async("socials", "posts", array("instagram:mimines_et_risettes"))).
 
                         h3("Examples").
 

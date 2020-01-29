@@ -121,14 +121,10 @@
     #region PRIVATE API
     ######################################################################################################################################
     
-    #region DEPENDENCIES
-    ######################################################################################################################################
-    
-                                        @include dirname(__FILE__)."/"."tokens.php";
-    if (!function_exists("markdown"))   @include dirname(__FILE__)."/"."php/vendors/markdown.php";
-                                        @include dirname(__FILE__)."/"."php/vendors/smartypants.php";
-        
-    #endregion
+    define("DOM_AUTHOR",                        "Antoine Villepreux");
+    define("DOM_VERSION",                       "0.2");
+    define("DOM_PATH_MAX_DEPTH",                16);
+
     #region API : GET/SET
     ######################################################################################################################################
 
@@ -141,6 +137,14 @@
 
     function dom_is_localhost()                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); }
 
+    #endregion
+    #region DEPENDENCIES
+    ######################################################################################################################################
+    
+                                         include dom_path("tokens.php");
+    if (!function_exists("markdown"))   @include dom_path("php/vendors/markdown.php");
+                                        @include dom_path("php/vendors/smartypants.php");
+        
     #endregion
     #region CONFIG : PHP SETTINGS
     ######################################################################################################################################
@@ -171,10 +175,6 @@
     function dom_init_options()
     {
         // Cannot be modified at browser URL level
-
-        define("DOM_AUTHOR",                        "Antoine Villepreux");
-        define("DOM_VERSION",                       "0.2");
-        define("DOM_PATH_MAX_DEPTH",                16);
 
     //  dom_set("title",                             "Blog");
         dom_set("keywords",                          "");
@@ -355,7 +355,7 @@
     
     function dom_string_script_ajax_head()
     {
-        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_ajax_pending_calls = [];'
             .   eol()
@@ -368,7 +368,7 @@
     
     function dom_string_script_ajax_body()
     {
-        return  eol() . tab(1) .   '// DOM Javascript boilerplate'
+        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
@@ -1801,10 +1801,11 @@
         if ($sources !== false && !is_array($sources)) $sources = array($sources);
         if ($sources === false)                        $sources = array();
         
-        foreach ($sources as $social_source => $username)
+        foreach ($sources as $source)
         {            
-            if (((string)(int)$social_source ==  $social_source)
-            &&  (        (int)$social_source === $social_index)) { $social_source = $username; $username = false; }
+            $src_usr        = explode(':', $source);
+            $social_source  = dom_at($src_usr, 0, $source);
+            $username       = dom_at($src_usr, 1);
             
             // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
             
@@ -3471,6 +3472,12 @@ else
         $unit = "px";
         $res  = 0;
 
+        if (!is_array($vars))
+        {
+            $vars           = func_get_args();
+            $pre_processing = false;
+        }
+
         foreach ($vars as $var)
         {
             $var = ($pre_processing ? hook_css_env($var) : dom_get($var));
@@ -3495,6 +3502,12 @@ else
     {
         $unit = "px";
         $res  = 1;
+
+        if (!is_array($vars))
+        {
+            $vars           = func_get_args();
+            $pre_processing = false;
+        }
 
         foreach ($vars as $var)
         {
@@ -4098,7 +4111,6 @@ else
 
     /* Other utilities */    
     
-/*  .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; } */
     .app-install                                    { display: none }
     .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
@@ -4727,7 +4739,7 @@ else
     function h          ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
                                                                                             return  cosmetic(eol(1)).
                                                                                                     (($h>=2)?anchor(!!$anchor ? $anchor : $html):'').
-                                                                                                                       tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline'.$h))                        );                      }
+                                                                                                                       tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
     function h2             ($html = "", $attributes = false, $anchor = false) {            return                     h(2,                               $html,                                                $attributes, $anchor                                                );                      }
@@ -5138,7 +5150,7 @@ else
         if ($x0 === false) $x0 = 0; if ($x1 === false) $x1 = $w; 
         if ($y0 === false) $y0 = 0; if ($y1 === false) $y1 = $h; 
 
-        return tag('span', '<svg role="img"'.(($label!="" && $label!=false)?(' aria-label="'.$label.'"'):('')).' style="width:'.$w.'px;height:'.$h.'px" viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', array('class' => 'div-svg-icon-container', 'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'));
+        return tag('span', '<svg role="img"'.(($label!="" && $label!=false)?(' aria-label="'.$label.'"'):('')).' style="width:'.$w.'px;height:'.$h.'px" viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', array('class' => 'span-svg svg-wrapper', 'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'));
     }
 
     // https://materialdesignicons.com/
@@ -5304,7 +5316,7 @@ else
         if ($title_icon !== false) $title  = img(                $title_icon,         array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
         if ($title_link !== false) $title  = a($title,           $title_link,                          dom_component_class('card-title-link'), EXTERNAL_LINK);
         if ($title_main !== false) $title .= h($title_level,     $title_main,         array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
-        if ($title_sub  !== false) $title .= h($title_level + 1, $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_sub  !== false) $title .= p(                  $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }
