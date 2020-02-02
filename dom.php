@@ -4150,8 +4150,7 @@ else
 
     .menu               { position: absolute; max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .menu a             { display: inline-block; }
-    .menu li span       { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     /* Main images */
         
