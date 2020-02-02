@@ -6016,20 +6016,6 @@ else
     define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
     define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
 
-    function dom_evaluate_color_contrast($color1, $color2) {
-
-        $ratio = dom_calculate_luminosity_ratio($color1, $color2);
-
-        $level_result[DOM_COLOR_CONTRAST_AA_MEDIUMBOLD]     = ($ratio >= 4.5 ? true : false);
-        $level_result[DOM_COLOR_CONTRAST_AA_LARGE]          = ($ratio >= 3   ? true : false);
-        $level_result[DOM_COLOR_CONTRAST_AA_NORMAL]         = ($ratio >= 3   ? true : false);
-        $level_result[DOM_COLOR_CONTRAST_AAA_MEDIUMBOLD]    = ($ratio >= 7   ? true : false);
-        $level_result[DOM_COLOR_CONTRAST_AAA_LARGE]         = ($ratio >= 4.5 ? true : false);
-        $level_result[DOM_COLOR_CONTRAST_AAA_NORMAL]        = ($ratio >= 4.5 ? true : false);
-        
-        return $level_result;
-    }
-
     function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AAA_NORMAL)
     {
         $color = ltrim($color, "#");
@@ -6054,8 +6040,8 @@ else
                       str_pad(dechex($g),2,"0",STR_PAD_LEFT).
                       str_pad(dechex($b),2,"0",STR_PAD_LEFT);
 
-            $results = dom_evaluate_color_contrast($background, $rrggbb);
-            if ($results[$contrast_ratio_target]) break;
+            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
+            if ($ratio >= $contrast_ratio_target) break;
 
             $r = min(1, $delta + $r);
             $g = min(1, $delta + $r);
