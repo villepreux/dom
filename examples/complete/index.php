@@ -2,8 +2,6 @@
 
     require_once("dom.php"); 
 
-    set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
-
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 
     dom_init();
@@ -20,13 +18,11 @@
 
                     :root                           { --header-min-height: 64px }
 
-                    .toolbar-row-banner             { background: center/cover url(".get("my_example_img_src")."); }
-
                     .headline2                      { ".css_gradient()." }
 
                     .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
 
-                    .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #DDD; }
+                    .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #0000006b; }
                     .card img                       { width: 100% }
                     .card-text,
                     .card-title                     { padding: var(--content-default-margin); }
@@ -58,6 +54,12 @@
                             h2("Cards section").
                             p(date("d/m/Y")." - Cards section")
                             ).
+
+                        h3("Social networks").
+
+                        grid(cards_async("socials", "posts", array("instagram:mimines_et_risettes"))).
+
+                        h3("Examples").
 
                         grid(
 
