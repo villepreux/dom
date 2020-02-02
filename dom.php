@@ -6016,15 +6016,13 @@ else
     define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
     define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
 
-    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AAA_NORMAL)
+    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AAA_NORMAL, $delta = 0.01)
     {
         $color = ltrim($color, "#");
 
         $r = hexdec(substr($color, 0, 2)) / 255;
         $g = hexdec(substr($color, 2, 2)) / 255;
         $b = hexdec(substr($color, 4, 2)) / 255;
-
-        $delta = 0.01;
         
         $intensity_color        = dom_calculate_luminosity($color);
         $intensity_background   = dom_calculate_luminosity($background);
