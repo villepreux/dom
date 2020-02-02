@@ -6018,14 +6018,11 @@ else
         $r = hexdec(substr($rrggbb, 0, 2)) / 255;
         $g = hexdec(substr($rrggbb, 2, 2)) / 255;
         $b = hexdec(substr($rrggbb, 4, 2)) / 255;
-        
-        $intensity_color        = dom_calculate_luminosity($color);
-        $intensity_background   = dom_calculate_luminosity($background);
 
-        if ($intensity_background > $intensity_color)
-        {
-            $delta = - $delta;
-        }
+        $intensity_color      = dom_calculate_luminosity($color);
+        $intensity_background = dom_calculate_luminosity($background);
+
+        if ($intensity_background > $intensity_color) { $delta = - $delta; }
 
         while ((0 < $r && $r < 1) || (0 < $g && $g < 1) || (0 < $b && $b < 1))
         {
