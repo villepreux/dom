@@ -122,7 +122,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.3");
+    define("DOM_VERSION",           "0.3.a");
     define("DOM_PATH_MAX_DEPTH",    16);
 
     #region API : GET/SET
