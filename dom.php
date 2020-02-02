@@ -6002,12 +6002,7 @@ else
         return ($l1 > $l2) ? (($l1 + 0.05) / ($l2 + 0.05)) : (($l2 + 0.05) / ($l1 + 0.05));
     }
 
-    // returns an array with the results of the color contrast analysis
-    // it returns a key for each level (AA and AAA, both for normal and large or bold text)
-    // it also returns the calculated contrast ratio
-    // the ratio levels are from the WCAG 2 requirements
-    // http://www.w3.org/TR/WCAG20/#visual-audio-contrast (1.4.3)
-    // http://www.w3.org/TR/WCAG20/#larger-scaledef
+    // Try a color correction function
 
     define("DOM_COLOR_CONTRAST_AA_MEDIUMBOLD",  3.0);
     define("DOM_COLOR_CONTRAST_AA_LARGE",       3.0);
@@ -6016,13 +6011,13 @@ else
     define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
     define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
 
-    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AAA_NORMAL, $delta = 0.01)
+    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
     {
-        $color = ltrim($color, "#");
+        $rrggbb = ltrim($color, "#");
 
-        $r = hexdec(substr($color, 0, 2)) / 255;
-        $g = hexdec(substr($color, 2, 2)) / 255;
-        $b = hexdec(substr($color, 4, 2)) / 255;
+        $r = hexdec(substr($rrggbb, 0, 2)) / 255;
+        $g = hexdec(substr($rrggbb, 2, 2)) / 255;
+        $b = hexdec(substr($rrggbb, 4, 2)) / 255;
         
         $intensity_color        = dom_calculate_luminosity($color);
         $intensity_background   = dom_calculate_luminosity($background);
@@ -6045,10 +6040,6 @@ else
             $g = max(0, min(1, (1+$delta) * $g));
             $b = max(0, min(1, (1+$delta) * $b));
         }
-
-        $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
 
         return "#".$rrggbb;
     }
