@@ -6032,23 +6032,23 @@ else
             $delta = - $delta;
         }
 
-        while ($r < 1 || $g < 1 || $b < 1)
+        while ((0 < $r && $r < 1) || (0 < $g && $g < 1) || (0 < $b && $b < 1))
         {
-            $rrggbb = str_pad(dechex($r),2,"0",STR_PAD_LEFT).
-                      str_pad(dechex($g),2,"0",STR_PAD_LEFT).
-                      str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+            $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
 
             $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
             if ($ratio >= $contrast_ratio_target) break;
 
-            $r = min(1, $delta + $r);
-            $g = min(1, $delta + $r);
-            $b = min(1, $delta + $r);
+            $r = max(0, min(1, (1+$delta) * $r));
+            $g = max(0, min(1, (1+$delta) * $g));
+            $b = max(0, min(1, (1+$delta) * $b));
         }
 
-        $rrggbb = str_pad(dechex($r),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex($g),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+        $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
 
         return "#".$rrggbb;
     }
