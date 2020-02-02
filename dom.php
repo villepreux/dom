@@ -122,7 +122,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.3.a");
+    define("DOM_VERSION",           "0.3.b");
     define("DOM_PATH_MAX_DEPTH",    16);
 
     #region API : GET/SET
@@ -6038,11 +6038,23 @@ else
         $g = hexdec(substr($color, 2, 2)) / 255;
         $b = hexdec(substr($color, 4, 2)) / 255;
 
-        $delta = 1;
+        $delta = 0.01;
+        
+        $intensity_color        = dom_calculate_luminosity($color);
+        $intensity_background   = dom_calculate_luminosity($background);
+
+        if ($intensity_background > $intensity_color)
+        {
+            $delta = - $delta;
+        }
 
         while ($r < 1 || $g < 1 || $b < 1)
         {
-            $results = dom_evaluate_color_contrast($background, dechex($r).dechex($g).dechex($b));
+            $rrggbb = str_pad(dechex($r),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex($g),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+
+            $results = dom_evaluate_color_contrast($background, $rrggbb);
             if ($results[$contrast_ratio_target]) break;
 
             $r = min(1, $delta + $r);
@@ -6050,7 +6062,11 @@ else
             $b = min(1, $delta + $r);
         }
 
-        return "#".dechex($r).dechex($g).dechex($b);
+        $rrggbb = str_pad(dechex($r),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex($g),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+
+        return "#".$rrggbb;
     }
 
     #endregion
