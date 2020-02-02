@@ -4112,13 +4112,14 @@ else
 
     /* Back-to-top style */    
     
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme-color); text-align: center; color: var(--background-color); line-height: 40px; visibility: hidden; opacity: 0 }
+    .cd-top, .cd-top:visited                        { background-color: var(--theme-color); color: var(--background-color); }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; visibility: hidden; opacity: 0 }
     .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
     .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
     .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
     .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
     .cd-top.cd-fade-out                             { opacity: .5; }
-    .cd-top:hover                                   { background-color: var(--theme-color); opacity: 1; text-decoration: none }
+    .cd-top:hover                                   { opacity: 1; text-decoration: none }
     
     @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
