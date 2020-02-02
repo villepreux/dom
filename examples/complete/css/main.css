@@ -3,12 +3,29 @@
  * COLORS SCHEMES 
  *****************************************************************************/
 
+<?php
+
+set("background_color_dark",    "#1E1E1E");
+set("theme_color_dark",         "#ff3333");
+
+set("background_color_light",   "#EEEEEE");
+set("theme_color_light",        "#ff3333");
+
+set("background_color_print",   "#FFFFFF");
+set("theme_color_print",        "#ff3333");
+
+set("theme_color_dark",     dom_correct_color(get("theme_color_dark"),  get("background_color_dark"),  DOM_COLOR_CONTRAST_AA_NORMAL));
+set("theme_color_light",    dom_correct_color(get("theme_color_light"), get("background_color_light"), DOM_COLOR_CONTRAST_AA_NORMAL));
+set("theme_color_print",    dom_correct_color(get("theme_color_print"), get("background_color_print"), DOM_COLOR_CONTRAST_AA_NORMAL));
+
+?>
+
  /* DARK DEFAULT */
 
  :root {
-    
-    <?= env("background_color",         "#1E1E1E") ?> 
-    <?= env("theme_color",              "#ff3333") ?> 
+
+    <?= env("background_color",         get("background_color_dark")) ?> 
+    <?= env("theme_color",              get("theme_color_dark")) ?> 
 
     --text-color:                       #DDDDDD;
     --text-on-theme-color:              var(--text-color);
@@ -37,7 +54,8 @@
     --footer-link-color:                #FFFFFF;
     --footer-hover-link-color:          #FFFFFF;
 
-    --job-article-border-color:         #444444;
+    --card-title-color:                 #FFFFFF;
+    --card-border-color:                #444444;
 
 }
 
@@ -45,8 +63,8 @@
 
 <?php foreach (array(array("@media (prefers-color-scheme: light) { :root {", "} }"), array('[data-theme="light"] {', "}")) as $condition) { ?><?= $condition[0] ?>
 
-    <?= env("background_color",         "#EEEEEE") ?> 
-    <?= env("theme_color",              "#ff3333") ?> 
+    <?= env("background_color",         get("background_color_light")) ?> 
+    <?= env("theme_color",              get("theme_color_light")) ?> 
 
     --text-color:                       #444444;
     --text-on-theme-color:              #DDDDDD;
@@ -59,23 +77,24 @@
 
     --h1-color:                         #DDDDDD;
     --h2-color:                         var(--theme-color);
-    --h3-color:                         #000000;
-    --h4-color:                         #111111;
-    --h5-color:                         #222222;
-    --h6-color:                         #333333;
-    --caption-color:                    #CCCCCC;
+    --h3-color:                         <?= dom_correct_color("#000000", get("background_color_light")) ?>;
+    --h4-color:                         <?= dom_correct_color("#111111", get("background_color_light")) ?>;
+    --h5-color:                         <?= dom_correct_color("#222222", get("background_color_light")) ?>;
+    --h6-color:                         <?= dom_correct_color("#333333", get("background_color_light")) ?>;
+    --caption-color:                    <?= dom_correct_color("#CCCCCC", get("background_color_light")) ?>;
 
     --menu-background-color:            #444444;
     --menu-text-color:                  #DDDDDD;
     --menu-hover-background-color:      #222222;
     --menu-hover-text-color:            #FFFFFF;
 
-    --footer-background-color:          #888888;
+    --footer-background-color:          <?= dom_correct_color("#888888", "#DDDDDD") ?>;
     --footer-text-color:                #DDDDDD;
     --footer-link-color:                var(--theme-color);
     --footer-hover-link-color:          var(--theme-color);
 
-    --job-article-border-color:         #AAAAAA;
+    --card-title-color:                 #000000;
+    --card-border-color:                #AAAAAA;
 
 <?= $condition[1] ?><?php } ?>
 
@@ -83,14 +102,18 @@
 
 @media print { :root {
 
-    <?= env("background_color", "#FFFFFF") ?> 
+    <?= env("background_color", get("background_color_print")) ?> 
+    <?= env("theme_color",      get("theme_color_print")) ?> 
+
+    --h1-color:             #EEEEEE;
+    --h2-color:             var(--theme-color);
+    --h3-color:             #000000;
+            
+    --text-color:           #000000;
+    --caption-color:        #000000;
     
-    --h1-color:         #EEEEEE;
-    --h2-color:         var(--theme-color);
-    --h3-color:         #000000;
-        
-    --text-color:       #000000;
-    --caption-color:    #000000;
+    --card-title-color:     #000000;
+    --card-border-color:    #AAAAAA;
     
 } }
 
@@ -129,7 +152,10 @@
 
 body { overflow-x: hidden }
 
-@media screen and (max-width: <?= env("breakpoint_medium") ?>) { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) { 
+    
+    main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } 
+}
 
 main { padding-bottom: var(--content-default-margin); }
 
@@ -152,12 +178,12 @@ body::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); 
 /* Typography */
 
 h1 		        { color: var(--h1-color); }
-h2 		        { color: var(--h2-color); }
+h2 		        { color: var(--h2-color);  <?= css_gradient() ?> }
 h3 		        { color: var(--h3-color); }
 h4 		        { color: var(--h4-color); }
 h5 		        { color: var(--h5-color); }
 h6 		        { color: var(--h6-color); }
-
+                    
 main            { color: var(--text-color);    }
 main figcaption { color: var(--caption-color); }
 
@@ -171,15 +197,16 @@ h4 		        { text-transform: capitalize; }
 
 /* Links */
 
-a               { color: var(--theme-color); }
+a, a:visited    { color: var(--theme-color); }
 a:hover         { color: var(--theme-color); }
 
-a               { text-decoration: none; }
+a, a:visited    { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
 /* Toolbar */
 
-.toolbar a                  { color: var(--text-on-theme-color) }
+.toolbar a, 
+.toolbar a:visited          { color: var(--text-on-theme-color) }
 .toolbar a:hover            { color: white;    }
 .toolbar a.current          { border-bottom-color: white; }
 .toolbar-row-banner         { color: var(--text-on-theme-color);  }
@@ -188,8 +215,7 @@ a:hover         { text-decoration: underline; }
 
 .toolbar a:hover   { text-decoration: none;        }
 .toolbar a.current { border-bottom-width: 2px; border-bottom-style: solid; }
-
-.toolbar-row-banner { transition: background-image 0.5s linear; background-image: url(https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2); background-size: cover; background-position: center; }
+.toolbar-row-banner { transition: background-image 0.5s linear; background-image: url(https://images.unsplash.com/photo-1473691955023-da1c49c95c78); background-size: cover; background-position: center; }
 .toolbar-row-banner { justify-content: flex-end; text-align: right; }
 .toolbar-row-banner { stroke: var(--toolbar-first-row-stroke-color); box-shadow: inset 0 16px 12px 0px var(--toolbar-first-row-shadow-color); }
 body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
@@ -214,37 +240,39 @@ a.menu-switch-link:hover    { color: var(--text-on-theme-color); }
 .menu a			            {            color: var(--menu-text-color);             }
 .menu li:hover	            { background-color: var(--menu-hover-background-color); }
 .menu a:hover	            {            color: var(--menu-hover-text-color);       }
-
-.menu li                    { min-width: 128px }
+/*
+.menu li                    { min-width: 128px }*/
 .menu a                     { text-transform: capitalize; }
 
 /* Footer */
 
 body>.footer            { color: var(--footer-text-color); background-color: var(--footer-background-color); }
-body>.footer a          { color: var(--footer-link-color); }
+body>.footer a,
+body>.footer a:visited  { color: var(--footer-link-color); }
 body>.footer a:hover    { color: var(--footer-hover-link-color); }
 
+body>.footer a          { padding: var(--content-default-margin); }
 body>.footer a:hover    { text-decoration: underline; }
 
-/* Jobs */
 
-.jobs-group article { border-color: var(--job-article-border-color) }
+/* Cards */
 
-.jobs-group article { border-top-width: 1px; border-top-style: dashed; padding-top: var(--content-default-margin); }
-
-@media screen and (min-width: <?= env("breakpoint_small")  ?>) {
-        
-    .jobs-group         { display: grid; grid-gap: var(--content-default-margin); grid-template-columns: repeat(2, 1fr); }
-    .jobs-group article { border-width: 1px; border-style: dashed; padding: var(--content-default-margin); }
-
-    }
+.grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+.card                           { border: 1px solid var(--card-border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
+.card img                       { width: 100%; margin-left: 0px; max-width: 100% }
+.card-text,
+.card-title                     { padding: var(--content-default-margin); }
+.card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
+.card .headline                 { font-size: 1em; margin: 0px; color: var(--card-title-color); }
+.card-title-main,       
+.card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /*media fullscreen */
 
 @media screen and (max-width: <?= env("breakpoint_small")  ?>) {
-        
-    main article img, main article video, main article iframe,
-    main article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--content-default-margin)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
+
+    main>article img, main>article video, main>article iframe,
+    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--content-default-margin)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
 
     }
 

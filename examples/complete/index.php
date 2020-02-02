@@ -16,30 +16,22 @@
 
                 style("
 
-                    :root                           { --header-min-height: 64px }
-
-                    .headline2                      { ".css_gradient()." }
-
-                    .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-
-                    .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #0000006b; }
-                    .card img                       { width: 100% }
-                    .card-text,
-                    .card-title                     { padding: var(--content-default-margin); }
-                    .card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
-                    .card .headline                 { font-size: 1em; margin: 0px; }                    
-                    .card-title-main,       
-                    .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-                    .footer                         { background-color: dimgray }
-                    .footer a                       { padding: var(--content-default-margin); }
-
                     @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
 
-                toolbar("Hello World!").
+                toolbar(
+
+                    toolbar_banner().
+                    toolbar_nav(
+                        toolbar_nav_menu().
+                        toolbar_nav_title("Hello World!").
+                        toolbar_nav_toolbar(
+                            a(svg_dark_and_light(24, 24, "white", false, false), url_void(), "dark-and-light", INTERNAL_LINK)					
+                            )
+                        )                    
+                    ).
 
                 content( // My main content section
 
@@ -100,19 +92,68 @@
                     article( // Some more random content
                         h2("3rd Headline").
                         lorem_ipsum()
-                        ).	
+                        ).
 
                     hr().
 
-                    p(  "Image courtesy of unsplash.com. ".
-                        "Photo ".a("https://unsplash.com/photos/ThIY-N_LLfY","© Gabriel Garcia Marengo").".")
+                        p("Photo by ".a("A. L.", "https://unsplash.com/@overdriv3", EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red", EXTERNAL_LINK)."")
                 ).
 
                 footer(
-                    p("This is my footer at the bottom").
+                    p("DOM.PHP v".DOM_VERSION." - This is my footer at the bottom").
                     p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook"))
                     )
-                )
+                ).
+
+                
+                script('
+
+                    $(function() {
+
+                        $(".dark-and-light").click(function() {
+                            // TODO SOMETHING MORE ROBUST
+                            document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
+                            });
+
+                        function update_current_link_from_scroll() {
+                            
+                            let scroll = window.scrollY;
+
+                            var $current_link = null;
+                            var $toolbar      = $(".toolbar-cell-right a");
+
+                            $toolbar.each(function() {
+
+                                if (this.hash != "" && this.hash != "#!")
+                                {
+                                    var section = null;
+                                    try { section = $(this.hash).parent().nextAll("section")[0]; } catch (e) { section = null; }
+
+                                    if (section) {
+
+                                        if ($current_link == null) $current_link = $(this);
+
+                                        if ($(this.hash).offset().top <= scroll + 10 && scroll <= ($(section).offset().top + $(section).height()))
+                                        {
+                                            $current_link = $(this);
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            if ($current_link != null)
+                            {
+                                $toolbar.removeClass("current");
+                                $current_link.addClass("current");
+                            }
+                        }
+
+                        update_current_link_from_scroll();				
+                        window.addEventListener("scroll", update_current_link_from_scroll);
+                    
+                    });
+            
+                ')
             ).
 
         rss(). // I'm also interested in having a RSS feed and json-content from my content
