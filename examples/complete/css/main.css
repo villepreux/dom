@@ -1,0 +1,307 @@
+/**
+ *****************************************************************************
+ * COLORS SCHEMES 
+ *****************************************************************************/
+
+<?php
+
+set("background_color_dark",    "#1E1E1E");
+set("theme_color_dark",         "#ff3333");
+
+set("background_color_light",   "#EEEEEE");
+set("theme_color_light",        "#ff3333");
+
+set("background_color_print",   "#FFFFFF");
+set("theme_color_print",        "#ff3333");
+
+set("theme_color_dark",     dom_correct_color(get("theme_color_dark"),  get("background_color_dark"),  DOM_COLOR_CONTRAST_AA_NORMAL));
+set("theme_color_light",    dom_correct_color(get("theme_color_light"), get("background_color_light"), DOM_COLOR_CONTRAST_AA_NORMAL));
+set("theme_color_print",    dom_correct_color(get("theme_color_print"), get("background_color_print"), DOM_COLOR_CONTRAST_AA_NORMAL));
+
+?>
+
+ /* DARK DEFAULT */
+
+ :root {
+
+    <?= env("background_color",         get("background_color_dark")) ?> 
+    <?= env("theme_color",              get("theme_color_dark")) ?> 
+
+    --text-color:                       #DDDDDD;
+    --text-on-theme-color:              var(--text-color);
+
+    --toolbar-first-row-stroke-color:   rgba(255, 255, 255, 0.10);
+    --toolbar-first-row-shadow-color:   rgba(  0,   0,   0, 0.48);
+
+    --scrollbar-background-color:       #141414;
+    --scrollbar-thumb-color:            var(--theme-color);
+
+    --h1-color:                         var(--text-color);
+    --h2-color:                         var(--theme-color);
+    --h3-color:                         #FFFFFF;
+    --h4-color:                         var(--text-color);
+    --h5-color:                         #CCCCCC;
+    --h6-color:                         #BBBBBB;
+    --caption-color:                    #FFFFFF;
+
+    --menu-background-color:            #444444;
+    --menu-text-color:                  var(--text-color);
+    --menu-hover-background-color:      #222222;
+    --menu-hover-text-color:            #FFFFFF;
+
+    --footer-background-color:          #000000;
+    --footer-text-color:                #979797;
+    --footer-link-color:                #FFFFFF;
+    --footer-hover-link-color:          #FFFFFF;
+
+    --card-title-color:                 #FFFFFF;
+    --card-border-color:                #444444;
+
+}
+
+/* LIGHT */
+
+<?php foreach (array(array("@media (prefers-color-scheme: light) { :root {", "} }"), array('[data-theme="light"] {', "}")) as $condition) { ?><?= $condition[0] ?>
+
+    <?= env("background_color",         get("background_color_light")) ?> 
+    <?= env("theme_color",              get("theme_color_light")) ?> 
+
+    --text-color:                       #444444;
+    --text-on-theme-color:              #DDDDDD;
+
+    --toolbar-first-row-stroke-color:   rgba(255, 255, 255, 0.10);
+    --toolbar-first-row-shadow-color:   rgba(  0,   0,   0, 0.48);
+
+    --scrollbar-background-color:       #525252;
+    --scrollbar-thumb-color:            var(--theme-color);
+
+    --h1-color:                         #DDDDDD;
+    --h2-color:                         var(--theme-color);
+    --h3-color:                         <?= dom_correct_color("#000000", get("background_color_light")) ?>;
+    --h4-color:                         <?= dom_correct_color("#111111", get("background_color_light")) ?>;
+    --h5-color:                         <?= dom_correct_color("#222222", get("background_color_light")) ?>;
+    --h6-color:                         <?= dom_correct_color("#333333", get("background_color_light")) ?>;
+    --caption-color:                    <?= dom_correct_color("#CCCCCC", get("background_color_light")) ?>;
+
+    --menu-background-color:            #444444;
+    --menu-text-color:                  #DDDDDD;
+    --menu-hover-background-color:      #222222;
+    --menu-hover-text-color:            #FFFFFF;
+
+    --footer-background-color:          <?= dom_correct_color("#888888", "#DDDDDD") ?>;
+    --footer-text-color:                #DDDDDD;
+    --footer-link-color:                var(--theme-color);
+    --footer-hover-link-color:          var(--theme-color);
+
+    --card-title-color:                 #000000;
+    --card-border-color:                #AAAAAA;
+
+<?= $condition[1] ?><?php } ?>
+
+/* PRINT */
+
+@media print { :root {
+
+    <?= env("background_color", get("background_color_print")) ?> 
+    <?= env("theme_color",      get("theme_color_print")) ?> 
+
+    --h1-color:             #EEEEEE;
+    --h2-color:             var(--theme-color);
+    --h3-color:             #000000;
+            
+    --text-color:           #000000;
+    --caption-color:        #000000;
+    
+    --card-title-color:     #000000;
+    --card-border-color:    #AAAAAA;
+    
+} }
+
+/**
+ *****************************************************************************
+ * CONFIG
+ *****************************************************************************/
+
+/* SIZES */
+
+:root
+{
+    /* DOM variables */
+
+    <?= env("header_toolbar_height",    "64px") ?>
+    <?= env("header_min_height",        "64px") ?>
+    <?= env("main_max_width",          "960px") ?>
+    <?= env("content_default_margin",   "12px") ?>
+
+    /* For use in screen media computations */
+
+    <?= env("breakpoint_medium",        env_add(array("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin"))) ?>
+    <?= env("breakpoint_small",         "800px") ?>
+}
+
+/**
+ *****************************************************************************
+ * LAYOUT
+ *****************************************************************************/
+
+/* Page */
+
+/*html { scroll-behavior: smooth; }*/
+
+/* Layout */
+
+body { overflow-x: hidden }
+
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) { 
+    
+    main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } 
+}
+
+main { padding-bottom: var(--content-default-margin); }
+
+h2 { padding-top: var(--content-default-margin); }
+
+/* Background */
+
+.main::after { background-image: url(img/logo.png); background-repeat: no-repeat; opacity: 0.1; content: ""; top: 100px; left: -100px; bottom: 0; right: 0; position: fixed; z-index: -1; }
+
+/* Scrollbar */
+
+body {                           scrollbar-color: var(--scrollbar-thumb-color)                                                      var(--scrollbar-background-color); }
+body::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); } body::-webkit-scrollbar-track { background-color: var(--scrollbar-background-color); }
+
+/**
+ *****************************************************************************
+ * TYPOGRAPHY
+ *****************************************************************************/
+
+/* Typography */
+
+h1 		        { color: var(--h1-color); }
+h2 		        { color: var(--h2-color);  <?= css_gradient() ?> }
+h3 		        { color: var(--h3-color); }
+h4 		        { color: var(--h4-color); }
+h5 		        { color: var(--h5-color); }
+h6 		        { color: var(--h6-color); }
+                    
+main            { color: var(--text-color);    }
+main figcaption { color: var(--caption-color); }
+
+h5              { font-size: 1em; }
+h6              { font-size: 1em; }
+
+h1 		        { text-transform: uppercase; }
+h2 		        { text-transform: uppercase;  }
+h3 		        { text-transform: capitalize; }
+h4 		        { text-transform: capitalize; }
+
+/* Links */
+
+a, a:visited    { color: var(--theme-color); }
+a:hover         { color: var(--theme-color); }
+
+a, a:visited    { text-decoration: none; }
+a:hover         { text-decoration: underline; }
+
+/* Toolbar */
+
+.toolbar a, 
+.toolbar a:visited          { color: var(--text-on-theme-color) }
+.toolbar a:hover            { color: white;    }
+.toolbar a.current          { border-bottom-color: white; }
+.toolbar-row-banner         { color: var(--text-on-theme-color);  }
+
+.toolbar-title { overflow: hidden; text-overflow: ellipsis; }
+
+.toolbar a:hover   { text-decoration: none;        }
+.toolbar a.current { border-bottom-width: 2px; border-bottom-style: solid; }
+.toolbar-row-banner { transition: background-image 0.5s linear; background-image: url(https://images.unsplash.com/photo-1473691955023-da1c49c95c78); background-size: cover; background-position: center; }
+.toolbar-row-banner { justify-content: flex-end; text-align: right; }
+.toolbar-row-banner { stroke: var(--toolbar-first-row-stroke-color); box-shadow: inset 0 16px 12px 0px var(--toolbar-first-row-shadow-color); }
+body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
+
+.toolbar .row:nth-child(2) { text-transform: uppercase; }
+
+/* Toolbar switch between toolbar links & burger menu */
+
+                                                                  section[role=toolbar] { margin-right: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) { .toolbar-title { padding-left: var(--content-default-margin);  } }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) {  section[role=toolbar] { margin-right: 0px; } }
+@media screen and (min-width: <?= env("breakpoint_small")  ?>) { .menu-toggle { display: none } .toolbar .row:nth-child(2) .cell:nth-child(1)  { min-width: 0px; } }
+@media screen and (max-width: <?= env("breakpoint_small")  ?>) { .toolbar-title { padding-left: 0px;  } }
+@media screen and (max-width: <?= env("breakpoint_small")  ?>) {  section[role=toolbar] { display: none } }
+
+/* Toolbar menu */
+
+a.menu-switch-link          { color: var(--text-on-theme-color); }
+a.menu-switch-link:hover    { color: var(--text-on-theme-color); }
+
+.menu 			            { background-color: var(--menu-background-color);       }
+.menu a			            {            color: var(--menu-text-color);             }
+.menu li:hover	            { background-color: var(--menu-hover-background-color); }
+.menu a:hover	            {            color: var(--menu-hover-text-color);       }
+/*
+.menu li                    { min-width: 128px }*/
+.menu a                     { text-transform: capitalize; }
+
+/* Footer */
+
+body>.footer            { color: var(--footer-text-color); background-color: var(--footer-background-color); }
+body>.footer a,
+body>.footer a:visited  { color: var(--footer-link-color); }
+body>.footer a:hover    { color: var(--footer-hover-link-color); }
+
+body>.footer a          { padding: var(--content-default-margin); }
+body>.footer a:hover    { text-decoration: underline; }
+
+
+/* Cards */
+
+.grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
+.card                           { border: 1px solid var(--card-border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
+.card img                       { width: 100%; margin-left: 0px; max-width: 100% }
+.card-text,
+.card-title                     { padding: var(--content-default-margin); }
+.card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
+.card .headline                 { font-size: 1em; margin: 0px; color: var(--card-title-color); }
+.card-title-main,       
+.card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/*media fullscreen */
+
+@media screen and (max-width: <?= env("breakpoint_small")  ?>) {
+
+    main>article img, main>article video, main>article iframe,
+    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--content-default-margin)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
+
+    }
+
+/* Mobile scrollbar trick */
+
+@media screen and (max-width: <?= env("breakpoint_small")  ?>) {
+
+    :root { <?= env("scrollbar_width", "0px") ?> }
+
+    }
+    
+/* body { padding-right: var(--scrollbar-width); box-sizing: content-box; } */
+
+/* PRINT */
+
+@media print {
+
+.toolbar .row:nth-child(1) { display: none }
+.toolbar .row:nth-child(2) { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
+.toolbar .row:nth-child(2) .toolbar-cell-left   { display: none }
+.toolbar .row:nth-child(2) .toolbar-cell-right  { display: none }
+.toolbar .row:nth-child(2) .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
+.main { margin-top:  0px }
+
+body>.footer, iframe { display: none; height: 0px; }
+
+h2                  { page-break-before:    always; }
+h2:first-of-type    { page-break-before:    avoid   }
+h1,h2               { page-break-after:     avoid   }
+article             { page-break-inside:    avoid   }
+
+} /* @media print */

@@ -121,9 +121,9 @@
     #region PRIVATE API
     ######################################################################################################################################
     
-    define("DOM_AUTHOR",                        "Antoine Villepreux");
-    define("DOM_VERSION",                       "0.3.1");
-    define("DOM_PATH_MAX_DEPTH",                16);
+    define("DOM_AUTHOR",            "Antoine Villepreux");
+    define("DOM_VERSION",           "0.3.2");
+    define("DOM_PATH_MAX_DEPTH",    16);
 
     #region API : GET/SET
     ######################################################################################################################################
@@ -362,7 +362,7 @@
             .   eol() . tab(1) .   'function dom_ajax(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
             .   eol() . tab(2) .       'dom_ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));'
-            .   eol() . tab(1) .   '}'
+            .   eol() . tab(1) .   '};'
             .   eol();
     }
     
@@ -793,10 +793,7 @@
     
     function to_string($a)
     {
-        if (!is_array($a)) return (string)$a;
-        ob_start();
-        print_r($a);
-        return ob_get_clean();
+        return is_array($a) ? print_r($a, true) : (string)$a;
     }
 
     function is_array_filtered($a, $required_values, $unwanted_values = false)
@@ -883,7 +880,7 @@
                 $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
             }
             
-            $hashtag = a('#'.$hashtag, $url, EXTERNAL_LINK);
+            $hashtag = a('#'.$hashtag, $url, "hashtag", EXTERNAL_LINK);
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -1677,7 +1674,36 @@
 
         $result = array_open_url($end_points);
 
-        echo comment(print_r($result, true));
+        // DEBUG ---->
+        /*
+        $result = array_merge($result, array("data" => array(array
+        (
+            "id"    => "666"
+        ,   "user"  => array
+            (
+                "full_name"         => "John Doe"
+            ,   "username"          => "Johnny"
+            ,   "profile_picture"   => "https://web.cyanide-studio.com/image.png"
+            )
+        ,   "caption" => array
+            (
+                "text" => "Loremp ipsum est!"
+            )
+        ,   "created_time"  => date("d/m/Y")
+        ,   "link"          => "https://web.cyanide-studio.com"
+        ,   "images"        => array
+            (
+                "low_resolution" => array
+                (
+                    "url" => "https://web.cyanide-studio.com/image.png"
+                )
+            )
+
+        ))));
+        */
+        // DEBUG ---->
+
+    //  echo comment(print_r($result, true));
         
         if ((false !== $tag) && (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200"))
         {
@@ -1690,14 +1716,14 @@
                 $result = array("data" => array());
             
                 foreach ($edges as $edge)
-            {
+                {
                     $node = dom_at($edge,"node");
                 
                     $post_url = url_instagram_post(dom_at($node, "shortcode"));
                 
                     $owner = dom_at(json_instagram_from_content($post_url), array("entry_data","PostPage",0,"graphql","shortcode_media","owner"));
                     
-                    $item = array
+                    $result["data"][] = array
                     (
                         "id"    => dom_at($node, "id")
                     ,   "user"  => array
@@ -1708,7 +1734,7 @@
                         )
                     ,   "caption" => array
                         (
-                            "text" => dom_at($node, array("edge_media_to_caption","edges",0,"node","text"))
+                            "text" => ltrim(dom_at($node, array("edge_media_to_caption","edges",0,"node","text")), "|| ")
                         )
                     ,   "created_time"  => dom_at($node, "taken_at_timestamp")
                     ,   "link"          => $post_url
@@ -1720,10 +1746,6 @@
                             )
                         )
                     );
-                    
-                    $item["caption"]["text"] = ltrim($item["caption"]["text"], "|| ");
-                    
-                    $result["data"][] = $item;
     
                     if (false !== $limit && count($result["data"]) >= $limit) break;
                 }
@@ -1802,11 +1824,11 @@
         if ($sources === false)                        $sources = array();
         
         foreach ($sources as $source)
-        {            
-            $src_usr        = explode(':', $source);
-            $social_source  = dom_at($src_usr, 0, $source);
-            $username       = dom_at($src_usr, 1);
-            
+        {   
+            $source        = explode(":", $source);
+            $social_source = dom_at($source, 0);
+            $username      = dom_at($source, 1);
+
             // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
             
             if (is_callable("array_".$social_source."_posts"))
@@ -1820,7 +1842,7 @@
             }
             else if (!!dom_get("debug"))
             {
-                echo "UNDEFINED SOCIAL SOURCE: $social_source";
+                echo "UNDEFINED SOCIAL SOURCE: ".to_string($sources).to_string($filter);
             }
             
             ++$social_index;
@@ -1868,8 +1890,6 @@
         $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"));
         $posts   = array();
 
-        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
-    
         foreach (dom_at($content, "data",  array()) as $item)
         {
             if (!dom_pagination_is_within()) continue;
@@ -2365,8 +2385,6 @@
         ,   "LAZY"              => true
         ));*/
 
-        if (!!dom_get("debug")) { $args = func_get_args(); echo comment(__FUNCTION__." ".print_r($args, true)." ".print_r($content,true).""); }
-    
         $articles   = array_facebook_articles(dom_get("facebook_page"));
         
         $tags_in    = explode(',',$tags_in);
@@ -3423,12 +3441,12 @@ else
 
     function include_file($filename)
     {
-        $content = @file_get_contents($filename);
-        if (false !== $content) { return $content; }
-
         ob_start();
         @include $filename;
         $content = @ob_get_clean();
+        if (false !== $content) { return $content; }
+
+        $content = @file_get_contents($filename);
         if (false !== $content) { return $content; }
 
         return "";
@@ -3664,7 +3682,7 @@ else
                 . eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
                 . eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
                 . eol()
-                . eol()). $html . raw_html(
+                . eol()). $html . comment("DOM.PHP ".DOM_VERSION) . raw_html(
                   eol()
                 . eol() . '</html>');
             }
@@ -4094,13 +4112,14 @@ else
 
     /* Back-to-top style */    
     
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); background-color: var(--theme-color); text-align: center; color: var(--background-color); line-height: 40px; visibility: hidden; opacity: 0 }
+    .cd-top, .cd-top:visited                        { background-color: var(--theme-color); color: var(--background-color); }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; visibility: hidden; opacity: 0 }
     .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
     .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
     .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
     .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
     .cd-top.cd-fade-out                             { opacity: .5; }
-    .cd-top:hover                                   { background-color: var(--theme-color); opacity: 1; text-decoration: none }
+    .cd-top:hover                                   { opacity: 1; text-decoration: none }
     
     @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
@@ -4111,6 +4130,7 @@ else
 
     /* Other utilities */    
     
+/*  .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; } */
     .app-install                                    { display: none }
     .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
@@ -4131,8 +4151,7 @@ else
 
     .menu               { position: absolute; max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .menu a             { display: inline-block; }
-    .menu li span       { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     /* Main images */
         
@@ -4941,7 +4960,7 @@ else
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
         
-        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes($attributes));
+        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes_add_class($attributes, "a"));
     }
 
     function a_email($email, $text = false, $attributes = false)
@@ -5134,8 +5153,8 @@ else
 
         if (!!dom_get("no_js")) $lazy = false;
 
-        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img-responsive lazy loading"), false, !dom_AMP() && $content == '')
-                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img-responsive immediate"),    false, !dom_AMP() && $content == '');
+        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
+                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
     }
     
     function img_svg($path, $attributes = false)
@@ -5150,7 +5169,17 @@ else
         if ($x0 === false) $x0 = 0; if ($x1 === false) $x1 = $w; 
         if ($y0 === false) $y0 = 0; if ($y1 === false) $y1 = $h; 
 
-        return tag('span', '<svg role="img"'.(($label!="" && $label!=false)?(' aria-label="'.$label.'"'):('')).' style="width:'.$w.'px;height:'.$h.'px" viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', array('class' => 'span-svg svg-wrapper', 'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'));
+        return tag('span', 
+                    '<svg '. 'class="svg" '.
+                              'role="img"'.(($label!="" && $label!=false)?(' '.
+                        'aria-label="'.$label.'"'):('')).' '.
+                             'style="width:'.$w.'px;height:'.$h.'px" '.
+                           'viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', 
+                    array(
+                        'class' => 'span-svg-wrapper span-svg-icon-container div-svg-icon-container',
+                        'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'
+                        )
+                    );
     }
 
     // https://materialdesignicons.com/
@@ -5313,10 +5342,10 @@ else
         
         $title = "";
         
-        if ($title_icon !== false) $title  = img(                $title_icon,         array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false) $title  = a($title,           $title_link,                          dom_component_class('card-title-link'), EXTERNAL_LINK);
-        if ($title_main !== false) $title .= h($title_level,     $title_main,         array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
-        if ($title_sub  !== false) $title .= p(                  $title_sub,          array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_icon !== false) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false) $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), EXTERNAL_LINK);
+        if ($title_main !== false) $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+        if ($title_sub  !== false) $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }
@@ -5935,6 +5964,83 @@ else
     function tile_image     ($src,      $id = 1)    { return raw('<image id="'.$id.'" src="'.tile_sanitize($src).'"/>'); }
     function tile_text      ($txt = "", $id = 1)    { return raw('<text id="'.$id.'">'.tile_sanitize($txt).'</text>'); }
     
+    #endregion
+    #region HELPERS - COLOR RATIOS
+    ######################################################################################################################################
+    
+    // (c) https://github.com/gdkraus/wcag2-color-contrast
+
+    // calculates the luminosity of an given RGB color
+    // the color code must be in the format of RRGGBB
+    // the luminosity equations are from the WCAG 2 requirements
+    // http://www.w3.org/TR/WCAG20/#relativeluminancedef
+
+    function dom_calculate_luminosity($color) {
+
+        $color = ltrim($color,"#");
+
+        $r = hexdec(substr($color, 0, 2)) / 255;
+        $g = hexdec(substr($color, 2, 2)) / 255;
+        $b = hexdec(substr($color, 4, 2)) / 255;
+
+        if ($r <= 0.03928) { $r = $r / 12.92; } else { $r = pow((($r + 0.055) / 1.055), 2.4); }
+        if ($g <= 0.03928) { $g = $g / 12.92; } else { $g = pow((($g + 0.055) / 1.055), 2.4); }
+        if ($b <= 0.03928) { $b = $b / 12.92; } else { $b = pow((($b + 0.055) / 1.055), 2.4); }
+
+        return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+    }
+
+    // calculates the luminosity ratio of two colors
+    // the luminosity ratio equations are from the WCAG 2 requirements
+    // http://www.w3.org/TR/WCAG20/#contrast-ratiodef
+
+    function dom_calculate_luminosity_ratio($color1, $color2) {
+
+        $l1 = dom_calculate_luminosity($color1);
+        $l2 = dom_calculate_luminosity($color2);
+
+        return ($l1 > $l2) ? (($l1 + 0.05) / ($l2 + 0.05)) : (($l2 + 0.05) / ($l1 + 0.05));
+    }
+
+    // Try a color correction function
+
+    define("DOM_COLOR_CONTRAST_AA_MEDIUMBOLD",  3.0);
+    define("DOM_COLOR_CONTRAST_AA_LARGE",       3.0);
+    define("DOM_COLOR_CONTRAST_AA_NORMAL",      4.5);
+    define("DOM_COLOR_CONTRAST_AAA_MEDIUMBOLD", 4.5);
+    define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
+    define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
+
+    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
+    {
+        $rrggbb = ltrim($color, "#");
+
+        $r = hexdec(substr($rrggbb, 0, 2)) / 255;
+        $g = hexdec(substr($rrggbb, 2, 2)) / 255;
+        $b = hexdec(substr($rrggbb, 4, 2)) / 255;
+
+        $intensity_color      = dom_calculate_luminosity($color);
+        $intensity_background = dom_calculate_luminosity($background);
+
+        if ($intensity_background > $intensity_color) { $delta = - $delta; }
+
+        while ((0 < $r && $r < 1) || (0 < $g && $g < 1) || (0 < $b && $b < 1))
+        {
+            $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+
+            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
+            if ($ratio >= $contrast_ratio_target) break;
+
+            $r = max(0, min(1, (1+$delta) * $r));
+            $g = max(0, min(1, (1+$delta) * $g));
+            $b = max(0, min(1, (1+$delta) * $b));
+        }
+
+        return "#".$rrggbb;
+    }
+
     #endregion
 
     ######################################################################################################################################
