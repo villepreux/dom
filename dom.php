@@ -122,7 +122,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",                        "Antoine Villepreux");
-    define("DOM_VERSION",                       "0.2");
+    define("DOM_VERSION",                       "0.3.1");
     define("DOM_PATH_MAX_DEPTH",                16);
 
     #region API : GET/SET
@@ -141,7 +141,7 @@
     #region DEPENDENCIES
     ######################################################################################################################################
     
-                                         include dom_path("tokens.php");
+                                        @include dom_path("tokens.php");
     if (!function_exists("markdown"))   @include dom_path("php/vendors/markdown.php");
                                         @include dom_path("php/vendors/smartypants.php");
         
