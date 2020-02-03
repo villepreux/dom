@@ -5,18 +5,9 @@
 
 <?php
 
-set("background_color_dark",    "#1E1E1E");
-set("theme_color_dark",         "#ff3333");
-
-set("background_color_light",   "#EEEEEE");
-set("theme_color_light",        "#ff3333");
-
-set("background_color_print",   "#FFFFFF");
-set("theme_color_print",        "#ff3333");
-
-set("theme_color_dark",     dom_correct_color(get("theme_color_dark"),  get("background_color_dark"),  DOM_COLOR_CONTRAST_AA_NORMAL));
-set("theme_color_light",    dom_correct_color(get("theme_color_light"), get("background_color_light"), DOM_COLOR_CONTRAST_AA_NORMAL));
-set("theme_color_print",    dom_correct_color(get("theme_color_print"), get("background_color_print"), DOM_COLOR_CONTRAST_AA_NORMAL));
+dom_set_contrasted_colors("background_color_dark",  "#1E1E1E", "theme_color_dark",  "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
+dom_set_contrasted_colors("background_color_light", "#EEEEEE", "theme_color_light", "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
+dom_set_contrasted_colors("background_color_print", "#FFFFFF", "theme_color_print", "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
 
 ?>
 

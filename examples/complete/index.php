@@ -25,12 +25,10 @@
 
                     toolbar_banner().
                     toolbar_nav(
-                        toolbar_nav_menu().
+                        toolbar_nav_menu(ul_menu_auto()).
                         toolbar_nav_title("Hello World!").
-                        toolbar_nav_toolbar(
-                            a(svg_dark_and_light(24, 24, "white", false, false), url_void(), "dark-and-light", INTERNAL_LINK)					
-                            )
-                        )                    
+                        toolbar_nav_toolbar(ul_menu_auto().a(svg_dark_and_light(24, 24, "white", false, false), url_void(), "dark-and-light", INTERNAL_LINK))
+                        )
                     ).
 
                 content( // My main content section
@@ -106,59 +104,59 @@
                 ).
 
                 
-                script('
+            script('
 
-                    $(function() {
+                $(function() {
 
-                        $(".dark-and-light").click(function() {
-                            // TODO SOMETHING MORE ROBUST
-                            document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
-                            });
+                    $(".dark-and-light").click(function() {
+                        // TODO SOMETHING MORE ROBUST
+                        document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
+                        });
 
-                        function update_current_link_from_scroll() {
-                            
-                            let scroll = window.scrollY;
+                    function update_current_link_from_scroll() {
+                        
+                        let scroll = window.scrollY;
 
-                            var $current_link = null;
-                            var $toolbar      = $(".toolbar-cell-right a");
+                        var $current_link = null;
+                        var $toolbar      = $(".toolbar-cell-right a");
 
-                            $toolbar.each(function() {
+                        $toolbar.each(function() {
 
-                                if (this.hash != "" && this.hash != "#!")
-                                {
-                                    var section = null;
-                                    try { section = $(this.hash).parent().nextAll("section")[0]; } catch (e) { section = null; }
+                            if (this.hash != "" && this.hash != "#!")
+                            {
+                                var section = null;
+                                try { section = $(this.hash).parent().nextAll("section")[0]; } catch (e) { section = null; }
 
-                                    if (section) {
+                                if (section) {
 
-                                        if ($current_link == null) $current_link = $(this);
+                                    if ($current_link == null) $current_link = $(this);
 
-                                        if ($(this.hash).offset().top <= scroll + 10 && scroll <= ($(section).offset().top + $(section).height()))
-                                        {
-                                            $current_link = $(this);
-                                        }
+                                    if ($(this.hash).offset().top <= scroll + 10 && scroll <= ($(section).offset().top + $(section).height()))
+                                    {
+                                        $current_link = $(this);
                                     }
                                 }
-                            });
-                            
-                            if ($current_link != null)
-                            {
-                                $toolbar.removeClass("current");
-                                $current_link.addClass("current");
                             }
+                        });
+                        
+                        if ($current_link != null)
+                        {
+                            $toolbar.removeClass("current");
+                            $current_link.addClass("current");
                         }
+                    }
 
-                        update_current_link_from_scroll();				
-                        window.addEventListener("scroll", update_current_link_from_scroll);
-                    
+                    update_current_link_from_scroll();				
+                    window.addEventListener("scroll", update_current_link_from_scroll);
+                
                     });
-            
-                ')
-            ).
+        
+                ').
+            "").
 
         rss(). // I'm also interested in having a RSS feed and json-content from my content
-        jsonfeed()
-
-	    );
+        jsonfeed().
+                    
+	    "");
 
 ?>

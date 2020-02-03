@@ -133,7 +133,7 @@
     function dom_has($k_or_a, $__or_k = false)                          { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, dom_get_all()); } }
     function dom_get($k_or_a, $d_or_k = false, $__or_d = false)         { return (is_array($k_or_a)) ? dom_at($k_or_a, $d_or_k, $__or_d) : dom_at(dom_get_all(), $k_or_a, $d_or_k); } }
     function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); } }
-    function dom_set($k, $v = true, $aname = false)                     { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } } }
+    function dom_set($k, $v = true, $aname = false)                     { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } } return $v; }
 
     function dom_is_localhost()                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); }
 
@@ -4093,6 +4093,9 @@ else
     .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; margin-right:var(--content-default-margin) } 
 
     .toolbar-row-nav .cell:nth-child(3) a           { margin-left: var(--content-default-margin); }
+    .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
+    .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; }
+    .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
     .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
@@ -5693,7 +5696,8 @@ else
 */
     function menu_entries($html)
     {
-        $html = if_then(false === stripos($html, "menu-list"), ul_menu($html), $html);
+        $html = if_then(false === stripos($html, "menu-list") 
+                     && false === stripos($html, "_ul_menu_auto"), ul_menu($html), $html);
 
         return if_then(dom_get("framework") != "bootstrap", div($html, "menu-entries " . dom_component_class("menu")), $html);
     }
@@ -5715,8 +5719,10 @@ else
                         dom_component_class("toolbar-cell-right-shrink"))));
     }
    
-    function  menu_toggle_auto() { return delayed_component("_".__FUNCTION__, false); }
-    function _menu_toggle_auto() { return menu_toggle(ul_menu(get("hook_sections"))); }
+    function  ul_menu_auto() { return delayed_component("_".__FUNCTION__, false); }
+    function _ul_menu_auto() { return ul_menu(get("hook_sections")); }
+
+    function  menu_toggle_auto() { return menu_toggle(ul_menu_auto()); }
 
     function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false)
     {
@@ -6013,6 +6019,8 @@ else
 
     function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
     {
+        if ($delta <= 0) $delta = 0.01;
+
         $rrggbb = ltrim($color, "#");
 
         $r = hexdec(substr($rrggbb, 0, 2)) / 255;
@@ -6024,21 +6032,34 @@ else
 
         if ($intensity_background > $intensity_color) { $delta = - $delta; }
 
-        while ((0 < $r && $r < 1) || (0 < $g && $g < 1) || (0 < $b && $b < 1))
-        {
-            $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                      str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                      str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+        $i = 1000; // max iterations
 
+        while (--$i > 0 && ((0 < (int)(255*$r) && (int)(255*$r) < 255) || (0 < (int)(255*$g) && (int)(255*$g) < 255) || (0 < (int)(255*$b) && (int)(255*$b) < 255))) // while we can make adjustments
+        {
             $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
             if ($ratio >= $contrast_ratio_target) break;
 
             $r = max(0, min(1, (1+$delta) * $r));
             $g = max(0, min(1, (1+$delta) * $g));
             $b = max(0, min(1, (1+$delta) * $b));
+            
+            $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                      str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+
+        //  echo "/* ".str_pad($i,4,"0",STR_PAD_LEFT)." : $rrggbb ".(int)(255*$r).",".(int)(255*$g).",".(int)(255*$b)." */".eol();
         }
 
         return "#".$rrggbb;
+    }
+
+    function dom_set_contrasted_colors($background_color_var, $background_color, $front_color_var, $front_color, $accessibility_contrast_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
+    {                
+        dom_set($background_color_var, $background_color);
+        dom_set($front_color_var,      $front_color);
+
+        dom_set($front_color_var,       dom_correct_color(get($front_color_var),        dom_get($background_color_var), $accessibility_contrast_target));
+        dom_set($background_color_var,  dom_correct_color(get($background_color_var),   dom_get($front_color_var),      $accessibility_contrast_target));
     }
 
     #endregion
