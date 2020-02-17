@@ -11,12 +11,12 @@
     #region API : GET/SET
     ######################################################################################################################################
 
-    if (!function_exists("at"))                         { function at($a, $k, $d = false)                                                                   { return dom_at($a, $k, $d);                    }
-    if (!function_exists("get_all"))                    { function get_all($get = true, $post = true, $session = false)                                     { return dom_get_all($get, $post, $session);    }
-    if (!function_exists("has"))                        { function has($k_or_a, $__or_k = false)                                                            { return dom_has($k_or_a, $__or_k);             }
-    if (!function_exists("get"))                        { function get($k_or_a, $d_or_k = false, $__or_d = false)                                           { return dom_get($k_or_a, $d_or_k, $__or_d);    }
-    if (!function_exists("del"))                        { function del($k)                                                                                  { return dom_del($k);                           }
-    if (!function_exists("set"))                        { function set($k, $v = true, $aname = false)                                                       { return dom_set($k, $v, $aname);               }
+    if (!function_exists("at"))                         { function at($a, $k, $d = false)                                                                   { return dom_at($a, $k, $d);                    }   }
+    if (!function_exists("get_all"))                    { function get_all($get = true, $post = true, $session = false)                                     { return dom_get_all($get, $post, $session);    }   }
+    if (!function_exists("has"))                        { function has($k_or_a, $__or_k = false)                                                            { return dom_has($k_or_a, $__or_k);             }   }
+    if (!function_exists("get"))                        { function get($k_or_a, $d_or_k = false, $__or_d = false)                                           { return dom_get($k_or_a, $d_or_k, $__or_d);    }   }
+    if (!function_exists("del"))                        { function del($k)                                                                                  { return dom_del($k);                           }   }
+    if (!function_exists("set"))                        { function set($k, $v = true, $aname = false)                                                       { return dom_set($k, $v, $aname);               }   }
 
     if (!function_exists("is_localhost"))               { function is_localhost()                                                                           { return dom_is_localhost(); } }
     if (!function_exists("AMP"))                        { function AMP()                                                                                    { return dom_AMP(); } }
@@ -128,12 +128,12 @@
     #region API : GET/SET
     ######################################################################################################################################
 
-    function dom_at($a, $k, $d = false)                                 { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = dom_at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } } }
-    function dom_get_all($get = true, $post = true, $session = false)   { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; } }
-    function dom_has($k_or_a, $__or_k = false)                          { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, dom_get_all()); } }
-    function dom_get($k_or_a, $d_or_k = false, $__or_d = false)         { return (is_array($k_or_a)) ? dom_at($k_or_a, $d_or_k, $__or_d) : dom_at(dom_get_all(), $k_or_a, $d_or_k); } }
-    function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); } }
-    function dom_set($k, $v = true, $aname = false)                     { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } } return $v; }
+    function dom_at($a, $k, $d = false)                                 { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = dom_at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
+    function dom_get_all($get = true, $post = true, $session = false)   { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
+    function dom_has($k_or_a, $__or_k = false)                          { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, dom_get_all()); }
+    function dom_get($k_or_a, $d_or_k = false, $__or_d = false)         { return (is_array($k_or_a)) ? dom_at($k_or_a, $d_or_k, $__or_d) : dom_at(dom_get_all(), $k_or_a, $d_or_k); }
+    function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); }
+    function dom_set($k, $v = true, $aname = false)                     { if ($aname === false) { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
     function dom_is_localhost()                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); }
 
