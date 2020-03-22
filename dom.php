@@ -705,7 +705,7 @@
     function url_exists($url)
     {
        $headers = @get_headers($url);
-       return stripos($headers[0], "200 OK") ? true : false;
+       return (is_array($headers) && false !== stripos($headers[0], "200 OK")) ? true : false;
     }
     
     function clean_title($title)
