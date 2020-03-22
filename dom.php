@@ -422,13 +422,13 @@
     {
     //	If URL format then keep it as-is
 
-        if ($path{0} == "/" && $path{1} == "/") return $path;
+        if ($path[0] == "/" && $path[1] == "/") return $path;
         if (0 === stripos($path, "http"))       return $path;
 
     //	If absolute path and localhost then use root trick if available 
 
         if (is_localhost() && !!dom_get("localhost_root") && ($max_depth == $depth) && (false === stripos($path, dom_get("localhost_root"))) 
-        &&  (strlen($path) > 0 && $path{0} == "/")) 
+        &&  (strlen($path) > 0 && $path[0] == "/")) 
         {
             $path = substr_replace($path, dom_get("localhost_root"), 0, 1);
         }
@@ -498,7 +498,7 @@
         }
         
         if (false === strpos($attributes, '=')) { return ' class="' . $attributes.'"'; }
-        if (' '   !=         $attributes{0})    { return ' '        . $attributes;     }
+        if (' '   !=         $attributes[0])    { return ' '        . $attributes;     }
         
         return $attributes;
     }
@@ -1870,7 +1870,7 @@
             
             $pos_end_line = $pos_line;
             
-            while ($message{$pos_end_line} == $pattern{0})
+            while ($message[$pos_end_line] == $pattern[0])
             {
                 ++$pos_end_line;
             }
@@ -4363,7 +4363,7 @@ else
                             .   eol(1) . tab(2) .       '/*  Adjust toolbar margin */'
                             .   eol(1) . tab(1)
                             .   eol(1) . tab(3) .           '$(".mdc-top-app-bar").css("position", "fixed");'
-                            .   eol(1) . tab(3) .           '// $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')");'
+                            .   eol(1) . tab(3) .       '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
                             .   eol(1) . tab(1)             
                             .   eol(1) . tab(3) .           '(function()'
                             .   eol(1) . tab(3) .           '{'
@@ -4655,8 +4655,8 @@ else
                             .   eol(1) . tab(5) .                   '}'
                             .   eol(1) . tab(4) .               '}); '
                             .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .                                                       'setTimeout(function() { setInterval(updateLazyImages, 500); },  50);'
-                            .   eol(1) . tab(4) .                if_then(dom_get("support_sliders", false), 'setTimeout(function() { setInterval(updateSliders,    500); }, 100);')
+                            .   eol(1) . tab(4) .                                                           'setTimeout(function() { setInterval(updateLazyImages, 500); },  50);'
+                            .   eol(1) . tab(4) .                if_then(dom_get("support_sliders", false), 'setTimeout(function() { setInterval(updateSliders,    500); }, 100);' )
                             .   eol(1) . tab(3) .           '});'
                             .   eol(1) . tab(1) .   '});'
                             .   eol(1)
