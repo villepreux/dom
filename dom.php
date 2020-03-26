@@ -1,5 +1,10 @@
 <?php #https://github.com/villepreux/dom
 
+    #region DOM TODO
+
+    # Remove usage of if_then inside DOM components compositions
+
+    #endregion
     #region DOM PUBLIC API
     ######################################################################################################################################
     
@@ -739,14 +744,16 @@
 
                         $options = array('http'=>array('method' => "GET", 'header' => ("Content-Type: type=".$content_type."; charset=utf-8\r\nAccept-language: en")));
                         $context = @stream_context_create($options);
+                        $content = false;
         if (!!$context) $content = @file_get_contents($url, FILE_USE_INCLUDE_PATH, $context);
         if ( !$content) $content = @file_get_contents($url);
+        
         if ( !$content) 
         {
             $curl = @curl_init();
             
             if (false !== $curl)
-            {              
+            {
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);                
                 curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
@@ -755,11 +762,12 @@
                 curl_setopt($curl, CURLOPT_URL, $url);
                 curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);          
                 
-                $content = curl_exec($curl); if (!$content && !!dom_get("debug")) echo curl_error($curl);
-                
+                $content = curl_exec($curl); if ((!$content || $content == "") && !!dom_get("debug")) echo comment("CURL ERROR: ".curl_error($curl));
+
                 curl_close($curl);
             }
         }
+
         if (!!$content)
         {
         //  $content = utf8_decode($content);
@@ -767,6 +775,10 @@
                  if (       "text/xml"  == $content_type) { $content = @json_decode(@json_encode(@simplexml_load_string($content,null,LIBXML_NOCDATA )),true); }
             else if (       "text/csv"  == $content_type) { $content = @str_getcsv($content,"\n"); if (!!$content) foreach ($content as &$rrow) { $rrow = str_getcsv($rrow, ";"); } }
             else if ("application/json" == $content_type) { $content = @json_decode($content, true); }
+        }
+        else
+        {
+            if (!!get("debug")) echo eol().comment("COULD NOT PARSE $url");
         }
 
         return $content;
@@ -987,6 +999,12 @@
 
         global $hook_amp_sidebars;
         $hook_amp_sidebars .= $html;
+    }
+
+    function _amp_sidebars()
+    {
+        global $hook_amp_sidebars;
+        return $hook_amp_sidebars;
     }
     
     $hook_amp_css = "";
@@ -1632,7 +1650,8 @@
     
     function json_instagram_from_content($url)
     {
-        $html = @file_get_contents($url);
+    //  $html = @file_get_contents($url);
+        $html = array_open_url($url, "html");
             
         if ($html)
         {
@@ -1644,9 +1663,10 @@
             
             if (false !== $pos_bgn && false !== $pos_end)
             {
-                $json   = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+                $json = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+
                 $result = json_decode($json, true);
-                
+
                 return $result;
             }
         }
@@ -1654,16 +1674,19 @@
         return false;
     }
         
-    function json_instagram_medias($username = false, $token = false, $tag = false, $limit = false)
+    function json_instagram_medias($username = false, $token = false, $tag = false, $limit = false, $post_filter = "", $tags_in = false, $tags_out = false)
     {
         dom_debug_track_timing($username);
-        
+
         if ($token    === false && !defined("TOKEN_INSTAGRAM")) return array();
         if ($username === false && !dom_has("instagram_user"))  return array();
         
         $token      = ($token    === false) ? TOKEN_INSTAGRAM           : $token;
         $username   = ($username === false) ? dom_get("instagram_user") : $username;
         $tag        = ($tag      === false) ? dom_get("instagram_tag")  : $tag;
+
+        $tags_in    = explode(',',$tags_in);
+        $tags_out   = explode(',',$tags_out);
 
         $end_points = array
         (
@@ -1704,51 +1727,120 @@
         // DEBUG ---->
 
     //  echo comment(print_r($result, true));
+
+        $could_not_access_account = (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200");
         
-        if ((false !== $tag) && (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200"))
+        if (/*(false !== $tag) &&*/ $could_not_access_account)
         {
-            $json_tag_page = json_instagram_from_content("https://www.instagram.com/explore/tags/$tag/");
-            
-			if ($json_tag_page)
-			{
-                $edges = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","hashtag","edge_hashtag_to_media","edges"));
-            
-                $result = array("data" => array());
-            
-                foreach ($edges as $edge)
+            $tag = $username;
+
+            $nb_parsed_pages = 0;
+
+            foreach (array("username_json", "username_json_html", "tag_json", "username_html", "tag_html") as $mode)
+            {
+                $page_url = false;
+
+                if ($mode == "username_json")       $page_url = "https://www.instagram.com/$username?__a=1";
+                if ($mode == "username_json_html")  $page_url = "https://www.instagram.com/$username?__a=1";
+                if ($mode == "tag_json")            $page_url = "https://www.instagram.com/explore/tags/$tag?__a=1";
+                if ($mode == "tag_html")            $page_url = "https://www.instagram.com/explore/tags/$tag";
+                if ($mode == "username_html")       $page_url = "https://www.instagram.com/$username";
+                
+                while (!!$page_url)
                 {
-                    $node = dom_at($edge,"node");
-                
-                    $post_url = url_instagram_post(dom_at($node, "shortcode"));
-                
-                    $owner = dom_at(json_instagram_from_content($post_url), array("entry_data","PostPage",0,"graphql","shortcode_media","owner"));
+                    $json_tag_page = false;
+
+                    if ($mode == "username_json")       $json_tag_page = array_open_url($page_url);
+                    if ($mode == "username_json_html")  $json_tag_page = json_instagram_from_content($page_url);
+                    if ($mode == "tag_json")            $json_tag_page = array_open_url($page_url);
+                    if ($mode == "tag_html")            $json_tag_page = json_instagram_from_content($page_url);
+                    if ($mode == "username_html")       $json_tag_page = json_instagram_from_content($page_url);
+
+                    if (!$json_tag_page) break;
+
+                    ++$nb_parsed_pages;
+
+                    $edges  = false;
+                    $paging = false;
+
+                    if ($mode == "tag_html")            $edges  = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","hashtag",    "edge_hashtag_to_media",        "edges"));
+                    if ($mode == "tag_html")            $paging = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","hashtag",    "edge_hashtag_to_media",        "page_info"));
+
+                    if ($mode == "username_json_html")  $edges  = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","user",       "edge_owner_to_timeline_media", "edges"));
+                    if ($mode == "username_json_html")  $paging = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","user",       "edge_owner_to_timeline_media", "page_info"));
+
+                    if ($mode == "username_html")       $edges  = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","user",       "edge_owner_to_timeline_media", "edges"));
+                    if ($mode == "username_html")       $paging = dom_at($json_tag_page, array("entry_data","TagPage",0,"graphql","user",       "edge_owner_to_timeline_media", "page_info"));
+
+                    if ($mode == "tag_json")            $edges  = dom_at($json_tag_page, array(                         "graphql","hashtag",    "edge_hashtag_to_media",        "edges"));
+                    if ($mode == "tag_json")            $paging = dom_at($json_tag_page, array(                         "graphql","hashtag",    "edge_hashtag_to_media",        "page_info"));
+
+                    if ($mode == "username_json")       $edges  = dom_at($json_tag_page, array(                         "graphql","user",       "edge_owner_to_timeline_media", "edges"));
+                    if ($mode == "username_json")       $paging = dom_at($json_tag_page, array(                         "graphql","user",       "edge_owner_to_timeline_media", "page_info"));
+
+                    if (!is_array($edges)) break;
+
+                    $page_url = false;
+
+                    if ($mode == "username_json")       $page_url = !!dom_at($paging,"has_next_page") ? ("https://www.instagram.com/$username"          ."?__a=1&max_id=".dom_at($paging,"end_cursor")) : false;
+                    if ($mode == "username_json_html")  $page_url = !!dom_at($paging,"has_next_page") ? ("https://www.instagram.com/$username"          ."?__a=1&max_id=".dom_at($paging,"end_cursor")) : false;
+                    if ($mode == "tag_json")            $page_url = !!dom_at($paging,"has_next_page") ? ("https://www.instagram.com/explore/tags/$tag"  ."?__a=1&max_id=".dom_at($paging,"end_cursor")) : false;
+                    if ($mode == "tag_html")            $page_url = false;
+                    if ($mode == "username_html")       $page_url = false;
                     
-                    $result["data"][] = array
-                    (
-                        "id"    => dom_at($node, "id")
-                    ,   "user"  => array
+                    $result = array("data" => array());
+                
+                    foreach ($edges as $edge)
+                    {
+                        $node = dom_at($edge,"node");
+                    
+                        $post_url = url_instagram_post(dom_at($node, "shortcode"));
+                    
+                        $owner = dom_at(json_instagram_from_content($post_url), array("entry_data","PostPage",0,"graphql","shortcode_media","owner"));
+                        
+                        $item = array
                         (
-                            "full_name"         => dom_at($owner, "username")
-                        ,   "username"          => dom_at($owner, "username")
-                        ,   "profile_picture"   => dom_at($owner, "profile_pic_url")
-                        )
-                    ,   "caption" => array
-                        (
-                            "text" => ltrim(dom_at($node, array("edge_media_to_caption","edges",0,"node","text")), "|| ")
-                        )
-                    ,   "created_time"  => dom_at($node, "taken_at_timestamp")
-                    ,   "link"          => $post_url
-                    ,   "images"        => array
-                        (
-                            "low_resolution" => array
+                            "id"    => dom_at($node, "id")
+                        ,   "user"  => array
                             (
-                                "url" => dom_at($node, "display_url")
+                                "full_name"         => dom_at($owner, "username")
+                            ,   "username"          => dom_at($owner, "username")
+                            ,   "profile_picture"   => dom_at($owner, "profile_pic_url")
                             )
-                        )
-                    );
-    
+                        ,   "caption" => array
+                            (
+                                "text" => ltrim(dom_at($node, array("edge_media_to_caption","edges",0,"node","text")), "|| ")
+                            )
+                        ,   "created_time"  => dom_at($node, "taken_at_timestamp")
+                        ,   "link"          => $post_url
+                        ,   "images"        => array
+                            (
+                                "low_resolution" => array
+                                (
+                                    "url" => dom_at($node, "display_url")
+                                )
+                            )
+                        );
+            
+                        $filtered  = dom_at($item, "id")   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
+                        $excluded  = in_array(dom_at($item,"id"), explode(',',dom_get("exclude_instagram_codes", "")));
+                        $excluded  = $excluded || in_array(dom_at(dom_at($item,"user"),"full_name"), explode(',',dom_get("exclude_instagram_users", "")));
+                        $item_tags = array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
+                        $tagged    = is_array_filtered($item_tags, $tags_in, $tags_out);
+
+                        if (!$filtered || $excluded || !$tagged) continue;
+
+                        $result["data"][] = $item;
+        
+                        if (false !== $limit && count($result["data"]) >= $limit) break;
+                    }
+
                     if (false !== $limit && count($result["data"]) >= $limit) break;
+
+                //  if ($nb_parsed_pages > 16) break; // Arbitrary hard limit
                 }
+
+                if (count($result["data"]) > 0) break;
             }
         }
         
@@ -1765,30 +1857,44 @@
 
         if (!!$params) foreach ($params as $key => $val) $end_point .= "&".$key."=".urlencode($val);
 
-        return array_open_url($end_point);
+        $json = array_open_url($end_point);
+
+        return $json;
+    }
+    
+    function json_flickr_no_user_fallback($method, $params = array(), $user_id = false, $token = false)
+    {
+        dom_debug_track_timing($user_id);
+        
+        if ($token === false && !defined("TOKEN_FLICKR")) return array();
+
+        if (false !== $user_id)
+        {
+            if (0 === stripos($user_id, "http"))
+            {        
+                $data       = __json_flickr("urls.lookupUser", array("url" => $user_id), $token);
+                $user_id    = dom_at(dom_at($data,"user"),"id");
+            }
+            else if (false === stripos($user_id, "@N"))
+            {
+                $data       = __json_flickr("people.findByUsername", array("username" => $user_id), $token);
+                $user_id    = dom_at(dom_at($data,"user"),"id");
+            }
+            
+            $params = array_merge($params, array("user_id" => $user_id));
+        }
+
+        return __json_flickr($method, $params, $token);
     }
     
     function json_flickr($method, $params = array(), $user_id = false, $token = false)
     {
         dom_debug_track_timing($user_id);
         
-        if ($token   === false && !defined("TOKEN_FLICKR")) return array();
         if ($user_id === false && !dom_has("flickr_user"))  return array();
-
         $user_id = ($user_id === false) ? dom_get("flickr_user") : $user_id;
         
-        if (0 === stripos($user_id, "http"))
-        {        
-            $data       = __json_flickr("urls.lookupUser", array("url" => $user_id), $token);
-            $user_id    = dom_at(dom_at($data,"user"),"id");
-        }
-        else if (false === stripos($user_id, "@N"))
-        {
-            $data       = __json_flickr("people.findByUsername", array("username" => $user_id), $token);
-            $user_id    = dom_at(dom_at($data,"user"),"id");
-        }
-        
-        return __json_flickr($method, array_merge($params, array("user_id" => $user_id)), $token);
+        return json_flickr_no_user_fallback($method, $params, $user_id, $token);
     }
     
     // Social networks misc. utilities
@@ -1855,6 +1961,49 @@
         return $posts;
     }
     
+    function array_socials_thumbs($sources = false, $filter = "", $tags_in = false, $tags_out = false)
+    {
+        dom_debug_track_timing("start");
+        
+        $posts = array();
+        
+        $social_index = 0;
+        
+        if ($sources !== false && !is_array($sources)) $sources = array($sources);
+        if ($sources === false)                        $sources = array();
+        
+        foreach ($sources as $source)
+        {   
+            $source        = explode(":", $source);
+            $social_source = dom_at($source, 0);
+            $username      = dom_at($source, 1);
+
+            // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
+            
+            if (is_callable("array_".$social_source."_thumbs"))
+            {
+                $source_posts = call_user_func("array_".$social_source."_thumbs", $username, $filter, $tags_in, $tags_out);
+                
+                if (is_array($source_posts))
+                {
+                    $posts = array_merge($posts, $source_posts);
+                }
+            }
+            else if (!!dom_get("debug"))
+            {
+                echo "UNDEFINED SOCIAL SOURCE: ".to_string($sources).to_string($filter);
+            }
+            
+            ++$social_index;
+        }
+        
+        usort($posts, "sort_cmp_post_timestamp");
+        
+        dom_debug_track_timing("end");
+     
+        return $posts;
+    }
+    
     function transform_lines($message, $pattern, $line = "<hr>")
     {
         $pos_line = 0;
@@ -1883,21 +2032,25 @@
         return $message;
     }
         
-    function array_instagram_posts($username, $post_filter = "", $tags_in = false, $tags_out = false)
+    function array_instagram_posts($username, $post_filter = "", $tags_in = false, $tags_out = false, $hooks = true)
     {
         dom_debug_track_timing();
         
-        $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"));
+        $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"), $post_filter, $tags_in, $tags_out);
         $posts   = array();
+
+        $tags_in    = explode(',',$tags_in);
+        $tags_out   = explode(',',$tags_out);
 
         foreach (dom_at($content, "data",  array()) as $item)
         {
             if (!dom_pagination_is_within()) continue;
             
-            $filtered = dom_at($item, "id")   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
-            $excluded = in_array(dom_at($item,"id"), explode(',',dom_get("exclude_instagram_codes", "")));
-            $excluded = $excluded || in_array(dom_at(dom_at($item,"user"),"full_name"), explode(',',dom_get("exclude_instagram_users", "")));
-            $tagged   = true;
+            $filtered  = dom_at($item, "id")   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
+            $excluded  = in_array(dom_at($item,"id"), explode(',',dom_get("exclude_instagram_codes", "")));
+            $excluded  = $excluded || in_array(dom_at(dom_at($item,"user"),"full_name"), explode(',',dom_get("exclude_instagram_users", "")));
+            $item_tags = array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
+            $tagged    = is_array_filtered($item_tags, $tags_in, $tags_out);
 
             if (!$filtered || $excluded || !$tagged) continue;
             
@@ -1945,7 +2098,7 @@
             ,   "LAZY"              => true
             );
             
-            dom_pagination_add($metadata);
+            if (!!$hooks) dom_pagination_add($metadata);
 
             $posts[] = $metadata;
         }
@@ -2034,36 +2187,44 @@
         $photo_server   = false;
         $photo_farm     = false;
         $photo_title    = false;
-        
-        if (false !== $photoset_key)
-        {
-            $data           = json_flickr("photosets.getList", array(), $username);
-            $photosets      = dom_at(dom_at($data,"photosets"),"photoset");
-            $photoset       = false;
-            $photoset_id    = false;
-            $photoset_title = false;
-            
-            foreach ($photosets as $photoset_index => $photoset_nth)
-            { 
-                $photoset       =               $photoset_nth;
-                $photoset_id    =        dom_at($photoset_nth, "id");
-                $photoset_title = dom_at(dom_at($photoset_nth, "title"), "_content");
 
-                if (is_string($photoset_key)) { if ($photoset_title ==       $photoset_key) break; }
-                else                          { if ($photoset_index === (int)$photoset_key) break; }
-            }
-            
-            $data           = json_flickr("photosets.getInfo", array("photoset_id" => $photoset_id), $username);
-            $photoset_farm  = dom_at(dom_at($data,"photoset"),"farm");
-            
-            $data           = json_flickr("photosets.getPhotos", array("photoset_id" => $photoset_id, "media" => "photo"), $username);
-            $photos         = dom_at(dom_at($data,"photoset"),"photo");
-            $photo_farm     = $photoset_farm;
+        if ($username === false && false !== $tags_in)
+        {
+            $data   = json_flickr_no_user_fallback("photos.search", array("tags" => $tags_in)); 
+            $photos = dom_at(dom_at($data,"photos"),"photo");
         }
         else
-        {
-            $data   = json_flickr("people.getPhotos", array(), $username); 
-            $photos = dom_at(dom_at($data,"photos"),"photo");
+        {        
+            if (false !== $photoset_key)
+            {
+                $data           = json_flickr("photosets.getList", array(), $username);
+                $photosets      = dom_at(dom_at($data,"photosets"),"photoset");
+                $photoset       = false;
+                $photoset_id    = false;
+                $photoset_title = false;
+                
+                foreach ($photosets as $photoset_index => $photoset_nth)
+                { 
+                    $photoset       =               $photoset_nth;
+                    $photoset_id    =        dom_at($photoset_nth, "id");
+                    $photoset_title = dom_at(dom_at($photoset_nth, "title"), "_content");
+
+                    if (is_string($photoset_key)) { if ($photoset_title ==       $photoset_key) break; }
+                    else                          { if ($photoset_index === (int)$photoset_key) break; }
+                }
+                
+                $data           = json_flickr("photosets.getInfo", array("photoset_id" => $photoset_id), $username);
+                $photoset_farm  = dom_at(dom_at($data,"photoset"),"farm");
+                
+                $data           = json_flickr("photosets.getPhotos", array("photoset_id" => $photoset_id, "media" => "photo"), $username);
+                $photos         = dom_at(dom_at($data,"photoset"),"photo");
+                $photo_farm     = $photoset_farm;
+            }
+            else
+            {
+                $data   = json_flickr("people.getPhotos", array(), $username); 
+                $photos = dom_at(dom_at($data,"photos"),"photo");
+            }
         }
         
         $posts = array();
@@ -2078,11 +2239,12 @@
             $photo_server   = dom_at($photo_nth, "server",  $photo_server);
             $photo_farm     = dom_at($photo_nth, "farm",    $photo_farm);
             $photo_title    = dom_at($photo_nth, "title",   $photo_title);
+            $photo_owner    = dom_at($photo_nth, "owner",   $username);
             $photo_size     = "b";
             $photo_url      = "https://farm".$photo_farm.".staticflickr.com/".$photo_server."/".$photo_id."_".$photo_secret."_".$photo_size.".jpg";
 
-            $data = json_flickr("photos.getInfo", array("photo_id" => $photo_id), $username);
-            
+            $data = json_flickr("photos.getInfo", array("photo_id" => $photo_id), $photo_owner);
+
             $photo_description = trim(dom_at(dom_at(dom_at($data,"photo"),"description"), "_content", $photo_title), " ");
             $photo_description = (false === $photo_description || "" == $photo_description) ? $photo_title : $photo_description;
             $photo_timestamp   = dom_at(dom_at(dom_at($data,"photo"),"dates"),"posted");
@@ -2127,18 +2289,61 @@
         return $posts;
     }
     
+    function array_flickr_thumbs($username, $post_filter = "", $tags_in = false, $tags_out = false)
+    {   
+        $posts = array_flickr_posts($username, $post_filter, $tags_in, $tags_out, false);     
+
+        foreach ($posts as &$post)
+        {
+            unset($post["user_name"     ]);
+            unset($post["user_url"      ]);
+            unset($post["user_img_url"  ]);
+            unset($post["post_title"    ]);
+            unset($post["post_text"     ]);
+            unset($post["post_timestamp"]);
+
+            $post["post_title"] = "";
+            hook("thumb", $post);
+            unset($post["post_title"]);
+        }
+
+        return $posts;
+    }
+    
     function array_instagram_thumb($username, $post_filter = "", $tags_in = false, $tags_out = false)
     {
         return array_instagram_thumbs($username, $post_filter, $tags_in, $tags_out);
     }
     
     function array_instagram_thumbs($username, $post_filter = "", $tags_in = false, $tags_out = false)
-    {          
+    {   
+        $posts = array_instagram_posts($username, $post_filter, $tags_in, $tags_out, false);     
+
+        foreach ($posts as &$post)
+        {
+            unset($post["user_name"     ]);
+            unset($post["user_url"      ]);
+            unset($post["user_img_url"  ]);
+            unset($post["post_title"    ]);
+            unset($post["post_text"     ]);
+            unset($post["post_timestamp"]);
+
+            $post["post_title"] = "";
+            hook("thumb", $post);
+            unset($post["post_title"]);
+        }
+
+        return $posts;
+        
+        /*
+
         dom_debug_track_timing();
           
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
-        $content    = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username);
+    //  $content    = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, false,                          $post_filter, $tags_in, $tags_out);
+        $content    = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"), $post_filter, $tags_in, $tags_out);
+                
         $thumbs     = array();
 
         foreach (dom_at($content, "data",  array()) as $item)
@@ -2168,6 +2373,8 @@
         }
         
         return $thumbs;
+
+        */
     }
     
     function array_tumblr_posts($blogname = false, $post = "", $tags_in = false, $tags_out = false)
@@ -2370,7 +2577,7 @@
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
         $posts      = array();
         
-        /*return array(array
+      /*return array(array
         (
             "TYPE"              => "facebook"
         ,   "user_name"         => dom_get("name")
@@ -2942,6 +3149,18 @@
         if ("html" == dom_get("doctype",false) && 1 == dom_get("debug")) echo comment("PHP Version: ".PHP_VERSION_ID.". Profiling :".eol().wrap_each(dom_debug_timings(), eol()));
         
         if (dom_get("encoding") == "gzip") ob_end_flush();
+    }
+
+    // Minimal Retro-compatibility
+
+    function doc_header($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
+    {
+        return dom_init($doctype, $encoding, $content_encoding_header, $attachement_basename, $attachement_length);
+    }
+
+    function doc_output($doc = "")
+    {
+        return dom_output($doc);
     }
 
     #endregion
@@ -3606,11 +3825,13 @@ else
                 . eol() .   wrap_each(dom_get("rss_items", array()), eol(), "rss_item_from_item_info", false)
                 );
             }
-            
+
+            $path_css = dom_path("./css/rss.css");
+
             return  ''
         /*  .       '<?xml version="1.0" encoding="'.dom_get("encoding", "utf-8").'" ?>'    */
             .       '<?xml version="1.0" encoding="'.strtoupper(dom_get("encoding", "utf-8")).'"?>'
-        /*  .       '<?xml-stylesheet href="'.dom_get("canonical").'/css/rss.css" type="text/css" ?>'   */
+            .       (!!$path_css ? ('<?xml-stylesheet href="'.$path_css.'" type="text/css" ?>') : '')
         /*  .       '<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:media="https://search.yahoo.com/mrss/">'    */
             .       '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">'
             . eol()   
@@ -3642,6 +3863,48 @@ else
         }
     }
 
+    function parse_delayed_components($html)
+    {
+    //  Lazy html generation
+
+        if ("html" == dom_get("doctype", "html") && !dom_has("ajax"))
+        {
+            while (true)
+            {
+                $delayed_components = dom_get("delayed_components", array());
+                dom_del("delayed_components");
+
+                if (count($delayed_components) <= 0) break;
+
+                $priorities = array();
+
+                foreach ($delayed_components as $index => $delayed_component_and_param)
+                {
+                    $priorities[(int)$delayed_component_and_param[2]] = true;
+                }
+
+                foreach ($priorities as $priority => $_)
+                {
+                    foreach ($delayed_components as $index => $delayed_component_and_param)
+                    {
+                        if ($priority != $delayed_component_and_param[2]) continue;
+
+                        $delayed_component = $delayed_component_and_param[0];
+                        $param             = $delayed_component_and_param[1];
+                        
+                        $html = str_replace(
+                            comment($delayed_component.$index),
+                            call_user_func($delayed_component, $param), 
+                            $html
+                            );
+                    }
+                }
+            }
+        }
+
+        return $html;
+    }
+
     function html($html = "")
     {
         dom_debug_track_timing();
@@ -3654,12 +3917,7 @@ else
             {
             //  Lazy html generation
 
-                foreach (dom_get("delayed_components", array()) as $delayed_component => $param)
-                {
-                    $html = str_replace(comment($delayed_component), call_user_func($delayed_component, $param), $html);
-                }
-
-                dom_del("delayed_components");
+                $html = parse_delayed_components($html);
 
             //  Clean html
 
@@ -3716,6 +3974,8 @@ else
             $path_manifest  = dom_path_coalesce("manifest.json.php", "manifest.json");
             $path_css       = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
 
+            echo comment("CSS $path_css");
+
             $html =         title()
 
                  . eol(2) . comment("Metadata")
@@ -3740,37 +4000,54 @@ else
         {
             hook_amp_require("install-serviceworker");
         }
-        
-        return tag('head',
 
-                    eol(2) . $html .
-                    eol(2) . if_then(dom_AMP(), "".
-                        
-                        eol(2) . '<style amp-custom>' . $hook_amp_css . '</style>'.                        
-                        eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
-                        eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
+        $amp_scripts = "";
 
-                        script_amp_iframe                   ().
-                        script_amp_sidebar                  ().
-                        script_amp_position_observer        ().
-                        script_amp_animation                ().
-                        script_amp_form                     ().
-                        script_amp_youtube                  ().
-                        script_amp_install_serviceworker    ().
+        if (dom_AMP())
+        {
+            $amp_scripts =
+                
+                eol(2) . '<style amp-custom>' . $hook_amp_css . '</style>'.                        
+                eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
+                eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
 
-                        "")
-                    ); 
+                script_amp_iframe                   ().
+                script_amp_sidebar                  ().
+                script_amp_position_observer        ().
+                script_amp_animation                ().
+                script_amp_form                     ().
+                script_amp_youtube                  ().
+                script_amp_install_serviceworker    ().
+
+                "";
+        }
+
+        return tag('head', eol(2) . $html . eol(2) . $amp_scripts); 
     }
 
-    function delayed_component($callback, $arg = false) { dom_set("delayed_components", array_merge(dom_get("delayed_components", array()), array($callback => $arg))); return comment($callback); }
+    function delayed_component($callback, $arg = false, $priority = 1)
+    {
+        $delayed_components = dom_get("delayed_components", array());
+
+        $index = count($delayed_components);
+
+        dom_set(
+            "delayed_components",
+            array_merge(
+                $delayed_components,
+                array(array($callback, $arg, $priority))
+                )
+            );
+        return comment($callback.$index);
+    }
     
-    function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_iframe                  () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_sidebar                 () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_position_observer       () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_animation               () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_form                    () { return delayed_component("_".__FUNCTION__, false); }
-    function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false); }
+    function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_iframe                  () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_sidebar                 () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_position_observer       () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_animation               () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_form                    () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false, 2); }
 
     function _script_amp_install_serviceworker  () { return if_then(has_amp_requirement("install-serviceworker"),   eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>'); }
     function _script_amp_iframe                 () { return if_then(has_amp_requirement("iframe"),                  eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>'); }
@@ -4152,7 +4429,8 @@ else
     .menu               { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
     .menu a:hover       { background-color: var(--background-color); color: var(--theme-color); }
 
-    .menu               { position: absolute; max-height: 0; transition: max-height 1s ease-out; text-align: left; }
+/*  .menu               { position: absolute; } */
+    .menu               { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
@@ -4289,6 +4567,10 @@ else
     {
         $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
+        $header_height     = (int)str_replace("px","",dom_get("header_height"       ));
+        $header_min_height = (int)str_replace("px","",dom_get("header_min_height"   ));
+        $stuck_height      = $header_height - $header_min_height;
+
         return  ((!dom_AMP() && $jquery_local_filename) ? script_src($jquery_local_filename) : 
                 (
                     script_src('https://code.jquery.com/jquery-'                . dom_get("version_jquery") . '.min.js',        false, 'crossorigin="anonymous"')
@@ -4352,7 +4634,10 @@ else
                             .   eol(1) . tab(1) 
                             .   eol(1) . tab(2) .       'function updateToolbarHeight()'
                             .   eol(1) . tab(2) .       '{'
-                            .   eol(1) . tab(3) .           '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height")     . ' - " + $(window).scrollTop() + "px)");'
+                            .   eol(1) . tab(3) .           'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass("scrolled");    $(".toolbar").removeClass("top"); }'
+                            .   eol(1) . tab(3) .           'else                                               { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass("top");    }'
+                            .   eol(1) . tab(3) .           ''
+                            .   eol(1) . tab(3) .           '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
                             .   eol(1) . tab(2) .       '}'
                             
                         . (("material" != dom_get("framework")) ? '' : (''
@@ -4700,8 +4985,6 @@ else
             "sameAs"    => $properties_person_same_as
         );
         
-        global $hook_amp_sidebars;
-
         $app_js = dom_path_coalesce("js/app.js","app.js");
         
         $body = ''
@@ -4711,12 +4994,15 @@ else
         . eol(2) . if_then(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
         
         . eol(2) . $html
-        . eol(2) . $hook_amp_sidebars
+
+        . eol(2) . comment("AMP sidebars")
+        . eol(2) . delayed_component("_amp_sidebars")
 
         . eol(2) . comment("DOM Javascript boilerplate")
         . eol(2) . scripts_body()
         . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
         . eol(2) . $html_post_scripts
+
         . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
 
@@ -4809,7 +5095,7 @@ else
         return '<div'.$class.'>'.$html.'</div>';
     }
         
-	function iframe($url, $title, $classes, $w = false, $h = false)
+	function iframe($url, $title = false, $classes = false, $w = false, $h = false)
 	{   
     //  TODO. See https://benmarshall.me/responsive-iframes/ for frameworks integration   
 
@@ -4818,7 +5104,10 @@ else
 
         hook_amp_require("iframe");
 
-        return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe').' title="'.$title.'" class="'.$classes.'" src="'.$url.'" width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
+        return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe')
+            .(!!$title   ? (' title="'.$title  .'"') : '')
+            .(!!$classes ? (' class="'.$classes.'"') : '')
+            .' src="'.$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
     }
 
 	function google_calendar($id, $w = false, $h = false)
@@ -5317,6 +5606,9 @@ else
         $text = str_replace("\r",           "<br>",     $text);
         $text = str_replace("\n",           "<br>",     $text);
         $text = str_replace("<br>-<br>",    "<br><br>", $text);
+        $text = str_replace("<br>.",        "<br>",     $text);
+
+        $n = 1; while ($n > 0) { $text = str_replace("<br><br><br>", "<br><br>", $text, $n); }
         
         $text = transform_lines($text, "---");
         $text = transform_lines($text, "___");
@@ -5445,11 +5737,12 @@ else
         
         $data["desc"]           = dom_has($metadata, "post_text") ? div_articlebody((is_callable("add_hastag_links_$source") ? call_user_func("add_hastag_links_$source", dom_at($metadata, "post_text"), $userdata) : '')) : false;
 
-        if (               false !== dom_at($metadata,"post_url",false)
-        &&  false !== strpos($data["desc"], $metadata["post_url"])
+        if (false !==                         dom_at($metadata,"post_url",false)
+        &&  ""    !=                                 $metadata["post_url"]
+        &&  false !== strpos($data["desc"],          $metadata["post_url"])
         &&  false === strpos($data["desc"], 'href="'.$metadata["post_url"])
         &&  false === strpos($data["desc"], "href='".$metadata["post_url"])
-        &&  false === strpos($data["desc"], $metadata["post_url"]."</a>"))
+        &&  false === strpos($data["desc"],          $metadata["post_url"]."</a>"))
         {
             $data["desc"] = str_replace($metadata["post_url"], a($metadata["post_url"], $metadata["post_url"]), $data["desc"]);
         }
@@ -5608,9 +5901,12 @@ else
     {
         return ($link === false) ? $text : array($text, $link);
     }
-  
-    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK)
+
+    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK, $sidebar = true)
     {
+        global $__dom_ul_menu_index;
+        ++$__dom_ul_menu_index;
+
         $menu_lis = "";
         {
             if (!is_array($menu_entries)) $menu_entries = array($menu_entries);
@@ -5631,14 +5927,28 @@ else
                     $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
                     $attributes = false;
                     
-                    $menu_lis .= eol() . li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= eol().li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
                 }
             }
         }
 
-             if (dom_AMP())                             { hook_amp_sidebar(cosmetic(eol(1)).tag('amp-sidebar id="'.DOM_MENU_ID.'" layout="nodisplay"', ul($menu_lis, array("class" => dom_component_class('menu-list'). " " . dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true")))); return span("","placeholder-amp-sidebar"); }
-        else if (dom_get("framework") == "bootstrap")   { return                                                                                      div($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"));  }
-        else                                            { return                                                                                       ul($menu_lis, array("class" => dom_component_class('menu-list'), "role" => "menu", "aria-hidden" => "true"));                    }
+        $html = "";
+
+             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')." ".dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
+        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                 "role" => "menu", "aria-hidden" => "true"                                                   )); }
+
+        if (dom_AMP() && !!$sidebar)
+        {
+            hook_amp_sidebar(
+                cosmetic(eol(1)).
+                tag('amp-sidebar id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
+                );
+
+            $html = span("","placeholder-amp-sidebar");
+        }
+
+        return $html;
     }
 
     function menu_switch() { return if_then(dom_get("framework") == "material",  a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
@@ -5655,9 +5965,7 @@ else
 
     function toolbar_row    ($html,  $attributes = false) {                      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
     function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
-/*  function toolbar_title  ($title, $attributes = false) { hook_title($title);  return div      (a('.',if_then(false === stripos($title,"<h1"), h1($title),$title)),
-                                                                                                            dom_attributes_add_class($attributes, dom_component_class("toolbar-title"))                             ); }
-*/
+
     function toolbar_banner_sections_builder($icon_entries = false)
     {
         return  ((true)                    ? (toolbar_section("")                                                                 ) : '')
@@ -5665,15 +5973,7 @@ else
             .   (($icon_entries !== false) ? (toolbar_section(icon_entries($icon_entries), dom_component_class("toolbar-cell-right")) ) : '')
             ;
     }
-/*
-    function toolbar_nav_sections_builder($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false, $default_target = INTERNAL_LINK)
-    {
-        return  toolbar_section(($menu_entries === false) ? '' : menu_toggle($menu_entries, $default_target),        dom_component_class("toolbar-cell-left")  . ($menu_entries_shrink_to_fit ? (' '.dom_component_class("toolbar-cell-right-shrink")) : ""))
-            .   toolbar_section(($title        === false) ? '' : toolbar_title($title),                              dom_component_class("toolbar-cell-center")                                                                                         )
-            .   toolbar_section(($toolbar      === false) ? '' : $toolbar,    array("role" => "toolbar", "class" => (dom_component_class("toolbar-cell-right") .                                 ' '.dom_component_class("toolbar-cell-right-shrink"))     ))
-            ;
-    }
-*/
+
     function toolbar_banner($icon_entries = false)
     {
         hook_toolbar("banner");
@@ -5681,31 +5981,18 @@ else
         return toolbar_row(toolbar_banner_sections_builder($icon_entries), "toolbar-row-banner");
     }
 
-/*  function toolbar_nav_builder($title = false, $menu_entries = false, $toolbar = false, $menu_entries_shrink_to_fit = false)
+    function menu_entries($html, $sidebar = true)
     {
-        hook_toolbar("nav");
-
-        return toolbar_row(toolbar_nav_sections_builder($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, DOM_MENU_ID),           array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"))         . if_then(dom_AMP(), ''
-             . toolbar_row(toolbar_nav_sections_builder($title, $menu_entries, $toolbar, $menu_entries_shrink_to_fit, INTERNAL_LINK, DOM_MENU_ID."-static"), array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"))  );    
-    }
-*/
-    
-/*
-    function menu_entries_from_array   ($menu_entries = array(), $default_target = INTERNAL_LINK)   {                               $ul_menu = ul_menu($menu_entries, $default_target); return if_then(dom_get("framework") != "bootstrap", div($ul_menu, dom_component_class("menu")), $ul_menu); }
-    function menu_toggle_from_array    ($menu_entries = array(), $default_target = INTERNAL_LINK)   { return div(menu_switch().menu_entries_from_array($menu_entries, $default_target), array("id" => "menu-open", "class" => dom_component_class("menu-toggle"))); }
-*/
-    function menu_entries($html)
-    {
-        $html = if_then(false === stripos($html, "menu-list") 
-                     && false === stripos($html, "_ul_menu_auto"), ul_menu($html), $html);
+        if (false === stripos($html, "menu-list") 
+        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, INTERNAL_LINK, $sidebar);
 
         return if_then(dom_get("framework") != "bootstrap", div($html, "menu-entries " . dom_component_class("menu")), $html);
     }
     
-    function menu_toggle($html)
+    function menu_toggle($html, $sidebar = true)
     {
-        $html = if_then(false === stripos($html, "menu-entries"), menu_entries($html), $html);
-        $html = if_then(false === stripos($html, "menu-switch"),  menu_switch().$html, $html);
+        if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
+        if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
 
         return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
     }
@@ -5719,15 +6006,15 @@ else
                         dom_component_class("toolbar-cell-right-shrink"))));
     }
    
-    function  ul_menu_auto() { return delayed_component("_".__FUNCTION__, false); }
-    function _ul_menu_auto() { return ul_menu(get("hook_sections")); }
+    function  ul_menu_auto($sidebar = true) { return delayed_component("_".__FUNCTION__, $sidebar); }
+    function _ul_menu_auto($sidebar = true) { return ul_menu(get("hook_sections"), INTERNAL_LINK, $sidebar); }
 
-    function  menu_toggle_auto() { return menu_toggle(ul_menu_auto()); }
+    function  menu_toggle_auto($sidebar = true) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
-    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false)
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = true)
     {
-        $html = if_then(false !== $html && false === stripos($html, "menu-toggle"), menu_toggle($html), $html);
-        $html = if_then(false === $html,                                            menu_toggle_auto(), $html);
+        if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
+        if (false === $html)                                            $html = menu_toggle_auto($sidebar);
         
         return toolbar_section(($html === false) ? '' : $html,  dom_component_class("toolbar-cell-left") . ($menu_entries_shrink_to_fit ? (' '.
                                                                 dom_component_class("toolbar-cell-right-shrink")    ) : ""));
@@ -5737,9 +6024,9 @@ else
     {
         hook_title($html);
 
-        $html = if_then(false === stripos($html,"<h1"),   h1($html),                    $html);
-        $html = if_then(false === stripos($html,"<a"),     a($html,'.'),                $html);
-        $html = if_then(false === stripos($html,"<div"), div($html, "toolbar-title"),   $html);
+        if (false === stripos($html,"<h1"))  $html =  h1($html);
+        if (false === stripos($html,"<a"))   $html =   a($html,'.');
+        if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
         
         return toolbar_section(($html === false) ? '' : $html, dom_component_class("toolbar-cell-center"));
     }
@@ -5748,7 +6035,7 @@ else
     {
         hook_toolbar("nav");
 
-        $html = if_then(false === stripos($html,"toolbar-cell"), toolbar_nav_menu().toolbar_nav_title($html), $html);
+        if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
         
         $menu_id_amp = DOM_MENU_ID."-static";
         
@@ -5756,13 +6043,15 @@ else
         $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
         $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
 
-        return toolbar_row($html,     array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"))         . if_then(dom_AMP(), ''
-             . toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"))  );    
+                       $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"         ));
+        if (dom_AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"  ));
+
+        return $html;
     }
 
     function toolbar($html, $attributes = false)
     {
-        $html = if_then(false === stripos($html,"toolbar-row"), toolbar_banner().toolbar_nav($html), $html);
+        if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         
         $amp_observer = "";
         $amp_anim     = "";
@@ -5915,8 +6204,8 @@ else
         {       
             if (!!$img_url)
             {
-                $rss .= eol() . raw('<enclosure url="'     .$img_url  .'" type="image/'.((false !== stripos($img_url, '.jpg'))?'jpg':'png').'" length="262144" />')
-                     .  eol() . raw('<media:content url="' .$img_url  .'" medium="image" />');
+                $rss .= eol() . raw('<enclosure url="'     .rawurlencode($img_url)  .'" type="image/'.((false !== stripos($img_url, '.jpg'))?'jpg':'png').'" length="262144" />')
+                     .  eol() . raw('<media:content url="' .rawurlencode($img_url)  .'" medium="image" />');
             }
         }
         
