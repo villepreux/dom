@@ -5906,10 +5906,14 @@ else
         return ($link === false) ? $text : array($text, $link);
     }
 
-    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK, $sidebar = true)
+    $__dom_ul_menu_index = -1;
+
+    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK, $sidebar = null)
     {
         global $__dom_ul_menu_index;
         ++$__dom_ul_menu_index;
+
+        if ($sidebar === null) $sidebar = (0 == $__dom_ul_menu_index);
 
         $menu_lis = "";
         {
@@ -5985,7 +5989,7 @@ else
         return toolbar_row(toolbar_banner_sections_builder($icon_entries), "toolbar-row-banner");
     }
 
-    function menu_entries($html, $sidebar = true)
+    function menu_entries($html, $sidebar = null)
     {
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, INTERNAL_LINK, $sidebar);
@@ -5993,7 +5997,7 @@ else
         return if_then(dom_get("framework") != "bootstrap", div($html, "menu-entries " . dom_component_class("menu")), $html);
     }
     
-    function menu_toggle($html, $sidebar = true)
+    function menu_toggle($html, $sidebar = null)
     {
         if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
         if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
@@ -6010,12 +6014,12 @@ else
                         dom_component_class("toolbar-cell-right-shrink"))));
     }
    
-    function  ul_menu_auto($sidebar = true) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = true) { return ul_menu(get("hook_sections"), INTERNAL_LINK, $sidebar); }
+    function  ul_menu_auto($sidebar = null) { return delayed_component("_".__FUNCTION__, $sidebar); }
+    function _ul_menu_auto($sidebar = null) { return ul_menu(get("hook_sections"), INTERNAL_LINK, $sidebar); }
 
-    function  menu_toggle_auto($sidebar = true) { return menu_toggle(ul_menu_auto(), $sidebar); }
+    function  menu_toggle_auto($sidebar = null) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
-    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = true)
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = null)
     {
         if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
         if (false === $html)                                            $html = menu_toggle_auto($sidebar);
