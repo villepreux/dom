@@ -29,7 +29,7 @@
                     .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #DDD; }
                     .card img                       { width: 100% }
                     .card-text,
-                    .card-title                     { padding: var(--content-default-margin); }
+                    .card-title                     { padding:      var(--content-default-margin); }
                     .card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
                     .card .headline                 { font-size: 1em; margin: 0px; }                    
                     .card-title-main,       
@@ -40,8 +40,7 @@
 
                     @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
 
-                    "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
-                        // which is needed in order to work well as an AMP page
+                    "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet
 
                 toolbar("Hello World!").
 

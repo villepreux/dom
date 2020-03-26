@@ -1020,6 +1020,13 @@
         $hook_amp_css .= $css;
     }
 
+    function _amp_css()
+    {
+        global $hook_amp_css;
+        $hook_amp_css = css_postprocess($hook_amp_css);
+        return $hook_amp_css;
+    }
+
     function hook_amp_require($component)    {    if (dom_AMP())     dom_set("hook_amp_require_$component", true); }
     function has_amp_requirement($component) { return dom_AMP() && !!dom_get("hook_amp_require_$component");       }
     
@@ -3967,8 +3974,6 @@ else
     { 
         dom_debug_track_timing();
         
-        global $hook_amp_css;
-        
         if (false === $html)
         {
             $path_manifest  = dom_path_coalesce("manifest.json.php", "manifest.json");
@@ -3993,8 +3998,7 @@ else
                  . eol(2) . scripts_head();
         }
         
-        $html         = css_postprocess($html);
-        $hook_amp_css = css_postprocess($hook_amp_css);
+        $html = css_postprocess($html);        
 
         if (dom_get("support_service_worker", false))
         {
@@ -4007,7 +4011,7 @@ else
         {
             $amp_scripts =
                 
-                eol(2) . '<style amp-custom>' . $hook_amp_css . '</style>'.                        
+                eol(2) . '<style amp-custom>' . delayed_component("_amp_css") . '</style>'.                        
                 eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
                 eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
 
@@ -4234,7 +4238,7 @@ else
 //  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
     function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style  ($filename_or_code = "")                                                            { $filename = dom_path($filename_or_code);                                             $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : tag(if_then(dom_AMP(), 'style amp-custom', 'style'), $css); }
+    function style  ($filename_or_code = "")                                                            { $filename = dom_path($filename_or_code);                                                 $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : tag(if_then(dom_AMP(), 'style amp-custom', 'style'), $css); }
     function script ($filename_or_code = "", $type = "text/javascript",                 $force = false) { $filename = dom_path($filename_or_code); return if_then(!$force && dom_AMP(), '', tag('script', eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(),                                                 array("type" => $type))); }
     function script_src($src,                $type = "text/javascript", $extra = false, $force = false) { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '',                                                                                                                   ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
@@ -4429,7 +4433,7 @@ else
     .menu               { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
     .menu a:hover       { background-color: var(--background-color); color: var(--theme-color); }
 
-/*  .menu               { position: absolute; } */
+    .sidebar-menu       { position: absolute; }
     .menu               { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
@@ -5934,9 +5938,9 @@ else
 
         $html = "";
 
-             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')." ".dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true"                                                   )); }
-        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                 "role" => "menu", "aria-hidden" => "true"                                                   )); }
+             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : "")." ".dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : ""),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
+        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : ""),                                 "role" => "menu", "aria-hidden" => "true"                                                   )); }
 
         if (dom_AMP() && !!$sidebar)
         {
