@@ -127,7 +127,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.3.3");
+    define("DOM_VERSION",           "0.4.0");
     define("DOM_PATH_MAX_DEPTH",    16);
 
     #region API : GET/SET
@@ -185,8 +185,8 @@
         dom_set("keywords",                          "");
 
         dom_set("canonical",                         absolute_uri(false));
-        dom_set("url",                               absolute_uri());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
-        dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
+    //  dom_set("url",                               absolute_uri());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
+    //  dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
 
         dom_set("normalize",                        "sanitize");
 
@@ -237,7 +237,7 @@
         dom_set("carousel",                         true);
             
         dom_set("version_normalize",                "7.0.0");
-        dom_set("version_sanitize",                 "9.0.0");  
+        dom_set("version_sanitize",                "11.0.0");  
         dom_set("version_material",                "0.38.2"); // latest => SimpleMenu got broken in 0.30.0 => Got fixed in CSS => latest => Broken in 0.39.0 => 0.38.0
         dom_set("version_bootstrap",                "4.1.1");
         dom_set("version_spectre",                  "x.y.z");
@@ -742,12 +742,13 @@
         else if ($content_type == 'html') $content_type = 'text/html';
         else if ($content_type == 'csv')  $content_type = 'text/csv';
 
-                        $options = array('http'=>array('method' => "GET", 'header' => ("Content-Type: type=".$content_type."; charset=utf-8\r\nAccept-language: en")));
-                        $context = @stream_context_create($options);
                         $content = false;
+        /*              $options = array('http'=>array('method' => "GET", 'header' => ("Content-Type: type=".$content_type."; charset=utf-8\r\nAccept-language: en")));
+                        $context = @stream_context_create($options);
+                        
         if (!!$context) $content = @file_get_contents($url, FILE_USE_INCLUDE_PATH, $context);
         if ( !$content) $content = @file_get_contents($url);
-        
+        */
         if ( !$content) 
         {
             $curl = @curl_init();
@@ -756,13 +757,16 @@
             {
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);                
-                curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
+            //  curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
+                curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0');
                 
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
                 curl_setopt($curl, CURLOPT_URL, $url);
                 curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);          
                 
-                $content = curl_exec($curl); if ((!$content || $content == "") && !!dom_get("debug")) echo comment("CURL ERROR: ".curl_error($curl));
+                $content = curl_exec($curl);
+                
+                if ((!$content || $content == "") && !!dom_get("debug")) echo comment("CURL ERROR: ".curl_error($curl));
 
                 curl_close($curl);
             }
@@ -835,6 +839,8 @@
                                                 function eol($n = 1)                                    { if (!!dom_get("minify",false)) return ''; switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dup("\r\n",$n); case 'DAR': return dup("\r",$n);  } return dup("\n",$n); }
     if (!function_exists("tab"))            {   function tab($n = 1)                                    { if (!!dom_get("minify",false)) return ' '; return dup(' ', 4*$n); }    }
                                                 function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x; $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
+                                                function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
+                                                function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
                                                 function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
                                                 function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
                                                 function if_then($e, $html_if, $html_else = '')         { return (!!$e) ? $html_if : $html_else; }
@@ -853,7 +859,8 @@
         array_shift($args); // $transform
         array_shift($args); // $flatten_array
         
-        if (!is_array($a)) $a = array($a);
+        $a          = is_array($a)         ? $a         : array($a);
+        $transforms = is_array($transform) ? $transform : array($transform);
 
         $html = "";         
         $i    = 0;
@@ -861,7 +868,22 @@
         foreach ($a as $e)
         {
             if ($flatten_array && is_array($e)) { $e = wrap_each($e,","); }
-            $html .= (($i++ > 0) ? $glue : '') . call_user_func_array($transform, array_merge(array($e), $args));
+
+            foreach ($transforms as $transform) 
+            {
+                $e_args = $args;
+
+                if (is_array($transform))
+                {
+                    $e_args = $transform;
+                    $transform = $e_args[0];
+                    array_shift($e_args);
+                }
+
+                $e = call_user_func_array($transform, array_merge(array($e), $e_args));
+            }
+            
+            $html .= (($i++ > 0) ? $glue : '') . $e;
         } 
             
         return $html;
@@ -990,6 +1012,8 @@
         dom_set("toolbar",      true);
         dom_set("toolbar_$row", true);
     }
+
+    // AM Sidebars
     
     $hook_amp_sidebars = "";
     
@@ -1006,6 +1030,64 @@
         global $hook_amp_sidebars;
         return $hook_amp_sidebars;
     }
+
+    // AMP JS Scripts
+    
+    $hook_amp_scripts = array();
+    
+    function hook_amp_js($js)
+    {
+        hook_amp_require("script");
+        
+        global $hook_amp_scripts;
+        $hook_amp_scripts[] = $js;
+    }
+
+    function _amp_scripts_head()
+    {
+        global $hook_amp_scripts;
+        
+        if (count($hook_amp_scripts) > 0)
+        {
+            return
+                '<meta name="amp-script-src" content="
+                    '.delayed_component("_amp_sha384_hash_local_script").' 
+                    " />';
+        }
+
+        return '';
+    }
+
+    function _amp_sha384_hash_local_script()
+    {
+        $keys = "";
+        global $hook_amp_scripts;
+        foreach ($hook_amp_scripts as $js) $keys .= eol().hash("sha384",$js);
+        return $keys;
+    }
+
+    function _amp_scripts_body()
+    {
+        $html = "";
+
+        global $hook_amp_scripts;
+
+        foreach ($hook_amp_scripts as $js)
+        {
+            $uuid = md5($js);
+
+            $html .= cosmetic(eol()).
+
+                '<amp-script script="dom_amp_scripts_'.$uuid.'" layout="container"></amp-script>'.
+                '<script type="text/plain" target="amp-script" id="dom_amp_scripts_'.$uuid.'">'.
+                $js.
+                '</script>';
+        }
+
+        return $html;
+    }
+
+    // AMP CSS
     
     $hook_amp_css = "";
 
@@ -1026,6 +1108,8 @@
         $hook_amp_css = css_postprocess($hook_amp_css);
         return $hook_amp_css;
     }
+
+    // AMP Requirements
 
     function hook_amp_require($component)    {    if (dom_AMP())     dom_set("hook_amp_require_$component", true); }
     function has_amp_requirement($component) { return dom_AMP() && !!dom_get("hook_amp_require_$component");       }
@@ -1337,8 +1421,6 @@
         
         $result = array_open_url($end_point);
 
-    //  echo comment(print_r(array_merge(array("url" => $end_point), $result), true));
-        
         if (dom_at($result, "status") == "failure")
         {
             return array();
@@ -1392,12 +1474,16 @@
         $result = array_open_url($end_point);
         /*
         if ((false !== $username) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
-                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))
+                                                          || (dom_at(dom_at($result, "error"), "code", "") ==  200 ) 
+                                                          || (dom_at(dom_at($result, "error"), "code", "") ==   10 )))
         {
             $result = array("data" => array());
         
-            $json_articles_page = json_facebook_from_content("https://www.facebook.com/pg/".dom_get("facebook_page")."/posts/?ref=page_internal");
-            $json_articles_page = dom_at($json_articles_page, "require", array());
+        //  $json_articles_page = json_facebook_from_content("https://www.facebook.com/pg/".dom_get("facebook_page")."/posts/?ref=page_internal");
+        //  $json_articles_page = dom_at($json_articles_page, "require", array());
+            $json_articles_page = json_facebook_from_content("https://www.facebook.com/".dom_get("facebook_page"));
+
+            return array_merge(array("DEBUG" => "TEST"), is_array($json_articles_page) ? $json_articles_page : array($json_articles_page));
             
             foreach ($json_articles_page as $entry)
             {
@@ -1422,8 +1508,8 @@
 
                 if (false !== $limit && count($result["data"]) >= $limit) break;
             }   
-        }
-        */
+        }*/
+        
         return $result;
     }
     
@@ -1444,15 +1530,21 @@
     }
         
     function json_facebook_from_content($url)
-    {
+    {/*
         $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
+    */
+        $html = array_open_url($url, "html");
+
+        echo $html; die();
+
+        return array($url, htmlentities($html));
 
         if ($html)
         {   
             while (true)
-            {
+            {/*
                 $tag_bgn = '<div id="globalContainer" class="uiContextualLayerParent">';
                 $tag_end = '</body>';
                 
@@ -1460,8 +1552,6 @@
                 $pos_end = stripos($html, $tag_end, $pos_bgn + strlen($tag_bgn));   if (false == $pos_bgn) break;
                 
                 $html =  substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
-
-            //  echo comment(htmlentities($html));
 
                 $result = dom_doc_load_from_html($html);
 
@@ -1491,11 +1581,19 @@
                     $result[$i] = $result[$i]["children"][0]["children"][1];
                 }
 
-            //  echo comment((print_r($result, true)));
-                
                 echo "<pre>";
                 print_r($result);
-                echo "</pre>";
+                echo "</pre>";*/
+
+                $tag_bgn = "Bootloader.setResourceMap(";
+                $tag_end = '</script>';
+                
+                $pos_bgn = stripos($html, $tag_bgn, 0);                             if (false == $pos_bgn) break;
+                $pos_end = stripos($html, $tag_end, $pos_bgn + strlen($tag_bgn));   if (false == $pos_bgn) break;
+                
+                $json =  substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+
+                $result = json_decode($json);
 
                 return $result;
 
@@ -1514,8 +1612,6 @@
             {            
                 $html = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
                 
-                echo comment("$url [$pos_bgn - $pos_end] = (".htmlentities($html).")");
-        
                 $result = dom_doc_load_from_html($html);
                 
                 $result = $result["children"][0]["children"][0]["children"];
@@ -1732,8 +1828,6 @@
         ))));
         */
         // DEBUG ---->
-
-    //  echo comment(print_r($result, true));
 
         $could_not_access_account = (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200");
         
@@ -2583,8 +2677,8 @@
         $username   = ($username === false) ? dom_get("facebook_page")  : $username;        
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
         $posts      = array();
-        
-      /*return array(array
+        /*
+        return array(array
         (
             "TYPE"              => "facebook"
         ,   "user_name"         => dom_get("name")
@@ -3153,6 +3247,7 @@
 
         echo $doc;
         cache_stop();
+
         if ("html" == dom_get("doctype",false) && 1 == dom_get("debug")) echo comment("PHP Version: ".PHP_VERSION_ID.". Profiling :".eol().wrap_each(dom_debug_timings(), eol()));
         
         if (dom_get("encoding") == "gzip") ob_end_flush();
@@ -3345,7 +3440,8 @@
     {
         return '
 
-importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
+//  importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
+    importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js");
 
 if (workbox)
 {
@@ -3362,8 +3458,8 @@ if (workbox)
     if (LOCALHOST) console.log("Worbox debugging");
     workbox.setConfig({debug: LOCALHOST});
         
-    self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
-    self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });
+//  self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
+//  self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });
 
     self.addEventListener("install", (event) => { event.waitUntil(caches.open(workbox.core.cacheNames.runtime).then((cache) => cache.addAll([
     
@@ -3373,8 +3469,8 @@ if (workbox)
     ]))); });
 
     workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime", googleAnalytics: "ga" });
-//  workbox.core.skipWaiting();
-//  workbox.core.clientsClaim();
+    workbox.core.skipWaiting();
+    workbox.core.clientsClaim();
 
     var expiration = new workbox.expiration.Plugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60 });
 
@@ -3502,6 +3598,11 @@ else
         "";
     }
     
+    function css_gradient_unset()
+    {
+        return "-webkit-text-fill-color: unset;";
+    }
+
     #endregion
     #region API : DOM : URLS
     ######################################################################################################################################
@@ -3915,7 +4016,14 @@ else
     function html($html = "")
     {
         dom_debug_track_timing();
+    
+        $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
+        $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
 
+             if ($no_head && $no_body)  { $html = head().body($html); }
+        else if ($no_head)              { $html = head().     $html;  }
+        else if ($no_body)              { $html =        body($html); }
+    
         if (dom_has("ajax")) $_POST = array();
 
         if ("html" == dom_get("doctype", "html"))
@@ -3976,16 +4084,13 @@ else
         
         if (false === $html)
         {
-            $path_manifest  = dom_path_coalesce("manifest.json.php", "manifest.json");
-            $path_css       = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
+            $path_css = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
 
-            echo comment("CSS $path_css");
-
-            $html =         title()
+            $html = title()
 
                  . eol(2) . comment("Metadata")
-                 . eol(2) . metas()                                             . (!$path_manifest ? "" : (""
-                 . eol(2) . link_rel("manifest", $path_manifest, false, 17)     ))
+                 . eol(2) . metas()
+                 . eol(2) . link_rel_manifest()
                  
                  . eol(2) . comment("DOM CSS boilerplate")
                  . eol(2) . link_styles($async_css)
@@ -3995,7 +4100,8 @@ else
                  . eol(2) . style($path_css)                                    ))
                  
                  . eol(2) . comment("DOM Javascript boilerplate")
-                 . eol(2) . scripts_head();
+                 . eol(2) . scripts_head()
+                 ;
         }
         
         $html = css_postprocess($html);        
@@ -4021,6 +4127,7 @@ else
                 script_amp_animation                ().
                 script_amp_form                     ().
                 script_amp_youtube                  ().
+                script_amp_script                   ().
                 script_amp_install_serviceworker    ().
 
                 "";
@@ -4052,6 +4159,7 @@ else
     function script_amp_animation               () { return delayed_component("_".__FUNCTION__, false, 2); }
     function script_amp_form                    () { return delayed_component("_".__FUNCTION__, false, 2); }
     function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false, 2); }
+    function script_amp_script                  () { return delayed_component("_".__FUNCTION__, false, 2); }
 
     function _script_amp_install_serviceworker  () { return if_then(has_amp_requirement("install-serviceworker"),   eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>'); }
     function _script_amp_iframe                 () { return if_then(has_amp_requirement("iframe"),                  eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>'); }
@@ -4060,9 +4168,18 @@ else
     function _script_amp_animation              () { return if_then(has_amp_requirement("animation"),               eol(1) . '<script async custom-element="amp-animation'             . '" src="https://cdn.ampproject.org/v0/amp-animation'             . '-0.1.js"></script>'); }
     function _script_amp_form                   () { return if_then(has_amp_requirement("form"),                    eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>'); }
     function _script_amp_youtube                () { return if_then(has_amp_requirement("youtube"),                 eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>'); }
+    function _script_amp_script                 () { return if_then(has_amp_requirement("script"),                  eol(1) . '<script async custom-element="amp-script'                . '" src="https://cdn.ampproject.org/v0/amp-script'                . '-0.1.js"></script>'); }
 
     function title  ($title = false) { return delayed_component("_".__FUNCTION__, $title); }
     function _title ($title = false) { return ($title === false) ? tag('title', dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')) : tag('title', $title); }
+
+    function link_rel_manifest($path_manifest = false, $type = false, $pan = 17)
+    {
+        if (!$path_manifest) $path_manifest = dom_path_coalesce("manifest.json.php", "manifest.json");
+        if (!$path_manifest) return "";
+
+        return link_rel("manifest", $path_manifest, $type, $pan);
+    }
 
     function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = null)
     {
@@ -4121,7 +4238,7 @@ else
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext";
         if (!!$media)                           $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
 
-        $path = dom_path($name.$ext);
+        $path = dom_path($name.".".$ext);
 
         return  $path ? link_rel($type, $path, $attributes) : '';
     }
@@ -4233,15 +4350,15 @@ else
         return link_rel("manifest", $filename) . if_then(!dom_AMP() && !dom_is_localhost(), eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>'); 
     }
 
-    function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html")) return ''; return tag('link', '', dom_attributes($attributes,$pan), false, true); }
-    function link_rel($rel, $href, $type = false, $pan = 0)                 {                           return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
+    function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return tag('link', '', dom_attributes($attributes,$pan), false, true); }
+    function link_rel($rel, $href, $type = false, $pan = 0)                 { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
 //  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
     function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style  ($filename_or_code = "")                                                            { $filename = dom_path($filename_or_code);                                                 $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : tag(if_then(dom_AMP(), 'style amp-custom', 'style'), $css); }
-    function script ($filename_or_code = "", $type = "text/javascript",                 $force = false) { $filename = dom_path($filename_or_code); return if_then(!$force && dom_AMP(), '', tag('script', eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(),                                                 array("type" => $type))); }
-    function script_src($src,                $type = "text/javascript", $extra = false, $force = false) { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '',                                                                                                                   ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
-    function script_json_ld($properties)                                                                { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
+    function style( $filename_or_code = "")                                                            { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? comment("AMP CSS BREAD CRUMBS") : (tag('style',  $css                        )); }
+    function script($filename_or_code = "", $type = "text/javascript",                 $force = false) { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? comment("AMP JS BREAD CRUMBS")  : (tag('script', $js, array("type" => $type) )); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false) { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_json_ld($properties)                                                               { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
     function dom_script_ajax_head()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_head())); }
     function dom_script_ajax_body()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_body())); }
@@ -4361,9 +4478,9 @@ else
      
     .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
 
-    .toolbar-row                                    { background-color: var(--theme-color);      color: var(--background-color); }
-    .toolbar-row a                                  { background-color: var(--theme-color);      color: var(--background-color); }
-    .toolbar-row-banner                             { background-color: var(--background-color); color: default;                 }
+    .toolbar-row                                    {    background-color: var(--theme-color);      color: var(--background-color); }
+    .toolbar-row a                                  { /* background-color: var(--theme-color); */   color: var(--background-color); }
+    .toolbar-row-banner                             {    background-color: var(--background-color); /* color: default; */           }
     
     .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
     .toolbar-row-banner                             { height: var(--header-height); min-height: var(--header-min-height); }
@@ -4389,9 +4506,14 @@ else
 
     body>.footer                                    { background-color: var(--theme-color); color: var(--background-color); }
 
+    /* Images */
+
     picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
     figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
     img, amp-img                                    { max-width: 100%; object-fit: cover; }
+
+    /* Grid */
+
     .grid                                           { display: grid; grid-gap: var(--content-default-margin); }
 
     /* Back-to-top style */    
@@ -4414,9 +4536,8 @@ else
 
     /* Other utilities */    
     
-/*  .div-svg-icon-container                         { position: relative; bottom: -6px; padding-right: 6px; } */
     .app-install                                    { display: none }
-    .anchor                                         { visibility: hidden; display: block; /* height: 1px; */ position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
+    .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
     
         
@@ -4433,7 +4554,7 @@ else
     .menu               { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
     .menu a:hover       { background-color: var(--background-color); color: var(--theme-color); }
 
-    .sidebar-menu       { position: absolute; }
+    #menu-open .menu    { position: absolute; }
     .menu               { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
@@ -4471,7 +4592,11 @@ else
     .aspect-ratio-4-3::before       { padding-bottom: calc(100% / (4 / 3));     }  
     .aspect-ratio-3-2::before       { padding-bottom: calc(100% / (3 / 2));     }  
     .aspect-ratio-1-1::before       { padding-bottom: calc(100%);               }  
-    
+
+    /* SVG */
+
+    .span-svg-wrapper           { display: inline-block; height: auto; }
+    .span-svg-wrapper-aligned   { position: relative; bottom: -6px; padding-right: 6px; }
 
 '/*<-- !AMP */.(!!dom_AMP() ? '' : '
 
@@ -4564,7 +4689,11 @@ else
     function scripts_head()
     {   
         return     dom_script_ajax_head()         
-        . eol(2) . script('var scan_and_print = function() { alert("Images are not loaded yet"); };'); 
+        . eol(2) . script('var scan_and_print = function() { alert("Images are not loaded yet"); };')   . (!dom_AMP() ? "" : (""
+        . eol(2) . comment("AMP Javascript")
+        . eol(2) . delayed_component("_amp_scripts_head")                                               ))
+
+        ; 
     }
     
     function scripts_body()
@@ -4605,15 +4734,19 @@ else
             .   eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer')
                         
         .   '') : '') // IF GOOGLE ANALYTICS -->
-            
+
             .   eol(2) .    script
                             (
                                 eol(1) . tab(1) .   '$(document).ready(function()'
                             .   eol(1) . tab(1) .   '{'
                             .   eol(1) . tab(2) .       '$("img").on("error", function() { $(this).attr("src", "' . url_img_blank() . '"); });'
+                            .   eol(1) . tab(2)
+                            .   eol(1) . tab(2) .       'var images_error_handler = function() { this.style.display = "none"; };'
                             .   eol(1) . tab(1) 
                             .   eol(1) . tab(2) .       'function updateLazyImages() '
                             .   eol(1) . tab(2) .       '{'
+                            .   eol(1) . tab(3) .           '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+                            .   eol(1) . tab(2)
                             .   eol(1) . tab(3) .           '$("img.lazy[data-src]").each(function(i, img) '
                             .   eol(1) . tab(3) .           '{'
                             .   eol(1) . tab(4) .               'var rect = img.getBoundingClientRect();'
@@ -4628,7 +4761,7 @@ else
                             .   eol(1) . tab(5) .                   ''
                             .   eol(1) . tab(5) .                   '$(img).attr("src", $(img).attr("data-src"));'
                             .   eol(1) . tab(5) .                   '$(img).removeAttr("data-src");'
-                            .   eol(1) . tab(5) .                   '$(img).on("load", function() { $(img).removeClass("loading"); });'
+                            .   eol(1) . tab(5) .                   '$(img).on("load", function() { $(img).removeClass("lazy"); $(img).removeClass("loading"); $(img).addClass("loaded"); });'
                             .   eol(1) . tab(4) .               '}'
                             .   eol(1) . tab(4) .               'else'
                             .   eol(1) . tab(4) .               '{'
@@ -5001,10 +5134,12 @@ else
 
         . eol(2) . comment("AMP sidebars")
         . eol(2) . delayed_component("_amp_sidebars")
+        . eol(2) . delayed_component("_amp_scripts_body")
 
         . eol(2) . comment("DOM Javascript boilerplate")
         . eol(2) . scripts_body()
-        . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
+    //  . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
+        . eol(2) . ($app_js ? script($app_js) : comment('Could not find any app.js default user script'))
         . eol(2) . $html_post_scripts
 
         . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
@@ -5050,7 +5185,7 @@ else
 
     function h          ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
                                                                                             return  cosmetic(eol(1)).
-                                                                                                    (($h>=2)?anchor(!!$anchor ? $anchor : $html):'').
+                                                                                                    (($h>=get("headline_anchor_level",2))?anchor(!!$anchor ? $anchor : $html):'').
                                                                                                                        tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
@@ -5199,7 +5334,7 @@ else
         return false;
     }
     
-    function google_photo_album($url)
+    function google_photo_album($url, $wrapper = "div", $img_wrapper = "self")
     {        
         if (dom_AMP()) return a($url, $url, EXTERNAL_LINK);
 
@@ -5212,10 +5347,10 @@ else
         {
             $photo_url = $photo_result[1][0];
             
-            $images .= img($photo_url, array("onError" => "this.src='".url_img_blank()."';"), "Photo");
+            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"));
         }
 
-        return a(div($images), $url, EXTERNAL_LINK);
+        return a(call_user_func($wrapper, $images), $url, EXTERNAL_LINK);
     }
 	
     // Components with BlogPosting microdata
@@ -5256,7 +5391,29 @@ else
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
         
-        return tag('a', $html, dom_attributes($internal_attributes) . dom_attributes_add_class($attributes, "a"));
+        if (is_array($attributes))
+        {
+            foreach ($attributes as $type => $attribute)
+            {
+                if (in_array($type, $internal_attributes))
+                {
+                    $internal_attributes[$type] .= " ".$attribute;
+                }
+                else
+                {
+                    $internal_attributes[$type] = $attribute;
+                }
+            }
+
+            $attributes = dom_attributes($internal_attributes);
+        }
+        else
+        {
+            $attributes =   dom_attributes($internal_attributes).
+                            dom_attributes_add_class($attributes, "a");
+        }
+
+        return tag('a', $html, $attributes);
     }
 
     function a_email($email, $text = false, $attributes = false)
@@ -5449,8 +5606,8 @@ else
 
         if (!!dom_get("no_js")) $lazy = false;
 
-        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
-                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
+        return ($lazy && !dom_AMP()) ? tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
+                                     : tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
     }
     
     function img_svg($path, $attributes = false)
@@ -5465,6 +5622,8 @@ else
         if ($x0 === false) $x0 = 0; if ($x1 === false) $x1 = $w; 
         if ($y0 === false) $y0 = 0; if ($y1 === false) $y1 = $h; 
 
+        // TODO REMOVE INLINE STYLING TO BOILERPLATE CSS
+
         return tag('span', 
                     '<svg '. 'class="svg" '.
                               'role="img"'.(($label!="" && $label!=false)?(' '.
@@ -5472,8 +5631,8 @@ else
                              'style="width:'.$w.'px;height:'.$h.'px" '.
                            'viewBox="'.$x0.' '.$x1.' '.$y0.' '.$y1.'">'.$paths.'</svg>', 
                     array(
-                        'class' => 'span-svg-wrapper span-svg-icon-container div-svg-icon-container',
-                        'style' => 'display: inline-block;'.($align ? ' position: relative; bottom: -6px; padding-right: 6px;' : '').' height: '.$h.'px'
+                        'class' => 'span-svg-wrapper'.($align ? ' span-svg-wrapper-aligned' : ''),
+                    /*  'style' => 'height: '.$h.'px' */
                         )
                     );
     }
@@ -5595,7 +5754,7 @@ else
         return $url;
     }
 
-    function url_img_pinterest ($pin      = false) { return dom_at(dom_at(dom_at(dom_at(                            json_pinterest_pin ( $pin),                                                                    "data"),"image"),"original"),"url",                                  url_img_blank()); }
+    function url_img_pinterest ($pin      = false) { return dom_at(dom_at(dom_at(dom_at(                            json_pinterest_pin ( $pin),                                                                        "data"),"image"),"original"),"url",                                  url_img_blank()); }
     function url_img_facebook  ($username = false) { return dom_at(dom_at(                                          json_facebook      (($username === false) ? dom_get("facebook_page") : $username, "cover", false), "cover"),"source",                                                   url_img_blank()); }
     function url_img_tumblr    ($blogname = false) { return dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(json_tumblr_blog   (($blogname === false) ? dom_get("tumblr_blog")   : $blogname, "posts"),        "response"),"posts"),0),"trail"),0),"blog"),"theme"),"header_image", url_img_blank()); }
 
@@ -5858,43 +6017,46 @@ else
     
     // ICONS
     
-    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $id = false, $target = false)
+    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false)
     {
         $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
         
-        if (($id === INTERNAL_LINK || $id === EXTERNAL_LINK) && $target === false) { $target = $id; $id = false; }
+        if (($attributes === INTERNAL_LINK || $attributes === EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
         if ($target === false) { $target = INTERNAL_LINK; }
         
-        return array($icon, $label, $link, $id, $target);
+        return array($icon, $label, $link, $id, $target, $attributes);
+    }
+
+    function dom_icon_entry_to_link($icon_entry, $default_target = INTERNAL_LINK)
+    {
+        $icon       = dom_get($icon_entry, "icon",          dom_get($icon_entry, 0, ""));
+        $label      = dom_get($icon_entry, "label",         dom_get($icon_entry, 1, ""));
+        $link       = dom_get($icon_entry, "link",          dom_get($icon_entry, 2, false));
+        $id         = dom_get($icon_entry, "id",            dom_get($icon_entry, 3, false));
+        $target     = dom_get($icon_entry, "target",        dom_get($icon_entry, 4, $default_target));
+        $attributes = dom_get($icon_entry, "attributes",    dom_get($icon_entry, 5, false));
+
+        if (false === $attributes) $attributes = array();
+        
+        if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
+        if (!in_array("alt",        $attributes) && !dom_AMP()      ) $attributes["alt"         ] = $label;
+        if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
+
+        return a($icon, $link, $attributes, $target);
     }
 
     function icon_entries($icon_entries, $default_target = INTERNAL_LINK)
     {
         if (is_array($icon_entries))
         {
-            $icons = "";
-            
-            foreach ($icon_entries as $icon_entry)
-            {
-                $icon   = dom_get($icon_entry, "icon",   dom_get($icon_entry, 0, ""));
-                $label  = dom_get($icon_entry, "label",  dom_get($icon_entry, 1, ""));
-                $link   = dom_get($icon_entry, "link",   dom_get($icon_entry, 2, false));
-                $id     = dom_get($icon_entry, "id",     dom_get($icon_entry, 3, false));
-                $target = dom_get($icon_entry, "target", dom_get($icon_entry, 4, $default_target));
-                
-                $attributes = array_merge(array("class" => dom_component_class("toolbar-icon"), "aria-label" => $label), dom_AMP() ? array() : array("alt" => $label));
-                
-                if (false !== $id) $attributes = array_merge($attributes, array("id" => $id)); 
-    
-                $icons .= eol() . a($icon, $link, $attributes, $target);
-            }
-            
-            return $icons;
+            return wrap_each($icon_entries, eol(), "dom_icon_entry_to_link", false);
         }
         else if (is_string($icon_entries))
         {
             return $icon_entries;
         }
+
+        return "";
     }
     
     // MENU
@@ -5942,15 +6104,15 @@ else
 
         $html = "";
 
-             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : "")." ".dom_component_class('menu'), "role" => "menu", "aria-hidden" => "true"                                                   )); }
-        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : ""),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list').(!!$sidebar ? " sidebar-menu" : ""),                                 "role" => "menu", "aria-hidden" => "true"                                                   )); }
+             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')/*." ".dom_component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
+        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true"                                                   )); }
 
         if (dom_AMP() && !!$sidebar)
         {
             hook_amp_sidebar(
                 cosmetic(eol(1)).
-                tag('amp-sidebar id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
+                tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
                 );
 
             $html = span("","placeholder-amp-sidebar");
@@ -6005,8 +6167,10 @@ else
         return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
     }
 
-    function toolbar_nav_toolbar($html)
+    function toolbar_nav_toolbar($html = false)
     {
+        if (false === $html) $html = ul_menu_auto();
+
         return toolbar_section(($html === false) ? '' : $html,  array(
             
             "role"  => "toolbar",
@@ -6187,7 +6351,7 @@ else
     function cells_card_async ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false)                      { return dom_ajax_call("cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
     
     function google_calendar_async                            ($ids = false, $w = false, $h = false)                                                 { return dom_ajax_call("google_calendar",    $ids, $w, $h); }
-    function google_photo_album_async                         ($ids = false)                                                                         { return dom_ajax_call("google_photo_album", $ids); }
+    function google_photo_album_async                         ($ids = false, $wrapper = "div", $img_wrapper = "self")                                { return dom_ajax_call("google_photo_album", $ids, $wrapper, $img_wrapper); }
        
 
     #endregion
@@ -6278,19 +6442,34 @@ else
     // the luminosity equations are from the WCAG 2 requirements
     // http://www.w3.org/TR/WCAG20/#relativeluminancedef
 
-    function dom_calculate_luminosity($color) {
-
-        $color = ltrim($color,"#");
-
-        $r = hexdec(substr($color, 0, 2)) / 255;
-        $g = hexdec(substr($color, 2, 2)) / 255;
-        $b = hexdec(substr($color, 4, 2)) / 255;
+    function dom_calculate_luminosity_dec_rgb($r,$g,$b) {
 
         if ($r <= 0.03928) { $r = $r / 12.92; } else { $r = pow((($r + 0.055) / 1.055), 2.4); }
         if ($g <= 0.03928) { $g = $g / 12.92; } else { $g = pow((($g + 0.055) / 1.055), 2.4); }
         if ($b <= 0.03928) { $b = $b / 12.92; } else { $b = pow((($b + 0.055) / 1.055), 2.4); }
 
         return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+    }
+
+    function dom_calculate_luminosity_hex_rgb($r,$g,$b) {
+
+        return dom_calculate_luminosity_dec_rgb(
+            hexdec($r) / 255,
+            hexdec($g) / 255,
+            hexdec($b) / 255
+            );
+    }
+
+    function dom_calculate_luminosity($color) {
+
+        $color = ltrim($color,"#");
+
+        return dom_calculate_luminosity_hex_rgb(
+
+            substr($color, 0, 2),
+            substr($color, 2, 2),
+            substr($color, 4, 2)
+            );
     }
 
     // calculates the luminosity ratio of two colors
@@ -6313,10 +6492,21 @@ else
     define("DOM_COLOR_CONTRAST_AAA_MEDIUMBOLD", 4.5);
     define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
     define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
+    define("DOM_COLOR_CONTRAST_DEFAULT",        DOM_COLOR_CONTRAST_AA_NORMAL);
 
-    function dom_correct_color($color, $background = "#FFFFFF", $contrast_ratio_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
+    function __dom_correct_color(
+        
+        $color,
+        $background,
+        $contrast_ratio_target,
+        $delta,
+       &$final_ratio,
+       &$used_delta,
+        $debug
+        
+        )
     {
-        if ($delta <= 0) $delta = 0.01;
+        if ($delta == 0.0) $delta = 0.01;
 
         $rrggbb = ltrim($color, "#");
 
@@ -6324,17 +6514,35 @@ else
         $g = hexdec(substr($rrggbb, 2, 2)) / 255;
         $b = hexdec(substr($rrggbb, 4, 2)) / 255;
 
-        $intensity_color      = dom_calculate_luminosity($color);
-        $intensity_background = dom_calculate_luminosity($background);
+        $i_color      = dom_calculate_luminosity($color);
+        $i_background = dom_calculate_luminosity($background);
 
-        if ($intensity_background > $intensity_color) { $delta = - $delta; }
+    //  if ($i_background >  $i_color) { $delta =                    -abs($delta);               }
+    //  if ($i_background == $i_color) { $delta = ($i_color > 0.5) ? -abs($delta) : abs($delta); }
 
         $i = 1000; // max iterations
 
-        while (--$i > 0 && ((0 < (int)(255*$r) && (int)(255*$r) < 255) || (0 < (int)(255*$g) && (int)(255*$g) < 255) || (0 < (int)(255*$b) && (int)(255*$b) < 255))) // while we can make adjustments
+        $ratio = 0;
+
+        while (--$i > 0)
         {
             $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
+
+            if ($debug) echo eol()." /* #$rrggbb $ratio */ ";
+            
             if ($ratio >= $contrast_ratio_target) break;
+
+            if ($delta < 0  && (int)(255*$r) == 0
+                            && (int)(255*$g) == 0
+                            && (int)(255*$b) == 0) break;
+
+            if ($delta > 0  && (int)(255*$r) == 255
+                            && (int)(255*$g) == 255
+                            && (int)(255*$b) == 255) break;
+
+            if ($r<=0 && $delta>0) $r = 1/255;
+            if ($g<=0 && $delta>0) $g = 1/255;
+            if ($b<=0 && $delta>0) $b = 1/255;
 
             $r = max(0, min(1, (1+$delta) * $r));
             $g = max(0, min(1, (1+$delta) * $g));
@@ -6343,20 +6551,64 @@ else
             $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                       str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
                       str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
-
-        //  echo "/* ".str_pad($i,4,"0",STR_PAD_LEFT)." : $rrggbb ".(int)(255*$r).",".(int)(255*$g).",".(int)(255*$b)." */".eol();
         }
+
+        $used_delta  = $delta;
+        $final_ratio = $ratio;
 
         return "#".$rrggbb;
     }
 
-    function dom_set_contrasted_colors($background_color_var, $background_color, $front_color_var, $front_color, $accessibility_contrast_target = DOM_COLOR_CONTRAST_AA_NORMAL, $delta = 0.01)
-    {                
-        dom_set($background_color_var, $background_color);
-        dom_set($front_color_var,      $front_color);
+    function dom_correct_lighter(
 
-        dom_set($front_color_var,       dom_correct_color(get($front_color_var),        dom_get($background_color_var), $accessibility_contrast_target));
-        dom_set($background_color_var,  dom_correct_color(get($background_color_var),   dom_get($front_color_var),      $accessibility_contrast_target));
+        $color,
+        $background             = "#FFFFFF",
+        $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        $debug                  = false)
+    {
+        return dom_correct_color($color, $background, $contrast_ratio_target, 0.01, $debug);
+    }
+
+    function dom_correct_darker(
+
+        $color,
+        $background             = "#FFFFFF",
+        $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        $debug                  = false)
+    {
+        return dom_correct_color($color, $background, $contrast_ratio_target, -0.01, $debug);
+    }
+
+    function dom_correct_color(
+
+        $color,
+        $background             = "#FFFFFF",
+        $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        $delta                  = 0.01,
+        $debug                  = false,
+        $show_warnings          = false)
+    {
+
+        if ($debug) echo eol()." /* --------------------------------- $color $background $delta */ ";
+
+        $ratioA = false;
+        $deltaA = false;
+        $colorA = __dom_correct_color($color, $background, $contrast_ratio_target,  $delta, $ratioA, $deltaA, $debug);
+
+        return $colorA.(($ratioA < $contrast_ratio_target && $show_warnings) ? " /* BAD CONTRAST $ratioA */ ": "");
+
+        if ($debug) echo eol()." /* --------------------------------- $color $background -$delta */ ";
+
+        $ratioB = false;
+        $deltaB = false;
+        $colorB = __dom_correct_color($color, $background, $contrast_ratio_target, -$delta, $ratioB, $deltaB, $debug);
+
+        if ($debug) echo eol()." /* "." $color ->  ".(($ratioB >= $ratioA) ? $colorB : $colorA)." */ ";
+
+        if ($ratioA >= $contrast_ratio_target) return $colorA;
+        if ($ratioB >= $contrast_ratio_target) return $colorB;
+
+        return ($ratioB >= $ratioA) ? ($colorB.($show_warnings ? " /* BAD CONTRAST $ratioB */ " : "")) : ($colorA." /* $ratioA */ ");
     }
 
     #endregion
