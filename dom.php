@@ -1,10 +1,5 @@
 <?php #https://github.com/villepreux/dom
 
-    #region DOM TODO
-
-    # Remove usage of if_then inside DOM components compositions
-
-    #endregion
     #region DOM PUBLIC API
     ######################################################################################################################################
     
@@ -360,7 +355,7 @@
     
     function dom_string_script_ajax_head()
     {
-        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
+        return  eol() . tab(1) .   '/* DOM Head Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_ajax_pending_calls = [];'
             .   eol()
@@ -373,7 +368,7 @@
     
     function dom_string_script_ajax_body()
     {
-        return  eol() . tab(1) .   '/* DOM Javascript boilerplate */'
+        return  eol() . tab(1) .   '/* DOM Body Javascript boilerplate */'
             .   eol()
             .   eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
             .   eol() . tab(1) .   '{'
@@ -3097,7 +3092,15 @@
     //  $js =  str_replace(array("\r\n","\r","\t","\n",'  ','    ','     '),        '',                     $js);
     //  $js = preg_replace(array('(( )+\))','(\)( )+)'),                            ')',                    $js);
     //  $js = preg_replace(array('/\>[^\S ]+/s','/[^\S ]+\</s','/(\s)+/s'),         array('>','<','\\1'),   $js);
- 
+
+    //  foreach (array(
+    //
+    //      'MULTILINE_COMMENT'     => '\Q/*\E[\s\S]+?\Q*/\E',
+    //      'SINGLELINE_COMMENT'    => '(?:http|ftp)s?://(*SKIP)(*FAIL)|//.+',
+    //      'WHITESPACE'            => '^\s+|\R\s*'
+    //      
+    //      ) as $key => $expr) $js = preg_replace('~'.$expr.'~m', '', $js);
+        
         return $js;
     }
 
@@ -3809,8 +3812,8 @@ else
 
     function css_name($name) { return trim(str_replace("_","-",$name)); }
 
-    function css_var($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
-    function css_env($var, $val = false, $pre_processing = false, $pan = 32) { if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_var($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_env($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
 
     function css_env_add($vars, $pre_processing = false)
     {
@@ -3874,9 +3877,9 @@ else
         return $res.$unit;
     }
     
-    function env        ($var, $val = false, $pre_processing = false, $pan = 32) { return css_env      ($var, $val, $pre_processing, $pan); }
-    function env_add    ($vars,              $pre_processing = false, $pan = 32) { return css_env_add  ($vars,      $pre_processing, $pan); }
-    function env_mul    ($vars,              $pre_processing = false, $pan = 32) { return css_env_mul  ($vars,      $pre_processing, $pan); }
+    function env        ($var, $val = false, $pre_processing = false, $pan = null) { return css_env      ($var, $val, $pre_processing, $pan); }
+    function env_add    ($vars,              $pre_processing = false, $pan = null) { return css_env_add  ($vars,      $pre_processing, $pan); }
+    function env_mul    ($vars,              $pre_processing = false, $pan = null) { return css_env_mul  ($vars,      $pre_processing, $pan); }
     
     
     /*
@@ -4055,7 +4058,7 @@ else
                 . eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
                 . eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
                 . eol()
-                . eol()). $html . comment("DOM.PHP ".DOM_VERSION) . raw_html(
+                . eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
                   eol()
                 . eol() . '</html>');
             }
@@ -4088,18 +4091,18 @@ else
 
             $html = title()
 
-                 . eol(2) . comment("Metadata")
+                 . eol(2) . comment("DOM Head Metadata")
                  . eol(2) . metas()
                  . eol(2) . link_rel_manifest()
                  
-                 . eol(2) . comment("DOM CSS boilerplate")
+                 . eol(2) . comment("DOM Head styles")
                  . eol(2) . link_styles($async_css)
                  . eol(2) . styles()
                                                                                 . (!$path_css ? "" : (""
-                 . eol(2) . comment("Main style $path_css")                       
+                 . eol(2) . comment("DOM Head main stylesheet")                       
                  . eol(2) . style($path_css)                                    ))
                  
-                 . eol(2) . comment("DOM Javascript boilerplate")
+                 . eol(2) . comment("DOM Head scripts")
                  . eol(2) . scripts_head()
                  ;
         }
@@ -4355,8 +4358,8 @@ else
 //  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
     function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style( $filename_or_code = "")                                                            { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? comment("AMP CSS BREAD CRUMBS") : (tag('style',  $css                        )); }
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false) { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? comment("AMP JS BREAD CRUMBS")  : (tag('script', $js, array("type" => $type) )); }
+    function style( $filename_or_code = "")                                                            { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
+    function script($filename_or_code = "", $type = "text/javascript",                 $force = false) { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
     function script_src($src,               $type = "text/javascript", $extra = false, $force = false) { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                               { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
@@ -4450,7 +4453,7 @@ else
           . eol() . tab(2) . env("scrollbar_width",         "17px").'
     }
 
-                                  '.str_pad(" ", strlen(get("main_max_width"))).'    :root { --main-width: 100vw; }
+                                  '.str_pad(" ", strlen(get("main_max_width"))).'   :root { --main-width: 100vw; }
     @media screen and (min-width: '.         env("main_max_width", false, true).') { :root { --main-width: '.env("main_max_width", false, true).'; } }
     
     /* Font stack */
@@ -4532,7 +4535,7 @@ else
     
     /* Animations */
 
-    a, a svg path   { transition: .6s ease-in-out }
+    a, a svg path                                   { transition: .6s ease-in-out }
 
     /* Other utilities */    
     
@@ -4543,78 +4546,76 @@ else
         
     /* Menu open/close button layout */
 
-    .menu-switch-symbol, .menu-close-symbol { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
+    .menu-switch-symbol, .menu-close-symbol         { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
 
     /* Menu open/close mechanism */
 
-    .menu-close-symbol { display: none; }
+    .menu-close-symbol                              { display: none; }
 
     /* Menu list */
 
-    .menu               { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
-    .menu a:hover       { background-color: var(--background-color); color: var(--theme-color); }
+    .menu                                           { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
+    .menu a:hover                                   { background-color: var(--background-color); color: var(--theme-color); }
 
-    #menu-open .menu    { position: absolute; }
-    .menu               { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
-    .menu ul            { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .menu li a          { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    #menu-open .menu                                { position: absolute; }
+    .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
+    .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
+    .menu li a                                      { display: inline-block; width: 100%; padding: var(--content-default-margin); }
 
     /* Main images */
         
-    main figure           { display: inline-block; }
-    main figure > picture,
-    main figure > amp-img { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default-image-ratio)); overflow: hidden; position: relative; }
+    main figure                                     { display: inline-block; }
+    main figure > picture, main figure > amp-img    { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default-image-ratio)); overflow: hidden; position: relative; }
     
-    main figure img { /* position: absolute; */ left: 0px; top: 0px; width: 100%; height: 100%;}
+    main figure img                                 { /* position: absolute; */ left: 0px; top: 0px; width: 100%; height: 100%;}
     
-    main amp-img,         main img,         main picture         { object-fit: cover; }    
-    main amp-img.loading, main img.loading, main picture.loading { object-fit: none;  }
+    main amp-img, main img, main picture            { object-fit: cover; }    
+    amp-img.loading, img.loading, picture.loading   { object-fit: none;  }
 
     /* Scrollbar */
     
-    body          { scrollbar-width: var(--scrollbar-width); }
-    body::-webkit-scrollbar { width: var(--scrollbar-width); }
+    body                                            { scrollbar-width: var(--scrollbar-width); }
+    body::-webkit-scrollbar                         {           width: var(--scrollbar-width); }
     
-    body {                           scrollbar-color: var(--theme-color)                                                      var(--background-color); }
-    body::-webkit-scrollbar-thumb { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
+    body                                            {  scrollbar-color: var(--theme-color)                                                      var(--background-color); }
+    body::-webkit-scrollbar-thumb                   { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
 
     /* Aspect Ratio wrappers */
 
-    .aspect-ratio > :first-child    { width:  100%; }
-    .aspect-ratio > img             { height: auto; } 
-    
-    .aspect-ratio                   { position: relative; }
-    .aspect-ratio::before           { content: ""; display: block; padding-bottom: calc(100% / (16 / 9)); }  
-    .aspect-ratio > :first-child    { position: absolute; top: 0; left: 0; height: 100%; }  
-    
-    .aspect-ratio-16-9::before      { padding-bottom: calc(100% / (16 / 9));    }  
-    .aspect-ratio-16-10::before     { padding-bottom: calc(100% / (16 / 10));   }  
-    .aspect-ratio-4-3::before       { padding-bottom: calc(100% / (4 / 3));     }  
-    .aspect-ratio-3-2::before       { padding-bottom: calc(100% / (3 / 2));     }  
-    .aspect-ratio-1-1::before       { padding-bottom: calc(100%);               }  
+    .aspect-ratio > :first-child                    { width:  100%; }
+    .aspect-ratio > img                             { height: auto; } 
+
+    .aspect-ratio                                   { position: relative; }
+    .aspect-ratio::before                           { content: ""; display: block; padding-bottom: calc(100% / (16 / 9)); }  
+    .aspect-ratio > :first-child                    { position: absolute; top: 0; left: 0; height: 100%; }  
+
+    .aspect-ratio-16-9::before                      { padding-bottom: calc(100% / (16 / 9));    }  
+    .aspect-ratio-16-10::before                     { padding-bottom: calc(100% / (16 / 10));   }  
+    .aspect-ratio-4-3::before                       { padding-bottom: calc(100% / (4 / 3));     }  
+    .aspect-ratio-3-2::before                       { padding-bottom: calc(100% / (3 / 2));     }  
+    .aspect-ratio-1-1::before                       { padding-bottom: calc(100%);               }  
 
     /* SVG */
 
-    .span-svg-wrapper           { display: inline-block; height: auto; }
-    .span-svg-wrapper-aligned   { position: relative; bottom: -6px; padding-right: 6px; }
+    .span-svg-wrapper                               { display: inline-block; height: auto; }
+    .span-svg-wrapper-aligned                       { position: relative; bottom: -6px; padding-right: 6px; }
 
 '/*<-- !AMP */.(!!dom_AMP() ? '' : '
 
     /* Toolbar */
 
-    .toolbar    { position: fixed; top: 0px; }
-    '.include_css_main_toolbar_adaptation().'
-
+    .toolbar                                        { position: fixed; top: 0px; } '.include_css_main_toolbar_adaptation().'
+    
     /* Menu open/close mechanism */
 
-    #menu-open        .menu-switch-symbol { display: inline-block;  }
-    #menu-open:target .menu-switch-symbol { display: none; }
+    #menu-open        .menu-switch-symbol           { display: inline-block;  }
+    #menu-open:target .menu-switch-symbol           { display: none; }
     
-    #menu-open        .menu-close-symbol { display: none;  }
-    #menu-open:target .menu-close-symbol { display: inline-block; }
+    #menu-open        .menu-close-symbol            { display: none;  }
+    #menu-open:target .menu-close-symbol            { display: inline-block; }
     
-    #menu-open        .menu { display: none;  max-height:   0vh; }
-    #menu-open:target .menu { display: block; max-height: 100vh; }
+    #menu-open        .menu                         { display: none;  max-height:   0vh; }
+    #menu-open:target .menu                         { display: block; max-height: 100vh; }
     
 ')./* !AMP -->*/'
 
@@ -4622,12 +4623,12 @@ else
 
     /* AMP DEFAULTS */
     
-    .menu              { display: block } /* AMP DYNAMIC MENU SUPPORTED */
-    
-    amp-sidebar        { background-color: var(--background-color); }
-    amp-sidebar        { text-align: left; }
-    amp-sidebar .menu  { position: relative; }
-    amp-sidebar ul     { list-style-type: none; padding-left: 0px } 
+    .menu                                           { display: block } /* AMP DYNAMIC MENU SUPPORTED */
+                                    
+    amp-sidebar                                     { background-color: var(--background-color); }
+    amp-sidebar                                     { text-align: left; }
+    amp-sidebar .menu                               { position: relative; }
+    amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
 
     
 ')./* AMP -->*/'
@@ -4643,19 +4644,20 @@ else
         --mdc-theme-background: var(--background-color);
     }
     
-    .toolbar .row .cell { overflow: visible }
+    .toolbar .row .cell         { overflow: visible }
         
-    #menu-open        .menu { display: block; max-height: 100vh; }
-    #menu-open:target .menu { display: block; max-height: 100vh; }
+    #menu-open        .menu     { display: block; max-height: 100vh; }
+    #menu-open:target .menu     { display: block; max-height: 100vh; }
     
+    .menu                       { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
 
-    .menu { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
-
-    .mdc-top-app-bar--dense .mdc-top-app-bar__row { height: var(--header-toolbar-height); /*align-items: center;*/ }
-    .mdc-top-app-bar { '.(dom_AMP() ? 'position: inherit;' : '').' }
-    .mdc-top-app-bar__section { flex: 0 1 auto; }
-    .mdc-top-app-bar--dense .mdc-top-app-bar__title { padding-left: 0px; }
-    .mdc-menu--open  { margin-top: var(--header-toolbar-height); }
+    .mdc-top-app-bar--dense 
+    .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
+    .mdc-top-app-bar            { '.(dom_AMP() ? 'position: inherit;' : '').' }
+    .mdc-top-app-bar__section   { flex: 0 1 auto; }
+    .mdc-top-app-bar--dense
+    .mdc-top-app-bar__title     { padding-left: 0px; }
+    .mdc-menu--open             { margin-top: var(--header-toolbar-height); }
     
 ')./* material -->*/'
 
@@ -4685,24 +4687,472 @@ else
     {
         return style(include_css_boilerplate());
     }
-    
+
     function scripts_head()
     {   
         return     dom_script_ajax_head()         
-        . eol(2) . script('var scan_and_print = function() { alert("Images are not loaded yet"); };')   . (!dom_AMP() ? "" : (""
+        . eol(2) . script(js_scan_and_print_head()) 
+                                                            . (!dom_AMP() ? "" : (""
         . eol(2) . comment("AMP Javascript")
-        . eol(2) . delayed_component("_amp_scripts_head")                                               ))
-
+        . eol(2) . delayed_component("_amp_scripts_head")   ))
         ; 
     }
-    
-    function scripts_body()
-    {
-        $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
+    function back_to_top_link()
+    {
+        return eol(2) . a("▲", url_void(), "cd-top");
+    }
+
+    function script_google_analytics_snippet()
+    {
+        if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
+
+        return script(
+            eol(1) . '/*  Google analytics */ '.
+            eol(2) . tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
+            eol(1)
+            );
+    }
+
+    function script_google_analytics()
+    {
+        if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
+
+        return  eol(2) . script_google_analytics_snippet().
+                eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer');
+    }
+
+    function js_scan_and_print_head()
+    {
+        if (dom_has("ajax")) return '';
+        
+        return 'var scan_and_print = function() { alert("Images are not loaded yet"); };';
+    }
+
+    function js_scan_and_print_body()
+    {
+        if (dom_has("ajax")) return '';
+
+        return  eol(1) . tab(1)
+            .   eol(1) . tab(2) .   '/* SCAN AND PRINT UTILITY */'
+            .   eol(1) . tab(1)
+            .   eol(1) . tab(2) .   '$(window).on("load", function()'
+            .   eol(1) . tab(2) .   '{ '
+            .   eol(1) . tab(3) .       'scan_and_print = function()'
+            .   eol(1) . tab(3) .       '{'
+            .   eol(1) . tab(4) .           '$("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {'
+            .   eol(1) . tab(4) .           '$("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });'
+            .   eol(1) . tab(3) .       '};'
+            .   eol(1) . tab(2) .   '});'
+            .   eol(1) . tab(1)
+            ;
+    }
+    
+    function js_pwa_install($init_function, $tab = 2)
+    {
+        return
+
+            eol() . tab($tab+0)         
+        .   eol() . tab($tab+0) .   '/* PWA (PROGRESSION WEB APP) INSTALL */'
+        .   eol() . tab($tab+0)         
+        .   eol() . tab($tab+0) .   'function '.$init_function.'()'
+        .   eol() . tab($tab+0) .   '{'
+        .   eol() . tab($tab+1) .       'let deferredPrompt = null;'
+        .   eol() . tab($tab+1)         
+        .   eol() . tab($tab+1) .       'console.log("Register Before Install Prompt callback");'
+        .   eol() . tab($tab+1)         
+        .   eol() . tab($tab+1) .       'window.addEventListener("beforeinstallprompt", function(e) '
+        .   eol() . tab($tab+1) .       '{'
+        .   eol() . tab($tab+2) .           'console.log("Before Install Prompt");'
+        .   eol() . tab($tab+2) .           'e.preventDefault();'
+        .   eol() . tab($tab+2) .           'deferredPrompt = e;'
+        .   eol() . tab($tab+2) .           '$(".app-install").css({"display": "inline-block"});' /* TODO change this hardcoded style by a class */
+        .   eol() . tab($tab+1) .       '});'
+        .   eol() . tab($tab+1)         
+        .   eol() . tab($tab+1) .       '$(".app-install").on("click", function(e)'
+        .   eol() . tab($tab+1) .       '{'
+        .   eol() . tab($tab+2) .           '$(".app-install").css({"display": "none"});' 
+        .   eol() . tab($tab+2) .           ''
+        .   eol() . tab($tab+2) .           'if (deferredPrompt != null)'
+        .   eol() . tab($tab+2) .           '{'
+        .   eol() . tab($tab+3) .               'deferredPrompt.prompt();'
+        .   eol() . tab($tab+3) .               ''
+        .   eol() . tab($tab+3) .               'deferredPrompt.userChoice.then(function(choiceResult)'
+        .   eol() . tab($tab+3) .               '{'
+        .   eol() . tab($tab+4) .                   'if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");'
+        .   eol() . tab($tab+4) .                   'else                                     console.log("User dismissed the A2HS prompt");'
+        .   eol() . tab($tab+4) .                   ''
+        .   eol() . tab($tab+4) .                   'deferredPrompt = null;'
+        .   eol() . tab($tab+3) .               '});'
+        .   eol() . tab($tab+2) .           '}'
+        .   eol() . tab($tab+2) .           'else'
+        .   eol() . tab($tab+2) .           '{'
+        .   eol() . tab($tab+3) .               'console.log("Install promt callback not received yet");'
+        .   eol() . tab($tab+2) .           '}'
+        .   eol() . tab($tab+1) .       '}); '
+        .   eol() . tab($tab+0) .   '}; '
+        .   eol() . tab($tab+0)
+        ;
+    }
+
+    function js_service_worker($init_function)
+    {
+        return 
+        
+            eol(1) . tab(1)
+        .   eol(1) . tab(2) . '/* SERVICE WORKER */'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) . if_then(!dom_has("ajax"), 'function urlBase64ToUint8Array(base64String) { const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0))); }')
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) . 'function '.$init_function.'()'
+        .   eol(1) . tab(2) . '{'.if_then(!dom_has("ajax") && dom_get("support_service_worker", false),''
+        .   eol(1) . tab(3) .     'if ("serviceWorker" in navigator) '
+        .   eol(1) . tab(3) .     '{' 
+        .   eol(1) . tab(4) .         'console.log("Service Worker is supported. Registering...");'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(4) .         'navigator.serviceWorker.register("'.dom_path('sw.js').'").then(function(registration) '
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'console.log("ServiceWorker registration successful with scope: ", registration.scope);'
+        .   eol(1) . tab(5) .             ''
+        .   eol(1) . tab(5) .             'var registration_installing = registration.installing;'
+        .   eol(1) . tab(5) .             'var registration_waiting    = registration.waiting;'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(5) .             'if (registration_installing && registration_installing != null)'
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .             '    console.log("Installing...");'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(6) .             '    if (registration_installing.state === "activated" && !registration_waiting)'
+        .   eol(1) . tab(6) .             '    {'
+        .   eol(1) . tab(7) .             '        console.log("Send Clients claim");'
+        .   eol(1) . tab(7)   
+        .   eol(1) . tab(7) .             '        registration_installing.postMessage({type: "CLIENTS_CLAIM" });'
+        .   eol(1) . tab(6) .             '    }'
+        .   eol(1) . tab(6)   
+        .   eol(1) . tab(6) .             '    registration_installing.addEventListener("statechange", function()'
+        .   eol(1) . tab(6) .             '    {'
+        .   eol(1) . tab(7) .             '        if (registration_installing.state === "activated" && !registration_waiting) '
+        .   eol(1) . tab(7) .             '        {'
+        .   eol(1) . tab(8) .             '            console.log("Send Clients claim");'
+        .   eol(1) . tab(8) .             '            '
+        .   eol(1) . tab(8) .             '            registration_installing.postMessage({ type: "CLIENTS_CLAIM" });'
+        .   eol(1) . tab(7) .             '        }'
+        .   eol(1) . tab(6) .             '    });'
+        .   eol(1) . tab(5) .             '}'
+        .   eol(1) . tab(5)   
+        .   eol(1) . tab(5) .             'navigator.serviceWorker.ready.then(function(registration) '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'registration.pushManager.getSubscription().then(function(subscription) '
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                     'if (!(subscription === null)) '
+        .   eol(1) . tab(7) .                     '{'
+        .   eol(1) . tab(8) .                         'console.log("User IS subscribed.");'
+        .   eol(1) . tab(7) .                     '}'
+        .   eol(1) . tab(7) .                     'else '
+        .   eol(1) . tab(7) .                     '{'
+        .   eol(1) . tab(8) .                         'console.log("User is NOT subscribed.");'
+        .   eol(1) . tab(7) .                     '}'
+        .   eol(1) . tab(6) .                 '})'. if_then(dom_has("push_public_key"), ''
+        .   eol(1) . tab(6) .                 '.then(function()'
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                     'const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("'.dom_get("push_public_key").'") };'
+        .   eol(1) . tab(7) .                     'return registration.pushManager.subscribe(subscribeOptions);'
+        .   eol(1) . tab(7)   
+        .   eol(1) . tab(6) .                 '}'
+        .   eol(1) . tab(6) .                 ').then(function(pushSubscription)'
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                    'console.log("Received PushSubscription: ", JSON.stringify(pushSubscription));'
+        .   eol(1) . tab(7) .                    'return pushSubscription;'
+        .   eol(1) . tab(6) .                 '})') // push_public_key
+        .   eol(1) . tab(6) .                 ';'
+        .   eol(1) . tab(6)   
+        .   eol(1) . tab(6) .                 'return registration.sync.register("myFirstSync");'
+        .   eol(1) . tab(5) .             '});'
+        .   eol(1) . tab(4) .         '}, '
+        .   eol(1) . tab(4) .         'function(err) '
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'console.log("ServiceWorker registration failed: ", err);'
+        .   eol(1) . tab(5)   
+        .   eol(1) . tab(4) .         '}).catch(function(err)'
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'console.log("Service Worker registration failed: ", err);'
+        .   eol(1) . tab(5)   
+        .   eol(1) . tab(4) .         '});'
+        .   eol(1) . tab(4)                                                   /* TODO : REGISTER FOR NOTIFICATIONS ON USER GESTURE */
+        .   eol(1) . tab(4) .         'if ("PushManager" in window) '
+        .   eol(1) . tab(4) .         '{ '                                                                                                    /*
+        .   eol(1) . tab(5) .             'console.log("Service Worker push notifications are supported. Registering...");'
+        .   eol(1) . tab(5)   
+        .   eol(1) . tab(5) .             'new Promise(function(resolve, reject) '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'Notification.requestPermission().then(function(permission) '
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                     'console.log("Notifications permissions : " + permission);'
+        .   eol(1) . tab(7) .                     'if (permission !== "granted") return reject(Error("Denied notification permission"));'
+        .   eol(1) . tab(7) .                     'resolve();'
+        .   eol(1) . tab(6) .                 '});'
+        .   eol(1) . tab(5)   
+        .   eol(1) . tab(5) .             '}).then(function() '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'return navigator.serviceWorker.ready;'
+        .   eol(1) . tab(6)   
+        .   eol(1) . tab(5) .             '}).then(function(registration) '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'return registration.sync.register("syncTest");'
+        .   eol(1) . tab(6)   
+        .   eol(1) . tab(5) .             '}).then(function() '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'console.log("Sync registered");'
+        .   eol(1) . tab(6)   
+        .   eol(1) . tab(5) .             '}).catch(function(err) '
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'console.log("It broke");'
+        .   eol(1) . tab(6) .                 'console.log(err.message);'
+        .   eol(1) . tab(5) .             '});'                                                       */
+        .   eol(1) . tab(4) .         '}'         /**/
+        .   eol(1) . tab(3) .     '}'
+        .   eol(1) . tab(3) .     'else'
+        .   eol(1) . tab(3) .     '{'
+        .   eol(1) . tab(4) .         'console.log("Service worker not supported");'
+        .   eol(1) . tab(3) .     '}'
+        .   eol(1) . tab(2) . '')/* support_service_worker */.'}'
+        .   eol(1) . tab(1)
+        ;
+    }
+
+    function js_framework_material()
+    {
+        if ("material" != dom_get("framework")) return "";
+
+        return 
+                        
+            eol(1) . tab(1)
+        .   eol(1) . tab(2) . '/* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(2) . 'if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(2) . '/*  Adjust toolbar margin */'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(3) .     '$(".mdc-top-app-bar").css("position", "fixed");'
+        .   eol(1) . tab(3) . '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
+        .   eol(1) . tab(1)       
+        .   eol(1) . tab(3) .     '(function()'
+        .   eol(1) . tab(3) .     '{'
+        .   eol(1) . tab(4) .         'var pollId = 0;'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(4) .         'pollId = setInterval(function()'
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(5) .             'if (e != null)'
+        .   eol(1) . tab(5) .             '{ '
+        .   eol(1) . tab(6) .                 'var pos = getComputedStyle(e).position;'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(6) .                 'if (pos === "fixed" || pos === "relative")'
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                     'material_init();'
+        .   eol(1) . tab(7) .                     'clearInterval(pollId);'
+        .   eol(1) . tab(6) .                 '}'
+        .   eol(1) . tab(5) .             '}'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(4) .         '}, 250);'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(4) .         'function material_init()'
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(5) .             'if (e != null && typeof mdc !== "undefined")'
+        .   eol(1) . tab(5) .             '{ '
+        .   eol(1) . tab(6) .                 'var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);'
+        .   eol(1) . tab(6) .                 'toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");'
+        .   eol(1) . tab(5) .             '}'
+        .   eol(1) . tab(4) .         '}'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(3) .     '})(); '
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(2) . '/*  Menu */'
+        .   eol(1) . tab(1) 
+        .   eol(1) . tab(3) .     'var menuEl = document.querySelector(".mdc-menu");'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(3) .     'if (menuEl != null && typeof mdc !== "undefined")'
+        .   eol(1) . tab(3) .     '{  '
+        .   eol(1) . tab(4) .         'var menuToggle = document.querySelector(".menu-toggle");'
+        .   eol(1) . tab(4) .         'var menu       = new mdc.menu.MDCMenu(menuEl);'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(4) .         'menuToggle.addEventListener("click", function() '
+        .   eol(1) . tab(4) .         '{ '
+        .   eol(1) . tab(5) .             'menu.open = !menu.open; '
+        .   eol(1) . tab(4) .         '});'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(4) .         'menuEl.addEventListener("MDCMenu:selected", function(evt) '
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'const detail = evt.detail;'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(5) .             'detail.item.textContent;'
+        .   eol(1) . tab(5) .             'detail.index;'
+        .   eol(1) . tab(4) .         '});'
+        .   eol(1) . tab(3) .     '}'
+        ;
+    }
+
+    function js_images_loading($init_function, $update_function)
+    {
+        return 
+
+            eol() . tab(1)
+        .   eol() . tab(2) .    '/* IMAGES LOADING */'
+        .   eol() . tab(1)
+        .   eol() . tab(2) .    '$("img").on("error", function() { $(this).attr("src", "' . url_img_blank() . '"); });'
+        .   eol() . tab(2)
+        .   eol() . tab(2) .    'var images_error_handler = function() { this.style.display = "none"; };'
+        .   eol() . tab(1)
+        .   eol() . tab(2) .    'function '.$update_function.'() '
+        .   eol() . tab(2) .    '{'
+        .   eol() . tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+        .   eol() . tab(2)
+        .   eol() . tab(3) .        '$("img.lazy[data-src]").each(function(i, img) '
+        .   eol() . tab(3) .        '{'
+        .   eol() . tab(4) .            'var rect = img.getBoundingClientRect();'
+        .   eol() . tab(2) 
+        .   eol() . tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
+        .   eol() . tab(4) .            '{'
+        .   eol() . tab(5) .                '$(img).parent().find("source.lazy[data-srcset]").each(function(i, src) '
+        .   eol() . tab(5) .                '{'
+        .   eol() . tab(6) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
+        .   eol() . tab(6) .                    '$(src).removeAttr("data-srcset");'
+        .   eol() . tab(5) .                '});'
+        .   eol() . tab(5) .                ''
+        .   eol() . tab(5) .                '$(img).attr("src", $(img).attr("data-src"));'
+        .   eol() . tab(5) .                '$(img).removeAttr("data-src");'
+        .   eol() . tab(5) .                '$(img).on("load", function() { $(img).removeClass("lazy"); $(img).removeClass("loading"); $(img).addClass("loaded"); });'
+        .   eol() . tab(4) .            '}'
+        .   eol() . tab(4) .            'else'
+        .   eol() . tab(4) .            '{'
+        .   eol() . tab(4) .            '}'
+        .   eol() . tab(3) .        '});'
+        .   eol() . tab(2) .    '}'
+        .   eol() . tab(1)
+        .   eol() . tab(2) .    ''.$update_function.'();'
+        .   eol() . tab(1)
+        .   eol() . tab(2) .    'function '.$init_function.'() '
+        .   eol() . tab(2) .    '{'
+        .   eol() . tab(3) .      'setTimeout(function() { setInterval('.$update_function.', 500); },  50);'
+        .   eol() . tab(3) .      ''.$update_function.'();'
+        .   eol() . tab(2) .    '}'
+        .   eol() . tab(1)
+        ;
+    }
+
+    function js_toolbar($update_function)
+    {
         $header_height     = (int)str_replace("px","",dom_get("header_height"       ));
         $header_min_height = (int)str_replace("px","",dom_get("header_min_height"   ));
         $stuck_height      = $header_height - $header_min_height;
+
+        return
+
+            eol(1) . tab(1)
+        .   eol(1) . tab(2) . '/* TOOLBAR */'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) . 'function '.$update_function.'()'
+        .   eol(1) . tab(2) . '{'
+        .   eol(1) . tab(3) .     'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass("scrolled");    $(".toolbar").removeClass("top"); }'
+        .   eol(1) . tab(3) .     'else                                               { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass("top");    }'
+        .   eol(1) . tab(3) .     ''
+        .   eol(1) . tab(3) .     '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
+        .   eol(1) . tab(2) . '}'
+        .   eol(1) . tab(2)
+        .   eol(1) . tab(2) . ''.$update_function.'();'
+        .   eol(1) . tab(1)
+        ;
+    }
+
+    function js_back_to_top($update_function)
+    {
+        return
+
+            eol(1) . tab(1)     
+        .   eol(1) . tab(2) .   '/*  BACK TO TOP BUTTON */'
+        .   eol(1) . tab(1)     
+        .   eol(1) . tab(2) .   'var $back_to_top                    = null;'
+        .   eol(1) . tab(2) .   'var  back_to_top_offset             =  300;'
+        .   eol(1) . tab(2) .   'var  back_to_top_offset_opacity     = 1200;'
+        .   eol(1) . tab(2) .   'var  back_to_top_scroll_duration    =  700;'
+        .   eol(1) . tab(1)     
+        .   eol(1) . tab(2) .   'function '.$update_function.'()'
+        .   eol(1) . tab(2) .   '{'
+        .   eol(1) . tab(3) .       '($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");'
+        .   eol(1) . tab(1)     
+        .   eol(1) . tab(3) .       'if ($(window).scrollTop() > back_to_top_offset_opacity)'
+        .   eol(1) . tab(3) .       '{ '
+        .   eol(1) . tab(4) .           '$back_to_top.addClass("cd-fade-out");'
+        .   eol(1) . tab(3) .       '}'
+        .   eol(1) . tab(2) .   '}'
+        .   eol(1) . tab(1)     
+        .   eol(1) . tab(2) .   '$back_to_top = $(".cd-top");'
+        .   eol(1) . tab(2) .   '$back_to_top.on("click", function(event)'
+        .   eol(1) . tab(2) .   '{'
+        .   eol(1) . tab(3) .       'event.preventDefault();'
+        .   eol(1) . tab(3) .       '$("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);'
+        .   eol(1) . tab(2) .   '});'
+        .   eol(1) . tab(1)     
+        ;
+    }
+
+    function js_slick_slider($init_function)
+    {
+        return 
+ 
+            eol(1) . tab(1)
+        .   eol(1) . tab(2) . '/* SLICK SLIDERS */'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) . 'function updateSlickSlider()'
+        .   eol(1) . tab(2) . '{'.if_then(dom_get("support_sliders", false), ''
+        .   eol(1) . tab(3) .     '$(".slider").not(".slick-initialized").slick({"autoplay":true});'
+        .   eol(1) . tab(2) . '').'}'
+        .   eol(1) . tab(2)
+        .   eol(1) . tab(2) . 'function '.$init_function.'()'
+        .   eol(1) . tab(2) . '{'.if_then(dom_get("support_sliders", false), ''
+        .   eol(1) . tab(3) .     'setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);'
+        .   eol(1) . tab(2) . '').'}'
+        .   eol(1) . tab(1)
+        ;
+    }
+
+    function js_toolbar_banner_rotation($init_function)
+    {
+        return
+
+            eol(1) . tab(1)
+        .   eol(1) . tab(2) . '/* TOOLBAR BANNER IMAGE ROTATION */'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) . 'function '.$init_function.'()'
+        .   eol(1) . tab(2) . '{ ' . if_then(!dom_has("support_header_backgrounds") || (false === dom_get("support_header_backgrounds")), '', ''
+        .   eol(1) . tab(3) .     'dom_ajax("?ajax=header-backgrounds", function(content)'
+        .   eol(1) . tab(3) .     '{' 
+        .   eol(1) . tab(4) .         'if (content != "")'
+        .   eol(1) . tab(4) .         '{'
+        .   eol(1) . tab(5) .             'var index_url = 0;'
+        .   eol(1) . tab(5) .             'var urls = content.split(",");'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(5) .             'if (urls && !(typeof urls === "undefined") && urls.length > 0)'
+        .   eol(1) . tab(5) .             '{'
+        .   eol(1) . tab(6) .                 'setInterval(function()'
+        .   eol(1) . tab(6) .                 '{'
+        .   eol(1) . tab(7) .                     '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
+        .   eol(1) . tab(7) .                     'index_url = (index_url + 1) % urls.length;'
+        .   eol(1) . tab(1)   
+        .   eol(1) . tab(6) .                 '}, 10*1000);'
+        .   eol(1) . tab(5) .             '}'
+        .   eol(1) . tab(4) .         '}'
+        .   eol(1) . tab(3) .     '});' ).''
+        .   eol(1) . tab(2) . '}'
+        .   eol(1) . tab(1)
+        ;
+    }
+
+    function script_externals()
+    {
+        $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
         return  ((!dom_AMP() && $jquery_local_filename) ? script_src($jquery_local_filename) : 
                 (
@@ -4712,377 +5162,56 @@ else
 
                 ))
         
-            .   eol(2) . a("▲", url_void(), "cd-top")
-            
             .   if_then(dom_get("support_sliders", false),   eol(2) . script_src('https://cdn.jsdelivr.net/jquery.slick/'            . dom_get("version_slick")     . '/slick.min.js'))            
             .   if_then("material"  == dom_get("framework"), eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web.min.js'))
             .   if_then("bootstrap" == dom_get("framework"), eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper.min.js'))
             .   if_then("bootstrap" == dom_get("framework"), eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap.min.js'))
-            
-            .   dom_script_ajax_body()
+            ;
+    }
+    
+    function scripts_body()
+    {
+        $header_height     = (int)str_replace("px","",dom_get("header_height"       ));
+        $header_min_height = (int)str_replace("px","",dom_get("header_min_height"   ));
+        $stuck_height      = $header_height - $header_min_height;
 
-        .   ((defined("TOKEN_GOOGLE_ANALYTICS")) ? ('' // <!-- IF GOOGLE ANALYTICS 
+        return  eol(2) . script_externals        ()
+            .   eol(2) . dom_script_ajax_body    ()
+            .   eol(2) . script_google_analytics ()
+
+            .   eol(2) . script(
         
-            .   eol(2) . script
-                (
-                    eol(1) . '/*  Google analytics */ '
+                    eol(1) . tab(1) .   '$(document).ready(function()'
+                .   eol(1) . tab(1) .   '{'
+                .   eol(1) . tab(2) .       js_toolbar                 (                    "onScrollToolbarHeight")
+                .   eol(1) . tab(2) .       js_back_to_top             (                    "onScrollBackToTopButton")
+                .   eol(1) . tab(2) .       js_images_loading          ("onLoadLazyImages", "onScrollLazyImages")
+                .   eol(1) . tab(2) .       js_slick_slider            ("onLoadSliders")
+                .   eol(1) . tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
+                .   eol(1) . tab(2) .       js_service_worker          ("onLoadServiceWorker")
+                .   eol(1) . tab(2) .       js_pwa_install             ("onLoadPWA")
+                .   eol(1) . tab(2) .       js_framework_material      ()
+                .   eol(1) . tab(2) .       js_scan_and_print_body     ()
+                .   eol(1) . tab(1)      
+                .   eol(1) . tab(2) .       '$(window).scroll(function()'
+                .   eol(1) . tab(2) .       '{'
+                .   eol(1) . tab(3) .           'onScrollBackToTopButton    ();'
+                .   eol(1) . tab(3) .           'onScrollLazyImages         ();'
+                .   eol(1) . tab(3) .           'onScrollToolbarHeight      ();'
+                .   eol(1) . tab(2) .       '});'
+                .   eol(1) . tab(1)      
+                .   eol(1) . tab(2) .       '$(window).on("load", function()'
+                .   eol(1) . tab(2) .       '{ '
+                .   eol(1) . tab(3) .           'onLoadRotatingHeaders  ();'
+                .   eol(1) . tab(3) .           'onLoadServiceWorker    ();'
+                .   eol(1) . tab(3) .           'onLoadPWA              ();'
+                .   eol(1) . tab(3) .           'onLoadLazyImages       ();'
+                .   eol(1) . tab(3) .           'onLoadSliders          ();'
+                .   eol(1) . tab(2) .       '});'
+                .   eol(1) . tab(1) .   '});'
                 .   eol(1)
-                .   eol(1) . tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'
-                .   eol(1)
-                )
-                            
-            .   eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer')
-                        
-        .   '') : '') // IF GOOGLE ANALYTICS -->
 
-            .   eol(2) .    script
-                            (
-                                eol(1) . tab(1) .   '$(document).ready(function()'
-                            .   eol(1) . tab(1) .   '{'
-                            .   eol(1) . tab(2) .       '$("img").on("error", function() { $(this).attr("src", "' . url_img_blank() . '"); });'
-                            .   eol(1) . tab(2)
-                            .   eol(1) . tab(2) .       'var images_error_handler = function() { this.style.display = "none"; };'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(2) .       'function updateLazyImages() '
-                            .   eol(1) . tab(2) .       '{'
-                            .   eol(1) . tab(3) .           '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-                            .   eol(1) . tab(2)
-                            .   eol(1) . tab(3) .           '$("img.lazy[data-src]").each(function(i, img) '
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               'var rect = img.getBoundingClientRect();'
-                            .   eol(1) . tab(2) 
-                            .   eol(1) . tab(4) .               'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   '$(img).parent().find("source.lazy[data-srcset]").each(function(i, src) '
-                            .   eol(1) . tab(5) .                   '{'
-                            .   eol(1) . tab(6) .                       '$(src).attr("srcset", $(src).attr("data-srcset"));'
-                            .   eol(1) . tab(6) .                       '$(src).removeAttr("data-srcset");'
-                            .   eol(1) . tab(5) .                   '});'
-                            .   eol(1) . tab(5) .                   ''
-                            .   eol(1) . tab(5) .                   '$(img).attr("src", $(img).attr("data-src"));'
-                            .   eol(1) . tab(5) .                   '$(img).removeAttr("data-src");'
-                            .   eol(1) . tab(5) .                   '$(img).on("load", function() { $(img).removeClass("lazy"); $(img).removeClass("loading"); $(img).addClass("loaded"); });'
-                            .   eol(1) . tab(4) .               '}'
-                            .   eol(1) . tab(4) .               'else'
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(4) .               '}'
-                            .   eol(1) . tab(3) .           '});'
-                            .   eol(1) . tab(2) .       '}'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(2) .       'function updateToolbarHeight()'
-                            .   eol(1) . tab(2) .       '{'
-                            .   eol(1) . tab(3) .           'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass("scrolled");    $(".toolbar").removeClass("top"); }'
-                            .   eol(1) . tab(3) .           'else                                               { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass("top");    }'
-                            .   eol(1) . tab(3) .           ''
-                            .   eol(1) . tab(3) .           '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
-                            .   eol(1) . tab(2) .       '}'
-                            
-                        . (("material" != dom_get("framework")) ? '' : (''
-                        
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(2) .       'if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(2) .       '/*  Adjust toolbar margin */'
-                            .   eol(1) . tab(1)
-                            .   eol(1) . tab(3) .           '$(".mdc-top-app-bar").css("position", "fixed");'
-                            .   eol(1) . tab(3) .       '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
-                            .   eol(1) . tab(1)             
-                            .   eol(1) . tab(3) .           '(function()'
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               'var pollId = 0;'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(4) .               'pollId = setInterval(function()'
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   'var e = document.querySelector(".mdc-top-app-bar");'
-                            .   eol(1) . tab(1)
-                            .   eol(1) . tab(5) .                   'if (e != null)'
-                            .   eol(1) . tab(5) .                   '{ '
-                            .   eol(1) . tab(6) .                       'var pos = getComputedStyle(e).position;'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(6) .                       'if (pos === "fixed" || pos === "relative")'
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'init();'
-                            .   eol(1) . tab(7) .                           'clearInterval(pollId);'
-                            .   eol(1) . tab(6) .                       '}'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(1)
-                            .   eol(1) . tab(4) .               '}, 250);'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(4) .               'function init()'
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   'var e = document.querySelector(".mdc-top-app-bar");'
-                            .   eol(1) . tab(1)
-                            .   eol(1) . tab(5) .                   'if (e != null && typeof mdc !== "undefined")'
-                            .   eol(1) . tab(5) .                   '{ '
-                            .   eol(1) . tab(6) .                       'var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);'
-                            .   eol(1) . tab(6) .                       'toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(4) .               '}'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(3) .           '})(); '
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(2) .       '/*  Menu */'
-                            .   eol(1) . tab(1) 
-                            .   eol(1) . tab(3) .           'var menuEl = document.querySelector(".mdc-menu");'
-                            .   eol(1) . tab(1)
-                            .   eol(1) . tab(3) .           'if (menuEl != null && typeof mdc !== "undefined")'
-                            .   eol(1) . tab(3) .           '{  '
-                            .   eol(1) . tab(4) .               'var menuToggle = document.querySelector(".menu-toggle");'
-                            .   eol(1) . tab(4) .               'var menu       = new mdc.menu.MDCMenu(menuEl);'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'menuToggle.addEventListener("click", function() '
-                            .   eol(1) . tab(4) .               '{ '
-                            .   eol(1) . tab(5) .                   'menu.open = !menu.open; '
-                            .   eol(1) . tab(4) .               '});'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'menuEl.addEventListener("MDCMenu:selected", function(evt) '
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   'const detail = evt.detail;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(5) .                   'detail.item.textContent;'
-                            .   eol(1) . tab(5) .                   'detail.index;'
-                            .   eol(1) . tab(4) .               '});'
-                            .   eol(1) . tab(3) .           '}'
-                            
-                        )) // material
-                        
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(2) .       '/*  Back to top button */'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           'var $back_to_top                    = null;'
-                            .   eol(1) . tab(3) .           'var  back_to_top_offset             =  300;'
-                            .   eol(1) . tab(3) .           'var  back_to_top_offset_opacity     = 1200;'
-                            .   eol(1) . tab(3) .           'var  back_to_top_scroll_duration    =  700;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           'function updateBackToTopButton()'
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               '($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'if ($(window).scrollTop() > back_to_top_offset_opacity)'
-                            .   eol(1) . tab(4) .               '{ '
-                            .   eol(1) . tab(5) .                   '$back_to_top.addClass("cd-fade-out");'
-                            .   eol(1) . tab(4) .               '}'
-                            .   eol(1) . tab(3) .           '}'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           '$back_to_top = $(".cd-top");'
-                            .   eol(1) . tab(3) .           '$back_to_top.on("click", function(event)'
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               'event.preventDefault();'
-                            .   eol(1) . tab(4) .               '$("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);'
-                            .   eol(1) . tab(3) .           '});'                                                                                     . if_then(dom_get("support_sliders", false), ''
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           'function updateSliders()'
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               '$(".slider").not(".slick-initialized").slick({"autoplay":true});'
-                            .   eol(1) . tab(3) .           '}'                                                                                       )
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(2) .       '/*  updateLazyImages(); */'                                                                  . if_then(dom_get("support_sliders", false), ''
-                            .   eol(1) . tab(2) .       '/*  updateSliders(); */'                                                                     )
-                            .   eol(1) . tab(3) .           'updateToolbarHeight();'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           '$(window).scroll(function()'
-                            .   eol(1) . tab(3) .           '{'
-                            .   eol(1) . tab(4) .               'updateBackToTopButton();'
-                            .   eol(1) . tab(4) .               'updateLazyImages();'
-                            .   eol(1) . tab(4) .               'updateToolbarHeight();'
-                            .   eol(1) . tab(3) .           '});'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           'function initRotatingHeaders()'
-                            .   eol(1) . tab(3) .           '{ '
-                            .   eol(1) . tab(4) .               'dom_ajax("?ajax=header-backgrounds", function(content)'
-                            .   eol(1) . tab(4) .               '{' 
-                            .   eol(1) . tab(5) .                   'if (content != "")'
-                            .   eol(1) . tab(5) .                   '{'
-                            .   eol(1) . tab(6) .                       'var index_url = 0;'
-                            .   eol(1) . tab(6) .                       'var urls = content.split(",");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(6) .                       'if (urls && !(typeof urls === "undefined") && urls.length > 0)'
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'setInterval(function()'
-                            .   eol(1) . tab(7) .                           '{'
-                            
-                    //  . ((("material" != dom_get("framework")) && ("bootstrap" != dom_get("framework"))) ? '' : (''
-                        
-                            .   eol(1) . tab(8) .                               '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
-                            
-                    //  )) // material
-                        
-                            .   eol(1) . tab(8) .                               'index_url = (index_url + 1) % urls.length;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '}, 10*1000);'
-                            .   eol(1) . tab(6) .                       '}'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(4) .               '});'
-                            .   eol(1) . tab(3) .           '}'
-                            .   eol(1) . tab(3) .           ''                                                                      . ((defined("TOKEN_PACKAGE")) ? ''
-                            .   eol(1) . tab(3) .           'console.log("Third-parties tokens packages : '.TOKEN_PACKAGE.'");'     : '').''
-                            .   eol(1) . tab(3) .           ''
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(3) .           '$(window).on("load", function()'
-                            .   eol(1) . tab(3) .           '{ '                                  . if_then(dom_has("support_header_backgrounds") && (false !== dom_get("support_header_backgrounds")), ''
-                            .   eol(1) . tab(4) .               'initRotatingHeaders();'          )
-                            .   eol(1) . tab(4) .               'updateLazyImages();'             . if_then(!dom_has("ajax"), ''
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'scan_and_print = function()'
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   '$("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {'
-                            .   eol(1) . tab(5) .                   '$("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });'
-                            .   eol(1) . tab(4) .               '};'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'function urlBase64ToUint8Array(base64String) { const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0))); }'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .                if_then(dom_get("support_service_worker", false),''
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   'if ("serviceWorker" in navigator) '
-                            .   eol(1) . tab(5) .                   '{' 
-                            .   eol(1) . tab(6) .                       'console.log("Service Worker is supported. Registering...");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(6) .                       'navigator.serviceWorker.register("'.dom_path('sw.js').'").then(function(registration) '
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'console.log("ServiceWorker registration successful with scope: ", registration.scope);'
-                            .   eol(1) . tab(7) .                           ''
-                            .   eol(1) . tab(7) .                           'var registration_installing = registration.installing;'
-                            .   eol(1) . tab(7) .                           'var registration_waiting    = registration.waiting;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           'if (registration_installing && registration_installing != null)'
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(7) .                           '    console.log("Installing...");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '    if (registration_installing.state === "activated" && !registration_waiting)'
-                            .   eol(1) . tab(7) .                           '    {'
-                            .   eol(1) . tab(7) .                           '        console.log("Send Clients claim");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '        registration_installing.postMessage({type: "CLIENTS_CLAIM" });'
-                            .   eol(1) . tab(7) .                           '    }'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '    registration_installing.addEventListener("statechange", function()'
-                            .   eol(1) . tab(7) .                           '    {'
-                            .   eol(1) . tab(7) .                           '        if (registration_installing.state === "activated" && !registration_waiting) '
-                            .   eol(1) . tab(7) .                           '        {'
-                            .   eol(1) . tab(7) .                           '            console.log("Send Clients claim");'
-                            .   eol(1) . tab(7) .                           '            '
-                            .   eol(1) . tab(7) .                           '            registration_installing.postMessage({ type: "CLIENTS_CLAIM" });'
-                            .   eol(1) . tab(7) .                           '        }'
-                            .   eol(1) . tab(7) .                           '    });'
-                            .   eol(1) . tab(7) .                           '}'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           'navigator.serviceWorker.ready.then(function(registration) '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'registration.pushManager.getSubscription().then(function(subscription) '
-                            .   eol(1) . tab(8) .                               '{'
-                            .   eol(1) . tab(9) .                                   'if (!(subscription === null)) '
-                            .   eol(1) . tab(9) .                                   '{'
-                            .   eol(1) . tab(10) .                                      'console.log("User IS subscribed.");'
-                            .   eol(1) . tab(9) .                                   '}'
-                            .   eol(1) . tab(9) .                                   'else '
-                            .   eol(1) . tab(9) .                                   '{'
-                            .   eol(1) . tab(10) .                                      'console.log("User is NOT subscribed.");'
-                            .   eol(1) . tab(9) .                                   '}'
-                            .   eol(1) . tab(8) .                               '})'. if_then(dom_has("push_public_key"), ''
-                            .   eol(1) . tab(8) .                               '.then(function()'
-                            .   eol(1) . tab(8) .                               '{'
-                            .   eol(1) . tab(9) .                                   'const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("'.dom_get("push_public_key").'") };'
-                            .   eol(1) . tab(9) .                                   'return registration.pushManager.subscribe(subscribeOptions);'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(8) .                               '}'
-                            .   eol(1) . tab(8) .                               ').then(function(pushSubscription)'
-                            .   eol(1) . tab(8) .                               '{'
-                            .   eol(1) . tab(9) .                                  'console.log("Received PushSubscription: ", JSON.stringify(pushSubscription));'
-                            .   eol(1) . tab(9) .                                  'return pushSubscription;'
-                            .   eol(1) . tab(8) .                               '})') // push_public_key
-                            .   eol(1) . tab(8) .                               ';'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(8) .                               'return registration.sync.register("myFirstSync");'
-                            .   eol(1) . tab(7) .                           '});'
-                            .   eol(1) . tab(6) .                       '}, '
-                            .   eol(1) . tab(6) .                       'function(err) '
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'console.log("ServiceWorker registration failed: ", err);'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(6) .                       '}).catch(function(err)'
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'console.log("Service Worker registration failed: ", err);'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(6) .                       '});'
-                            .   eol(1) . tab(1)                                                                 /* TODO : REGISTER FOR NOTIFICATIONS ON USER GESTURE */
-                            .   eol(1) . tab(6) .                       'if ("PushManager" in window) '
-                            .   eol(1) . tab(6) .                       '{ '                                                                                                    /*
-                            .   eol(1) . tab(7) .                           'console.log("Service Worker push notifications are supported. Registering...");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           'new Promise(function(resolve, reject) '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'Notification.requestPermission().then(function(permission) '
-                            .   eol(1) . tab(8) .                               '{'
-                            .   eol(1) . tab(9) .                                   'console.log("Notifications permissions : " + permission);'
-                            .   eol(1) . tab(9) .                                   'if (permission !== "granted") return reject(Error("Denied notification permission"));'
-                            .   eol(1) . tab(9) .                                   'resolve();'
-                            .   eol(1) . tab(8) .                               '});'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '}).then(function() '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'return navigator.serviceWorker.ready;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '}).then(function(registration) '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'return registration.sync.register("syncTest");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '}).then(function() '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'console.log("Sync registered");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(7) .                           '}).catch(function(err) '
-                            .   eol(1) . tab(7) .                           '{'
-                            .   eol(1) . tab(8) .                               'console.log("It broke");'
-                            .   eol(1) . tab(8) .                               'console.log(err.message);'
-                            .   eol(1) . tab(7) .                           '});'                                                       */
-                            .   eol(1) . tab(6) .                       '}'         /**/
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(5) .                   'else'
-                            .   eol(1) . tab(5) .                   '{'
-                            .   eol(1) . tab(6) .                       'console.log("Service worker not supported");'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(4) .               '}') /* support_service_worker */ ) /* !ajax */
-                            .   eol(1) . tab(1)                 
-                            .   eol(1) . tab(4) .               'let deferredPrompt = null;'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'console.log("Register Before Install Prompt callback");'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               'window.addEventListener("beforeinstallprompt", function(e) '
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   'console.log("Before Install Prompt");'
-                            .   eol(1) . tab(5) .                   'e.preventDefault();'
-                            .   eol(1) . tab(5) .                   'deferredPrompt = e;'
-                            .   eol(1) . tab(5) .                   '$(".app-install").css({"display": "inline-block"});' /* TODO change this hardcoded style by a class */
-                            .   eol(1) . tab(4) .               '});'
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .               '$(".app-install").on("click", function(e)'
-                            .   eol(1) . tab(4) .               '{'
-                            .   eol(1) . tab(5) .                   '$(".app-install").css({"display": "none"});' 
-                            .   eol(1) . tab(5) .                   ''
-                            .   eol(1) . tab(5) .                   'if (deferredPrompt != null)'
-                            .   eol(1) . tab(5) .                   '{'
-                            .   eol(1) . tab(6) .                       'deferredPrompt.prompt();'
-                            .   eol(1) . tab(6) .                       ''
-                            .   eol(1) . tab(6) .                       'deferredPrompt.userChoice.then(function(choiceResult)'
-                            .   eol(1) . tab(6) .                       '{'
-                            .   eol(1) . tab(7) .                           'if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");'
-                            .   eol(1) . tab(7) .                           'else                                     console.log("User dismissed the A2HS prompt");'
-                            .   eol(1) . tab(7) .                           ''
-                            .   eol(1) . tab(7) .                           'deferredPrompt = null;'
-                            .   eol(1) . tab(6) .                       '});'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(5) .                   'else'
-                            .   eol(1) . tab(5) .                   '{'
-                            .   eol(1) . tab(6) .                       'console.log("Install promt callback not received yet");'
-                            .   eol(1) . tab(5) .                   '}'
-                            .   eol(1) . tab(4) .               '}); '
-                            .   eol(1) . tab(1)      
-                            .   eol(1) . tab(4) .                                                           'setTimeout(function() { setInterval(updateLazyImages, 500); },  50);'
-                            .   eol(1) . tab(4) .                if_then(dom_get("support_sliders", false), 'setTimeout(function() { setInterval(updateSliders,    500); }, 100);' )
-                            .   eol(1) . tab(3) .           '});'
-                            .   eol(1) . tab(1) .   '});'
-                            .   eol(1)
-                            );
+                );
     }
     
     #endregion
@@ -5132,16 +5261,20 @@ else
         
         . eol(2) . $html
 
-        . eol(2) . comment("AMP sidebars")
+        . eol(2) . if_then(dom_AMP(), comment("DOM AMP sidebars"))
         . eol(2) . delayed_component("_amp_sidebars")
         . eol(2) . delayed_component("_amp_scripts_body")
 
-        . eol(2) . comment("DOM Javascript boilerplate")
+        . eol(2) . comment("DOM Body boilerplate markup")
+        . eol(2) . back_to_top_link()
+
+        . eol(2) . comment("DOM Body scripts")
         . eol(2) . scripts_body()
     //  . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
         . eol(2) . ($app_js ? script($app_js) : comment('Could not find any app.js default user script'))
         . eol(2) . $html_post_scripts
 
+        . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
         . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
 
