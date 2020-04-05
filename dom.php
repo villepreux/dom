@@ -185,6 +185,8 @@
 
         dom_set("normalize",                        "sanitize");
 
+        dom_set("icons_path",                       "img/icons/");
+
         dom_set("background_color",                 "#FFF");
         dom_set("theme_color",                      "#000");
         dom_set("text_color",                       "#000");
@@ -1134,7 +1136,7 @@
                     ,   "timestamp"     =>                $timestamp
                     ,   "date"          => date(DATE_RSS, $timestamp)
                     
-                    ))));
+                    ))));;
                 }
             }
             
@@ -1795,7 +1797,7 @@
 
         $result = array_open_url($end_points);
 
-        // DEBUG ---->
+        // DEBUG -->
         /*
         $result = array_merge($result, array("data" => array(array
         (
@@ -1822,7 +1824,7 @@
 
         ))));
         */
-        // DEBUG ---->
+        // DEBUG -->
 
         $could_not_access_account = (false === $result || dom_at(dom_at($result, "meta"), "code", "") == "200");
         
@@ -3204,8 +3206,7 @@
 
     function dom_init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
-        
-        if ($doctype  === false) $doctype  = dom_get("doctype",  dom_has("rss") ? ((dom_get("rss") == "" || dom_get("rss") == false) ? "rss" : dom_get("rss","rss")) : "html");
+        if ($doctype  === false) $doctype  = dom_get("doctype",  dom_has("rss") ? ((dom_get("rss") == "" || dom_get("rss") == false || dom_get("rss") == true) ? "rss" : dom_get("rss", "rss")) : "html");
         if ($encoding === false) $encoding = dom_get("encoding", dom_has("iso") ? "ISO-8859-1"  : "utf-8");
 
         dom_set("doctype",  $doctype);
@@ -3244,16 +3245,32 @@
 
     function dom_output($doc = "")
     {
+        if (false !== stripos($doc, "HOOK_RSS_1"      )) $doc = str_replace("<!-- HOOK_RSS_1"       ." //-->", _rss      (true), $doc);
+        if (false !== stripos($doc, "HOOK_JSONFEED_1" )) $doc = str_replace("<!-- HOOK_JSONFEED_1"  ." //-->", _jsonfeed (true), $doc);
+        if (false !== stripos($doc, "HOOK_TILE_1"     )) $doc = str_replace("<!-- HOOK_TILE_1"      ." //-->", _tile     (true), $doc);
+        
+        if (false !== stripos($doc, "HOOK_RSS_0"      )) $doc = str_replace("<!-- HOOK_RSS_0"       ." //-->", _rss      (false), $doc);
+        if (false !== stripos($doc, "HOOK_JSONFEED_0" )) $doc = str_replace("<!-- HOOK_JSONFEED_0"  ." //-->", _jsonfeed (false), $doc);
+        if (false !== stripos($doc, "HOOK_TILE_0"     )) $doc = str_replace("<!-- HOOK_TILE_0"      ." //-->", _tile     (false), $doc);
+    
+        $doc = str_replace("<!-- HOOK_RSS_1"       ." //-->", "", $doc);
+        $doc = str_replace("<!-- HOOK_JSONFEED_1"  ." //-->", "", $doc);
+        $doc = str_replace("<!-- HOOK_TILE_1"      ." //-->", "", $doc);
+    
+        $doc = str_replace("<!-- HOOK_RSS_0"       ." //-->", "", $doc);
+        $doc = str_replace("<!-- HOOK_JSONFEED_0"  ." //-->", "", $doc);
+        $doc = str_replace("<!-- HOOK_TILE_0"      ." //-->", "", $doc);
+
         $doc .= generate_all(dom_get("beautify"));
 
-        if (dom_get("encoding") == "gzip") ob_start("ob_gzhandler");
+        if (dom_get("compression") == "gzip") ob_start("ob_gzhandler");
 
         echo $doc;
         cache_stop();
 
         if ("html" == dom_get("doctype",false) && 1 == dom_get("debug")) echo comment("PHP Version: ".PHP_VERSION_ID.". Profiling :".eol().wrap_each(dom_debug_timings(), eol()));
         
-        if (dom_get("encoding") == "gzip") ob_end_flush();
+        if (dom_get("compression") == "gzip") ob_end_flush();
     }
 
     // Minimal Retro-compatibility
@@ -3286,7 +3303,7 @@
                 $w = $dim[0];
                 $h = $dim[1];
 
-                $path = dom_path("ms-icon-".$w."x".$h.".png");
+                $path = dom_path(dom_get("icons_path")."ms-icon-".$w."x".$h.".png");
 
                 if ($path)
                 {
@@ -3323,7 +3340,7 @@
 
         foreach (array(36 => 0.75, 48 => 1.0, 72 => 1.5, 96 => 2.0, 144 => 3.0, 192 => 4.0, 512 => 4.0) as $w => $density)
         {            
-            $filename = dom_path("android-icon-$w"."x"."$w.png");
+            $filename = dom_path(dom_get("icons_path")."android-icon-$w"."x"."$w.png");
 
             if ($filename)
             {
@@ -3894,6 +3911,11 @@ else
 
     function jsonfeed($json = false)
     {
+        return "<!-- HOOK_JSONFEED_".($json ? 1 : 0)." //-->";
+    }
+
+    function _jsonfeed($json = false)
+    {
         dom_debug_track_timing();
         
     //  TODO : https://jsonfeed.org/mappingrssandatom => Only html hooks ? hooks => array => json => json feed
@@ -3911,6 +3933,11 @@ else
     }
     
     function rss($xml = false)
+    {
+        return "<!-- HOOK_RSS_".($xml ? 1 : 0)." //-->";
+    }
+
+    function _rss($xml = false)
     {
         dom_debug_track_timing();
         
@@ -3953,6 +3980,11 @@ else
     }
 
     function tile($xml = false)
+    {
+        return "<!-- HOOK_TILE_".($xml ? 1 : 0)." //-->";
+    }
+
+    function _tile($xml = false)
     {
         dom_debug_track_timing();
         
@@ -4049,8 +4081,10 @@ else
                 }
 
             //  Return html
+            
+                $welcome = "Welcome my fellow web developer!".(!get("beautify") ? " You can ?beautify=1 this source code if needed!" : "");
                 
-                return raw_html('<!doctype html>'
+                return raw_html('<!doctype html>'.comment($welcome)
                 
                 . eol()
                 . eol() . pan('<!--[if lt IE 7]>',      22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8 lt-ie7"', 40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
@@ -4300,12 +4334,12 @@ else
             .   eol() . meta('google-site-verification',            dom_get("google_site_verification"))        )
             .   eol()
             .   eol() . meta('msapplication-TileColor',            	dom_get("theme_color"))
-            .   eol() . meta('msapplication-TileImage',            	dom_path('ms-icon-144x144.png'))
+            .   eol() . meta('msapplication-TileImage',            	dom_path(dom_get("icons_path").'ms-icon-144x144.png'))
             .   eol()
-            .   (dom_path('ms-icon-70x70.png'    ) ? (eol() . meta('msapplication-square70x70logo',     dom_path('ms-icon-70x70.png'    ))) : '')
-            .   (dom_path('ms-icon-150x150.png'  ) ? (eol() . meta('msapplication-square150x150logo',   dom_path('ms-icon-150x150.png'  ))) : '')
-            .   (dom_path('ms-icon-310x150.png'  ) ? (eol() . meta('msapplication-wide310x150logo',     dom_path('ms-icon-310x150.png'  ))) : '')
-            .   (dom_path('ms-icon-310x310.png'  ) ? (eol() . meta('msapplication-square310x310logo',   dom_path('ms-icon-310x310.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ) ? (eol() . meta('msapplication-square70x70logo',     dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ) ? (eol() . meta('msapplication-square150x150logo',   dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ) ? (eol() . meta('msapplication-wide310x150logo',     dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (eol() . meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
             .   eol()
             .   eol() . meta('msapplication-notification',         	'frequency=30;'
                                                                 .   'polling-uri' .'=/?rss=tile&id=1;'
@@ -4325,18 +4359,18 @@ else
             .   eol()
             .   eol() . link_rel_icon(dom_get("image"))
             .   eol()
-            .   eol() . link_rel_icon(array("favicon","android-icon","apple-icon"), array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512))
+            .   eol() . link_rel_icon(array(dom_get("icons_path")."favicon",dom_get("icons_path")."android-icon",dom_get("icons_path")."apple-icon"), array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512))
             .   eol()
-            .   eol() . link_rel_icon("apple-splash", "2048x2732" , array(1024, 1366, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "1668x2388" , array( 834, 1194, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "1668x2224" , array( 834, 1112, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "1536x2048" , array( 768, 1024, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "828x1792"  , array( 414,  896, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "750x1334"  , array( 375,  667, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "640x1136"  , array( 320,  568, 2)  )
-            .   eol() . link_rel_icon("apple-splash", "1242x2688" , array( 414,  896, 3)  )
-            .   eol() . link_rel_icon("apple-splash", "1125x2436" , array( 375,  812, 3)  )
-            .   eol() . link_rel_icon("apple-splash", "1242x2208" , array( 414,  736, 3)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1536x2048" , array( 768, 1024, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "828x1792"  , array( 414,  896, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "750x1334"  , array( 375,  667, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "640x1136"  , array( 320,  568, 2)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
+            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
 
             ;
     }
@@ -4425,9 +4459,43 @@ else
         return "";
     }
 
+    function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
+    {
+        return $selectors == "" ? eol() : str_pad(eol().tab(1).$selectors, $pad)."{ ".$styles." }";
+    }
+
+    function css_aspect_ratio($classname, $w, $h)
+    {
+        return '/* Aspect Ratio wrappers */'.
+            css_line().
+            css_line('.'.$classname.'::before',         'content: ""; display: block; padding-bottom: calc(100% / ('.$w.' / '.$h.'));').
+            css_line('.'.$classname.'',                 'position: relative;').
+            css_line('.'.$classname.' > :first-child',  'position: absolute; top: 0; left: 0; width:  100%; height: 100%;').
+            css_line('.'.$classname.' > img',           'height: auto;').
+            css_line().
+            css_line();
+    }
+
+    function css_boilerplate_aspect_ratio($classname = "aspect-ratio", $w = 16, $h = 9)
+    {
+        $css = css_aspect_ratio($classname, $w, $h);
+
+        foreach (dom_supported_ratios() as $ratio) 
+        {
+            $css .= css_line(
+                '.'.$classname.'-'.$ratio[0].'-'.$ratio[1].'::before',
+                'padding-bottom: calc(100% / ('.$ratio[0].' / '.$ratio[1].')); '.($ratio[0]<10 ? ' ' : '').($ratio[1]<10 ? ' ' : '').''
+                );
+        }
+
+        return $css;
+    }
+
     function include_css_boilerplate()
     {
-        return !!dom_get("no_css") ? '' : ('
+        if (!!dom_get("no_css")) return '';
+
+        $css = '
 
     /* DOM CSS boilerplate */
 
@@ -4458,7 +4526,7 @@ else
     
     /* Font stack */
 
-    body,h1,h2,h3,h4,h5,h6                          { font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; }
+    body,h1,h2,h3,h4,h5,h6                          { font-family: Inter, Roboto, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; }
 
     /* Colors */
     
@@ -4489,11 +4557,12 @@ else
     .toolbar-row-banner                             { height: var(--header-height); min-height: var(--header-min-height); }
 
     .toolbar-row     .cell                          { overflow: hidden; }
+    .toolbar-row-nav                                { padding-right: margin-right: var(--content-default-margin); }
     .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
     .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left; }
-    .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; margin-right:var(--content-default-margin) } 
+    .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; }
 
-    .toolbar-row-nav .cell:nth-child(3) a           { margin-left: var(--content-default-margin); }
+    .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--content-default-margin); }
     .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; }
     .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--content-default-margin); }
@@ -4580,20 +4649,7 @@ else
     body                                            {  scrollbar-color: var(--theme-color)                                                      var(--background-color); }
     body::-webkit-scrollbar-thumb                   { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
 
-    /* Aspect Ratio wrappers */
-
-    .aspect-ratio > :first-child                    { width:  100%; }
-    .aspect-ratio > img                             { height: auto; } 
-
-    .aspect-ratio                                   { position: relative; }
-    .aspect-ratio::before                           { content: ""; display: block; padding-bottom: calc(100% / (16 / 9)); }  
-    .aspect-ratio > :first-child                    { position: absolute; top: 0; left: 0; height: 100%; }  
-
-    .aspect-ratio-16-9::before                      { padding-bottom: calc(100% / (16 / 9));    }  
-    .aspect-ratio-16-10::before                     { padding-bottom: calc(100% / (16 / 10));   }  
-    .aspect-ratio-4-3::before                       { padding-bottom: calc(100% / (4 / 3));     }  
-    .aspect-ratio-3-2::before                       { padding-bottom: calc(100% / (3 / 2));     }  
-    .aspect-ratio-1-1::before                       { padding-bottom: calc(100%);               }  
+    '; $css .= css_boilerplate_aspect_ratio(); $css.= ' 
 
     /* SVG */
 
@@ -4680,7 +4736,9 @@ else
     
 ')./* spectre -->*/'
 
-		');
+        ';
+        
+        return $css;
     }
     
     function styles()
@@ -5029,9 +5087,24 @@ else
         .   eol() . tab(4) .            '{'
         .   eol() . tab(4) .            '}'
         .   eol() . tab(3) .        '});'
+        .   eol() . tab(2)
+        .   eol() . tab(3) .        '$("iframe.lazy[data-src]").each(function(i, e) '
+        .   eol() . tab(3) .        '{'
+        .   eol() . tab(4) .            'var rect = e.getBoundingClientRect();'
+        .   eol() . tab(2) 
+        .   eol() . tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
+        .   eol() . tab(4) .            '{'
+        .   eol() . tab(5) .                '$(e).attr("src", $(e).attr("data-src"));'
+        .   eol() . tab(5) .                '$(e).removeAttr("data-src");'
+        .   eol() . tab(5) .                '$(e).on("load", function() { $(e).removeClass("lazy"); $(e).removeClass("loading"); $(e).addClass("loaded"); });'
+        .   eol() . tab(4) .            '}'
+        .   eol() . tab(4) .            'else'
+        .   eol() . tab(4) .            '{'
+        .   eol() . tab(4) .            '}'
+        .   eol() . tab(3) .        '});'
         .   eol() . tab(2) .    '}'
         .   eol() . tab(1)
-        .   eol() . tab(2) .    ''.$update_function.'();'
+        .   eol() . tab(2) /*.    ''.$update_function.'();'*/
         .   eol() . tab(1)
         .   eol() . tab(2) .    'function '.$init_function.'() '
         .   eol() . tab(2) .    '{'
@@ -5053,15 +5126,20 @@ else
             eol(1) . tab(1)
         .   eol(1) . tab(2) . '/* TOOLBAR */'
         .   eol(1) . tab(1)
-        .   eol(1) . tab(2) . 'function '.$update_function.'()'
-        .   eol(1) . tab(2) . '{'
-        .   eol(1) . tab(3) .     'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass("scrolled");    $(".toolbar").removeClass("top"); }'
-        .   eol(1) . tab(3) .     'else                                               { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass("top");    }'
-        .   eol(1) . tab(3) .     ''
-        .   eol(1) . tab(3) .     '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
-        .   eol(1) . tab(2) . '}'
-        .   eol(1) . tab(2)
-        .   eol(1) . tab(2) . ''.$update_function.'();'
+        .   eol(1) . tab(2) .   'function '.$update_function.'()'
+        .   eol(1) . tab(2) .   '{'
+        .   eol(1) . tab(3) .       'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
+        .   eol(1) . tab(3) .       'else                           '              . '  { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
+        .   eol(1) . tab(3) .       ''
+        .   eol(1) . tab(3) .       '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
+        .   eol(1) . tab(2) .   '}'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) .   '$(".menu-switch-link").on("click", function(event)'
+        .   eol(1) . tab(2) .   '{'
+        .   eol(1) . tab(3) .    /* 'event.preventDefault();' */ ""
+        .   eol(1) . tab(2) .   '});'
+        .   eol(1) . tab(1)
+        .   eol(1) . tab(2) .   ''.$update_function.'();'
         .   eol(1) . tab(1)
         ;
     }
@@ -5171,10 +5249,6 @@ else
     
     function scripts_body()
     {
-        $header_height     = (int)str_replace("px","",dom_get("header_height"       ));
-        $header_min_height = (int)str_replace("px","",dom_get("header_min_height"   ));
-        $stuck_height      = $header_height - $header_min_height;
-
         return  eol(2) . script_externals        ()
             .   eol(2) . dom_script_ajax_body    ()
             .   eol(2) . script_google_analytics ()
@@ -5192,6 +5266,8 @@ else
                 .   eol(1) . tab(2) .       js_pwa_install             ("onLoadPWA")
                 .   eol(1) . tab(2) .       js_framework_material      ()
                 .   eol(1) . tab(2) .       js_scan_and_print_body     ()
+                .   eol(1) . tab(1)      
+                .   eol(1) . tab(2) .       '/* DOM main mechanisms */'
                 .   eol(1) . tab(1)      
                 .   eol(1) . tab(2) .       '$(window).scroll(function()'
                 .   eol(1) . tab(2) .       '{'
@@ -5220,7 +5296,24 @@ else
 
     function comment($text) { return (dom_has("rss")) ? '' : ('<!-- ' . $text . ' //-->'); }
     
-    function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false) { $space_pos = strpos($tag, ' '); return (dom_has('rss') && !$force_display) ? '' : (('<'.$tag.dom_attributes($attributes).(($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))) . (($self_closing) ? '/>' : ('>'.$html.'</'.(($space_pos === false) ? $tag : substr($tag, 0, $space_pos)).'>'))); }
+    function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
+    {
+        $space_pos = strpos($tag, ' ');
+        
+        return (dom_has('rss') && !$force_display) ? '' : (
+
+            
+            (
+                '<'.$tag.dom_attributes($attributes).
+                (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
+            ) . 
+            (
+                ($self_closing) ? '/>' : 
+                ('>'.$html.'</'.(($space_pos === false) ? $tag : substr($tag, 0, $space_pos)).'>')
+            )
+
+            );
+    }
     
     function body($html, $html_post_scripts = "", $dark_theme = null)
     {
@@ -5270,8 +5363,9 @@ else
 
         . eol(2) . comment("DOM Body scripts")
         . eol(2) . scripts_body()
-    //  . eol(2) . ($app_js ? script_src($app_js) : comment('Could not find any app.js default user script'))
-        . eol(2) . ($app_js ? script($app_js) : comment('Could not find any app.js default user script'))
+        . eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
+    //  . eol(2) . ($app_js ? script_src($app_js)      : comment('Could not find any app.js default user script'))
+        . eol(2) . ($app_js ? script($app_js) : '')
         . eol(2) . $html_post_scripts
 
         . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
@@ -5345,41 +5439,67 @@ else
     
     if (!function_exists("table")) { function table($html = "", $attributes = false) { return dom_table($html, $attributes); } }
 
-    function div_aspect_ratio($html, $w = 1200, $h = 675) // 16:9
+    function dom_supported_ratios()
     {
-        $class = false;
+        return array(
+                
+            array(16,  9),
+            array(16, 10),
+            array( 5,  4),
+            array( 4,  3),
+            array( 3,  2),
+            array( 2,  1),
+            array( 1,  1)
+            );
+    }
+
+    function class_aspect_ratio($w = 1200, $h = 675) // 16:9
+    {
+        $class = "";
 
         if ((string)(int)$h == (string)$h)
         {
-            $class = "aspect-ratio-16-9"; foreach (array(
-                
-                array(16,  9),
-                array(16, 10),
-                array( 4,  3),
-                array( 3,  2),
-                array( 1,  1)) 
-                
-                as $ratio) if (((int)$w/(int)$h)==($ratio[0]/$ratio[1]))  $class = "aspect-ratio-".$ratio[0]."-".$ratio[1]."";
+            $class = "aspect-ratio-16-9"; foreach (dom_supported_ratios() as $ratio) 
+            
+                if (((int)$w/(int)$h)==($ratio[0]/$ratio[1]))  $class = "aspect-ratio-".$ratio[0]."-".$ratio[1]."";
 
-            $class = ' class ="aspect-ratio '.$class.'"';
+            $class = 'aspect-ratio '.$class;
         }
 
-        return '<div'.$class.'>'.$html.'</div>';
+        return $class;
+    }
+
+    function div_aspect_ratio($html, $w = 1200, $h = 675) // 16:9
+    {
+        $class = class_aspect_ratio($w, $h);
+
+        if ($class != "")
+        {
+            $class = ' class="'.$class.'"';
+            return '<div'.$class.'>'.$html.'</div>';
+        }
+
+        return div($html);
+        
     }
         
 	function iframe($url, $title = false, $classes = false, $w = false, $h = false)
 	{   
     //  TODO. See https://benmarshall.me/responsive-iframes/ for frameworks integration   
 
+        $lazy = true;
+
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
 
         hook_amp_require("iframe");
 
+        $classes = (!!$lazy) ? ((!$classes) ? "lazy" : "lazy $classes") : $classes;
+
         return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe')
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
-            .' src="'.$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
+            .' data-src="'.$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
     }
 
 	function google_calendar($id, $w = false, $h = false)
@@ -5512,21 +5632,25 @@ else
         return $extended_link;
     }
   
-    function dom_a($html, $url = false, $attributes = false, $target = false)
+    function dom_a($html, $url = false, $external_attributes = false, $target = false)
     {
-        if ($url === false) $url = $html;
+        if ($url                 === false
+        &&  $external_attributes === false
+        &&  $target              === false) $url = $html;
 
-        if (($attributes === INTERNAL_LINK || $attributes === EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
+        if (($external_attributes === INTERNAL_LINK || $external_attributes === EXTERNAL_LINK) && $target === false) { $target = $external_attributes; $external_attributes = false; }
         if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? EXTERNAL_LINK : INTERNAL_LINK; }
         
         $extended_link = href($url);
 
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
+
+        $attributes = "";
         
-        if (is_array($attributes))
+        if (is_array($external_attributes))
         {
-            foreach ($attributes as $type => $attribute)
+            foreach ($external_attributes as $type => $attribute)
             {
                 if (in_array($type, $internal_attributes))
                 {
@@ -5543,7 +5667,7 @@ else
         else
         {
             $attributes =   dom_attributes($internal_attributes).
-                            dom_attributes_add_class($attributes, "a");
+                            dom_attributes_add_class($external_attributes, "a");
         }
 
         return tag('a', $html, $attributes);
@@ -5567,10 +5691,11 @@ else
         }
     }
 
-    function char_phone() { return "☎"; }
-    function char_email() { return "✉"; }
-  //function char_unsec() { return " "; }
-    function char_unsec() { return "&nbsp;"; }
+    function char_phone()  { return "☎"; }
+    function char_email()  { return "✉"; }
+    function char_anchor() { return "⚓"; }
+  //function char_unsec()  { return " "; }
+    function char_unsec()  { return "&nbsp;"; }
     
 //  function nbsp($count = 1) { return str_repeat("&nbsp;",     $count); }
     function nbsp($count = 1) { return str_repeat(char_unsec(), $count); }
@@ -5580,8 +5705,15 @@ else
     function anchor($name, $character = false, $tolower = true)
     {
         $id = anchor_name($name, $tolower);
-        
-        return a((false === $character) ? nbsp() : ((true === $character) ? '?' : $character), false, array("name" => $id, "id" => $id, "class" => "anchor"));
+
+        if (false === $character)
+        {
+            return span("", array("name" => $id, "id" => $id, "class" => "anchor"));
+        }
+        else
+        {        
+            return dom_a((true === $character) ? char_anchor() : $character, "#".$id, array("name" => $id, "id" => $id, "class" => "anchor"));
+        }
     }
     
     // GRID
@@ -5941,9 +6073,9 @@ else
         return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }
 
-    function card_media($media = false)
+    function card_media($media = false, $attributes = false)
     {
-        return (($media !== false) ? section($media, dom_component_class("card-media")) : "");
+        return (($media !== false) ? section($media, dom_attributes_add_class($attributes, dom_component_class("card-media"))) : "");
     }
 
     function card_text($text = false)
@@ -6258,8 +6390,8 @@ else
                                 .   if_then(dom_get("framework") == "bootstrap", a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
                                 .   if_then(dom_get("framework") == "spectre",   a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
                                 .   if_then(dom_get("framework") == "NONE",      a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                               . a(span("✕", "menu-close-symbol  menu-close-content"), "#menu-close",  array("class" => "menu-switch-link nav-link material-icons", "aria-label" => "Menu Toggle"))
-                                                                                                                                     , "#menu-open",   array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
+                                                                               . a(span("✕", "menu-close-symbol  menu-close-content"), "#menu-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
+                                                                                                                                     , "#menu-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
                             //  .   if_then(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,    array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
                                                             ; 
     }
@@ -6710,6 +6842,21 @@ else
         $debug                  = false)
     {
         return dom_correct_color($color, $background, $contrast_ratio_target, -0.01, $debug);
+    }
+
+    function dom_correct_auto(
+
+        $color,
+        $background             = "#FFFFFF",
+        $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        $debug                  = false)
+    {
+        $lc = dom_calculate_luminosity($color);
+        $lb = dom_calculate_luminosity($background);
+
+        $delta = ($lc > $lb) ? 0.01 : -0.01;
+        
+        return dom_correct_color($color, $background, $contrast_ratio_target, $delta, $debug);
     }
 
     function dom_correct_color(
