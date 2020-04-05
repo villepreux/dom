@@ -936,12 +936,28 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
-    function md($text, $hard_wrap = true)
+    function md($text, $hard_wrap = false, $headline_level_offset = false, $no_header = false, $smartypants = true, $markdown = true)
     {
-        $text = SmartyPants(Markdown($text));
-    //  $text = str_replace("\n", "<br/>", $text);
+        if ($markdown)    $html = Markdown($text);
+        if ($smartypants) $html = SmartyPants($html);
+        if ($hard_wrap)   $html = str_replace("\n", "<br/>", $html);
+
+        if (!!$no_header)
+        {
+            $html = str_replace("<h1",   "<span style=\"display: none\"", $html);
+            $html = str_replace("</h1>", "</span>",                       $html);
+        }
+
+        if ($headline_level_offset !== false)
+        {
+            for ($h = 9; $h >=1; --$h)
+            {
+                $html = str_replace("<h"  . $h,       "<h"  . ($h+$headline_level_offset),       $html);
+                $html = str_replace("</h" . $h . ">", "</h" . ($h+$headline_level_offset) . ">", $html);
+            }
+        }
     
-        return $text;
+        return $html;
     }
 
     #endregion
@@ -5315,7 +5331,7 @@ else
             );
     }
     
-    function body($html, $html_post_scripts = "", $dark_theme = null)
+    function body($html = "", $html_post_scripts = "", $dark_theme = null)
     {
         dom_debug_track_timing("start");
         
