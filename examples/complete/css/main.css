@@ -5,9 +5,47 @@
 
 <?php
 
-dom_set_contrasted_colors("background_color_dark",  "#1E1E1E", "theme_color_dark",  "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
-dom_set_contrasted_colors("background_color_light", "#EEEEEE", "theme_color_light", "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
-dom_set_contrasted_colors("background_color_print", "#FFFFFF", "theme_color_print", "#ff3333", DOM_COLOR_CONTRAST_AA_NORMAL);
+set("theme_color",              "#ff0039"/*"#E62200"*//*"#E32629"*//*"#B01719"*//*"#FF3333"*/);
+set("background_color",         "#1E1E1E"/*"#1E1E1E"*/);
+set("background_color_light",   "#EEEEEE");
+set("text_color",               "#DDDDDD");
+set("text_color_light",         "#444444");
+set("link_color",               "#ff3333");
+
+function set_missing_theme_colors()
+{
+    foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
+    foreach (array("dark", "light", "print") as $theme) set($var."_".$theme, get($var."_".$theme, get($var)));
+    
+    foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
+    foreach (array("dark", "light", "print") as $theme) set($var, get($var, get($var."_dark")));
+}
+
+set_missing_theme_colors();
+
+set("text_color_dark",              dom_correct_lighter(get("text_color_dark"),         get("background_color_dark")      ));
+set("text_color_light",             dom_correct_darker( get("text_color_light"),        get("background_color_light")     ));
+set("text_color_print",             dom_correct_lighter(get("text_color_print"),        get("background_color_print")     ));
+  
+set("background_color_dark",        dom_correct_darker( get("background_color_dark" ),  get("text_color_dark" )           ));
+set("background_color_light",       dom_correct_lighter(get("background_color_light"),  get("text_color_light")           ));
+set("background_color_print",       dom_correct_lighter(get("background_color_print"),  get("text_color_print")           ));
+  
+set("text_on_theme_color_dark",     dom_correct_lighter(get("text_color_dark"),         get("theme_color_dark" )          ));
+set("text_on_theme_color_light",    dom_correct_lighter(get("text_color_light"),        get("theme_color_light")          ));
+set("text_on_theme_color_print",    dom_correct_lighter(get("text_color_print"),        get("theme_color_print")          ));
+
+set("theme_color_dark",             dom_correct_auto(get("theme_color_dark"),          get("text_on_theme_color_dark")    ));
+set("theme_color_light",            dom_correct_auto(get("theme_color_light"),         get("text_on_theme_color_light")   ));
+set("theme_color_print",            dom_correct_auto(get("theme_color_print"),         get("text_on_theme_color_print")   ));
+
+$unsplash          = explode(',',get("unsplash", "VmnOaiN2P90"));
+$unsplash_id       = get($unsplash, 0, "VmnOaiN2P90");
+$unsplash_position = get($unsplash, 1, "center");
+$unsplash_filter   = get($unsplash, 2, "unset");
+
+$default_banner_img_normal = "http://source.unsplash.com/$unsplash_id/900x600";
+$default_banner_img_large  = "http://source.unsplash.com/$unsplash_id/1200x800";
 
 ?>
 
@@ -197,21 +235,23 @@ a:hover         { text-decoration: underline; }
 /* Toolbar */
 
 .toolbar a, 
-.toolbar a:visited          { color: var(--text-on-theme-color) }
-.toolbar a:hover            { color: white;    }
-.toolbar a.current          { border-bottom-color: white; }
-.toolbar-row-banner         { color: var(--text-on-theme-color);  }
+.toolbar a:visited  { color: var(--text-on-theme-color) }
+.toolbar a:hover    { color: white;    }
+.toolbar a.current  { border-bottom-color: white; }
+.toolbar-row-banner { color: var(--text-on-theme-color);  }
 
-.toolbar-title { overflow: hidden; text-overflow: ellipsis; }
+.toolbar-title      { overflow: hidden; text-overflow: ellipsis; }
 
-.toolbar a:hover   { text-decoration: none;        }
-.toolbar a.current { border-bottom-width: 2px; border-bottom-style: solid; }
-.toolbar-row-banner { transition: background-image 0.5s linear; background-image: url(https://images.unsplash.com/photo-1473691955023-da1c49c95c78); background-size: cover; background-position: center; }
+.toolbar a:hover    { text-decoration: none;        }
+.toolbar a.current  { border-bottom-width: 2px; border-bottom-style: solid; }
+.toolbar-row-banner { transition: background-image 0.5s linear; background-image: url(<?= $default_banner_img_large ?>); background-size: cover; background-position: center; }
 .toolbar-row-banner { justify-content: flex-end; text-align: right; }
 .toolbar-row-banner { stroke: var(--toolbar-first-row-stroke-color); box-shadow: inset 0 16px 12px 0px var(--toolbar-first-row-shadow-color); }
+
 body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
 
 .toolbar .row:nth-child(2) { text-transform: uppercase; }
+.toolbar-cell-right        { padding-right: var(--content-default-margin); }
 
 /* Toolbar switch between toolbar links & burger menu */
 
