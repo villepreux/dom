@@ -999,16 +999,31 @@
         return $__dom_last_headline_level;
     }
 
+    function clean_from_tags($html)
+    {   
+        while (true)
+        {
+            $bgn =  stripos($html, ">"); if (false === $bgn) break;
+            $end = strripos($html, "<"); if (false === $end) break; if ($end < $bgn) break;
+
+            $html = substr($html, $bgn+1, $end-$bgn-1);
+        }
+        
+        return $html;
+    }
+
     function hook_title($title)
     {
         if (!!$title && false === dom_get("title", false))
         {
+            $title = clean_from_tags($title);
             dom_set("title", $title);
         }        
     }
 
     function hook_section($title)
     {
+        $title = clean_from_tags($title);
         dom_set("hook_sections", array_merge(dom_get("hook_sections", array()), array($title)));
     }
     
@@ -1016,6 +1031,7 @@
     {
         if (!!$heading && false === dom_get("heading", false))
         {
+            $heading = clean_from_tags($heading);
             dom_set("heading", $heading);
         }        
     }
@@ -3222,8 +3238,12 @@
 
     function dom_init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
-        if ($doctype  === false) $doctype  = dom_get("doctype",  dom_has("rss") ? ((dom_get("rss") == "" || dom_get("rss") == false || dom_get("rss") == true) ? "rss" : dom_get("rss", "rss")) : "html");
-        if ($encoding === false) $encoding = dom_get("encoding", dom_has("iso") ? "ISO-8859-1"  : "utf-8");
+        if ($doctype                === false) { $doctype                 = dom_get("doctype",     dom_has("rss") ? ((dom_get("rss") == "" || dom_get("rss") == false || dom_get("rss") == true) ? "rss" : dom_get("rss", "rss")) : "html"); }
+        if ($encoding               === false) { $encoding                = dom_get("encoding",    dom_has("iso") ? "ISO-8859-1"  : "utf-8"); }
+        if ($attachement_basename   === false) { $attachement_basename    = dom_get("attachement"); }
+
+        if ($doctype                === false) { $doctype                 = "html"; }
+        if ($encoding               === false) { $encoding                = "utf-8"; }
 
         dom_set("doctype",  $doctype);
         dom_set("encoding", $encoding);
@@ -3508,7 +3528,7 @@ if (workbox)
     workbox.core.skipWaiting();
     workbox.core.clientsClaim();
 
-    var expiration = new workbox.expiration.Plugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60 });
+    var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60 });
 
 //  workbox.routing.registerRoute(new RegExp(".+\\\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp(".+\\\\.css$"),                      new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-css"    + "-" + cache_suffix, plugins: [expiration] }));
@@ -5633,16 +5653,26 @@ else
     
     // LINKS
 
-    function href($link)
+    function href($link, $target = false)
     {
         $extended_link = $link;
-        
-        if (dom_AMP()
-        && false === stripos($extended_link,"?amp") 
-        && false === stripos($extended_link,"&amp") 
-        && 0     !== stripos($extended_link,"#"))
+
+        if ($target !== EXTERNAL_LINK)
         {
-            $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . "&amp=1";
+            if (dom_AMP()
+            &&  false === stripos($extended_link,"?amp") 
+            &&  false === stripos($extended_link,"&amp") 
+            &&  0     !== stripos($extended_link,"#"))
+            {
+                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . "&amp=1";
+            }
+            
+            if (false === stripos($extended_link,"?contrast") 
+            &&  false === stripos($extended_link,"&contrast") 
+            &&  0     !== stripos($extended_link,"#"))
+            {
+                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&contrast=".get("contrast","AA"));
+            }
         }
 
         return $extended_link;
@@ -5657,7 +5687,7 @@ else
         if (($external_attributes === INTERNAL_LINK || $external_attributes === EXTERNAL_LINK) && $target === false) { $target = $external_attributes; $external_attributes = false; }
         if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? EXTERNAL_LINK : INTERNAL_LINK; }
         
-        $extended_link = href($url);
+        $extended_link = href($url, $target);
 
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
         if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
@@ -5959,6 +5989,25 @@ else
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
+
+    function url_unsplash()           { return "https://unsplash.com";       }
+    function url_unsplash_author($id) { return "https://unsplash.com/@".$id; }
+
+    function url_img_unsplash($id, $w = false, $h = false, $author = false)
+    {
+        if ($w === false) $w = get("default_image_width");
+        if ($h === false) $h = get("default_image_height");
+
+        $id     = trim($id);
+        $author = trim($author);
+
+        $copyright  = array($id,$author);
+        $copyrights = get("unsplash_copyrights", array());
+
+        if (!in_array($copyright, $copyrights)) set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
+
+        return "https://source.unsplash.com/".$id."/".$w."x".$h;
+    }
 
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
     {
