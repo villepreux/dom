@@ -94,7 +94,8 @@
 
                     hr().
 
-                        p("Photo by ".a("A. L.", "https://unsplash.com/@overdriv3", EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red", EXTERNAL_LINK)."")
+                    //  p("Photo by ".a("A. L.",         "https://unsplash.com/@overdriv3",    EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       EXTERNAL_LINK)."")
+                        p("Photo by ".a("Cosmin Serban", "https://unsplash.com/@cosminserban", EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", EXTERNAL_LINK)."")
                 ).
 
                 footer(

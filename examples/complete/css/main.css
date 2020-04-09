@@ -39,13 +39,14 @@ set("theme_color_dark",             dom_correct_auto(get("theme_color_dark"),   
 set("theme_color_light",            dom_correct_auto(get("theme_color_light"),         get("text_on_theme_color_light")   ));
 set("theme_color_print",            dom_correct_auto(get("theme_color_print"),         get("text_on_theme_color_print")   ));
 
-$unsplash          = explode(',',get("unsplash", "VmnOaiN2P90"));
+$unsplash          = explode(',',get("unsplash", "VmnOaiN2P90,0"));
 $unsplash_id       = get($unsplash, 0, "VmnOaiN2P90");
-$unsplash_position = get($unsplash, 1, "center");
-$unsplash_filter   = get($unsplash, 2, "unset");
+$unsplash_author   = get($unsplash, 1, false);
+$unsplash_position = get($unsplash, 2, "center");
+$unsplash_filter   = get($unsplash, 3, "unset");
 
-$default_banner_img_normal = "http://source.unsplash.com/$unsplash_id/900x600";
-$default_banner_img_large  = "http://source.unsplash.com/$unsplash_id/1200x800";
+$default_banner_img_normal = url_img_unsplash($unsplash_id,  900, 600);
+$default_banner_img_large  = url_img_unsplash($unsplash_id, 1200, 800);
 
 ?>
 
