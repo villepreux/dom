@@ -1,1 +1,5 @@
-{}
+{
+    "name":         "villepreux/dom",
+    "type":         "library",
+    "description":  "DOM.PHP helps building websites by providing html-like server side php components."
+}
