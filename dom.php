@@ -1024,6 +1024,24 @@
     function hook_section($title)
     {
         $title = clean_from_tags($title);
+        
+        if (!!get("hook_section_filter"))
+        {
+            $f = get("hook_section_filter");
+
+            if (function_exists($f))
+            {
+                $modified_title = $f($title);
+
+                if (false === $modified_title)
+                {
+                    return "";
+                }
+
+                $title = array($modified_title, "#".anchor_name($title));
+            }
+        }
+
         dom_set("hook_sections", array_merge(dom_get("hook_sections", array()), array($title)));
     }
     
@@ -1143,6 +1161,24 @@
     function hook_amp_require($component)    {    if (dom_AMP())     dom_set("hook_amp_require_$component", true); }
     function has_amp_requirement($component) { return dom_AMP() && !!dom_get("hook_amp_require_$component");       }
     
+    function record_rss_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
+    {
+        $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : date("Y/m/d", time()));
+        
+        dom_set("rss_items", array_merge(dom_get("rss_items", array()), array(array
+        (
+            "title"         => $title
+        ,   "link"          => $url
+        ,   "description"   => $text
+        ,   "img_url"       => $img
+        ,   "timestamp"     =>                $timestamp
+        ,   "date"          => date(DATE_RSS, $timestamp)
+        
+        ))));
+
+        return "";
+    }
+
     $hook_feed_nth_item = 1;
 
     function hook_feed_item($metadata)
@@ -1156,19 +1192,16 @@
                 if ((dom_at($metadata,"post_title") !== false && dom_at($metadata,"post_title") != "")
                 ||  (dom_at($metadata,"post_text")  !== false && dom_at($metadata,"post_text")  != ""))
                 {
-                    $timestamp = dom_has($metadata, "post_timestamp") ? dom_at($metadata, "post_timestamp") : strtotime(dom_at($metadata, "post_date", date("Y/m/d", time())));
-                    
-                    dom_set("rss_items", array_merge(dom_get("rss_items", array()), array(array
-                    (
-                        "title"         => dom_at($metadata, "post_title",    "")
-                    ,   "link"          => dom_at($metadata, "post_url",      "")
-                    ,   "description"   => dom_at($metadata, "post_text",     "")
-                    ,   "img_url"       => dom_at($metadata, "post_img_url",  "")
+                    record_rss_item(
 
-                    ,   "timestamp"     =>                $timestamp
-                    ,   "date"          => date(DATE_RSS, $timestamp)
-                    
-                    ))));;
+                        dom_at($metadata, "post_title",     ""),
+                        dom_at($metadata, "post_text",      ""),
+                        dom_at($metadata, "post_img_url",   ""),
+                        dom_at($metadata, "post_url",       ""),
+                        dom_at($metadata, "post_date",      false),
+                        dom_at($metadata, "post_timestamp", false)
+
+                        );
                 }
             }
             
@@ -3411,18 +3444,18 @@
 
     function string_robots($beautify = false)
     {
-        return "User-agent: *".eol()."Disallow:";
+        return "User-agent: *".PHP_EOL."Disallow:"; // Do not use eol() since having no line break is not an option here
     }
 
     function string_human($beautify = false)
     {
-        return "/* SITE */".
+        return "/* SITE */". // Do not use eol() since having no line break is not an option here
 
-            eol().  "Standards"     .": ".  "HTML5, CSS3".
-            eol().  "Language"      .": ".  "French".
-            eol().  "Doctype"       .": ".  "HTML5".
-            eol().  "Components"    .": ".  "MCW, Bootstrap, Spectre, Amp and others".
-            eol().  "IDE"           .": ".  "Visual Studio Code".
+            PHP_EOL.  "Standards"     .": ".  "HTML5, CSS3".
+            PHP_EOL.  "Language"      .": ".  "French".
+            PHP_EOL.  "Doctype"       .": ".  "HTML5".
+            PHP_EOL.  "Components"    .": ".  "MCW, Bootstrap, Spectre, Amp and others".
+            PHP_EOL.  "IDE"           .": ".  "Visual Studio Code".
             
             "";
     }
@@ -5427,6 +5460,7 @@ else
     function i              ($html = "", $attributes = false) {                             return                     tag ('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('pre',                        $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('ul',                         $html.cosmetic(eol(1)),                               $attributes                                                         );                      }
+    function ol             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('ol',                         $html.cosmetic(eol(1)),                               $attributes                                                         );                      }
     function li             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('li',                         $html,                                                $attributes                                                         );                      }
 
     function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('table',                      $html.cosmetic(eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
@@ -5990,23 +6024,24 @@ else
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
-    function url_unsplash()           { return "https://unsplash.com";       }
-    function url_unsplash_author($id) { return "https://unsplash.com/@".$id; }
+    function url_unsplash()                 { return "https://unsplash.com";                            }
+    function url_unsplash_author($id)       { return "https://unsplash.com/@".$id;                      }
+    function url_unsplash_img($id,$w,$h)    { return "https://source.unsplash.com/".$id."/".$w."x".$h;  }
 
     function url_img_unsplash($id, $w = false, $h = false, $author = false)
     {
         if ($w === false) $w = get("default_image_width");
         if ($h === false) $h = get("default_image_height");
 
-        $id     = trim($id);
-        $author = trim($author);
+                        $id     = trim($id);
+        if (!!$author)  $author = trim($author);
 
-        $copyright  = array($id,$author);
+        $copyright  = array($id, $author);
         $copyrights = get("unsplash_copyrights", array());
 
         if (!in_array($copyright, $copyrights)) set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
 
-        return "https://source.unsplash.com/".$id."/".$w."x".$h;
+        return url_unsplash_img($id,$w,$h);
     }
 
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
