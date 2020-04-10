@@ -1,7 +1,5 @@
 
-# GITHUB STARTER PHP WORKFLOW
-
-name: Main Workflow
+name: Composer
 
 on:
   push:
@@ -29,12 +27,4 @@ jobs:
     # - name: Run test suite
     #   run: composer run-script test
 
-    # GITHUB FEATURED MISSPELL ACTION
-      
-    - name: misspell-fixer-action
-      uses: sobolevn/misspell-fixer-action@0.1.0
-      with:
-        # Any options for misspell-fixes tool
-        options: -rsvn .
-        
       
