@@ -26,7 +26,7 @@ jobs:
       run: composer install --prefer-dist --no-progress --no-suggest
 
     - name: PHP Lint
-      uses: michaelw90/PHP-Lint@1.0.0
+      uses: michaelw90/PHP-Lint@master
 
     # MISSPELL
 
