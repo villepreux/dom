@@ -4,7 +4,9 @@
 
     set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
 
-    set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
+    set("unsplash_photo_id", "ThIY-N_LLfY");
+    set("url_banner_img", url_img_unsplash(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
+    set("url_card_img",   url_img_unsplash(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
 
     dom_init();
 
@@ -20,7 +22,7 @@
 
                     :root                           { --header-min-height: 64px }
 
-                    .toolbar-row-banner             { background: center/cover url(".get("my_example_img_src")."); }
+                    .toolbar-row-banner             { background: center/cover url(".get("url_banner_img")."); }
 
                     .headline2                      { ".css_gradient()." }
 
@@ -29,16 +31,15 @@
                     .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #DDD; }
                     .card img                       { width: 100% }
                     .card-text,
-                    .card-title                     { padding:      var(--content-default-margin); }
-                    .card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
-                    .card .headline                 { font-size: 1em; margin: 0px; }                    
+                    .card-title                     { padding:      var(--dom-gap); }
+                    .card .headline                 { font-size: 1em; margin: 0px;  }                    
                     .card-title-main,       
                     .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
                     .footer                         { background-color: dimgray }
-                    .footer a                       { padding: var(--content-default-margin); }
+                    .footer a                       { padding: var(--dom-gap);  }
 
-                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
+                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "dom_gap", "dom_gap").") { main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet
 
@@ -62,7 +63,7 @@
 
                             card(
                                 card_title("We love cards").
-                                card_media(img(get("my_example_img_src"))).
+                                card_media(img(get("url_card_img"))).
                                 card_text(
                                     "Cards seem to be a popular web component nowadays.".
                                     "So we got it. And we also got social networks accounts cards pulling."
@@ -70,14 +71,14 @@
                                 ).
                             card(
                                 card_title("We love cards").
-                                card_media(img(get("my_example_img_src"))).
+                                card_media(img(get("url_card_img"))).
                                 card_text(
                                     "Feel free to use whatever web framework css machinery to render your cards"
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
-                                card_media(img(get("my_example_img_src"))).
+                                card_media(img(get("url_card_img"))).
                                 card_text(
                                     "Cards seem to be a popular web component nowadays.".
                                     "So we got it. And we also got social networks accounts cards pulling."
@@ -85,7 +86,7 @@
                                 ).
                             card(
                                 card_title("We love cards").
-                                card_media(img(get("my_example_img_src"))).
+                                card_media(img(get("url_card_img"))).
                                 card_text(
                                     "Cards seem to be a popular web component nowadays.".
                                     "So we got it. And we also got social networks accounts cards pulling."
@@ -102,7 +103,7 @@
                     hr().
 
                     p(  "Image courtesy of unsplash.com. ".
-                        "Photo ".a("https://unsplash.com/photos/ThIY-N_LLfY","© Gabriel Garcia Marengo").".")
+                        "Photo ".a("https://unsplash.com/photos/".get("unsplash_photo_id"), "© Gabriel Garcia Marengo").".")
                 ).
 
                 footer(

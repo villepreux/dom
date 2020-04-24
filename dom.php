@@ -122,7 +122,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.4.0");
+    define("DOM_VERSION",           "0.4.2");
     define("DOM_PATH_MAX_DEPTH",    16);
 
     #region API : GET/SET
@@ -142,8 +142,8 @@
     ######################################################################################################################################
     
                                         @include dom_path("tokens.php");
-    if (!function_exists("markdown"))   @include dom_path("php/vendors/markdown.php");
-                                        @include dom_path("php/vendors/smartypants.php");
+    if (!function_exists("markdown"))   @include dom_path("php/vendor/markdown.php");
+                                        @include dom_path("php/vendor/smartypants.php");
         
     #endregion
     #region CONFIG : PHP SETTINGS
@@ -263,15 +263,23 @@
 
     function dom_init_internals()
     {
-        define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
-        define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
+        if (!defined("DOM_AJAX_PARAMS_SEPARATOR1")) define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
+        if (!defined("DOM_AJAX_PARAMS_SEPARATOR2")) define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
     }
 
     #endregion
     #region HELPERS : AJAX / ASYNC
     ######################################################################################################################################
 
-    function dom_ajax_url           ($ajax_params)                                      { return './?'.http_build_query(array_merge(dom_get_all(true,false), array("ajax" => $ajax_params))); }
+    function dom_ajax_url_base_params($get = true, $post = true, $session = false)
+    {
+        // TODO prevent exposing all the vars
+        $vars = dom_get_all($get, $post, $session);
+        unset($vars["support_header_backgrounds"]); // Can lead to much too long URLs
+        return $vars;;
+    }
+
+    function dom_ajax_url           ($ajax_params)                                      { return './?'.http_build_query(array_merge(dom_ajax_url_base_params(true,false), array("ajax" => $ajax_params))); }
 
     function dom_ajax_param_encode2 ($p)                                                { return (is_array($p))                                     ? implode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
     function dom_ajax_param_decode2 ($p)                                                { return (false !== strpos($p, DOM_AJAX_PARAMS_SEPARATOR2)) ? explode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
@@ -308,7 +316,7 @@
     {
     //  Async calls disabled
         
-        if (dom_has("noajax") || dom_has("rss") || dom_AMP())
+        if (dom_has("noajax") || !!dom_get("no_js") || dom_has("rss") || dom_AMP())
         {  
             return call_user_func_array($f, $args);
         }
@@ -402,7 +410,7 @@
             .   eol()
             .   eol() . tab(1) .   'var dom_pop_ajax_call = function()'
             .   eol() . tab(1) .   '{'
-            .   eol() . tab(2) .       'if (dom_ajax_pending_calls.length > 0)'
+            .   eol() . tab(2) .       'if ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0)'
             .   eol() . tab(2) .       '{'
             .   eol() . tab(3) .           'var ajax_pending_call = dom_ajax_pending_calls.pop();'
             .   eol()
@@ -411,7 +419,7 @@
             .   eol() . tab(2) .       '}'
             .   eol() . tab(1) .   '};'
             .   eol()
-            .   eol() . tab(1) .   'while (dom_ajax_pending_calls.length > 0) { dom_pop_ajax_call(); };'
+            .   eol() . tab(1) .   'while ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0) { dom_pop_ajax_call(); };'
             .   eol() . tab(1) .   'setInterval(dom_pop_ajax_call, 1*1000);'
             .   eol();
     }
@@ -752,18 +760,27 @@
             
             if (false !== $curl)
             {
-                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);                
-            //  curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
-                curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0');
-                
-                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($curl, CURLOPT_URL, $url);
-                curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, $timeout);          
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
+            //  curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
+                curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0');
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
+                curl_setopt($curl, CURLOPT_URL,             $url);
+                curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
+                curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
                 
                 $content = curl_exec($curl);
                 
-                if ((!$content || $content == "") && !!dom_get("debug")) echo comment("CURL ERROR: ".curl_error($curl));
+                if (!!dom_get("debug") && (!$content || $content == "")) 
+                {
+                    echo comment("CURL ERROR: ".curl_error($curl).(!$content ? "false result" : "Empty result"));
+                    echo comment(to_string(curl_getinfo($curl)));
+                }
+
+            //  if (!!dom_get("debug") && $url == "https://www.instagram.com/kermorgant_photo?__a=1")
+            //  {
+            //      echo comment(to_string(curl_getinfo($curl)));
+            //  }
 
                 curl_close($curl);
             }
@@ -802,6 +819,24 @@
         }
         
         return $hashtags;
+    }
+
+    function str_replace_all($from, $to, $str)
+    {
+        if (is_string($str))
+        {
+            $len = strlen($str);
+
+            while (true)
+            {
+                $str = str_replace($from, $to, $str);
+                $new_len = strlen($str);
+                if ($new_len >= $len)  break;
+                $len = $new_len;
+            }
+        }
+
+        return $str;
     }
     
     function to_string($a)
@@ -982,6 +1017,38 @@
     #region HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
+    $__dom_user_hooks = array();
+
+    function dom_add_hook($hook_id, $hook_callback, $hook_userdata)
+    {
+        global $__dom_user_hooks;
+
+        if (!array_key_exists($hook_id, $__dom_user_hooks)) $__dom_user_hooks[$hook_id] = array();
+        $__dom_user_hooks[$hook_id][] = array("id" => $hook_id, "callback" => $hook_callback, "userdata" => $hook_userdata);
+    }
+
+    function dom_call_user_hook()
+    {
+        global $__dom_user_hooks;
+
+        $args = func_get_args();
+        $hook_id = array_shift($args);
+        
+        if (!array_key_exists($hook_id, $__dom_user_hooks)) return true;
+
+        $hooks = $__dom_user_hooks[$hook_id];
+        
+        foreach ($hooks as $hook)
+        {
+            $user_args = $args;
+            $user_args[] = $hook["userdata"];
+
+            call_user_func_array($hook["callback"], $user_args);
+        }
+
+        return true;
+    }
+
     $__dom_last_headline_level = false;
 
     function hook_headline($h, $title)
@@ -991,6 +1058,8 @@
 
         if ($h == 1) hook_title($title);
         if ($h == 2) hook_section($title);
+
+        dom_call_user_hook("headline", $title);
     }
 
     function get_last_headline()
@@ -1183,7 +1252,7 @@
 
     function hook_feed_item($metadata)
     {           
-        if (dom_has("rss"))
+        if (dom_has("rss") || !!dom_get("force_hook_feed_items"))
         {
             global $hook_feed_nth_item;
             
@@ -1511,10 +1580,6 @@
 
         if ($token    === false && !defined("TOKEN_FACEBOOK")) return false;
         if ($username === false && !dom_has("facebook_page"))  return false;
-        
-    //  $facebook_app_id        = '413755725692570';
-    //  $facebook_secret_key    = '13d5e12cc69c17e4017981d1e4187568';
-    //  $facebook_user_token    = 'EAAF4TwMNvpoBAJzbLq0by2H9vLbtqHDXyACZAR0C9EXR1ToqtHdnk6MSCauDbsBJkDIqUQlNT0cbTZCsnkv28BUe42ZAxgIajz9VoX7YrNwPe78S7iaAw0cK8jxBudHK829HMGUcnXWuh5zTX3Y6CQPt7ypNZCt8qG2ZAv3ZAM7SmkjdxNdSKR4kgrPRCWtm8ZD';
 
         $username               = ($username            === false) ? dom_get("facebook_page") : $username;
         $fields_page            = ($fields_page         === false) ? array("id","name","about","mission","hometown","website","cover","picture","birthday"/*,"email","first_name","gender","last_name","quotes"*/) : ((!is_array($fields_page)) ? array($fields_page) : $fields_page);
@@ -1919,7 +1984,16 @@
                     if ($mode == "tag_html")            $json_tag_page = json_instagram_from_content($page_url);
                     if ($mode == "username_html")       $json_tag_page = json_instagram_from_content($page_url);
 
-                    if (!$json_tag_page) break;
+                    if (!$json_tag_page) 
+                    {
+                        if (!!get("debug")) echo comment("FAILED TO FETCH INSTAGRAM CONTENT $mode $page_url");
+                        break;
+                    }
+                //   else
+                //  {
+                //      if (!!get("debug")) echo comment("SUCCESS TO FETCH INSTAGRAM CONTENT $mode $page_url");
+                //      if (!!get("debug")) echo comment(to_string($json_tag_page));
+                //  }
 
                     ++$nb_parsed_pages;
 
@@ -2273,7 +2347,7 @@
     {
         dom_debug_track_timing();
 
-        if ($post_id === "" || $post_id === false)
+    //  if ($post_id === "" || $post_id === false)
         {
             $hack = dom_get("filter", "default");
             dom_set("filter", "HACK");
@@ -2289,7 +2363,7 @@
             
             return false;
         }
-
+    /*
         $username   = ($username === false) ? dom_get("instagram_user")  : $username;                
         $item       = json_instagram_post($post_id, $username);
         
@@ -2328,7 +2402,7 @@
         
         hook("post", $metadata);
 
-        return $metadata;
+        return $metadata;*/
     }
     
     function array_flickr_posts($username = false, $photo_key = false, $tags_in = false, $tags_out = false)
@@ -3167,6 +3241,10 @@
     //      'WHITESPACE'            => '^\s+|\R\s*'
     //      
     //      ) as $key => $expr) $js = preg_replace('~'.$expr.'~m', '', $js);
+
+        
+        $js = str_replace_all("\n  ",   "\n ",  $js);
+        $js = str_replace_all("\n",     " ",    $js);
         
         return $js;
     }
@@ -3702,20 +3780,21 @@ else
     function absolute_uri($params = false)      { return absolute_host().relative_uri($params); }
     
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? dom_get("pinterest_user")  : $username; 
-                                                                                  $board    = ($board    === false) ? dom_get("pinterest_board") : $board;    return "https://www.pinterest.com/$username/$board/";                      }
-    function url_instagram_user             ($username = false)                 { $username = ($username === false) ? dom_get("instagram_user")  : $username; return "https://www.instagram.com/$username/";                             }
-    function url_instagram_post             ($short_code)                       {                                                                         return "https://instagram.com/p/$short_code/";                             }
-    function url_flickr_user                ($username = false)                 { $username = ($username === false) ? dom_get("flickr_user")     : $username; return "https://www.flickr.com/photos/$username/";                         }
-    function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? dom_get("flickr_page")     : $page;     return "https://www.flickr.com/photos/$page/";                             }
-    function url_pinterest_pin              ($pin)                              {                                                                         return "https://www.pinterest.com/pin/$pin/";                              }    
-    function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? dom_get("facebook_page")   : $page;     return "https://www.facebook.com/$page";                                   }
-    function url_twitter_page               ($page     = false)                 { $page     = ($page     === false) ? dom_get("twitter_page")    : $page;     return "https://twitter.com/$page";                                        }
-    function url_linkedin_page              ($page     = false)                 { $page     = ($page     === false) ? dom_get("linkedin_page")   : $page;     return "https://www.linkedin.com/in/$page";                                }
-    function url_facebook_page_about        ($page     = false)                 { $page     = ($page     === false) ? dom_get("facebook_page")   : $page;     return "https://www.facebook.com/$page/about";                             }
-    function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? dom_get("tumblr_blog")     : $blogname; return "https://$blogname.tumblr.com";                                     }
-    function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? dom_get("tumblr_blog")     : $blogname; return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
-	function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")    : $id;       return "https://m.me/$id";                                                 }
-    function url_amp                        ()                                  {                                                                         return "?amp=1".(dom_is_localhost() ? "#development=1" : "");                  }
+                                                                                  $board    = ($board    === false) ? dom_get("pinterest_board") : $board;      return "https://www.pinterest.com/$username/$board/";                      }
+    function url_instagram_user             ($username = false)                 { $username = ($username === false) ? dom_get("instagram_user")  : $username;   return "https://www.instagram.com/$username/";                             }
+    function url_instagram_post             ($short_code)                       {                                                                               return "https://instagram.com/p/$short_code/";                             }
+    function url_flickr_user                ($username = false)                 { $username = ($username === false) ? dom_get("flickr_user")     : $username;   return "https://www.flickr.com/photos/$username/";                         }
+    function url_500px_user                 ($username = false)                 { $username = ($username === false) ? dom_get("500px_user")      : $username;   return "https://www.500px.com/$username/";                                 }
+    function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? dom_get("flickr_page")     : $page;       return "https://www.flickr.com/photos/$page/";                             }
+    function url_pinterest_pin              ($pin)                              {                                                                               return "https://www.pinterest.com/pin/$pin/";                              }    
+    function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? dom_get("facebook_page")   : $page;       return "https://www.facebook.com/$page";                                   }
+    function url_twitter_page               ($page     = false)                 { $page     = ($page     === false) ? dom_get("twitter_page")    : $page;       return "https://twitter.com/$page";                                        }
+    function url_linkedin_page              ($page     = false)                 { $page     = ($page     === false) ? dom_get("linkedin_page")   : $page;       return "https://www.linkedin.com/in/$page";                                }
+    function url_facebook_page_about        ($page     = false)                 { $page     = ($page     === false) ? dom_get("facebook_page")   : $page;       return "https://www.facebook.com/$page/about";                             }
+    function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? dom_get("tumblr_blog")     : $blogname;   return "https://$blogname.tumblr.com";                                     }
+    function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? dom_get("tumblr_blog")     : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
+	function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")    : $id;         return "https://m.me/$id";                                                 }
+    function url_amp                        ()                                  {                                                                               return "?amp=1".(dom_is_localhost() ? "#development=1" : "");              }
 
     function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
     function url_pinterest_search_by_tags   ($tags, $userdata = false)          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
@@ -3743,6 +3822,7 @@ else
     function color_youtube          () { return '#BB0000'; }
     function color_instagram        () { return '#517FA4'; }
     function color_pinterest        () { return '#CB2027'; }
+    function color_500px            () { return '#222222'; }
     function color_flickr           () { return array('#FF0084','#0063DC'); }
     function color_tumblr           () { return '#32506D'; }
     function color_foursquare       () { return '#0072B1'; }
@@ -3755,13 +3835,15 @@ else
     function color_whatsapp         () { return '#64D448'; }
     function color_rss              () { return '#FF6F00'; }
     function color_printer          () { return '#FFFFFF'; }
+    function color_notifications    () { return '#FFFFFF'; }
+    function color_loading          () { return '#FFAA00'; }
     function color_numerama         () { return '#E9573F'; }
     function color_messenger        () { return '#0083FF'; }
     function color_alert            () { return '#EE0000'; }
     function color_leboncoin        () { return '#EA6B30'; }
     function color_seloger          () { return '#E00034'; }
     function color_amp              () { return '#0379C4'; }
-    function color_dark_and_light   () { return '#FFFFFF'; }
+    function color_darkandlight     () { return '#FFFFFF'; }
    
     #endregion
     #region API : DOM : HTML COMPONENTS : SPECIAL TAGS
@@ -3870,13 +3952,13 @@ else
     
     function raw            ($html)     { return $html; }
 
-    function raw_html       ($html)     { if (!!dom_get("no_html")) return ''; if (!!dom_get("minify",false)) { $html    = minify_html   ($html);    } return $html; }
-    function raw_js         ($js)       { if (!!dom_get("no_js"))   return ''; if (!!dom_get("minify",false)) { $js      = minify_js     ($js);      } return $js;   }
-    function raw_css        ($css)      { if (!!dom_get("no_css"))  return ''; if (!!dom_get("minify",false)) { $css     = minify_css    ($css);     } return $css;  }
+    function raw_html       ($html, $force_minify = false)  { if (!!dom_get("no_html")) return ''; if (!!dom_get("minify",false) || $force_minify) { $html    = minify_html   ($html);    } return $html; }
+    function raw_js         ($js,   $force_minify = false)  { if (!!dom_get("no_js"))   return ''; if (!!dom_get("minify",false) || $force_minify) { $js      = minify_js     ($js);      } return $js;   }
+    function raw_css        ($css,  $force_minify = false)  { if (!!dom_get("no_css"))  return ''; if (!!dom_get("minify",false) || $force_minify) { $css     = minify_css    ($css);     } return $css;  }
 
-    function include_html   ($filename) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (include_file($filename)); }
-    function include_css    ($filename) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (include_file($filename)); }
-    function include_js     ($filename) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (include_file($filename)); }
+    function include_html   ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (include_file($filename), $force_minify); }
+    function include_css    ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (include_file($filename), $force_minify); }
+    function include_js     ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (include_file($filename), $force_minify); }
     
     /*
      * CSS tags
@@ -3899,7 +3981,7 @@ else
     function css_name($name) { return trim(str_replace("_","-",$name)); }
 
     function css_var($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
-    function css_env($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_env($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '/*.((false !== stripos($var,"_unitless")) ? "" : css_env($var."_unitless", str_replace(array("px","%","vw","vh","cm","em","rem","pt","deg","rad"), array("","","","","","","","","",""), $val)))*/; }
 
     function css_env_add($vars, $pre_processing = false)
     {
@@ -3914,7 +3996,7 @@ else
 
         foreach ($vars as $var)
         {
-            $var = ($pre_processing ? hook_css_env($var) : dom_get($var));
+            $var = ($pre_processing ? hook_css_env($var) : dom_get($var,$var));
 
             if (false !== stripos($var, "px")) $unit = "px";
             if (false !== stripos($var, "em")) $unit = "em";
@@ -4184,30 +4266,36 @@ else
     #region API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
+
+    function head_boilerplate($async_css = false)
+    { 
+        $path_css = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
+
+        return title()
+
+            . eol(2) . comment("DOM Head Metadata")
+            . eol(2) . metas()
+            . eol(2) . link_rel_manifest()
+            
+            . eol(2) . comment("DOM Head styles")
+            . eol(2) . link_styles($async_css)
+            . eol(2) . styles()
+                                                                        . (!$path_css ? "" : (""
+            . eol(2) . comment("DOM Head main stylesheet")                       
+            . eol(2) . style($path_css)                                    ))
+            
+            . eol(2) . comment("DOM Head scripts")
+            . eol(2) . scripts_head()
+            ;
+    }
+
     function head($html = false, $async_css = false)
     { 
         dom_debug_track_timing();
         
         if (false === $html)
         {
-            $path_css = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
-
-            $html = title()
-
-                 . eol(2) . comment("DOM Head Metadata")
-                 . eol(2) . metas()
-                 . eol(2) . link_rel_manifest()
-                 
-                 . eol(2) . comment("DOM Head styles")
-                 . eol(2) . link_styles($async_css)
-                 . eol(2) . styles()
-                                                                                . (!$path_css ? "" : (""
-                 . eol(2) . comment("DOM Head main stylesheet")                       
-                 . eol(2) . style($path_css)                                    ))
-                 
-                 . eol(2) . comment("DOM Head scripts")
-                 . eol(2) . scripts_head()
-                 ;
+            $html = head_boilerplate($async_css);
         }
         
         $html = css_postprocess($html);        
@@ -4309,8 +4397,10 @@ else
             $w = (int)$wh[0];
             $h = (int)$wh[1];
 
-            if (!!$media)
+            if (is_array($media))
             {
+                $media_clean = array();
+
                 if (array_key_exists(0,             $media)) $media_clean["width"]       = $media[0];
                 if (array_key_exists(1,             $media)) $media_clean["height"]      = $media[1];
                 if (array_key_exists(2,             $media)) $media_clean["ratio"]       = $media[2];
@@ -4416,9 +4506,11 @@ else
                                                                 .   'polling-uri3'.'=/?rss=tile&id=3;'
                                                                 .   'polling-uri4'.'=/?rss=tile&id=4;'
                                                                 .   'polling-uri5'.'=/?rss=tile&id=5; cycle=1')
-                                                                
+                                                               
             // TODO FIX HREFLANG ALTERNATE
 
+            .   eol()   // Placeholder for 3rd parties who look for a css <link> in order to insert some before
+            .   eol() . '<link rel="stylesheet" type="text/css" media="screen"/>'
             .   eol()   
             .   eol() . link_rel("alternate",   "/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
             .   eol() . link_rel("alternate",   "/?lang=en", array("hreflang" => "en-EN"))
@@ -4461,10 +4553,10 @@ else
 //  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
     function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style( $filename_or_code = "")                                                            { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename) : raw_css ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false) { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename) : raw_js  ($filename_or_code)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false) { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
-    function script_json_ld($properties)                                                               { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
+    function style( $filename_or_code = "",                                                             $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename, $force_minify) : raw_css ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
+    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename, $force_minify) : raw_js  ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                          { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_json_ld($properties)                                                                                        { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
     function dom_script_ajax_head()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_head())); }
     function dom_script_ajax_body()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_body())); }
@@ -4581,13 +4673,28 @@ else
           
           . eol() . tab(2) . env("main_max_width",          "1024px"                                )
           
-          . eol() . tab(2) . env("content_default_margin",  "10px"                                  )
+          . eol() . tab(2) . env("dom_gap",  "10px"                                  )
           
           . eol() . tab(2) . env("default_image_width",     dom_get("default_image_width",  300)    )
           . eol() . tab(2) . env("default_image_height",    dom_get("default_image_height", 200)    )
           . eol() . tab(2) . env("default_image_ratio",     "calc(var(--default-image-width) / var(--default-image-height))")
           
           . eol() . tab(2) . env("scrollbar_width",         "17px").'
+        '; 
+          
+        foreach (predefined_svg_brands() as $svg)
+        {
+            $fn_color = "color_$svg";
+            $colors   = $fn_color();
+            $colors   = is_array($colors) ? $colors : array($colors);
+            $class    = "svg-$svg";
+            $var      = "--color-$svg";
+
+            $css .= eol().tab(2);
+            for ($i = 0; $i < count($colors); ++$i) $css .= pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
+        }
+          
+        $css .= '
     }
 
                                   '.str_pad(" ", strlen(get("main_max_width"))).'   :root { --main-width: 100vw; }
@@ -4604,6 +4711,7 @@ else
    
     /* Layout */
     
+     html, body                                     { margin: 0px; padding: 0px }
      body                                           { text-align: center; min-height: 100vh; }
      main                                           { text-align: left; padding-top: unset; margin-top: 0px; margin-right: auto; margin-bottom: 0px; margin-left: auto; width: 100%; max-width: var(--main-max-width) }
 
@@ -4620,21 +4728,21 @@ else
 
     .toolbar-row                                    {    background-color: var(--theme-color);      color: var(--background-color); }
     .toolbar-row a                                  { /* background-color: var(--theme-color); */   color: var(--background-color); }
-    .toolbar-row-banner                             {    background-color: var(--background-color); /* color: default; */           }
+    .toolbar-row-banner                             {    background-color: var(--theme-color); /*   color: default; */           }
     
     .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
-    .toolbar-row-banner                             { height: var(--header-height); min-height: var(--header-min-height); }
+    .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
     .toolbar-row     .cell                          { overflow: hidden; }
-    .toolbar-row-nav                                { padding-right: margin-right: var(--content-default-margin); }
+    .toolbar-row-nav                                { padding-right: margin-right: var(--dom-gap); }
     .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
     .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left; }
     .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; }
 
-    .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--content-default-margin); }
+    .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
     .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; }
-    .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--dom-gap); }
 
     .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
     .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
@@ -4655,18 +4763,24 @@ else
 
     /* Grid */
 
-    .grid                                           { display: grid; grid-gap: var(--content-default-margin); }
+    .grid                                           { display: grid; grid-gap: var(--dom-gap); }
 
     /* Back-to-top style */    
     
     .cd-top, .cd-top:visited                        { background-color: var(--theme-color); color: var(--background-color); }
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; visibility: hidden; opacity: 0 }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; }
     .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
     .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
     .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
     .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
     .cd-top.cd-fade-out                             { opacity: .5; }
     .cd-top:hover                                   { opacity: 1; text-decoration: none }
+
+    '.((get("no_js")) ? '' : '
+    
+    .cd-top                                         { visibility: hidden; opacity: 0; }
+    
+    ').'
     
     @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
@@ -4698,7 +4812,7 @@ else
     #menu-open .menu                                { position: absolute; }
     .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
     .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .menu li a                                      { display: inline-block; width: 100%; padding: var(--content-default-margin); }
+    .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
 
     /* Main images */
         
@@ -4718,18 +4832,27 @@ else
     body                                            {  scrollbar-color: var(--theme-color)                                                      var(--background-color); }
     body::-webkit-scrollbar-thumb                   { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
 
-    '; $css .= css_boilerplate_aspect_ratio(); $css.= ' 
+    '; $css .= css_boilerplate_aspect_ratio(); $css .= ' 
 
     /* SVG */
 
     .span-svg-wrapper                               { display: inline-block; height: auto; }
     .span-svg-wrapper-aligned                       { position: relative; bottom: -6px; padding-right: 6px; }
 
+    '; $css .= predefined_svg_brands_css_boilerplate(); $css .= '
+
 '/*<-- !AMP */.(!!dom_AMP() ? '' : '
 
     /* Toolbar */
 
+    '.((dom_get("no_js")) ? '
+    
+    .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); } '.'
+    ' : '
+
     .toolbar                                        { position: fixed; top: 0px; } '.include_css_main_toolbar_adaptation().'
+
+    ').'
     
     /* Menu open/close mechanism */
 
@@ -4805,6 +4928,20 @@ else
     
 ')./* spectre -->*/'
 
+    /* PRINT */
+        
+    @media print {
+
+        .toolbar .row:nth-child(1) { display: none }
+        .toolbar .row:nth-child(2) { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
+        .toolbar .row:nth-child(2) .toolbar-cell-left   { display: none }
+        .toolbar .row:nth-child(2) .toolbar-cell-right  { display: none }
+        .toolbar .row:nth-child(2) .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
+        
+        .main { margin-top:  0px }
+        
+        body>.footer, iframe { display: none; height: 0px; }
+    }    
         ';
         
         return $css;
@@ -4827,7 +4964,7 @@ else
 
     function back_to_top_link()
     {
-        return eol(2) . a("▲", url_void(), "cd-top");
+        return eol(2) . a("▲", !get("no_js") ? url_void() : "#top", "cd-top");
     }
 
     function script_google_analytics_snippet()
@@ -4880,7 +5017,7 @@ else
         return
 
             eol() . tab($tab+0)         
-        .   eol() . tab($tab+0) .   '/* PWA (PROGRESSION WEB APP) INSTALL */'
+        .   eol() . tab($tab+0) .   '/* PWA (PROGRESSIVE WEB APP) INSTALL */'
         .   eol() . tab($tab+0)         
         .   eol() . tab($tab+0) .   'function '.$init_function.'()'
         .   eol() . tab($tab+0) .   '{'
@@ -5186,21 +5323,25 @@ else
 
     function js_toolbar($update_function)
     {
-        $header_height     = (int)str_replace("px","",dom_get("header_height"       ));
-        $header_min_height = (int)str_replace("px","",dom_get("header_min_height"   ));
-        $stuck_height      = $header_height - $header_min_height;
-
         return
-
+    
             eol(1) . tab(1)
         .   eol(1) . tab(2) . '/* TOOLBAR */'
         .   eol(1) . tab(1)
         .   eol(1) . tab(2) .   'function '.$update_function.'()'
         .   eol(1) . tab(2) .   '{'
-        .   eol(1) . tab(3) .       'if ($(window).scrollTop() > ' . $stuck_height . ') { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
-        .   eol(1) . tab(3) .       'else                           '              . '  { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
-        .   eol(1) . tab(3) .       ''
-        .   eol(1) . tab(3) .       '$(".toolbar-row-banner").css("height", "calc(' . dom_get("header_height") . ' - " + $(window).scrollTop() + "px)");'
+        .   eol(1) . tab(3) .   '   if ($(".toolbar-row-banner")[0])'
+        .   eol(1) . tab(3) .   '   {'
+        .   eol(1) . tab(4) .           'var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");'
+        .   eol(1) . tab(4) .           'var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");'
+        .   eol(1) . tab(4) 
+        .   eol(1) . tab(4) .           'var stuck_height = header_max_height - header_min_height;'
+        .   eol(1) . tab(4) 
+        .   eol(1) . tab(4) .           'if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
+        .   eol(1) . tab(4) .           'else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
+        .   eol(1) . tab(4) 
+        .   eol(1) . tab(4) .           '$(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());'
+        .   eol(1) . tab(3) .   '   }'
         .   eol(1) . tab(2) .   '}'
         .   eol(1) . tab(1)
         .   eol(1) . tab(2) .   '$(".menu-switch-link").on("click", function(event)'
@@ -5330,11 +5471,6 @@ else
                 .   eol(1) . tab(2) .       js_back_to_top             (                    "onScrollBackToTopButton")
                 .   eol(1) . tab(2) .       js_images_loading          ("onLoadLazyImages", "onScrollLazyImages")
                 .   eol(1) . tab(2) .       js_slick_slider            ("onLoadSliders")
-                .   eol(1) . tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
-                .   eol(1) . tab(2) .       js_service_worker          ("onLoadServiceWorker")
-                .   eol(1) . tab(2) .       js_pwa_install             ("onLoadPWA")
-                .   eol(1) . tab(2) .       js_framework_material      ()
-                .   eol(1) . tab(2) .       js_scan_and_print_body     ()
                 .   eol(1) . tab(1)      
                 .   eol(1) . tab(2) .       '/* DOM main mechanisms */'
                 .   eol(1) . tab(1)      
@@ -5347,11 +5483,31 @@ else
                 .   eol(1) . tab(1)      
                 .   eol(1) . tab(2) .       '$(window).on("load", function()'
                 .   eol(1) . tab(2) .       '{ '
+                .   eol(1) . tab(3) .           'onLoadLazyImages       ();'
+                .   eol(1) . tab(3) .           'onLoadSliders          ();'
+                .   eol(1) . tab(2) .       '});'
+                .   eol(1) . tab(1) .   '});'
+                .   eol(1)
+
+                ) // Split in two to bypass AMP restrictions. TODO: one script per module
+
+            .   eol(2) . script(
+        
+                    eol(1) . tab(1) .   '$(document).ready(function()'
+                .   eol(1) . tab(1) .   '{'
+                .   eol(1) . tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
+                .   eol(1) . tab(2) .       js_service_worker          ("onLoadServiceWorker")
+                .   eol(1) . tab(2) .       js_pwa_install             ("onLoadPWA")
+                .   eol(1) . tab(2) .       js_framework_material      ()
+                .   eol(1) . tab(2) .       js_scan_and_print_body     ()
+                .   eol(1) . tab(1)      
+                .   eol(1) . tab(2) .       '/* DOM main mechanisms */'
+                .   eol(1) . tab(1)      
+                .   eol(1) . tab(2) .       '$(window).on("load", function()'
+                .   eol(1) . tab(2) .       '{ '
                 .   eol(1) . tab(3) .           'onLoadRotatingHeaders  ();'
                 .   eol(1) . tab(3) .           'onLoadServiceWorker    ();'
                 .   eol(1) . tab(3) .           'onLoadPWA              ();'
-                .   eol(1) . tab(3) .           'onLoadLazyImages       ();'
-                .   eol(1) . tab(3) .           'onLoadSliders          ();'
                 .   eol(1) . tab(2) .       '});'
                 .   eol(1) . tab(1) .   '});'
                 .   eol(1)
@@ -5418,6 +5574,9 @@ else
         $body = ''
 
         . eol(2) . if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
+        
+    /*  . "<span id='!'></span>" */ // To match url_void() #!
+        
         . eol(2) . if_then(dom_get("support_metadata_person",       false), script_json_ld($properties_person))
         . eol(2) . if_then(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
         
@@ -5557,7 +5716,7 @@ else
 	{   
     //  TODO. See https://benmarshall.me/responsive-iframes/ for frameworks integration   
 
-        $lazy = true;
+        $lazy = !AMP() && !dom_get("no_js");
 
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
@@ -5569,7 +5728,7 @@ else
         return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe')
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
-            .' data-src="'.$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
+            .($lazy ? ' data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
     }
 
 	function google_calendar($id, $w = false, $h = false)
@@ -5701,11 +5860,20 @@ else
                 $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . "&amp=1";
             }
             
-            if (false === stripos($extended_link,"?contrast") 
+            if (get("contrast") != "" && get("contrast") != "AA"
+            &&  false === stripos($extended_link,"?contrast") 
             &&  false === stripos($extended_link,"&contrast") 
             &&  0     !== stripos($extended_link,"#"))
             {
                 $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&contrast=".get("contrast","AA"));
+            }
+            
+            if (get("light") !== false
+            &&  false === stripos($extended_link,"?light") 
+            &&  false === stripos($extended_link,"&light") 
+            &&  0     !== stripos($extended_link,"#"))
+            {
+                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&light=".get("light"));
             }
         }
 
@@ -5767,7 +5935,7 @@ else
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("id" => md5($text)), EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
@@ -5788,7 +5956,9 @@ else
 
         if (false === $character)
         {
-            return span("", array("name" => $id, "id" => $id, "class" => "anchor"));
+            $attributes = array("id" => $id, "class" => "anchor");
+            if (!AMP()) $attributes["name"] = $id;
+            return span("", $attributes);
         }
         else
         {        
@@ -5942,7 +6112,7 @@ else
         $info     = pathinfo($info);
         $ext      = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
         $codename = urlencode(basename($path, $ext));
-        $alt      = ($alt === false) ? $codename : $alt;
+        $alt      = ($alt === false || $alt === "") ? $codename : $alt;
         
         $lazy_src = ($lazy_src === false) ? url_img_loading() : $lazy_src;
 
@@ -5983,30 +6153,105 @@ else
     }
 
     // https://materialdesignicons.com/
-    
-    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_flickr          (); $colors = (is_array($color)) ? $color : array($color,$color); return svg('<path fill="'.$colors[1].'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path fill="'.$colors[0].'" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      $w, $h, $label === null ? "Flickr"            : $label,   0,   0, 232.422, 232.422, $align); }
-    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_facebook        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_twitter         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_linkedin        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Linkedin"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_instagram       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_pinterest       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_tumblr          (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,   0,  24,      24,     $align); }
-    function svg_rss            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_rss             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,   0,  24,      24,     $align); }
-    function svg_printer        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_printer         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_printer         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,   0,  24,      24,     $align); }
-    function svg_messenger		($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_messenger       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_alert           (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
-    function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_amp             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
-    
-    function svg_loading        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_amp             (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 50 50" to="360 50 50" repeatCount="indefinite" /></path>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                $w, $h, $label === null ? "Loading"           : $label,   0,   0,  24,      24,     $align); }
 
-    function svg_dark_and_light ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_dark_and_light  (); $colors = (is_array($color)) ? $color : array($color);        return svg('<path fill="'.$color.    '" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12, -12, 640,     640,     $align); }
-    
-    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_leboncoin       (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
-    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_seloger         (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" fill="'.$color.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                    $w, $h, $label === null ? "Seloger"   : $label, 0, 0, 152.0, 152.0, $align); }
+    function predefined_svg_brands()
+    {
+        return array(
+            "500px",          
+            "flickr",         
+            "facebook",       
+            "twitter",        
+            "linkedin",       
+            "instagram",      
+            "pinterest",      
+            "tumblr",         
+            "rss",            
+            "printer",        
+            "notifications",  
+            "messenger",      
+            "alert",          
+            "amp",            
+            "loading",        
+            "darkandlight", 
+            "leboncoin",      
+            "seloger",        
+            "numerama",       
+            "googlenews"
+            );
+    }
 
-    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_numerama        (); $colors = (is_array($color)) ? $color : array($color);        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path fill="'.$color.    '" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path fill="'.$color.'" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "Numerama"   : $label, 0, 0,  80.0,    80.0,   $align); }
-    function svg_googlenews     ($w = 24, $h = 24, $color = false, $align = null, $label = null) { if ($color === false) $color = color_google          (); $colors = (is_array($color)) ? $color : array($color);        return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/><path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                                                   $w, $h, $label === null ? "Googlenews" : $label, 0, 0,  48,      48,     $align); }
+    function predefined_svg_brands_css_boilerplate($fn_color_transform = "self")
+    {
+        $css = "";
+
+        foreach (predefined_svg_brands() as $svg)
+        {
+            $fn_color = "color_$svg";
+            $colors   = $fn_color();
+            $colors   = is_array($colors) ? $colors : array($colors);
+            $class    = "svg-$svg";
+            $var      = "--color-$svg";
+    
+            $css .= eol().tab(1);
+            for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { fill: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
+        }
+
+        return $css;
+    }
+
+    function brand_color_properties($fn_color_transform = "self", $pan = 35)
+    {
+        $css = "";
+
+        foreach (predefined_svg_brands() as $svg)
+        {
+            $fn_color = "color_$svg";
+            $colors   = $fn_color();
+            $colors   = is_array($colors) ? $colors : array($colors);
+            $class    = "svg-$svg";
+    
+            $css .= eol().tab(1);
+            
+            for ($i = 0; $i < count($colors); ++$i)
+            {
+                $color = $colors[$i];
+
+                if (function_exists($fn_color_transform))
+                {
+                    $color = $fn_color_transform($color);
+                }
+                else
+                {
+                    $color = dom_correct_auto($color, get($fn_color_transform, $fn_color_transform));
+                }
+
+                $css .= pan("--color-".$svg.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
+            }
+        }
+
+        return $css;
+    }
+    
+    function svg_500px          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-500px";           return svg('<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />',  $w, $h, $label === null ? "500px"         : $label,   0,   0,  980,      997,     $align); }
+    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-flickr";          return svg('<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      $w, $h, $label === null ? "Flickr"            : $label,   0,   0, 232.422, 232.422, $align); }
+    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-facebook";        return svg('<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,   0,  24,      24,     $align); }
+    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-twitter";         return svg('<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,   0,  24,      24,     $align); }
+    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-linkedin";        return svg('<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Linkedin"          : $label,   0,   0,  24,      24,     $align); }
+    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-instagram";       return svg('<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-pinterest";       return svg('<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-tumblr";          return svg('<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,   0,  24,      24,     $align); }
+    function svg_rss            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-rss";             return svg('<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,   0,  24,      24,     $align); }
+    function svg_printer        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-printer";         return svg('<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,   0,  24,      24,     $align); }
+    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-printer";         return svg('<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,   0,  24,      24,     $align); }
+    function svg_messenger		($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-messenger";       return svg('<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,   0,  24,      24,     $align); }
+    function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-alert";           return svg('<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
+    function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-amp";             return svg('<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
+    function svg_loading        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-amp";             return svg('<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 50 50" to="360 50 50" repeatCount="indefinite" /></path>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                $w, $h, $label === null ? "Loading"           : $label,   0,   0,  24,      24,     $align); }
+    function svg_darkandlight   ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-darkandlight";    return svg('<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12, -12, 640,     640,     $align); }
+    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-leboncoin";       return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
+    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-seloger";         return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                    $w, $h, $label === null ? "Seloger"   : $label, 0, 0, 152.0, 152.0, $align); }
+    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-numerama";        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path fill="'.$color.'" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "Numerama"   : $label, 0, 0,  80.0,    80.0,   $align); }
+    function svg_googlenews     ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "svg-google";          return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path clip-path="url(#b)" fill="#FBBC05" d="M0 37V11l17 13z"/><path clip-path="url(#b)" fill="#EA4335" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path clip-path="url(#b)" fill="#34A853" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path clip-path="url(#b)" fill="#4285F4" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                                                   $w, $h, $label === null ? "Googlenews" : $label, 0, 0,  48,      48,     $align); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code),  "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                     "img-pinterest" ); }
@@ -6195,8 +6440,14 @@ else
     }
   
     function card($html, $attributes = false, $horizontal = false)
-    {   
-        return article($html, dom_attributes_add_class($attributes, dom_component_class("card") . ($horizontal ? dom_component_class("card-horizontal") : ''))). cosmetic(eol());
+    {
+        if (!!get("random_cards_rotate"))
+        {
+            $attributes = is_array($attributes) ? array_merge($attributes, array("class" => "card",      "style" => "transform: rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);")) 
+                                                :                          array("class" => $attributes, "style" => "transform: rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);");
+        }
+    
+        return article($html, dom_attributes_add_class($attributes, dom_component_class("card").($horizontal ? dom_component_class("card-horizontal") : ''))).cosmetic(eol());
     }
 
 /*  function card_builder($media = false, $title = false, $text = false, $button = false, $attributes = false, $horizontal = false)
@@ -6357,7 +6608,7 @@ else
     function card_      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_card   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container);                 }        
     function imgs       ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_imgs   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container, true);           }    
     function cards      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container, true, $s,$m,$l); }    
-    function cells_card ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false)                                               { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), "cell",     true, $s,$m,$l); }    
+    function cells_card ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), "cell",     true, $s,$m,$l); }    
 
     // PROGRESS-BAR
     
@@ -6471,7 +6722,7 @@ else
 
              if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')/*." ".dom_component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
         else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu"                                                                            )); }
 
         if (dom_AMP() && !!$sidebar)
         {
@@ -6538,7 +6789,7 @@ else
 
         return toolbar_section(($html === false) ? '' : $html,  array(
             
-            "role"  => "toolbar",
+            "role" => "navigation",
             "class" => (dom_component_class("toolbar-cell-right") . ' ' . 
                         dom_component_class("toolbar-cell-right-shrink"))));
     }
@@ -6797,9 +7048,166 @@ else
     function tile_text      ($txt = "", $id = 1)    { return raw('<text id="'.$id.'">'.tile_sanitize($txt).'</text>'); }
     
     #endregion
-    #region HELPERS - COLOR RATIOS
+    #region HELPERS - COLOR
     ######################################################################################################################################
     
+    function dom_valid_hex($hex)
+    {
+        $rrggbb = str_replace("#", "", $hex);
+
+             if (strlen($rrggbb) == 0) $rrggbb = "000000";
+        else if (strlen($rrggbb) == 1) $rrggbb = $rrggbb[0].$rrggbb[0].$rrggbb[0].$rrggbb[0].$rrggbb[0].$rrggbb[0];
+        else if (strlen($rrggbb) == 2) $rrggbb = $rrggbb[0].$rrggbb[1].$rrggbb[0].$rrggbb[1].$rrggbb[0].$rrggbb[1];
+        else if (strlen($rrggbb) == 3) $rrggbb = $rrggbb[0].$rrggbb[0].$rrggbb[1].$rrggbb[1].$rrggbb[2].$rrggbb[2];
+        else if (strlen($rrggbb) == 4) $rrggbb = $rrggbb."00";
+        else if (strlen($rrggbb) == 5) $rrggbb = $rrggbb."0";
+        else if (strlen($rrggbb) >  6) $rrggbb = $rrggbb[0].$rrggbb[1].$rrggbb[2].$rrggbb[3].$rrggbb[4].$rrggbb[5];
+        
+        return $rrggbb;
+    }
+
+    function dom_hex_to_hsl($color)
+    {
+        $color = dom_valid_hex($color);
+
+        $R = hexdec($color[0].$color[1]);
+        $G = hexdec($color[2].$color[3]);
+        $B = hexdec($color[4].$color[5]);
+
+        $var_R = ($R / 255);
+        $var_G = ($G / 255);
+        $var_B = ($B / 255);
+
+        $var_Min = min($var_R, $var_G, $var_B);
+        $var_Max = max($var_R, $var_G, $var_B);
+        $del_Max = $var_Max - $var_Min;
+
+        $L = ($var_Max + $var_Min)/2;
+
+        if ($del_Max == 0)
+        {
+            $H = 0;
+            $S = 0;
+        }
+        else
+        {
+            if ( $L < 0.5 ) $S = $del_Max / ( $var_Max + $var_Min );
+            else            $S = $del_Max / ( 2 - $var_Max - $var_Min );
+
+            $del_R = ( ( ( $var_Max - $var_R ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+            $del_G = ( ( ( $var_Max - $var_G ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+            $del_B = ( ( ( $var_Max - $var_B ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+
+            if      ($var_R == $var_Max) $H = $del_B - $del_G;
+            else if ($var_G == $var_Max) $H = ( 1 / 3 ) + $del_R - $del_B;
+            else if ($var_B == $var_Max) $H = ( 2 / 3 ) + $del_G - $del_R;
+
+            if ($H<0) $H++;
+            if ($H>1) $H--;
+        }
+
+        return array('H' => ($H*360), 'S' => $S, 'L' => $L);
+    }
+    
+    function dom_hue_to_rgb($v1, $v2, $vH)
+    {
+        if( $vH < 0 ) $vH += 1;
+        if( $vH > 1 ) $vH -= 1;
+
+        if ((6*$vH) < 1) return ($v1 + ($v2 - $v1) * 6 * $vH);
+        if ((2*$vH) < 1) return $v2;
+        if ((3*$vH) < 2) return ($v1 + ($v2-$v1) * ( (2/3)-$vH ) * 6);
+        
+        return $v1;
+    }
+    
+    function dom_hsl_to_hex($hsl = array())
+    {
+        if (empty($hsl)
+        || !isset($hsl["H"])
+        || !isset($hsl["S"])
+        || !isset($hsl["L"]) )
+        {
+            return false;
+        }
+
+        $H = $hsl['H']/360;
+        $S = $hsl['S'];
+        $L = $hsl['L'];
+
+        if ($S == 0 )
+        {
+            $r = $L * 255;
+            $g = $L * 255;
+            $b = $L * 255;
+        }
+        else
+        {
+            if ($L < 0.5)
+            {
+               $var_2 = $L*(1+$S);
+            }
+            else
+            {
+                $var_2 = ($L+$S) - ($S*$L);
+            }
+
+            $var_1 = 2 * $L - $var_2;
+
+            $r = round(255 * dom_hue_to_rgb($var_1, $var_2, $H + (1/3) ));
+            $g = round(255 * dom_hue_to_rgb($var_1, $var_2, $H         ));
+            $b = round(255 * dom_hue_to_rgb($var_1, $var_2, $H - (1/3) ));
+        }
+
+        $r = dechex($r);
+        $g = dechex($g);
+        $b = dechex($b);
+
+        $rr = (strlen("".$r)===1) ? "0".$r:$r;
+        $gg = (strlen("".$g)===1) ? "0".$g:$g;
+        $bb = (strlen("".$b)===1) ? "0".$b:$b;
+
+        return $rr.$gg.$bb;
+   }
+
+    function dom_rotate($color, $rotate = 180)
+    {
+        $hsl = dom_hex_to_hsl($color);
+        
+        $hsl['H'] += $rotate;
+
+        while ($hsl['H'] > 360) $hsl['H'] -= 360;
+        while ($hsl['H'] < 0)   $hsl['H'] += 360;
+
+        return dom_hsl_to_hex($hsl);
+    }
+
+    function dom_complementary($color)
+    {
+        return dom_rotate($color, 180);
+    }
+
+    function dom_int_rgb_to_hash_rrggbb($r, $g, $b)
+    {
+        return "#". str_pad(dechex($r),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex($g),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+    }
+
+    function dom_dec_rgb_to_hash_rrggbb($r, $g, $b)
+    {
+        return dom_int_rgb_to_hash_rrggbb(255*$r, 255*$g, 255*$b);
+    }
+
+    function dom_hash_rrggbb_to_int_rgb($rrggbb)
+    {        
+        $rrggbb = ltrim($rrggbb, "#");
+
+        return "rgb(" . hexdec(substr($rrggbb, 0, 2)).
+                        hexdec(substr($rrggbb, 2, 2)).
+                        hexdec(substr($rrggbb, 4, 2)) . ")";
+    }
+
     // (c) https://github.com/gdkraus/wcag2-color-contrast
 
     // calculates the luminosity of an given RGB color
@@ -6849,29 +7257,9 @@ else
         return ($l1 > $l2) ? (($l1 + 0.05) / ($l2 + 0.05)) : (($l2 + 0.05) / ($l1 + 0.05));
     }
 
-    // Try a color correction function
-
-    define("DOM_COLOR_CONTRAST_AA_MEDIUMBOLD",  3.0);
-    define("DOM_COLOR_CONTRAST_AA_LARGE",       3.0);
-    define("DOM_COLOR_CONTRAST_AA_NORMAL",      4.5);
-    define("DOM_COLOR_CONTRAST_AAA_MEDIUMBOLD", 4.5);
-    define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
-    define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
-    define("DOM_COLOR_CONTRAST_DEFAULT",        DOM_COLOR_CONTRAST_AA_NORMAL);
-
-    function __dom_correct_color(
-        
-        $color,
-        $background,
-        $contrast_ratio_target,
-        $delta,
-       &$final_ratio,
-       &$used_delta,
-        $debug
-        
-        )
+    function dom_color_modify_lightness($color, $factor)
     {
-        if ($delta == 0.0) $delta = 0.01;
+        $delta = ($factor > 1.0) ? DOM_COLOR_CORRECT_DELTA : -DOM_COLOR_CORRECT_DELTA;
 
         $rrggbb = ltrim($color, "#");
 
@@ -6879,23 +7267,15 @@ else
         $g = hexdec(substr($rrggbb, 2, 2)) / 255;
         $b = hexdec(substr($rrggbb, 4, 2)) / 255;
 
-        $i_color      = dom_calculate_luminosity($color);
-        $i_background = dom_calculate_luminosity($background);
-
-    //  if ($i_background >  $i_color) { $delta =                    -abs($delta);               }
-    //  if ($i_background == $i_color) { $delta = ($i_color > 0.5) ? -abs($delta) : abs($delta); }
+        $l0 = dom_calculate_luminosity_dec_rgb($r,$g,$b);    
 
         $i = 1000; // max iterations
-
-        $ratio = 0;
-
         while (--$i > 0)
         {
-            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
-
-            if ($debug) echo eol()." /* #$rrggbb $ratio */ ";
+            $l1 = dom_calculate_luminosity_dec_rgb($r,$g,$b);    
             
-            if ($ratio >= $contrast_ratio_target) break;
+            if ($factor > 1.0 && $l1 >= $l0 * $factor) break;
+            if ($factor < 1.0 && $l1 <= $l0 * $factor) break;
 
             if ($delta < 0  && (int)(255*$r) == 0
                             && (int)(255*$g) == 0
@@ -6905,20 +7285,161 @@ else
                             && (int)(255*$g) == 255
                             && (int)(255*$b) == 255) break;
 
-            if ($r<=0 && $delta>0) $r = 1/255;
-            if ($g<=0 && $delta>0) $g = 1/255;
-            if ($b<=0 && $delta>0) $b = 1/255;
+            if ($r<=0 && $delta>0) $r = 1/256;
+            if ($g<=0 && $delta>0) $g = 1/256;
+            if ($b<=0 && $delta>0) $b = 1/256;
 
             $r = max(0, min(1, (1+$delta) * $r));
             $g = max(0, min(1, (1+$delta) * $g));
             $b = max(0, min(1, (1+$delta) * $b));
-            
+        }
+
+        $rrggbb =   str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+                    
+        return "#".$rrggbb;
+    }
+
+    function dom_color_lerp($a, $b, $x)
+    {
+        $rrggbb0 = ltrim($a, "#");
+        $rrggbb1 = ltrim($b, "#");
+
+        $r0 = hexdec(substr($rrggbb0, 0, 2)) / 255;
+        $g0 = hexdec(substr($rrggbb0, 2, 2)) / 255;
+        $b0 = hexdec(substr($rrggbb0, 4, 2)) / 255;
+
+        $r1 = hexdec(substr($rrggbb1, 0, 2)) / 255;
+        $g1 = hexdec(substr($rrggbb1, 2, 2)) / 255;
+        $b1 = hexdec(substr($rrggbb1, 4, 2)) / 255;
+
+        $r = $r0 + $x * ($r1 - $r0);
+        $g = $g0 + $x * ($g1 - $g0);
+        $b = $b0 + $x * ($b1 - $b0);
+
+        $rrggbb =   str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+                    
+        return "#".$rrggbb;
+    }
+
+    // Try a color correction function
+
+    define("DOM_COLOR_CONTRAST_LINk_FROM_TEXT", 3.0);
+    define("DOM_COLOR_CONTRAST_AA_MEDIUMBOLD",  3.0);
+    define("DOM_COLOR_CONTRAST_AA_LARGE",       3.0);
+    define("DOM_COLOR_CONTRAST_AA_NORMAL",      4.5);
+    define("DOM_COLOR_CONTRAST_AAA_MEDIUMBOLD", 4.5);
+    define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
+    define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
+    define("DOM_COLOR_CONTRAST_DEFAULT",        DOM_COLOR_CONTRAST_AA_NORMAL);
+
+    define("DOM_COLOR_CORRECT_DELTA",           1.0 / 256.0);
+
+    function dom_correct_color(
+        
+        $color,
+        $background,
+        $contrast_ratio_target,
+        $delta,
+       &$final_ratio,
+        $debug
+        
+        )
+    {
+        if ($delta == 0.0) $delta = DOM_COLOR_CORRECT_DELTA;
+
+        $rrggbb = ltrim($color, "#");
+
+        $r0 = hexdec(substr($rrggbb, 0, 2)) / 255;
+        $g0 = hexdec(substr($rrggbb, 2, 2)) / 255;
+        $b0 = hexdec(substr($rrggbb, 4, 2)) / 255;
+
+        $r = $r0;
+        $g = $g0;
+        $b = $b0;
+
+        $ratio   = 0;
+        $percent = 0;
+
+        $method = 3;
+
+        $i = ($method == 3) ? (1/abs($delta)) : 6666;
+
+        while (--$i>0)
+        {
+            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
+
+            if (!!$debug)
+            {
+                $comment_bgn = " /* ";
+                $comment_end = " */ ";
+
+            //  if ($debug === "/*")   { $comment_bgn = " /* ";  $comment_end = " */ ";   }
+                if ($debug === "<!--") { $comment_bgn = "<!-- "; $comment_end = " //-->"; }
+
+            //  echo PHP_EOL.$comment_bgn.str_pad($i,3,"0",STR_PAD_LEFT)." : $background (".($delta > 0 ? "++" : "--").") > #$rrggbb (".str_pad((int)(255*$r),3,"0",STR_PAD_LEFT).",".str_pad((int)(255*$g),3,"0",STR_PAD_LEFT).",".str_pad((int)(255*$b),3,"0",STR_PAD_LEFT).") => ".round($ratio,2)." / ".$contrast_ratio_target.$comment_end;
+            }
+
+            if ($ratio >= $contrast_ratio_target) break; 
+
+            if ($delta < 0 && (int)(255*$r) ==   0 && (int)(255*$g) ==   0 && (int)(255*$b) ==   0) break;
+            if ($delta > 0 && (int)(255*$r) == 255 && (int)(255*$g) == 255 && (int)(255*$b) == 255) break;
+
+            if ($method == 1)
+            {
+                $delta_max = ($delta > 0) ? max(1-$r, 1-$g, 1-$b) : max($r,$g,$b);
+
+                $delta_r = ($delta > 0) ? (((1-$r) / $delta_max) / 256) : (($r / $delta_max) / 256);
+                $delta_g = ($delta > 0) ? (((1-$g) / $delta_max) / 256) : (($g / $delta_max) / 256);
+                $delta_b = ($delta > 0) ? (((1-$b) / $delta_max) / 256) : (($b / $delta_max) / 256);
+
+                if ($delta > 0) $r += $delta_r; else $r -= $delta_r;
+                if ($delta > 0) $g += $delta_g; else $g -= $delta_g;
+                if ($delta > 0) $b += $delta_b; else $b -= $delta_b;
+            }
+
+            if ($method == 2)
+            {
+                if ($delta > 0 && $r <= 0) $r = 1/256;
+                if ($delta > 0 && $g <= 0) $g = 1/256;
+                if ($delta > 0 && $b <= 0) $b = 1/256;
+
+                $r *= (1+$delta);
+                $g *= (1+$delta);
+                $b *= (1+$delta);
+            }
+
+            if ($method == 3)
+            {
+                $percent = max(0, min(1, $percent + abs($delta)));
+                
+                $r1 = $r0 + (($delta > 0 ? 1 : 0) - $r0) * $percent;
+                $g1 = $g0 + (($delta > 0 ? 1 : 0) - $g0) * $percent;
+                $b1 = $b0 + (($delta > 0 ? 1 : 0) - $b0) * $percent;
+
+                if (!!$debug)
+                {
+                //  echo PHP_EOL."(".str_pad($i,3,"0",STR_PAD_LEFT).") ".number_format($percent,2)." (".number_format($r1,2).",".number_format($g1,2).",".number_format($b1,2).") = (".number_format($r0,2).",".number_format($g0,2).",".number_format($b0,2).") + (".(($delta > 0) ? "1" : "0")." - (".number_format($r,2).",".number_format($g,2).",".number_format($b,2).")) * ".number_format($percent,2)."";
+                }
+
+                $r = $r1;
+                $g = $g1;
+                $b = $b1;
+
+            }
+
+            $r = max(0, min(1, $r));
+            $g = max(0, min(1, $g));
+            $b = max(0, min(1, $b));
+
             $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                       str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
                       str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
         }
 
-        $used_delta  = $delta;
         $final_ratio = $ratio;
 
         return "#".$rrggbb;
@@ -6931,7 +7452,8 @@ else
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         $debug                  = false)
     {
-        return dom_correct_color($color, $background, $contrast_ratio_target, 0.01, $debug);
+        $ratio = false;
+        return dom_correct_color($color, $background, $contrast_ratio_target, DOM_COLOR_CORRECT_DELTA, $ratio, $debug);
     }
 
     function dom_correct_darker(
@@ -6941,7 +7463,8 @@ else
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         $debug                  = false)
     {
-        return dom_correct_color($color, $background, $contrast_ratio_target, -0.01, $debug);
+        $ratio = false;
+        return dom_correct_color($color, $background, $contrast_ratio_target, -DOM_COLOR_CORRECT_DELTA, $ratio, $debug);
     }
 
     function dom_correct_auto(
@@ -6951,44 +7474,32 @@ else
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         $debug                  = false)
     {
+        if (is_array($color))
+        {
+            $corrected = array();
+        
+            foreach ($color as $c)
+            {
+                $corrected[] = dom_correct_auto($c, $background, $contrast_ratio_target, $debug);
+            }
+
+            return $corrected;
+        }
+
         $lc = dom_calculate_luminosity($color);
         $lb = dom_calculate_luminosity($background);
 
-        $delta = ($lc > $lb) ? 0.01 : -0.01;
+        $delta = ($lc > $lb) ? DOM_COLOR_CORRECT_DELTA : -DOM_COLOR_CORRECT_DELTA;
         
-        return dom_correct_color($color, $background, $contrast_ratio_target, $delta, $debug);
-    }
+        $ratioA = 0;
+        $corrected_colorA = dom_correct_color($color, $background, $contrast_ratio_target, $delta, $ratioA, $debug);
+        if ($ratioA >= $contrast_ratio_target) return $corrected_colorA;
+        
+        $ratioB = 0;
+        $corrected_colorB = dom_correct_color($color, $background, $contrast_ratio_target, -$delta, $ratioB, $debug);
+        if ($ratioB >= $contrast_ratio_target) return $corrected_colorB;
 
-    function dom_correct_color(
-
-        $color,
-        $background             = "#FFFFFF",
-        $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
-        $delta                  = 0.01,
-        $debug                  = false,
-        $show_warnings          = false)
-    {
-
-        if ($debug) echo eol()." /* --------------------------------- $color $background $delta */ ";
-
-        $ratioA = false;
-        $deltaA = false;
-        $colorA = __dom_correct_color($color, $background, $contrast_ratio_target,  $delta, $ratioA, $deltaA, $debug);
-
-        return $colorA.(($ratioA < $contrast_ratio_target && $show_warnings) ? " /* BAD CONTRAST $ratioA */ ": "");
-
-        if ($debug) echo eol()." /* --------------------------------- $color $background -$delta */ ";
-
-        $ratioB = false;
-        $deltaB = false;
-        $colorB = __dom_correct_color($color, $background, $contrast_ratio_target, -$delta, $ratioB, $deltaB, $debug);
-
-        if ($debug) echo eol()." /* "." $color ->  ".(($ratioB >= $ratioA) ? $colorB : $colorA)." */ ";
-
-        if ($ratioA >= $contrast_ratio_target) return $colorA;
-        if ($ratioB >= $contrast_ratio_target) return $colorB;
-
-        return ($ratioB >= $ratioA) ? ($colorB.($show_warnings ? " /* BAD CONTRAST $ratioB */ " : "")) : ($colorA." /* $ratioA */ ");
+        return $ratioA >= $ratioB ? $corrected_colorA : $corrected_colorB;
     }
 
     #endregion

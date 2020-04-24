@@ -16,7 +16,7 @@
 
                 style("
 
-                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
+                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "dom_gap", "dom_gap").") { main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
@@ -27,7 +27,7 @@
                     toolbar_nav(
                         toolbar_nav_menu(ul_menu_auto()).
                         toolbar_nav_title("Hello World!").
-                        toolbar_nav_toolbar(ul_menu_auto().a(svg_dark_and_light(24, 24, "white", false, false), url_void(), "dark-and-light", INTERNAL_LINK))
+                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(24, 24, "white", false, false), url_void(), "darkandlight", INTERNAL_LINK))
                         )
                     ).
 
@@ -109,7 +109,7 @@
 
                 $(function() {
 
-                    $(".dark-and-light").click(function() {
+                    $(".darkandlight").click(function() {
                         // TODO SOMETHING MORE ROBUST
                         document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
                         });

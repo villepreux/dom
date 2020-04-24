@@ -1,1 +1,1 @@
-<?php include dirname(__FILE__)."/../"."dom.php"; ?>
+<?php require_once(dirname(__FILE__)."/../"."dom.php"); ?>

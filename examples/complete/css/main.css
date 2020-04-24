@@ -79,13 +79,14 @@ $default_banner_img_large  = url_img_unsplash($unsplash_id, 1200, 800);
     --menu-hover-background-color:      #222222;
     --menu-hover-text-color:            #FFFFFF;
 
-    --footer-background-color:          #000000;
-    --footer-text-color:                #979797;
-    --footer-link-color:                #FFFFFF;
+    --footer-background-color:          #1a1a1a;
+    --footer-text-color:                <?=                dom_correct_lighter("#1a1a1a", "#1a1a1a")                  ?>;
+    --footer-link-color:                <?= dom_color_lerp(dom_correct_lighter("#1a1a1a", "#1a1a1a"), "#FFFFFF", 0.5) ?>;
     --footer-hover-link-color:          #FFFFFF;
 
     --card-title-color:                 #FFFFFF;
     --card-border-color:                #444444;
+    --card-background-color:            <?= dom_color_modify_lightness(get("background_color_dark"), 0.8) ?>;
 
 }
 
@@ -107,24 +108,25 @@ $default_banner_img_large  = url_img_unsplash($unsplash_id, 1200, 800);
 
     --h1-color:                         #DDDDDD;
     --h2-color:                         var(--theme-color);
-    --h3-color:                         <?= dom_correct_color("#000000", get("background_color_light")) ?>;
-    --h4-color:                         <?= dom_correct_color("#111111", get("background_color_light")) ?>;
-    --h5-color:                         <?= dom_correct_color("#222222", get("background_color_light")) ?>;
-    --h6-color:                         <?= dom_correct_color("#333333", get("background_color_light")) ?>;
-    --caption-color:                    <?= dom_correct_color("#CCCCCC", get("background_color_light")) ?>;
+    --h3-color:                         <?= dom_correct_darker("#000000", get("background_color_light")) ?>;
+    --h4-color:                         <?= dom_correct_darker("#111111", get("background_color_light")) ?>;
+    --h5-color:                         <?= dom_correct_darker("#222222", get("background_color_light")) ?>;
+    --h6-color:                         <?= dom_correct_darker("#333333", get("background_color_light")) ?>;
+    --caption-color:                    <?= dom_correct_darker("#CCCCCC", get("background_color_light")) ?>;
 
     --menu-background-color:            #444444;
     --menu-text-color:                  #DDDDDD;
     --menu-hover-background-color:      #222222;
     --menu-hover-text-color:            #FFFFFF;
 
-    --footer-background-color:          <?= dom_correct_color("#888888", "#DDDDDD") ?>;
-    --footer-text-color:                #DDDDDD;
-    --footer-link-color:                var(--theme-color);
-    --footer-hover-link-color:          var(--theme-color);
+    --footer-background-color:          #DDDDDD;
+    --footer-text-color:                <?=                dom_correct_darker("#DDDDDD", "#DDDDDD")                  ?>;
+    --footer-link-color:                <?= dom_color_lerp(dom_correct_darker("#DDDDDD", "#DDDDDD"), "#000000", 0.5) ?>;
+    --footer-hover-link-color:          #000000;
 
     --card-title-color:                 #000000;
     --card-border-color:                #AAAAAA;
+    --card-background-color:            <?= dom_color_modify_lightness(get("background_color_light"), 1.05) ?>;
 
 <?= $condition[1] ?><?php } ?>
 
@@ -161,11 +163,11 @@ $default_banner_img_large  = url_img_unsplash($unsplash_id, 1200, 800);
     <?= env("header_toolbar_height",    "64px") ?>
     <?= env("header_min_height",        "64px") ?>
     <?= env("main_max_width",          "960px") ?>
-    <?= env("content_default_margin",   "12px") ?>
+    <?= env("dom_gap",                  "12px") ?>
 
     /* For use in screen media computations */
 
-    <?= env("breakpoint_medium",        env_add(array("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin"))) ?>
+    <?= env("breakpoint_medium",        env_add(array("main_max_width", "scrollbar_width", "dom_gap", "dom_gap"))) ?>
     <?= env("breakpoint_small",         "800px") ?>
 }
 
@@ -184,12 +186,12 @@ body { overflow-x: hidden }
 
 @media screen and (max-width: <?= env("breakpoint_medium") ?>) { 
     
-    main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } 
+    main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } 
 }
 
-main { padding-bottom: var(--content-default-margin); }
+main { padding-bottom: var(--dom-gap); }
 
-h2 { padding-top: var(--content-default-margin); }
+h2 { padding-top: var(--dom-gap); }
 
 /* Background */
 
@@ -252,16 +254,16 @@ a:hover         { text-decoration: underline; }
 body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
 
 .toolbar .row:nth-child(2) { text-transform: uppercase; }
-.toolbar-cell-right        { padding-right: var(--content-default-margin); }
+.toolbar-cell-right        { padding-right: var(--dom-gap); }
 
 /* Toolbar switch between toolbar links & burger menu */
 
-                                                                  section[role=toolbar] { margin-right: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); }
-@media screen and (max-width: <?= env("breakpoint_medium") ?>) { .toolbar-title { padding-left: var(--content-default-margin);  } }
-@media screen and (max-width: <?= env("breakpoint_medium") ?>) {  section[role=toolbar] { margin-right: 0px; } }
+                                                                  section[role=navigation] { margin-right: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) { .toolbar-title { padding-left: var(--dom-gap);  } }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) {  section[role=navigation] { margin-right: 0px; } }
 @media screen and (min-width: <?= env("breakpoint_small")  ?>) { .menu-toggle { display: none } .toolbar .row:nth-child(2) .cell:nth-child(1)  { min-width: 0px; } }
 @media screen and (max-width: <?= env("breakpoint_small")  ?>) { .toolbar-title { padding-left: 0px;  } }
-@media screen and (max-width: <?= env("breakpoint_small")  ?>) {  section[role=toolbar] { display: none } }
+@media screen and (max-width: <?= env("breakpoint_small")  ?>) {  section[role=navigation] { display: none } }
 
 /* Toolbar menu */
 
@@ -283,7 +285,7 @@ body>.footer a,
 body>.footer a:visited  { color: var(--footer-link-color); }
 body>.footer a:hover    { color: var(--footer-hover-link-color); }
 
-body>.footer a          { padding: var(--content-default-margin); }
+body>.footer a          { padding: var(--dom-gap); }
 body>.footer a:hover    { text-decoration: underline; }
 
 
@@ -293,8 +295,8 @@ body>.footer a:hover    { text-decoration: underline; }
 .card                           { border: 1px solid var(--card-border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
 .card img                       { width: 100%; margin-left: 0px; max-width: 100% }
 .card-text,
-.card-title                     { padding: var(--content-default-margin); }
-.card-title-sub .svg-wrapper    { margin-right: var(--content-default-margin); }
+.card-title                     { padding: var(--dom-gap); }
+.card-title-sub .svg-wrapper    { margin-right: var(--dom-gap); }
 .card .headline                 { font-size: 1em; margin: 0px; color: var(--card-title-color); }
 .card-title-main,       
 .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -304,7 +306,7 @@ body>.footer a:hover    { text-decoration: underline; }
 @media screen and (max-width: <?= env("breakpoint_small")  ?>) {
 
     main>article img, main>article video, main>article iframe,
-    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--content-default-margin)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
+    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--dom-gap)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
 
     }
 
@@ -321,15 +323,6 @@ body>.footer a:hover    { text-decoration: underline; }
 /* PRINT */
 
 @media print {
-
-.toolbar .row:nth-child(1) { display: none }
-.toolbar .row:nth-child(2) { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
-.toolbar .row:nth-child(2) .toolbar-cell-left   { display: none }
-.toolbar .row:nth-child(2) .toolbar-cell-right  { display: none }
-.toolbar .row:nth-child(2) .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
-.main { margin-top:  0px }
-
-body>.footer, iframe { display: none; height: 0px; }
 
 h2                  { page-break-before:    always; }
 h2:first-of-type    { page-break-before:    avoid   }
