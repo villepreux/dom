@@ -51,4 +51,6 @@ WIP
 
 ----
 
+![Build](https://github.com/villepreux/dom/workflows/Build/badge.svg)
+
 (c) Antoine Villepreux 2020-20XX
