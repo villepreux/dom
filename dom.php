@@ -4833,7 +4833,7 @@ else
             $fn_color = "color_$svg";
             $colors   = $fn_color();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "svg-$svg";
+            $class    = "palette-$svg";
             $var      = "--color-$svg";
 
             $css .= eol().tab(2);
@@ -6344,7 +6344,7 @@ else
             $fn_color = "color_$svg";
             $colors   = $fn_color();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "svg-$svg";
+            $class    = "palette-$svg";
             $var      = "--color-$svg";
     
             $css .= eol().tab(1);
@@ -6368,7 +6368,7 @@ else
             $fn_color = "color_$svg";
             $colors   = $fn_color();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "svg-$svg";
+            $class    = "palette-$svg";
     
             $css .= eol().tab(1);
             
