@@ -1,6 +1,6 @@
 <?php
 
-    require_once("dom.php"); 
+    require_once(dirname(__FILE__)."/dom.php"); 
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 

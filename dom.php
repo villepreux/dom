@@ -111,12 +111,8 @@
 
 
 
-
-
-
-
-
-
+ 
+   
 
     #region PRIVATE API
     ######################################################################################################################################
@@ -135,22 +131,35 @@
     function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); }
     function dom_set($k, $v = true, $aname = false)                     { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
-    function dom_is_localhost()                                         { return (false !== stripos($_SERVER['HTTP_HOST'], "localhost")) || (false !== stripos($_SERVER['HTTP_HOST'], "127.0.0.1")); }
+    function dom_is_localhost()                                         { return (false !== stripos(dom_at($_SERVER,'HTTP_HOST'), "localhost")) || (false !== stripos(dom_at($_SERVER,'HTTP_HOST'), "127.0.0.1")); }
 
     #endregion
     #region DEPENDENCIES
     ######################################################################################################################################
     
                                         @include dom_path("tokens.php");
-    if (!function_exists("markdown"))   @include dom_path("php/vendor/markdown.php");
-                                        @include dom_path("php/vendor/smartypants.php");
+    if (!function_exists("markdown"))   @include dom_path(dirname(__FILE__)."/../php/vendor/markdown.php");
+                                        @include dom_path(dirname(__FILE__)."/../php/vendor/smartypants.php");
         
     #endregion
     #region CONFIG : PHP SETTINGS
     ######################################################################################################################################
 
     function dom_init_php()
-    {
+    {        
+       global $argv;
+       
+        if (is_array($argv) && count($argv) > 1)
+        {
+            array_shift($argv);
+
+            foreach ($argv as $arg)
+            {
+                $arg = explode("=", $arg);
+                dom_set($arg[0], $arg[1]);
+            }
+        }
+
         if (dom_is_localhost())
         {
             @set_time_limit(10*60);
@@ -500,8 +509,14 @@
     #region HELPERS : PATH FINDER
     ######################################################################################################################################
         
-    function dom_path($path, $default = false, $search = true, $depth = 16, $max_depth = DOM_PATH_MAX_DEPTH)
+    function dom_path($path, $default = false, $search = true, $depth = 16, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path = ".")
     {
+    //	Minimal validation
+
+        if (false !== stripos($path, "\n") ) return $default;
+        if (false !== stripos($path, "{")  ) return $default;
+        if (false !== stripos($path, "\"") ) return $default;
+    
     //	If URL format then keep it as-is
 
         if ($path[0] == "/" && $path[1] == "/") return $path;
@@ -523,20 +538,20 @@
     //	If we have already searched too many times then return fallback
 
         if ($depth <= 0) { return $default; }
-
+       
     //	If we have reached designated root then return fallback
 
-        if (@file_exists("./".dom_get("root_file_hint","#"))) { return $default; }
+        if (@file_exists("$offset_path/".dom_get("root_file_hint","#"))) 
+        {
+        //  error_log("CANNOT FIND $path ROOT FOUND AT $offset_path");
+            return $default;
+        }
 
     //	If requested then search in parent folder
 
         if ($search)
         {
-            $pathinfo   = @pathinfo($path);
-            $dirname    = at($pathinfo, "dirname");
-            $basename   = at($pathinfo, "basename");
-
-            return dom_path("../$dirname/$basename", $default, $search, $depth - 1, $max_depth);
+            return dom_path("../$path", $default, $search, $depth - 1, $max_depth, "../$offset_path");
         }
 
         return $default;
@@ -3886,8 +3901,8 @@ else
     #region API : DOM : URLS
     ######################################################################################################################################
 
-    function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? "https" : "http") . "://" . $_SERVER["HTTP_HOST"]; $host = rtrim($host,"/"); $host .= "/"; return $host; }
-    function relative_uri($params = false)      { $uri = explode('?', $_SERVER['REQUEST_URI'], 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
+    function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && dom_at($_SERVER,'HTTPS') === 'on') ? "https" : "http") . "://" . dom_at($_SERVER,"HTTP_HOST"); $host = rtrim($host,"/"); $host .= "/"; return $host; }
+    function relative_uri($params = false)      { $uri = explode('?', dom_at($_SERVER,'REQUEST_URI'), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
     function relative_uri_ex()                  { return relative_uri(true); }
     function absolute_uri($params = false)      { return absolute_host().relative_uri($params); }
     
@@ -4382,8 +4397,18 @@ else
 
 
     function head_boilerplate($async_css = false)
-    { 
-        $path_css = dom_path_coalesce("css/main.css.php",  "css/main.css", "main.css.php", "main.css", "css/screen.css.php", "css/screen.css", "screen.css.php", "screen.css");
+    {
+        $path_css = dom_path_coalesce(
+            
+            "./css/main.css.php",
+            "./css/main.css",
+            "./main.css.php",
+            "./main.css",
+            "./css/screen.css.php",
+            "./css/screen.css",
+            "./screen.css.php",
+            "./screen.css"
+            );
 
         return title()
 
