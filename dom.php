@@ -1755,7 +1755,7 @@
     */
         $html = array_open_url($url, "html");
 
-        echo $html; die();
+    //  echo $html; die();
 
         return array($url, htmlentities($html));
 
@@ -3482,13 +3482,13 @@
         
         if ($content_encoding_header !== false) header('Content-Encoding: ' . $encoding         . '');
         if (array_key_exists($doctype, $types)) header('Content-type: '     . $types[$doctype]  . '; charset=' . $encoding);
-        
+
         if ($attachement_basename !== false)
         {
             if (array_key_exists($doctype, $dispositions))  @header('Content-Disposition: ' . $dispositions[$doctype]                                                                            . '');
             if ($attachement_length !== false)              @header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
         }
-
+        
         generate_all_preprocess();
 
         cache_start();
