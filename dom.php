@@ -4389,7 +4389,7 @@ else
         {
             $html = head_boilerplate($async_css);
         }
-        
+
         $html = css_postprocess($html);        
 
         if (dom_get("support_service_worker", false))
@@ -6289,7 +6289,7 @@ else
     function predefined_svg_brands()
     {
         return array(
-            "500px",          
+            "500px",    
             "flickr",         
             "facebook",       
             "twitter",        
@@ -6333,7 +6333,7 @@ else
     }
 
     function brand_color_properties($fn_color_transform = "self", $pan = 35)
-    {
+    {   
         $css = "";
 
         $color_contrast_target  = strtolower(dom_get("contrast","AA"));
@@ -6355,15 +6355,21 @@ else
                 $color = $colors[$i];
 
                 if (function_exists($fn_color_transform))
-                {
+                {   
                     $color = $fn_color_transform($color);
                 }
                 else
                 {
-                    $color = dom_correct_auto(
-                        $color,
-                        get($fn_color_transform, $fn_color_transform),
-                        $color_contrast_target);
+                    $background_color = get($fn_color_transform, $fn_color_transform);
+
+                    if (false !== stripos($background_color, "#"))
+                    {
+                        $color = dom_correct_auto(
+                            $color,
+                            $background_color,
+                            $color_contrast_target
+                            );
+                    }
                 }
 
                 $css .= pan("--color-".$svg.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
