@@ -131,7 +131,8 @@
     function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); }
     function dom_set($k, $v = true, $aname = false)                     { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
-    function dom_is_localhost()                                         { return (false !== stripos(dom_at($_SERVER,'HTTP_HOST'), "localhost")) || (false !== stripos(dom_at($_SERVER,'HTTP_HOST'), "127.0.0.1")); }
+    function dom_is_localhost()                                         { return (false !== stripos(dom_server_http_host(), "localhost")) 
+                                                                              || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
 
     #endregion
     #region DEPENDENCIES
@@ -148,7 +149,7 @@
     function dom_init_php()
     {        
        global $argv;
-       
+
         if (is_array($argv) && count($argv) > 1)
         {
             array_shift($argv);
@@ -188,8 +189,8 @@
     //  dom_set("title",                             "Blog");
         dom_set("keywords",                          "");
 
-        dom_set("canonical",                         absolute_uri(false));
-    //  dom_set("url",                               absolute_uri());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
+        dom_set("canonical",                         get("canonical", dom_url()));
+    //  dom_set("url",                               dom_url());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
     //  dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
 
         dom_set("normalize",                        "sanitize");
@@ -207,6 +208,8 @@
             
         dom_set("default_image_width",              "300");
         dom_set("default_image_height",             "200");
+
+        dom_set("scrollbar_width",                  "17px");
 
         dom_set("image",                            "image.png");
         dom_set("geo_region",                       "FR-75");
@@ -255,6 +258,8 @@
         dom_set("version_h5bp",                     "7.1.0");
         
         dom_set("cache_time",                       1*60*60); // 1h
+
+        dom_set("forwarded_flags",                  array("amp","contrast","light","no_js"));
 
         // Can be modified at browser URL level
 
@@ -780,12 +785,23 @@
     }
     
     #endregion
+    #region HELPERS : SERVER ARGS
+    ######################################################################################################################################
+    
+    function dom_server_http_accept_language    ($default = "en")                   { return dom_at($_SERVER, 'HTTP_ACCEPT_LANGUAGE', $default); }
+    function dom_server_server_name             ($default = "localhost")            { return dom_at($_SERVER, 'SERVER_NAME',          $default); }
+    function dom_server_server_port             ($default = "80")                   { return dom_at($_SERVER, 'SERVER_PORT',          $default); }
+    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at($_SERVER, 'REQUEST_URI',          $default); }
+    function dom_server_https                   ($default = "on")                   { return dom_at($_SERVER, 'HTTPS',                $default); }
+    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at($_SERVER, 'HTTP_HOST',            $default); }
+
+    #endregion
     #region HELPERS : LOCALIZATION
     ######################################################################################################################################
     
     function dom_T($label, $default = false, $lang = false)
     { 
-        $lang = strtolower(substr((false === $lang) ? dom_get("lang", dom_at($_SERVER, 'HTTP_ACCEPT_LANGUAGE', "en")) : $lang, 0, 2));
+        $lang = strtolower(substr((false === $lang) ? dom_get("lang", dom_server_http_accept_language('en')) : $lang, 0, 2));
         $key = "loc_".$lang."_".$label;
         if (false === dom_get($key, false) && false !== $default) dom_set($key, $default);
         return dom_get($key, (false === $default) ? $label : $default);
@@ -3363,7 +3379,7 @@
             {
                 if (dom_has("cache_reset") && is_dir("/cache")) foreach (array_diff(scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
 
-                $cache_basename         = md5(absolute_uri(true) . DOM_VERSION);
+                $cache_basename         = md5(dom_url(true) . DOM_VERSION);
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
                 $cache_file_uptodate    = $cache_file_exists && ((time() - dom_get("cache_time", 1*60*60)) < filemtime($cache_filename));
@@ -3435,13 +3451,16 @@
     }
     
     function dom_redirect_https()
-    {        
-        if ($_SERVER['SERVER_NAME'] != "localhost" && !isset($_SERVER['HTTPS']) && !dom_has("ajax"))
+    {
+        if (dom_has("ajax")) return;
+
+        if (!dom_is_localhost() && dom_server_https() != "on")
         {
             $url  = "https://";
-            $url .=  $_SERVER["SERVER_NAME"];
-            $url .= ($_SERVER["SERVER_PORT"] != "80" && $_SERVER["SERVER_PORT"] != "443") ? (":".$_SERVER["SERVER_PORT"]) : "";
-            $url .=  $_SERVER["REQUEST_URI"];
+            $url .=  dom_server_server_name();
+            $url .= (dom_server_server_port("80") != "80" 
+                  && dom_server_server_port("80") != "443") ? (":".dom_server_server_port()) : "";
+            $url .=  dom_server_request_uri();
 
             dom_redirect($url);
         }
@@ -3817,14 +3836,14 @@ else
 
     $__dom_generated = array(
 
-        array("path" => "manifest.json",                 "generated" => false, "function" => "string_manifest"),
-        array("path" => "browserconfig.xml",             "generated" => false, "function" => "string_ms_browserconfig"),
-        array("path" => "badge.xml",                     "generated" => false, "function" => "string_ms_badge"),
-        array("path" => "robots.txt",                    "generated" => false, "function" => "string_robots"),
-        array("path" => "human.txt",                     "generated" => false, "function" => "string_human"),
-        array("path" => "loading.svg",                   "generated" => false, "function" => "string_loading_svg"),
-        array("path" => "sw.js",                         "generated" => false, "function" => "string_service_worker"),
-        array("path" => "install-service-worker.html",   "generated" => false, "function" => "string_service_worker_install")
+        array("path" => "manifest.json",                 "generate" => false, "function" => "string_manifest"),
+        array("path" => "browserconfig.xml",             "generate" => false, "function" => "string_ms_browserconfig"),
+        array("path" => "badge.xml",                     "generate" => false, "function" => "string_ms_badge"),
+        array("path" => "robots.txt",                    "generate" => false, "function" => "string_robots"),
+        array("path" => "human.txt",                     "generate" => false, "function" => "string_human"),
+        array("path" => "loading.svg",                   "generate" => false, "function" => "string_loading_svg"),
+        array("path" => "sw.js",                         "generate" => false, "function" => "string_service_worker"),
+        array("path" => "install-service-worker.html",   "generate" => false, "function" => "string_service_worker_install")
 
         );
 
@@ -3834,19 +3853,24 @@ else
 
         foreach ($__dom_generated as &$generated)
         { 
-            $generated["generated"] = true;
+            $generated["generate"] = true;
+
+        //  Unless generation is requested, do not generate each file that is already accessible
+        //  Even if it accesses a parent/inherited file
 
             if (!dom_get("generate"))
             {
-                if (dom_path($generated["path"]))        { $generated["generated"] = false; continue; }
-                if (dom_path($generated["path"].".php")) { $generated["generated"] = false; continue; }
+                if (dom_path($generated["path"]))        { $generated["generate"] = false; continue; }
+                if (dom_path($generated["path"].".php")) { $generated["generate"] = false; continue; }
             }
 
-            $f = fopen($generated["path"], "w+");
-            fclose($f);
+        //  Here we have files that will need generation
+
+        //  $f = fopen($generated["path"], "w+"); fclose($f);
+        //  unlink($generated["path"]);
         }
     }
-    
+
     function generate_all($beautify = false)
     {
         $prev_beautify = false; if ($beautify) { $prev_beautify = dom_get("beautify"); dom_set("beautify", $beautify); }
@@ -3855,8 +3879,8 @@ else
 
         foreach ($__dom_generated as $generated)
         { 
-            if ($generated["generated"])
-            {           
+            if ($generated["generate"])
+            {   
                 $f = fopen($generated["path"], "w+");
                 if (!$f) continue;
 
@@ -3873,7 +3897,7 @@ else
     #endregion
     #region CSS snippets
     ######################################################################################################################################
-
+    
     function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
     {
         return "/* Text gradient */".
@@ -3901,11 +3925,10 @@ else
     #region API : DOM : URLS
     ######################################################################################################################################
 
-    function absolute_host()                    { $host = ((isset($_SERVER['HTTPS']) && dom_at($_SERVER,'HTTPS') === 'on') ? "https" : "http") . "://" . dom_at($_SERVER,"HTTP_HOST"); $host = rtrim($host,"/"); $host .= "/"; return $host; }
-    function relative_uri($params = false)      { $uri = explode('?', dom_at($_SERVER,'REQUEST_URI'), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
-    function relative_uri_ex()                  { return relative_uri(true); }
-    function absolute_uri($params = false)      { return absolute_host().relative_uri($params); }
-    
+    function dom_host_url   ()                  { return rtrim("http".((dom_server_https()=='on')?"s":"")."://".dom_server_http_host(),"/"); }
+    function dom_url_branch ($params = false)   { $uri = explode('?', dom_server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
+    function dom_url        ($params = false)   { $branch = dom_url_branch($params); return ($branch == "") ? dom_host_url() : dom_host_url()."/".$branch; }
+
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? dom_get("pinterest_user")     : $username; 
                                                                                   $board    = ($board    === false) ? dom_get("pinterest_board")    : $board;      return "https://www.pinterest.com/$username/$board/";                      }
     function url_instagram_user             ($username = false)                 { $username = ($username === false) ? dom_get("instagram_user")     : $username;   return "https://www.instagram.com/$username/";                             }
@@ -3923,7 +3946,7 @@ else
     function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
     function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
 	function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
-    function url_amp                        ($on = true)                        {                                                                                  return "?amp=".(!!$on?"1":"0").(dom_is_localhost()?"#development=1":"");   }
+    function url_amp                        ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(dom_is_localhost()?"#development=1":"");   }
 
     function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
     function url_pinterest_search_by_tags   ($tags, $userdata = false)          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
@@ -3984,96 +4007,20 @@ else
     
     function self($html) { return $html; }
 
-  /*function server_file_name($filename, $existing_only = true)
-    {
-        if ($existing_only)
-        {
-        //  Try relative path
-            $realpath = realpath($filename);
-            if (false !== $realpath && (PHP_VERSION_ID < 50300) && !file_exists($realpath)) { $realpath = false; }  
-            if (false !== $realpath) return $realpath;
-            
-            if (0 === stripos($filename, ROOT))
-            {
-            //  Try absolute path
-                if (0 !== stripos($filename, SYSTEM_ROOT)) $filename = str_replace("//","/", substr_replace($filename, SYSTEM_ROOT, 0, strlen(ROOT)));
-                
-                $realpath = realpath($filename);
-                if (false !== $realpath && (PHP_VERSION_ID < 50300) && !file_exists($realpath)) { $realpath = false; }  
-                if (false !== $realpath) return $realpath;
-            }
-            
-            if (0 === stripos($filename, '/'))
-            {
-            //  Try absolute path
-                if (0 !== stripos($filename, SYSTEM_ROOT)) $filename = str_replace("//","/",SYSTEM_ROOT . $filename);
-                
-                $realpath = realpath($filename);
-                if (false !== $realpath && (PHP_VERSION_ID < 50300) && !file_exists($realpath)) { $realpath = false; }  
-                if (false !== $realpath) return $realpath;
-            }
-            
-        //  if (false === realpath($filename))  return false;
-        //
-        //  if (@file_exists($filename)) return $filename;
-        //  
-        //  if ($filename[0] == '/')
-        //  {
-        //      if (@file_exists(                          '/'.$filename)) return                           '/'.$filename;
-        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $filename)) return $_SERVER['DOCUMENT_ROOT'].    $filename;
-        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$filename;   
-        //  }
-        //  else
-        //  {
-        //      $path = str_replace("index.php","",$_SERVER['PHP_SELF']);
-        //
-        //      if (@file_exists(                          '/'.$path.$filename)) return                           '/'.$path.$filename;
-        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].    $path.$filename)) return $_SERVER['DOCUMENT_ROOT'].    $path.$filename;
-        //      if (@file_exists($_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename)) return $_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename;
-        //  }  
-        
-            return false;            
-        }
-        else
-        {
-            if (false === stripos($filename, $_SERVER['DOCUMENT_ROOT']))
-            {
-                if ($filename[0] == '/')
-                {
-                    return $_SERVER['DOCUMENT_ROOT'].$filename;   
-                }
-                else
-                {
-                    $path = str_replace("index.php","",$_SERVER['PHP_SELF']);
-                
-                    if ($path[0] == '/')    return $_SERVER['DOCUMENT_ROOT'].    $path.$filename;
-                    else                    return $_SERVER['DOCUMENT_ROOT'].'/'.$path.$filename;                    
-                }  
-            }
-            else
-            {
-                return $filename;
-            }
-        }        
-        
-        return false;
-    }
-
-    function server_file_exists($filename)
-    {
-        return ""    !=  $filename 
-            && false !== $filename 
-            && false !== server_file_name($filename);
-    }*/
-
-    function include_file($filename)
+    function include_file($filename, $silent_errors = false)
     {
         ob_start();
-        @include $filename;
-        $content = @ob_get_clean();
+
+        $content = "";
+
+        if ($silent_errors) { @include $filename; $content = @ob_get_clean(); }
+        else                {  include $filename; $content =  ob_get_clean(); }
+        
         if (false !== $content) { return $content; }
 
-        $content = @file_get_contents($filename);
+        if ($silent_errors) { $content = @file_get_contents($filename); }
+        else                { $content =  file_get_contents($filename); }
+        
         if (false !== $content) { return $content; }
 
         return "";
@@ -4134,6 +4081,12 @@ else
             $var = str_replace("px", "", $var);
             $var = str_replace("em", "", $var);
             $var = str_replace("%",  "", $var);
+
+            if (!is_numeric($var))
+            {
+            //  error_log($var);
+                $var = (int)$var;
+            }
 
             $res += $var;
         }
@@ -4698,6 +4651,7 @@ else
     function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
     function style( $filename_or_code = "",                                                             $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename, $force_minify) : raw_css ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
+    
     function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename, $force_minify) : raw_js  ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
     function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                          { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                                        { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
@@ -5079,11 +5033,11 @@ else
         
     @media print {
 
-        .toolbar .row:nth-child(1) { display: none }
-        .toolbar .row:nth-child(2) { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
-        .toolbar .row:nth-child(2) .toolbar-cell-left   { display: none }
-        .toolbar .row:nth-child(2) .toolbar-cell-right  { display: none }
-        .toolbar .row:nth-child(2) .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
+        .toolbar-row-banner                   { display: none }
+        .toolbar-row-nav                      { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
+        .toolbar-row-nav .toolbar-cell-left   { display: none }
+        .toolbar-row-nav .toolbar-cell-right  { display: none }
+        .toolbar-row-nav .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
         
         .main { margin-top:  0px }
         
@@ -5158,183 +5112,220 @@ else
             .   eol(1) . tab(1)
             ;
     }
-    
-    function js_pwa_install($init_function, $tab = 2)
-    {
-        return
 
-            eol() . tab($tab+0)         
-        .   eol() . tab($tab+0) .   '/* PWA (PROGRESSIVE WEB APP) INSTALL */'
-        .   eol() . tab($tab+0)         
-        .   eol() . tab($tab+0) .   'function '.$init_function.'()'
-        .   eol() . tab($tab+0) .   '{'
-        .   eol() . tab($tab+1) .       'let deferredPrompt = null;'
-        .   eol() . tab($tab+1)         
-        .   eol() . tab($tab+1) .       'console.log("Register Before Install Prompt callback");'
-        .   eol() . tab($tab+1)         
-        .   eol() . tab($tab+1) .       'window.addEventListener("beforeinstallprompt", function(e) '
-        .   eol() . tab($tab+1) .       '{'
-        .   eol() . tab($tab+2) .           'console.log("Before Install Prompt");'
-        .   eol() . tab($tab+2) .           'e.preventDefault();'
-        .   eol() . tab($tab+2) .           'deferredPrompt = e;'
-        .   eol() . tab($tab+2) .           '$(".app-install").css({"display": "inline-block"});' /* TODO change this hardcoded style by a class */
-        .   eol() . tab($tab+1) .       '});'
-        .   eol() . tab($tab+1)         
-        .   eol() . tab($tab+1) .       '$(".app-install").on("click", function(e)'
-        .   eol() . tab($tab+1) .       '{'
-        .   eol() . tab($tab+2) .           '$(".app-install").css({"display": "none"});' 
-        .   eol() . tab($tab+2) .           ''
-        .   eol() . tab($tab+2) .           'if (deferredPrompt != null)'
-        .   eol() . tab($tab+2) .           '{'
-        .   eol() . tab($tab+3) .               'deferredPrompt.prompt();'
-        .   eol() . tab($tab+3) .               ''
-        .   eol() . tab($tab+3) .               'deferredPrompt.userChoice.then(function(choiceResult)'
-        .   eol() . tab($tab+3) .               '{'
-        .   eol() . tab($tab+4) .                   'if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");'
-        .   eol() . tab($tab+4) .                   'else                                     console.log("User dismissed the A2HS prompt");'
-        .   eol() . tab($tab+4) .                   ''
-        .   eol() . tab($tab+4) .                   'deferredPrompt = null;'
-        .   eol() . tab($tab+3) .               '});'
-        .   eol() . tab($tab+2) .           '}'
-        .   eol() . tab($tab+2) .           'else'
-        .   eol() . tab($tab+2) .           '{'
-        .   eol() . tab($tab+3) .               'console.log("Install promt callback not received yet");'
-        .   eol() . tab($tab+2) .           '}'
-        .   eol() . tab($tab+1) .       '}); '
-        .   eol() . tab($tab+0) .   '}; '
-        .   eol() . tab($tab+0)
-        ;
+    function js_pwa_install($init_function)
+    {
+        dom_heredoc_start(-1); ?>
+
+            <script>
+
+        <?php dom_heredoc_flush(null); ?>
+        
+            /* PWA (PROGRESSIVE WEB APP) INSTALL */
+                
+            function <?= $init_function ?>()
+            {
+                let deferredPrompt = null;
+                
+                console.log("Register Before Install Prompt callback");
+                
+                window.addEventListener("beforeinstallprompt", function(e) 
+                {
+                    console.log("Before Install Prompt");
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    $(".app-install").css({"display": "inline-block"}); /* TODO change this hardcoded style by a class */
+                });
+                
+                $(".app-install").on("click", function(e)
+                {
+                    $(".app-install").css({"display": "none"}); 
+                    
+                    if (deferredPrompt != null)
+                    {
+                        deferredPrompt.prompt();
+                        
+                        deferredPrompt.userChoice.then(function(choiceResult)
+                        {
+                            if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");
+                            else                                     console.log("User dismissed the A2HS prompt");
+                            
+                            deferredPrompt = null;
+                        });
+                    }
+                    else
+                    {
+                        console.log("Install promt callback not received yet");
+                    }
+                }); 
+            }; 
+            
+        <?php dom_heredoc_flush("raw_js"); ?>
+
+              </script>
+
+        <?php return dom_heredoc_stop(null);        
     }
 
     function js_service_worker($init_function)
     {
-        return 
-        
-            eol(1) . tab(1)
-        .   eol(1) . tab(2) . '/* SERVICE WORKER */'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) . if_then(!dom_has("ajax"), 'function urlBase64ToUint8Array(base64String) { const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0))); }')
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) . 'function '.$init_function.'()'
-        .   eol(1) . tab(2) . '{'.if_then(!dom_has("ajax") && dom_get("support_service_worker", false),''
-        .   eol(1) . tab(3) .     'if ("serviceWorker" in navigator) '
-        .   eol(1) . tab(3) .     '{' 
-        .   eol(1) . tab(4) .         'console.log("Service Worker is supported. Registering...");'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(4) .         'navigator.serviceWorker.register("'.dom_path('sw.js').'").then(function(registration) '
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'console.log("ServiceWorker registration successful with scope: ", registration.scope);'
-        .   eol(1) . tab(5) .             ''
-        .   eol(1) . tab(5) .             'var registration_installing = registration.installing;'
-        .   eol(1) . tab(5) .             'var registration_waiting    = registration.waiting;'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(5) .             'if (registration_installing && registration_installing != null)'
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .             '    console.log("Installing...");'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(6) .             '    if (registration_installing.state === "activated" && !registration_waiting)'
-        .   eol(1) . tab(6) .             '    {'
-        .   eol(1) . tab(7) .             '        console.log("Send Clients claim");'
-        .   eol(1) . tab(7)   
-        .   eol(1) . tab(7) .             '        registration_installing.postMessage({type: "CLIENTS_CLAIM" });'
-        .   eol(1) . tab(6) .             '    }'
-        .   eol(1) . tab(6)   
-        .   eol(1) . tab(6) .             '    registration_installing.addEventListener("statechange", function()'
-        .   eol(1) . tab(6) .             '    {'
-        .   eol(1) . tab(7) .             '        if (registration_installing.state === "activated" && !registration_waiting) '
-        .   eol(1) . tab(7) .             '        {'
-        .   eol(1) . tab(8) .             '            console.log("Send Clients claim");'
-        .   eol(1) . tab(8) .             '            '
-        .   eol(1) . tab(8) .             '            registration_installing.postMessage({ type: "CLIENTS_CLAIM" });'
-        .   eol(1) . tab(7) .             '        }'
-        .   eol(1) . tab(6) .             '    });'
-        .   eol(1) . tab(5) .             '}'
-        .   eol(1) . tab(5)   
-        .   eol(1) . tab(5) .             'navigator.serviceWorker.ready.then(function(registration) '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'registration.pushManager.getSubscription().then(function(subscription) '
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                     'if (!(subscription === null)) '
-        .   eol(1) . tab(7) .                     '{'
-        .   eol(1) . tab(8) .                         'console.log("User IS subscribed.");'
-        .   eol(1) . tab(7) .                     '}'
-        .   eol(1) . tab(7) .                     'else '
-        .   eol(1) . tab(7) .                     '{'
-        .   eol(1) . tab(8) .                         'console.log("User is NOT subscribed.");'
-        .   eol(1) . tab(7) .                     '}'
-        .   eol(1) . tab(6) .                 '})'. if_then(dom_has("push_public_key"), ''
-        .   eol(1) . tab(6) .                 '.then(function()'
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                     'const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("'.dom_get("push_public_key").'") };'
-        .   eol(1) . tab(7) .                     'return registration.pushManager.subscribe(subscribeOptions);'
-        .   eol(1) . tab(7)   
-        .   eol(1) . tab(6) .                 '}'
-        .   eol(1) . tab(6) .                 ').then(function(pushSubscription)'
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                    'console.log("Received PushSubscription: ", JSON.stringify(pushSubscription));'
-        .   eol(1) . tab(7) .                    'return pushSubscription;'
-        .   eol(1) . tab(6) .                 '})') // push_public_key
-        .   eol(1) . tab(6) .                 ';'
-        .   eol(1) . tab(6) .                 ''
-        .   eol(1) . tab(6) .                 'if (registration.sync)'
-        .   eol(1) . tab(6) .                 '{'  
-        .   eol(1) . tab(7) .                   'return registration.sync.register("myFirstSync");'
-        .   eol(1) . tab(6) .                 '}'
-        .   eol(1) . tab(6) .                 'else'
-        .   eol(1) . tab(6) .                 '{'  
-        .   eol(1) . tab(7) .                   'console.log("ServiceWorker registration sync is undefined");'
-        .   eol(1) . tab(6) .                 '}'
-        .   eol(1) . tab(5) .             '});'
-        .   eol(1) . tab(4) .         '}, '
-        .   eol(1) . tab(4) .         'function(err) '
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'console.log("ServiceWorker registration failed: ", err);'
-        .   eol(1) . tab(5)   
-        .   eol(1) . tab(4) .         '}).catch(function(err)'
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'console.log("Service Worker registration failed: ", err);'
-        .   eol(1) . tab(5)   
-        .   eol(1) . tab(4) .         '});'
-        .   eol(1) . tab(4)                                                   /* TODO : REGISTER FOR NOTIFICATIONS ON USER GESTURE */
-        .   eol(1) . tab(4) .         'if ("PushManager" in window) '
-        .   eol(1) . tab(4) .         '{ '                                                                                                    /*
-        .   eol(1) . tab(5) .             'console.log("Service Worker push notifications are supported. Registering...");'
-        .   eol(1) . tab(5)   
-        .   eol(1) . tab(5) .             'new Promise(function(resolve, reject) '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'Notification.requestPermission().then(function(permission) '
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                     'console.log("Notifications permissions : " + permission);'
-        .   eol(1) . tab(7) .                     'if (permission !== "granted") return reject(Error("Denied notification permission"));'
-        .   eol(1) . tab(7) .                     'resolve();'
-        .   eol(1) . tab(6) .                 '});'
-        .   eol(1) . tab(5)   
-        .   eol(1) . tab(5) .             '}).then(function() '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'return navigator.serviceWorker.ready;'
-        .   eol(1) . tab(6)   
-        .   eol(1) . tab(5) .             '}).then(function(registration) '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'return registration.sync.register("syncTest");'
-        .   eol(1) . tab(6)   
-        .   eol(1) . tab(5) .             '}).then(function() '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'console.log("Sync registered");'
-        .   eol(1) . tab(6)   
-        .   eol(1) . tab(5) .             '}).catch(function(err) '
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'console.log("It broke");'
-        .   eol(1) . tab(6) .                 'console.log(err.message);'
-        .   eol(1) . tab(5) .             '});'                                                       */
-        .   eol(1) . tab(4) .         '}'         /**/
-        .   eol(1) . tab(3) .     '}'
-        .   eol(1) . tab(3) .     'else'
-        .   eol(1) . tab(3) .     '{'
-        .   eol(1) . tab(4) .         'console.log("Service worker not supported");'
-        .   eol(1) . tab(3) .     '}'
-        .   eol(1) . tab(2) . '')/* support_service_worker */.'}'
-        .   eol(1) . tab(1)
-        ;
+        dom_heredoc_start(-1); ?>
+
+            <script>
+
+        <?php dom_heredoc_flush(null); ?> 
+
+            /* SERVICE WORKER */
+
+        <?php if (!dom_has("ajax") && dom_has("push_public_key")) { ?> 
+
+            function urlBase64ToUint8Array(base64String) { const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0))); }
+
+        <?php } ?> 
+
+            function <?= $init_function ?>()
+            {
+            <?php if (!dom_has("ajax") && dom_get("support_service_worker", false)) { ?>
+
+                if ("serviceWorker" in navigator)
+                {
+                    console.log("Service Worker is supported. Registering...");
+
+                    navigator.serviceWorker.register("<?= dom_path('sw.js') ?>").then(
+                        
+                    function(registration)
+                    {
+                        console.log("ServiceWorker registration successful with scope: ", registration.scope);
+                        
+                        var registration_installing = registration.installing;
+                        var registration_waiting    = registration.waiting;
+
+                        if (registration_installing && registration_installing != null)
+                        {
+                            console.log("Installing...");
+
+                            if (registration_installing.state === "activated" && !registration_waiting)
+                            {
+                                console.log("Send Clients claim");
+
+                                registration_installing.postMessage({type: "CLIENTS_CLAIM" });
+                            }
+
+                            registration_installing.addEventListener("statechange", function()
+                            {
+                                if (registration_installing.state === "activated" && !registration_waiting) 
+                                {
+                                    console.log("Send Clients claim");
+                                    
+                                    registration_installing.postMessage({ type: "CLIENTS_CLAIM" });
+                                }
+                            });
+                        }
+
+                        navigator.serviceWorker.ready.then(function(registration) 
+                        {
+                            registration.pushManager.getSubscription().then(function(subscription) 
+                            {
+                                if (!(subscription === null)) 
+                                {
+                                    console.log("User IS subscribed.");
+                                }
+                                else 
+                                {
+                                    console.log("User is NOT subscribed.");
+                                }
+                            })
+
+                        <?php if (dom_has("push_public_key")) { ?>
+
+                            .then(function()
+                            {
+                                const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("<?= dom_get("push_public_key") ?>") };
+                                return registration.pushManager.subscribe(subscribeOptions);
+
+                            }).then(function(pushSubscription)
+                            {
+                                console.log("Received PushSubscription: ", JSON.stringify(pushSubscription));
+                                return pushSubscription;
+                            })
+
+                        <?php } ?>
+
+                            ;
+                            
+                            if (registration.sync)
+                            {  
+                                return registration.sync.register("myFirstSync");
+                            }
+                            else
+                            {  
+                                console.log("ServiceWorker registration sync is undefined");
+                            }
+                        });
+                    },                     
+                    function(err) 
+                    {
+                        console.log("ServiceWorker registration failed: ", err);
+
+                    }).catch(function(err)
+                    {
+                        console.log("Service Worker registration failed: ", err);
+
+                    });
+
+                    /* TODO : REGISTER FOR NOTIFICATIONS ON USER GESTURE */
+
+                    if ("PushManager" in window) 
+                    {
+                    /*
+                        console.log("Service Worker push notifications are supported. Registering...");
+
+                        new Promise(function(resolve, reject) 
+                        {
+                            Notification.requestPermission().then(function(permission) 
+                            {
+                                console.log("Notifications permissions : " + permission);
+                                if (permission !== "granted") return reject(Error("Denied notification permission"));
+                                resolve();
+                            });
+
+                        })
+                        .then(function() 
+                        {
+                            return navigator.serviceWorker.ready;
+
+                        })
+                        .then(function(registration)
+                        {
+                            return registration.sync.register("syncTest");
+
+                        })
+                        .then(function()
+                        {
+                            console.log("Sync registered");
+
+                        })
+                        .catch(function(err) 
+                        {
+                            console.log("It broke");
+                            console.log(err.message);
+                        });
+                    */
+                    }
+                }
+                else
+                {
+                    console.log("Service worker not supported");
+                }
+
+            <?php /* support_service_worker */ } ?> 
+            }
+            
+        <?php dom_heredoc_flush("raw_js"); ?>
+
+            </script>
+
+        <?php return dom_heredoc_stop(null);
     }
 
     function js_framework_material()
@@ -6006,28 +5997,15 @@ else
 
         if ($target !== EXTERNAL_LINK)
         {
-            if (dom_AMP()
-            &&  false === stripos($extended_link,"?amp") 
-            &&  false === stripos($extended_link,"&amp") 
-            &&  0     !== stripos($extended_link,"#"))
+            foreach (dom_get("forwarded_flags") as $forward_flag)
             {
-                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . "&amp=1";
-            }
-            
-            if (get("contrast") != "" && get("contrast") != "AA"
-            &&  false === stripos($extended_link,"?contrast") 
-            &&  false === stripos($extended_link,"&contrast") 
-            &&  0     !== stripos($extended_link,"#"))
-            {
-                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&contrast=".get("contrast","AA"));
-            }
-            
-            if (get("light") !== false
-            &&  false === stripos($extended_link,"?light") 
-            &&  false === stripos($extended_link,"&light") 
-            &&  0     !== stripos($extended_link,"#"))
-            {
-                $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&light=".get("light"));
+                if (get($forward_flag) !== false
+                &&  false === stripos($extended_link,"?$forward_flag") 
+                &&  false === stripos($extended_link,"&$forward_flag") 
+                &&  0     !== stripos($extended_link,"#"))
+                {
+                    $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&$forward_flag=".get($forward_flag));
+                }
             }
         }
 
@@ -6918,19 +6896,35 @@ else
     function toolbar_row    ($html,  $attributes = false) {                      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
     function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
 
-    function toolbar_banner_sections_builder($icon_entries = false)
+    function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
     {
-        return  ((true)                    ? (toolbar_section("")                                                                 ) : '')
-            .   ((true)                    ? (toolbar_section("")                                                                 ) : '')
-            .   (($icon_entries !== false) ? (toolbar_section(icon_entries($icon_entries), dom_component_class("toolbar-cell-right")) ) : '')
-            ;
+        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), dom_component_class("toolbar-cell-left"   ));
+        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), dom_component_class("toolbar-cell-center" ));
+        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), dom_component_class("toolbar-cell-right"  ));
+
+        if ($section1 === false) $section1 = "";
+        if ($section2 === false) $section2 = "";
+        if ($section3 === false) $section3 = "";
+
+        if (stripos($section1, "<section") === false) $section1 = toolbar_section($section1);
+        if (stripos($section2, "<section") === false) $section2 = toolbar_section($section2);
+        if (stripos($section3, "<section") === false) $section3 = toolbar_section($section3);
+
+        return $section1.$section2.$section3;
     }
 
-    function toolbar_banner($icon_entries = false)
+    function toolbar_banner($icon_entries = false, $section2 = false, $section3 = false)
     {
         hook_toolbar("banner");
 
-        return toolbar_row(toolbar_banner_sections_builder($icon_entries), "toolbar-row-banner");
+        return toolbar_row(
+            toolbar_banner_sections_builder(
+                $icon_entries,
+                $section2,
+                $section3
+                ),
+            "toolbar-row-banner"
+            );
     }
 
     function menu_entries($html, $sidebar = null)
