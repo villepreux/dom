@@ -58,12 +58,13 @@
     if (!function_exists("T"))                          { function T($label, $default = false, $lang = false)                                               { return dom_T($label, $default = false, $lang = false); } }
 
     #endregion
-    #region ... WIP
+    #region WIP
     ######################################################################################################################################
 
     if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                             { return dom_a($html, $url, $attributes, $target); } }
-
-    # ... WIP
+    if (!function_exists("to_classname"))               { function to_classname($str, $tolower = true)                                                      { return dom_to_classname($str, $tolower); } }
+    if (!function_exists("tab"))                        { function tab($n = 1)                                                                              { return dom_tab($n); } }
+    if (!function_exists("eol"))                        { function eol($n = 1)                                                                              { return dom_eol($n); } }
 
     ######################################################################################################################################
     #endregion
@@ -71,55 +72,18 @@
     ######################################################################################################################################
     #endregion DOM PUBLIC API
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-   
+    ######################################################################################################################################
+    ######################################################################################################################################
+    ######################################################################################################################################
+    ######################################################################################################################################
 
     #region PRIVATE API
     ######################################################################################################################################
     
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.4.4");
-    define("DOM_PATH_MAX_DEPTH",    16);
+    define("DOM_VERSION",           "0.5.0");
+    define("DOM_PATH_MAX_DEPTH",    8);
+    define("DOM_AUTO",              "__DOM_AUTO__");
 
     #region API : GET/SET
     ######################################################################################################################################
@@ -131,17 +95,22 @@
     function dom_del($k)                                                { if (dom_has($_GET,$k)) unset($_GET[$k]); if (dom_has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && dom_has($_SESSION,$k)) unset($_SESSION[$k]); }
     function dom_set($k, $v = true, $aname = false)                     { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
-    function dom_is_localhost()                                         { return (false !== stripos(dom_server_http_host(), "localhost")) 
+    #endregion
+    #region API : CONTEXT
+    ######################################################################################################################################
+
+    function dom_is_localhost()                                         { return (false !== stripos(dom_server_http_host(), "localhost"))
                                                                               || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
 
     #endregion
     #region DEPENDENCIES
     ######################################################################################################################################
     
+    // ! TODO Use more standard paths
                                         @include dom_path("tokens.php");
     if (!function_exists("markdown"))   @include dom_path(dirname(__FILE__)."/../php/vendor/markdown.php");
                                         @include dom_path(dirname(__FILE__)."/../php/vendor/smartypants.php");
-        
+
     #endregion
     #region CONFIG : PHP SETTINGS
     ######################################################################################################################################
@@ -184,14 +153,15 @@
 
     function dom_init_options()
     {
+        // ! TODO prefix all variables with dom_
+
         // Cannot be modified at browser URL level
 
-    //  dom_set("title",                             "Blog");
+      //dom_set("title",                             "Blog");
         dom_set("keywords",                          "");
 
-        dom_set("canonical",                         get("canonical", dom_url()));
-    //  dom_set("url",                               dom_url());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
-    //  dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
+      //dom_set("url",                               dom_url());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
+      //dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
 
         dom_set("normalize",                        "sanitize");
 
@@ -219,7 +189,7 @@
 
         dom_set("support_service_worker",           true);
         
-    //	dom_set("fonts",                            "Roboto:300,400,500");
+      //dom_set("fonts",                            "Roboto:300,400,500");
             
         dom_set("twitter_page",                     "me");
         dom_set("linkedin_page",                    "me");
@@ -251,9 +221,9 @@
         dom_set("version_bootstrap",                "4.1.1");
         dom_set("version_spectre",                  "x.y.z");
         dom_set("version_popper",                  "1.11.0");
-        dom_set("version_jquery",                   "3.4.1"); // Was 3.2.1
+        dom_set("version_jquery",                   "3.5.1"); // Was 3.2.1
         dom_set("version_slick",                    "1.6.0");  
-    //  dom_set("version_slick",                    "1.5.8"); // TRYING TO FIX 1.6.0 on iPhone
+      //dom_set("version_slick",                    "1.5.8"); // TRYING TO FIX 1.6.0 on iPhone
         dom_set("version_prefixfree",               "1.0.7");
         dom_set("version_h5bp",                     "7.1.0");
         
@@ -263,12 +233,13 @@
 
         // Can be modified at browser URL level
 
-        dom_set("framework",                        dom_get("framework",    "NONE"                  ));
-        dom_set("amp",                              dom_get("amp",          false                   ));
-        dom_set("cache",                            dom_get("cache",        false                   ));
+        dom_set("canonical",                        dom_get("canonical",    dom_url()                   ));
+        dom_set("framework",                        dom_get("framework",    "NONE"                      ));
+        dom_set("amp",                              dom_get("amp",          false                       ));
+        dom_set("cache",                            dom_get("cache",        false                       ));
         dom_set("minify",                           dom_get("minify",       !dom_get("beautify",false)  )); // Performances first
-        dom_set("page",                             dom_get("page",         1                       ));
-        dom_set("n",                                dom_get("n",            12                      ));
+        dom_set("page",                             dom_get("page",         1                           ));
+        dom_set("n",                                dom_get("n",            12                          ));
     }
 
     #endregion
@@ -303,14 +274,10 @@
 
     function dom_ajax_placeholder   ($ajax_params, $html = "")                          { return div($html, dom_ajax_classes($ajax_params)); }
     
-    function dom_ajax_classes       ($ajax_params, $extra = false)                      { return "ajax-container ajax-container-".to_classname($ajax_params).(($extra !== false) ? (" ajax-container-".to_classname($extra)) : ""); }
-    function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) { $(".ajax-container-'.to_classname($ajax_params).'").fadeOut("slow", function() { $(this).replaceWith(content); $(this).fadeIn("slow"); }); }, '.$period.'); </script>'; }
+    function dom_ajax_classes       ($ajax_params, $extra = false)                      { return "ajax-container ajax-container-".dom_to_classname($ajax_params).(($extra !== false) ? (" ajax-container-".dom_to_classname($extra)) : ""); }
+    function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) { $(".ajax-container-'.dom_to_classname($ajax_params).'").fadeOut("slow", function() { $(this).replaceWith(content); $(this).fadeIn("slow"); }); }, '.$period.'); </script>'; }
 
-    function dom_ajax_call($f)
-    {            
-        $args = func_get_args();
-        return dom_ajax_call_FUNC_ARGS($f, $args);
-    }
+    function dom_ajax_call          ($f)                                                { $args = func_get_args(); return dom_ajax_call_FUNC_ARGS($f, $args); }
         
     function dom_ajax_call_FUNC_ARGS($f, $args)
     {            
@@ -330,7 +297,7 @@
         
     function dom_ajax_call_with_args($f, $period, $args)
     {
-    //  Async calls disabled
+        // Async calls disabled
         
         if (dom_has("noajax") || !!dom_get("no_js") || dom_has("rss") || dom_AMP())
         {  
@@ -340,13 +307,13 @@
             return call_user_func_array($f, $args);
         }
         
-    //  Async calls enabled
+        // Async calls enabled
         
         $ajax = dom_get("ajax", false);
 
         if (false === $ajax)
         {
-        //  Async caller (or client)
+            // Async caller (or client)
         
             foreach ($args as &$arg)
             {
@@ -360,7 +327,7 @@
         }
         else
         {
-        //  Async listener (or server)
+            // Async listener (or server)
         
             global $call_asyncs_started;
             if (!$call_asyncs_started)    return ""; // We have not started listening yet
@@ -412,9 +379,9 @@
 
     function dom_heredoc_start($tab_offset = 0, $tab = "    ")
     {
-        set("dom_heredoc_current_output",   "");
-        set("dom_heredoc_tab_offset",       $tab_offset);
-        set("dom_heredoc_tab",              $tab);
+        dom_set("dom_heredoc_current_output",   "");
+        dom_set("dom_heredoc_tab_offset",       $tab_offset);
+        dom_set("dom_heredoc_tab",              $tab);
         
         ob_start();
     }
@@ -425,10 +392,10 @@
         {
             $output = ob_get_contents();
 
-            if (get("dom_heredoc_tab_offset") != 0) $output = dom_modify_tab($output, get("dom_heredoc_tab_offset"), get("dom_heredoc_tab"));
-            if (!!$transform)                       $output = $transform($output);
+            if (dom_get("dom_heredoc_tab_offset") != 0) $output = dom_modify_tab($output, dom_get("dom_heredoc_tab_offset"), dom_get("dom_heredoc_tab"));
+            if (!!$transform)                           $output = $transform($output);
         
-            set("dom_heredoc_current_output", get("dom_heredoc_current_output", "") . $output);    
+            dom_set("dom_heredoc_current_output", dom_get("dom_heredoc_current_output", "") . $output);
         }        
 
         ob_end_clean();
@@ -439,21 +406,23 @@
     {
         dom_heredoc_flush($transform);
         ob_end_clean();
-        return get("dom_heredoc_current_output", "");
+        return dom_get("dom_heredoc_current_output", "");
     }
 
     #endregion
     #region JAVASCRIPT SNIPPETS
     ######################################################################################################################################
-    
+
     function dom_string_script_ajax_head()
     {
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+        dom_heredoc_start(-2); ?>        
+        <script>        
+        <?php dom_heredoc_flush(null); ?>
 
             /* DOM Head Javascript boilerplate */
-        
+
             var dom_ajax_pending_calls = [];
-        
+
             function dom_ajax(url, onsuccess, period, onstart, mindelay)
             {
                 dom_ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
@@ -461,102 +430,99 @@
 
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
-    
+
     function dom_string_script_ajax_body()
     {
-        return  eol() . tab(1) .   '/* DOM Body Javascript boilerplate */'
-            .   eol()
-            .   eol() . tab(1) .   'var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)'
-            .   eol() . tab(1) .   '{'
-            .   eol() . tab(2) .       'if (typeof onsuccess    === "undefined") onsuccess  = null;'
-            .   eol() . tab(2) .       'if (typeof period       === "undefined") period     = 0;'
-            .   eol() . tab(2) .       'if (typeof onstart      === "undefined") onstart    = null;'
-            .   eol() . tab(2) .       'if (typeof mindelay     === "undefined") mindelay   = 500;'
-            .   eol()
-            .   eol() . tab(2) .       'var cb = true;'
-            .   eol()
-            .   eol() . tab(2) .       'if (onstart)'
-            .   eol() . tab(2) .       '{'
-            .   eol() . tab(3) .           'onstart();'
-            .   eol() . tab(3) .           'cb = null;'
-            .   eol() . tab(3) .           'setTimeout(function() { if(cb) { cb(); } else { cb = true; } }, mindelay);'
-            .   eol() . tab(2) .       '}'
-        //  .   eol()
-        //  .   eol() . tab(2) .       'console.log("DOM Ajax call : " + onsuccess);'
-            .   eol()
-            .   eol() . tab(2) .       '$.ajax'
-            .   eol() . tab(2) .       '({'
-            .   eol() . tab(3) .           'url:      url'
-            .   eol() . tab(2) .       ',   type:    "GET"'
-            .   eol() . tab(2) .       ',   async:    true'
-            .   eol() . tab(2) .       ',   success:  function(res) { if (onsuccess) { if (cb) { onsuccess(res); } else { cb = function() { onsuccess(res); }; } } }'
-            .   eol() . tab(2) .       ',   complete: function()    { if (period > 0) { setTimeout(function() { dom_ajax(url, onsuccess, period, onstart, mindelay); }, period); } }'
-            .   eol() . tab(2) .       '});'
-            .   eol() . tab(1) .   '};'
-            .   eol()
-            .   eol() . tab(1) .   'var dom_pop_ajax_call = function()'
-            .   eol() . tab(1) .   '{'
-            .   eol() . tab(2) .       'if ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0)'
-            .   eol() . tab(2) .       '{'
-            .   eol() . tab(3) .           'var ajax_pending_call = dom_ajax_pending_calls.pop();'
-            .   eol()
-            .   eol() . tab(3) .            ((!!dom_get("debug")) ? 'console.log("Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); ' : '') 
-            .   eol() . tab(3) .           'dom_process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);'
-            .   eol() . tab(2) .       '}'
-            .   eol() . tab(1) .   '};'
-            .   eol()
-            .   eol() . tab(1) .   'while ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0) { dom_pop_ajax_call(); };'
-            .   eol() . tab(1) .   'setInterval(dom_pop_ajax_call, 1*1000);'
-            .   eol();
+        dom_heredoc_start(-2); ?>
+        <script>        
+        <?php dom_heredoc_flush(null); ?>
+
+            /* DOM Body Javascript boilerplate */
+
+            var dom_process_ajax = function(url, onsuccess, period, onstart, mindelay)
+            {
+                if (typeof onsuccess    === "undefined") onsuccess  = null;
+                if (typeof period       === "undefined") period     = 0;
+                if (typeof onstart      === "undefined") onstart    = null;
+                if (typeof mindelay     === "undefined") mindelay   = 500;
+            
+                var cb = true;
+            
+                if (onstart)
+                {
+                    onstart();
+                    cb = null;
+                    setTimeout(function() { if(cb) { cb(); } else { cb = true; } }, mindelay);
+                }
+            
+                $.ajax
+                ({
+                    url:      url
+                ,   type:    "GET"
+                ,   async:    true
+                ,   success:  function(res) { if (onsuccess) { if (cb) { onsuccess(res); } else { cb = function() { onsuccess(res); }; } } }
+                ,   complete: function()    { if (period > 0) { setTimeout(function() { dom_ajax(url, onsuccess, period, onstart, mindelay); }, period); } }
+                });
+            };
+            
+            var dom_pop_ajax_call = function()
+            {
+                if ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0)
+                {
+                    var ajax_pending_call = dom_ajax_pending_calls.pop();
+            
+                    <?php if (!!dom_get("debug")) { ?> console.log("Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?>
+                    dom_process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
+                }
+            };
+            
+            while ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0) { dom_pop_ajax_call(); };
+            setInterval(dom_pop_ajax_call, 1*1000);
+            
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
     #endregion
     #region HELPERS : PATH FINDER
     ######################################################################################################################################
         
-    function dom_path($path, $default = false, $search = true, $depth = 16, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path = ".")
+    function dom_path($path0, $default = false, $search = true, $depth0 = DOM_PATH_MAX_DEPTH, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path0 = ".")
     {
-    //	Minimal validation
+        $profiler = dom_debug_track_timing();
 
-        if (false !== stripos($path, "\n") ) return $default;
-        if (false !== stripos($path, "{")  ) return $default;
-        if (false !== stripos($path, "\"") ) return $default;
+        $searches = array(array($path0, $depth0, $offset_path0));
+
+        while (count($searches) > 0)
+        {
+            $path = $searches[0][0]; $depth = $searches[0][1]; $offset_path = $searches[0][2];
+            array_shift($searches);
     
-    //	If URL format then keep it as-is
+            // Minimal early validation for when user is not providing a real url or path but some random text content
 
-        if ($path[0] == "/" && $path[1] == "/") return $path;
-        if (0 === stripos($path, "http"))       return $path;
+            if (false !== stripos($path, "\n") ) return $default;
+            if (false !== stripos($path, "{")  ) return $default;
+            if (false !== stripos($path, "\"") ) return $default;
+        
+            // If URL format then keep it as-is
 
-    //	If absolute path and localhost then use root trick if available 
+            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") return $path;
+            if (0 === stripos($path, "http"))                             return $path;
+  
+            // If path exists then directly return it
 
-        if (is_localhost() && !!dom_get("localhost_root") && ($max_depth == $depth) && (false === stripos($path, dom_get("localhost_root"))) 
-        &&  (strlen($path) > 0 && $path[0] == "/")) 
-        {
-            $path = substr_replace($path, dom_get("localhost_root"), 0, 1);
-        }
+            if (@file_exists($path))                                return $path;
+            if (($max_depth == $depth) && dom_url_exists($path))    return $path;
 
-    //	If path exists then directly return it
+            // If we have already searched too many times then return fallback
 
-        if (@file_exists($path)) 							{ return $path; }
-        if (($max_depth == $depth) && url_exists($path))	{ return $path; }
+            if ($depth <= 0) return $default;
 
-    //	If we have already searched too many times then return fallback
+            // If requested then search in parent folder
 
-        if ($depth <= 0) { return $default; }
-       
-    //	If we have reached designated root then return fallback
-
-        if (@file_exists("$offset_path/".dom_get("root_file_hint","#"))) 
-        {
-        //  error_log("CANNOT FIND $path ROOT FOUND AT $offset_path");
-            return $default;
-        }
-
-    //	If requested then search in parent folder
-
-        if ($search)
-        {
-            return dom_path("../$path", $default, $search, $depth - 1, $max_depth, "../$offset_path");
+            if ($search)
+            {
+                $searches[] = array("../$path", $depth - 1, "../$offset_path");
+            }
         }
 
         return $default;
@@ -623,7 +589,7 @@
     
     function dom_frameworks_material_classes_grid_cells() { $a = array(); foreach (array(1,2,3,4,5,6,7,8,9,10,11,12) as $s) foreach (array(1,2,3,4,5,6,7,8,9,10,11,12) as $m) foreach (array(1,2,3,4,5,6,7,8,9,10,11,12) as $l) $a["grid-cell-$s-$m-$m"] = 'mdc-layout-grid__cell--span-'.$s.'-phone mdc-layout-grid__cell--span-'.$m.'-tablet mdc-layout-grid__cell--span-'.$l.'-desktop'; return $a; }
 
-    $frameworks = array
+    $__dom_frameworks = array
     (
         'material' => array
         (
@@ -698,7 +664,7 @@
             ))
         )
         
-    ,   "bootstrap" => array
+       ,"bootstrap" => array
         (
             "classes" => array
             (
@@ -708,7 +674,7 @@
             )
         )
         
-    ,   "spectre" => array
+       ,"spectre" => array
         (
             "classes" => array
             (
@@ -732,14 +698,14 @@
     
     function dom_component_class($classname) 
     {
-        global $frameworks;
+        global $__dom_frameworks;
         
         $framework = dom_get("framework", "");
         
-        if ((array_key_exists($framework, $frameworks)) 
-        &&  (array_key_exists($classname, $frameworks[$framework]["classes"])))
+        if ((array_key_exists($framework, $__dom_frameworks)) 
+        &&  (array_key_exists($classname, $__dom_frameworks[$framework]["classes"])))
         {
-            $classname .= ' ' . $frameworks[$framework]["classes"][$classname];
+            $classname .= ' ' . $__dom_frameworks[$framework]["classes"][$classname];
         }
         
         return $classname;
@@ -749,13 +715,33 @@
     #region HELPERS : PROFILING
     ######################################################################################################################################
     
-    $__dom_debug_timing_t0   = microtime(true);
-    $__dom_debug_timings_log = array();
+    $__dom_profiling = array();
     
-    function dom_debug_timings()
+    function dom_debug_timings($totals_only = true)
     {
-        global $__dom_debug_timings_log;
-        return $__dom_debug_timings_log;
+        $report = array();
+
+        global $__dom_profiling;
+
+        $totals = array();
+
+        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] = 0;
+        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] += $profiling["dt"];
+
+        if (!$totals_only)
+        {
+            foreach ($__dom_profiling as $profiling)
+            {
+                $report[] = str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(" . $profiling["tag"] . ")") : "");
+            }
+        }
+
+        foreach ($totals as $function => $total)
+        {
+            $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
+        }
+
+        return $report;
     }
     
     function dom_debug_callstack($shift_current_call = true)
@@ -769,31 +755,63 @@
         return $callstack;
     }
     
-    function dom_debug_track_timing($annotation = false)
+    function dom_debug_functions_callstack($shift_current_call = true)
     {
-        global $__dom_debug_timing_t0;
-        global $__dom_debug_timings_log;
-        
-        $callstack = dom_debug_callstack(); array_shift($callstack);
-        $lastcall  = array_shift($callstack);
-        $function  = $lastcall["function"];
-        $timestamp = microtime(true) - $__dom_debug_timing_t0;
+        $callstack = dom_debug_callstack($shift_current_call);
+        if ($shift_current_call) array_shift($callstack);
 
-        $__dom_debug_timings_log[] =  str_pad(number_format($timestamp, 2), 6, " ", STR_PAD_LEFT) . ": " . $function . ((false !== $annotation) ? ("(" . $annotation . ")") : "");
-        
+        $functions = array();
+        foreach ($callstack as $call) $functions[] = $call["function"];        
+        return $functions;
+    }
+
+    function dom_debug_track_delta($tag = false, $dt = false)
+    {
+        $functions_callstack = dom_debug_functions_callstack();
+        array_shift($functions_callstack); // dom_debug_track_delta
+        array_shift($functions_callstack); // __destruct
+
+        if (count($functions_callstack) == 0)
+        {
+            $functions_callstack[] = "_";
+        }
+
+        $functions_callstack_string = implode(" <- ", $functions_callstack);
+
+        global $__dom_profiling;
+
+        $__dom_profiling[] = array(
+            "dt"        => $dt,
+            "tag"       => $tag,
+            "callstack" => $functions_callstack_string,
+            "function"  => $functions_callstack[0],
+            "t"         => null
+            );
+
         return "";
     }
+
+    class dom_debug_track_delta_scope
+    {
+        function __construct($annotation = false) { $this->t = microtime(true); $this->annotation = $annotation;  }
+        function __destruct() { dom_debug_track_delta($this->annotation, microtime(true) - $this->t); }
+    }
     
+    function dom_debug_track_timing($annotation = false)
+    {
+        return new dom_debug_track_delta_scope($annotation);
+    }
+
     #endregion
     #region HELPERS : SERVER ARGS
     ######################################################################################################################################
     
-    function dom_server_http_accept_language    ($default = "en")                   { return dom_at($_SERVER, 'HTTP_ACCEPT_LANGUAGE', $default); }
-    function dom_server_server_name             ($default = "localhost")            { return dom_at($_SERVER, 'SERVER_NAME',          $default); }
-    function dom_server_server_port             ($default = "80")                   { return dom_at($_SERVER, 'SERVER_PORT',          $default); }
-    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at($_SERVER, 'REQUEST_URI',          $default); }
-    function dom_server_https                   ($default = "on")                   { return dom_at($_SERVER, 'HTTPS',                $default); }
-    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at($_SERVER, 'HTTP_HOST',            $default); }
+    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE', $default); }
+    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',          $default); }
+    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',          $default); }
+    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',          $default); }
+    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS',                $default); }
+    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',            $default); }
 
     #endregion
     #region HELPERS : LOCALIZATION
@@ -810,29 +828,29 @@
     #endregion
     #region HELPERS : MISC
     ######################################################################################################################################
-    
-    if (!function_exists("to_classname")) { function to_classname($str, $tolower = true) { $str = str_replace("é","e",str_replace("è","e",str_replace("à","a",$str))); return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str)); } }
-    
+
+    function dom_to_classname($str, $tolower = true) { $str = str_replace("é","e",str_replace("è","e",str_replace("à","a",$str))); return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str)); }
+
     function dom_AMP() { return false !== dom_get("amp", false) && 0 !== dom_get("amp", false) && "0" !== dom_get("amp", false); }
 
-    function url_exists($url)
+    function dom_url_exists($url)
     {
-       $headers = @get_headers($url);
-       return (is_array($headers) && false !== stripos($headers[0], "200 OK")) ? true : false;
+        $headers = @get_headers($url);
+        return (is_array($headers) && false !== stripos($headers[0], "200 OK")) ? true : false;
     }
-    
-    function clean_title($title)
+
+    function dom_clean_title($title)
     {
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function array_open_url($urls, $content_type = 'json', $timeout = 7)
+    function dom_array_open_url($urls, $content_type = 'json', $timeout = 7)
     {
         if (is_array($urls))
         {
             foreach ($urls as $url)
             {
-                $content = array_open_url($url, $content_type);
+                $content = dom_array_open_url($url, $content_type);
                 
                 if (false !== $content)
                 {
@@ -866,7 +884,8 @@
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
             //  curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.1) Gecko/20061204 Firefox/2.0.0.1');
-                curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0');
+            //  curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:74.0) Gecko/20100101 Firefox/74.0');
+                curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
                 curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
                 curl_setopt($curl, CURLOPT_URL,             $url);
                 curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
@@ -876,13 +895,13 @@
                 
                 if (!!dom_get("debug") && (!$content || $content == "")) 
                 {
-                    echo comment("CURL ERROR: ".curl_error($curl).(!$content ? "false result" : "Empty result"));
-                    echo comment(to_string(curl_getinfo($curl)));
+                    echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
+                    echo comment(dom_to_string(curl_getinfo($curl)));
                 }
 
             //  if (!!dom_get("debug") && $url == "https://www.instagram.com/kermorgant_photo?__a=1")
             //  {
-            //      echo comment(to_string(curl_getinfo($curl)));
+            //      echo comment(dom_to_string(curl_getinfo($curl)));
             //  }
 
                 curl_close($curl);
@@ -899,13 +918,13 @@
         }
         else
         {
-            if (!!get("debug")) echo eol().comment("COULD NOT PARSE $url");
+            if (!!get("debug")) echo dom_eol().comment("COULD NOT PARSE $url");
         }
 
         return $content;
     }
 
-    function array_hashtags($text)
+    function dom_array_hashtags($text)
     {
         $hashtags = array();
 
@@ -924,7 +943,7 @@
         return $hashtags;
     }
 
-    function str_replace_all($from, $to, $str)
+    function dom_str_replace_all($from, $to, $str)
     {
         if (is_string($str))
         {
@@ -942,12 +961,12 @@
         return $str;
     }
     
-    function to_string($a)
+    function dom_to_string($a)
     {
         return is_array($a) ? print_r($a, true) : (string)$a;
     }
 
-    function is_array_filtered($a, $required_values, $unwanted_values = false)
+    function dom_is_array_filtered($a, $required_values, $unwanted_values = false)
     {
         if (is_array($unwanted_values) && count($unwanted_values) > 0)
         {
@@ -965,21 +984,21 @@
         return $match;
     }
     
-    function is_array_sequential($a)
+    function dom_is_array_sequential($a)
     {
         return array() === $a || array_keys($a) === range(0, count($a) - 1);
     }
-    
-                                                function dup($html, $n)                                 { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
-                                                function eol($n = 1)                                    { if (!!dom_get("minify",false)) return ''; switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dup("\r\n",$n); case 'DAR': return dup("\r",$n);  } return dup("\n",$n); }
-    if (!function_exists("tab"))            {   function tab($n = 1)                                    { if (!!dom_get("minify",false)) return ' '; return dup(' ', 4*$n); }    }
-                                                function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x; $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
-                                                function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
-                                                function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
-                                                function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
-                                                function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
-                                                function if_then($e, $html_if, $html_else = '')         { return (!!$e) ? $html_if : $html_else; }
-                                                function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
+
+    function dom_dup($html, $n)                             { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
+    function dom_eol($n = 1)                                { if (!!dom_get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dom_dup("\r\n",$n); case 'DAR': return dom_dup("\r",$n); } return dom_dup("\n",$n); }
+    function dom_tab($n = 1)                                { if (!!dom_get("minify",false)) return ' '; return dom_dup(' ', 4*$n); }
+    function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x;  $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
+    function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
+    function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
+    function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
+    function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
+    function dom_if($expr, $html)                           { return (!!$expr) ? $html : ""; }
+    function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
     
     function wrap_each($a, $glue = "", $transform = "self", $flatten_array = true)
     {
@@ -1078,7 +1097,7 @@
     {
         if ($markdown)    $html = Markdown($text);
         if ($smartypants) $html = SmartyPants($html);
-        if ($hard_wrap)   $html = str_replace("\n", "<br/>", $html);
+        if ($hard_wrap)   $html = str_replace("\n", "<br>", $html);
 
         if (!!$no_header)
         {
@@ -1285,7 +1304,7 @@
     {
         $keys = "";
         global $hook_amp_scripts;
-        foreach ($hook_amp_scripts as $js) $keys .= eol().hash("sha384",$js);
+        foreach ($hook_amp_scripts as $js) $keys .= dom_eol().hash("sha384",$js);
         return $keys;
     }
 
@@ -1299,7 +1318,7 @@
         {
             $uuid = md5($js);
 
-            $html .= cosmetic(eol()).
+            $html .= cosmetic(dom_eol()).
 
                 '<amp-script script="dom_amp_scripts_'.$uuid.'" layout="container"></amp-script>'.
                 '<script type="text/plain" target="amp-script" id="dom_amp_scripts_'.$uuid.'">'.
@@ -1398,7 +1417,7 @@
                 hook_feed_item($metadata);
             }
         
-            dom_set($source . "_" . $type, (dom_has($source . "_" . $type) ? (dom_get($source . "_" . $type) . "§") : "") . clean_title(dom_at($metadata, "post_title"))); 
+            dom_set($source . "_" . $type, (dom_has($source . "_" . $type) ? (dom_get($source . "_" . $type) . "§") : "") . dom_clean_title(dom_at($metadata, "post_title"))); 
         }
     }
     
@@ -1633,7 +1652,7 @@
     
     function json_pinterest_pin($pin, $token = false)
     {
-        dom_debug_track_timing($pin);
+        $profiler = dom_debug_track_timing($pin);
         
         if ($token === false && !defined("TOKEN_PINTEREST")) return array();
         
@@ -1641,12 +1660,12 @@
         $fields     = array("id","link","note","url","image","media","metadata","attribution","board","color","original_link","counts","creator","created_at");
         $end_point  = "https://api.pinterest.com/v1/pins/".$pin."/?access_token=".$token."&fields=".implode('%2C', $fields); // EXTERNAL ACCESS
         
-        return array_open_url($end_point);
+        return dom_array_open_url($end_point);
     }
 
     function json_pinterest_posts($username = false, $board = false, $token = false)
     {
-        dom_debug_track_timing($username.": ".$board);
+        $profiler = dom_debug_track_timing($username.": ".$board);
         
         if ($token    === false && !defined("TOKEN_PINTEREST")) return array();
         if ($username === false && !dom_has("pinterest_user"))  return array();
@@ -1657,7 +1676,7 @@
         $board      = ($board    === false) ? dom_get("pinterest_board")    : $board;
         $end_point  = "https://api.pinterest.com/v1/boards/".$username."/".$board."/pins/?access_token=".$token; // EXTERNAL ACCESS
         
-        $result = array_open_url($end_point);
+        $result = dom_array_open_url($end_point);
 
         if (dom_at($result, "status") == "failure")
         {
@@ -1669,7 +1688,7 @@
     
     function json_tumblr_blog($blogname = false, $method = "info", $token = false)
     {
-        dom_debug_track_timing($blogname);
+        $profiler = dom_debug_track_timing($blogname);
         
         if ($token    === false && !defined("TOKEN_TUMBLR")) return array();
         if ($blogname === false && !dom_has("tumblr_blog"))  return array();
@@ -1678,12 +1697,12 @@
         $token      = ($token    === false) ? TOKEN_TUMBLR       : $token;    
         $end_point  = "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/$method?api_key=$token"; // EXTERNAL ACCESS
         
-        return array_open_url($end_point);
+        return dom_array_open_url($end_point);
     }
 
     function endpoint_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
     {                   
-        dom_debug_track_timing($username);
+        $profiler = dom_debug_track_timing($username);
 
         if ($token    === false && !defined("TOKEN_FACEBOOK")) return false;
         if ($username === false && !dom_has("facebook_page"))  return false;
@@ -1701,11 +1720,11 @@
 
     function json_facebook($username = false, $fields_page = false, $fields_post = false, $fields_attachements = false, $token = false)
     {
-        dom_debug_track_timing($username);        
+        $profiler = dom_debug_track_timing($username);        
         $end_point = endpoint_facebook($username, $fields_page, $fields_post, $fields_attachements, $token);
         if ($end_point === false) return array();
         
-        $result = array_open_url($end_point);
+        $result = dom_array_open_url($end_point);
         /*
         if ((false !== $username) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
                                                           || (dom_at(dom_at($result, "error"), "code", "") ==  200 ) 
@@ -1749,7 +1768,7 @@
     
     function json_facebook_post($post_id, $username = false, $fields_post = false, $fields_attachements = false, $token = false)
     {
-        dom_debug_track_timing($username.": ".$post_id);
+        $profiler = dom_debug_track_timing($username.": ".$post_id);
         
         if ($token    === false && !defined("TOKEN_FACEBOOK"))  return array();
         if ($username === false && !dom_has("facebook_page"))   return array();
@@ -1760,7 +1779,7 @@
         $token                  = ($token               === false) ? TOKEN_FACEBOOK : $token;
         $end_point              = "https://graph.facebook.com/v2.10/".$post_id."?access_token=".$token."&fields=".implode('%2C', $fields_post); // EXTERNAL ACCESS
 
-        return array_open_url($end_point);
+        return dom_array_open_url($end_point);
     }
         
     function json_facebook_from_content($url)
@@ -1769,7 +1788,7 @@
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
     */
-        $html = array_open_url($url, "html");
+        $html = dom_array_open_url($url, "html");
 
     //  echo $html; die();
 
@@ -1926,7 +1945,7 @@
         
     function json_facebook_articles($page = false, $token = false, $limit = false)
     {
-        dom_debug_track_timing($page);
+        $profiler = dom_debug_track_timing($page);
         
         if ($token  === false && !defined("TOKEN_FACEBOOK"))    return array();
         if ($page   === false && !dom_has("facebook_page"))     return array();
@@ -1940,7 +1959,7 @@
         ,*/ "https://graph.facebook.com/v2.10/".$page."/instant_articles?access_token=".$token // EXTERNAL ACCESS
         );
 
-        $result = array_open_url($end_points);
+        $result = dom_array_open_url($end_points);
         
         if ((false !== $page) && ((false === $result) || (dom_at(dom_at($result, "meta"),  "code", "") == "200") 
                                                       || (dom_at(dom_at($result, "error"), "code", "") ==  200 )))
@@ -1980,7 +1999,7 @@
     
     function json_facebook_article($article, $username = false, $fields_post = false, $fields_attachements = false, $token = false)
     {
-        dom_debug_track_timing($username.": ".$article);
+        $profiler = dom_debug_track_timing($username.": ".$article);
 
         return json_facebook_article_from_content("https://www.facebook.com".$article);
     }
@@ -1988,7 +2007,7 @@
     function json_instagram_from_content($url)
     {
     //  $html = @file_get_contents($url);
-        $html = array_open_url($url, "html");
+        $html = dom_array_open_url($url, "html");
             
         if ($html)
         {
@@ -2013,7 +2032,7 @@
         
     function json_instagram_medias($username = false, $token = false, $tag = false, $limit = false, $post_filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing($username);
+        $profiler = dom_debug_track_timing($username);
 
         if ($token    === false && !defined("TOKEN_INSTAGRAM")) return array();
         if ($username === false && !dom_has("instagram_user"))  return array();
@@ -2032,7 +2051,7 @@
         ,   "https://api.instagram.com/v1/tags/"  . $tag        . "/media/recent/?access_token=$token" // EXTERNAL ACCESS
         );
 
-        $result = array_open_url($end_points);
+        $result = dom_array_open_url($end_points);
 
         // DEBUG -->
         /*
@@ -2085,9 +2104,9 @@
                 {
                     $json_tag_page = false;
 
-                    if ($mode == "username_json")       $json_tag_page = array_open_url($page_url);
+                    if ($mode == "username_json")       $json_tag_page = dom_array_open_url($page_url);
                     if ($mode == "username_json_html")  $json_tag_page = json_instagram_from_content($page_url);
-                    if ($mode == "tag_json")            $json_tag_page = array_open_url($page_url);
+                    if ($mode == "tag_json")            $json_tag_page = dom_array_open_url($page_url);
                     if ($mode == "tag_html")            $json_tag_page = json_instagram_from_content($page_url);
                     if ($mode == "username_html")       $json_tag_page = json_instagram_from_content($page_url);
 
@@ -2099,7 +2118,7 @@
                 //   else
                 //  {
                 //      if (!!get("debug")) echo comment("SUCCESS TO FETCH INSTAGRAM CONTENT $mode $page_url");
-                //      if (!!get("debug")) echo comment(to_string($json_tag_page));
+                //      if (!!get("debug")) echo comment(dom_to_string($json_tag_page));
                 //  }
 
                     ++$nb_parsed_pages;
@@ -2169,8 +2188,8 @@
                         $filtered  = dom_at($item, "id")   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
                         $excluded  = in_array(dom_at($item,"id"), explode(',',dom_get("exclude_instagram_codes", "")));
                         $excluded  = $excluded || in_array(dom_at(dom_at($item,"user"),"full_name"), explode(',',dom_get("exclude_instagram_users", "")));
-                        $item_tags = array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
-                        $tagged    = is_array_filtered($item_tags, $tags_in, $tags_out);
+                        $item_tags = dom_array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
+                        $tagged    = dom_is_array_filtered($item_tags, $tags_in, $tags_out);
 
                         if (!$filtered || $excluded || !$tagged) continue;
 
@@ -2190,9 +2209,9 @@
         
         return $result;
     }
-    
+
     function __json_flickr($method, $params = array(), $token = false)
-    {        
+    {
         if ($token === false && !defined("TOKEN_FLICKR")) return array();
         
         $token      = ($token === false) ? TOKEN_FLICKR : $token;
@@ -2200,15 +2219,15 @@
         $end_point  = "https://api.flickr.com/services/rest/?method=".$method."&api_key=".$token."&format=json&nojsoncallback=1"; // EXTERNAL ACCESS
 
         if (!!$params) foreach ($params as $key => $val) $end_point .= "&".$key."=".urlencode($val);
-
-        $json = array_open_url($end_point);
+        
+        $json = dom_array_open_url($end_point);
 
         return $json;
     }
     
     function json_flickr_no_user_fallback($method, $params = array(), $user_id = false, $token = false)
     {
-        dom_debug_track_timing($user_id);
+        $profiler = dom_debug_track_timing($user_id);
         
         if ($token === false && !defined("TOKEN_FLICKR")) return array();
 
@@ -2233,11 +2252,11 @@
     
     function json_flickr($method, $params = array(), $user_id = false, $token = false)
     {
-        dom_debug_track_timing($user_id);
+        $profiler = dom_debug_track_timing($user_id);
         
         if ($user_id === false && !dom_has("flickr_user"))  return array();
         $user_id = ($user_id === false) ? dom_get("flickr_user") : $user_id;
-        
+
         return json_flickr_no_user_fallback($method, $params, $user_id, $token);
     }
     
@@ -2264,7 +2283,7 @@
     
     function array_socials_posts($sources = false, $filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing("start");
+        $profiler = dom_debug_track_timing();
         
         $posts = array();
         
@@ -2284,7 +2303,7 @@
             if (is_callable("array_".$social_source."_posts"))
             {
                 $source_posts = call_user_func("array_".$social_source."_posts", $username, $filter, $tags_in, $tags_out);
-                
+
                 if (is_array($source_posts))
                 {
                     $posts = array_merge($posts, $source_posts);
@@ -2292,22 +2311,20 @@
             }
             else if (!!dom_get("debug"))
             {
-                echo "UNDEFINED SOCIAL SOURCE: ".to_string($sources).to_string($filter);
+                echo "UNDEFINED SOCIAL SOURCE: ".dom_to_string($sources).dom_to_string($filter);
             }
             
             ++$social_index;
         }
         
         usort($posts, "sort_cmp_post_timestamp");
-        
-        dom_debug_track_timing("end");
      
         return $posts;
     }
     
     function array_socials_thumbs($sources = false, $filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing("start");
+        $profiler = dom_debug_track_timing();
         
         $posts = array();
         
@@ -2335,7 +2352,7 @@
             }
             else if (!!dom_get("debug"))
             {
-                echo "UNDEFINED SOCIAL SOURCE: ".to_string($sources).to_string($filter);
+                echo "UNDEFINED SOCIAL SOURCE: ".dom_to_string($sources).dom_to_string($filter);
             }
             
             ++$social_index;
@@ -2343,8 +2360,6 @@
         
         usort($posts, "sort_cmp_post_timestamp");
         
-        dom_debug_track_timing("end");
-     
         return $posts;
     }
     
@@ -2378,7 +2393,7 @@
         
     function array_instagram_posts($username, $post_filter = "", $tags_in = false, $tags_out = false, $hooks = true)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username, false, false, dom_get("page") * dom_get("n"), $post_filter, $tags_in, $tags_out);
         $posts   = array();
@@ -2393,8 +2408,8 @@
             $filtered  = dom_at($item, "id")   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
             $excluded  = in_array(dom_at($item,"id"), explode(',',dom_get("exclude_instagram_codes", "")));
             $excluded  = $excluded || in_array(dom_at(dom_at($item,"user"),"full_name"), explode(',',dom_get("exclude_instagram_users", "")));
-            $item_tags = array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
-            $tagged    = is_array_filtered($item_tags, $tags_in, $tags_out);
+            $item_tags = dom_array_hashtags(dom_get(dom_get($item, "caption"), "text"));           
+            $tagged    = dom_is_array_filtered($item_tags, $tags_in, $tags_out);
 
             if (!$filtered || $excluded || !$tagged) continue;
             
@@ -2424,8 +2439,8 @@
             $title          = extract_start($item["caption"]["text"]);
             $post_message   = dom_at(dom_at($item,"caption"),"text");
             
-            if (dom_get("facebook_posts_no_duplicate_titles") && in_array(clean_title($title), explode('§', dom_get("facebook_posts" )))) continue;
-            if (dom_get("facebook_posts_no_duplicate_titles") && in_array(clean_title($title), explode('§', dom_get("instagram_posts")))) continue;
+            if (dom_get("facebook_posts_no_duplicate_titles") && in_array(dom_clean_title($title), explode('§', dom_get("facebook_posts" )))) continue;
+            if (dom_get("facebook_posts_no_duplicate_titles") && in_array(dom_clean_title($title), explode('§', dom_get("instagram_posts")))) continue;
             
             $metadata = array
             (
@@ -2452,7 +2467,7 @@
     
     function array_instagram_post($username = false, $post_id = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
 
     //  if ($post_id === "" || $post_id === false)
         {
@@ -2514,7 +2529,7 @@
     
     function array_flickr_posts($username = false, $photo_key = false, $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $photoset_key = false;
         
@@ -2650,7 +2665,7 @@
             hook("thumb", $post);
             unset($post["post_title"]);
         }
-
+        
         return $posts;
     }
     
@@ -2681,7 +2696,7 @@
         
         /*
 
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
           
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
@@ -2692,11 +2707,11 @@
 
         foreach (dom_at($content, "data",  array()) as $item)
         {
-            $item_tags = array_hashtags(dom_get(dom_get($item, "caption"), "text"));
+            $item_tags = dom_array_hashtags(dom_get(dom_get($item, "caption"), "text"));
             
             $filtered = $item["id"]   == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
             $excluded = in_array(dom_get($item,"id"),   explode(',',dom_get("exclude_instagram_codes", "")));
-            $tagged   = is_array_filtered($item_tags, $tags_in, $tags_out);
+            $tagged   = dom_is_array_filtered($item_tags, $tags_in, $tags_out);
             
             if (!$filtered || $excluded || !$tagged) continue;
             
@@ -2723,7 +2738,7 @@
     
     function array_tumblr_posts($blogname = false, $post = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
@@ -2738,16 +2753,16 @@
             
             $filtered = $item["id"] == "$post" || "" == "$post" || false == "$post";
             $excluded = in_array(dom_get($item,"slug"), explode(',',dom_get("exclude_tumblr_slugs", "")));
-            $tagged   = is_array_filtered(dom_at($item, "tags", array()), $tags_in, $tags_out);            
+            $tagged   = dom_is_array_filtered(dom_at($item, "tags", array()), $tags_in, $tags_out);            
             $indirect = ((false !== stripos(dom_get($item, "link_url"),      "instagram.com")) 
                       || (false !== stripos(dom_get($item, "permalink_url"), "instagram.com"))) && (dom_has("instagram_posts") /*|| (dom_get("filter", "default") == "default")*/);
                     
-            $indirect = $indirect || in_array(clean_title($post_title), explode('§', dom_get("facebook_posts")));
-            $indirect = $indirect || in_array(clean_title($post_title), explode('§', dom_get("instagram_posts")));
+            $indirect = $indirect || in_array(dom_clean_title($post_title), explode('§', dom_get("facebook_posts")));
+            $indirect = $indirect || in_array(dom_clean_title($post_title), explode('§', dom_get("instagram_posts")));
 
             if (!$filtered || $excluded || !$tagged || $indirect) continue;
             
-            $post_source_url = (dom_get("check_target_url", false)) ? ((false === array_open_url(dom_get($item, "link_url"))) ? dom_get($item, "post_url") : dom_get($item, "link_url")) : dom_at($item, "link_url", dom_at($item, "post_url"));
+            $post_source_url = (dom_get("check_target_url", false)) ? ((false === dom_array_open_url(dom_get($item, "link_url"))) ? dom_get($item, "post_url") : dom_get($item, "link_url")) : dom_at($item, "link_url", dom_at($item, "post_url"));
     
             if (dom_at($item, "type") == "photo")
             {
@@ -2829,7 +2844,7 @@
     
     function array_pinterest_posts($username_and_board, $pin_filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         if (!is_array($username_and_board)) $username_and_board = array($username_and_board, false);
         
@@ -2885,7 +2900,7 @@
 
     function array_tumblr_blog($blogname = false, $filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $blogname   = ($blogname === false) ? dom_get("tumblr_blog") : $blogname;
         $content    = json_tumblr_blog($blogname, "info");
@@ -2915,7 +2930,7 @@
     
     function array_facebook_posts($username = false, $post = "", $tags_in = false, $tags_out = false, $limit = false, $videos = true)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
 
         $username   = ($username === false) ? dom_get("facebook_page")  : $username;        
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
@@ -2962,13 +2977,13 @@
             
             $post_article_tags  = ($post_article !== false) ? array("ARTICLE") : array();
             
-            if (!is_array_filtered(array_merge($post_article_tags, array_hashtags($post_message)), $tags_in, $tags_out)) continue;
+            if (!dom_is_array_filtered(array_merge($post_article_tags, dom_array_hashtags($post_message)), $tags_in, $tags_out)) continue;
             
             if (0 === strpos($post_message, dom_get("instagram_user")) && instagram_posts_presence()) continue;
             if (0 === strpos($post_message, dom_get("instagram_user"))) $post_message = substr($post_message, strlen(dom_get("instagram_user")));
             
-        //  if (dom_get("facebook_posts_no_duplicate_titles") && in_array(clean_title($post_title), explode('§', dom_get("facebook_posts" )))) continue;
-        //  if (dom_get("facebook_posts_no_duplicate_titles") && in_array(clean_title($post_title), explode('§', dom_get("instagram_posts")))) continue;
+        //  if (dom_get("facebook_posts_no_duplicate_titles") && in_array(dom_clean_title($post_title), explode('§', dom_get("facebook_posts" )))) continue;
+        //  if (dom_get("facebook_posts_no_duplicate_titles") && in_array(dom_clean_title($post_title), explode('§', dom_get("instagram_posts")))) continue;
             
             $embedding_other_post             = (false !== strpos($post_message, "<iframe"));
             $post_img_url_page_cover_fallback = ($embedding_other_post) ? false : dom_at(dom_at($content,"cover"),"source");
@@ -3042,7 +3057,7 @@
     
     function array_facebook_articles($username = false, $post = "", $tags_in = false, $tags_out = false, $limit = false, $videos = true)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
            
         $username   = ($username === false) ? dom_get("facebook_page")  : $username;        
         $content    = json_facebook_articles($username, false, dom_get("page") * dom_get("n"));
@@ -3074,7 +3089,7 @@
             $post_message = dom_at($item_post, "body", "");
             $post_message = strip_tags(str_replace("<div","<p", str_replace("</div>","</p>", $post_message)), "<p><ul><li><h1><h2><h3>");
             
-            if (!is_array_filtered(array_hashtags($post_message), $tags_in, $tags_out)) continue;
+            if (!dom_is_array_filtered(dom_array_hashtags($post_message), $tags_in, $tags_out)) continue;
             
             $post_title = extract_start(dom_at($item_post, "title", ""));
 
@@ -3107,7 +3122,7 @@
     }
     function array_facebook_thumbs($username = false, $post_filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
@@ -3121,7 +3136,7 @@
             $filtered = $item["id"] == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
             $excluded =              in_array(    dom_get($item,"id"),        explode(',',dom_get("exclude_facebook_post_ids",  "")));
             $excluded = $excluded || in_array(md5(dom_get($item, "message")), explode(',',dom_get("exclude_facebook_text_md5s", "")));
-            $tagged   = is_array_filtered(array_hashtags(dom_get($item, "message")), $tags_in, $tags_out);    
+            $tagged   = dom_is_array_filtered(dom_array_hashtags(dom_get($item, "message")), $tags_in, $tags_out);    
             $indirect = (false !== stripos(dom_get($item, "caption"), "instagram.com")) && (instagram_posts_presence());
             
             if ((false !== stripos(dom_at(dom_at(dom_at($item,"attachments"),"data"),"url", 
@@ -3136,7 +3151,7 @@
             
             $post_title = extract_start($post_message);
             
-            if (in_array(clean_title($post_title), explode('§', dom_get("facebook_posts")))) continue;
+            if (in_array(dom_clean_title($post_title), explode('§', dom_get("facebook_posts")))) continue;
             
             $metadata = array
             (
@@ -3159,7 +3174,7 @@
     
     function array_facebook_page($username = false, $filter = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         $username   = ($username === false) ? dom_get("facebook_page")  : $username;
         $item       = json_facebook($username, array("id","name","about","mission","birthday","hometown","website","cover","picture"));
@@ -3184,7 +3199,7 @@
     
     function array_facebook_post($username = false, $post_id = "", $tags_in = false, $tags_out = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
 
         if ($post_id === "" || $post_id === false)
         {
@@ -3232,7 +3247,7 @@
     {
         $posts = array();
         
-        foreach (dom_at(array_open_url($url, "xml"), array("channel","item"), array()) as $item)
+        foreach (dom_at(dom_array_open_url($url, "xml"), array("channel","item"), array()) as $item)
         {    
             $metadata = array
             (
@@ -3350,8 +3365,8 @@
     //      ) as $key => $expr) $js = preg_replace('~'.$expr.'~m', '', $js);
 
         
-        $js = str_replace_all("\n  ",   "\n ",  $js);
-        $js = str_replace_all("\n",     " ",    $js);
+        $js = dom_str_replace_all("\n  ",   "\n ",  $js);
+        $js = dom_str_replace_all("\n",     " ",    $js);
         
         return $js;
     }
@@ -3395,11 +3410,11 @@
                         echo fread($cache_file, filesize($cache_filename));
                         fclose($cache_file);            
 
-                        echo eol().comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                        echo dom_eol().comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
                     }
                     else
                     {
-                        echo eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                        echo dom_eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
                     }
 
                     exit;
@@ -3428,7 +3443,7 @@
             }
             else if (!dom_has("ajax"))
             {
-                if ("html" == dom_get("doctype",false)) echo eol().comment("Could not generate cache! " . dom_get("cache_filename"));
+                if ("html" == dom_get("doctype",false)) echo dom_eol().comment("Could not generate cache! " . dom_get("cache_filename"));
             }
             
             ob_end_flush();
@@ -3446,7 +3461,15 @@
 
     function dom_redirect($url)
     {   
-        header("Location: ".href($url));
+        if (!!get("static")) // PHP redirect does not work for static website
+        {
+            echo "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
+        }
+        else
+        {
+            header("Location: ".href($url));
+        }
+
         exit;
     }
     
@@ -3515,6 +3538,8 @@
 
     function dom_output($doc = "")
     {
+        if (false === stripos($doc, "<html") && !dom_has("ajax")) $doc = html($doc);
+        
         if (false !== stripos($doc, "HOOK_RSS_1"      )) $doc = str_replace("<!-- HOOK_RSS_1"       ." //-->", _rss      (true), $doc);
         if (false !== stripos($doc, "HOOK_JSONFEED_1" )) $doc = str_replace("<!-- HOOK_JSONFEED_1"  ." //-->", _jsonfeed (true), $doc);
         if (false !== stripos($doc, "HOOK_TILE_1"     )) $doc = str_replace("<!-- HOOK_TILE_1"      ." //-->", _tile     (true), $doc);
@@ -3538,8 +3563,12 @@
         echo $doc;
         cache_stop();
 
-        if ("html" == dom_get("doctype",false) && 1 == dom_get("debug")) echo comment("PHP Version: ".PHP_VERSION_ID.". Profiling :".eol().wrap_each(dom_debug_timings(), eol()));
-        
+        if ("html" == dom_get("doctype",false) && !!dom_get("debug"))
+        {
+            echo dom_eol().comment("PHP Version: ".PHP_VERSION_ID);
+            echo dom_eol().comment("DOM Profiling:".PHP_EOL."     ".wrap_each(dom_debug_timings(), PHP_EOL."     ").PHP_EOL);
+        }
+
         if (dom_get("compression") == "gzip") ob_end_flush();
     }
 
@@ -3560,8 +3589,8 @@
 
     function string_ms_browserconfig($beautify = false)
     {
-        $eol = $beautify ? cosmetic(eol())       : "";
-        $tab = $beautify ? cosmetic(eol().tab()) : "";
+        $eol = $beautify ? cosmetic(dom_eol())           : "";
+        $tab = $beautify ? cosmetic(dom_eol().dom_tab()) : "";
 
         $icon_dims = array(array(70,70),array(150,150),array(310,310),array(310,150));
         $pollings  = 5;
@@ -3645,12 +3674,12 @@
 
     function string_robots($beautify = false)
     {
-        return "User-agent: *".PHP_EOL."Disallow:"; // Do not use eol() since having no line break is not an option here
+        return "User-agent: *".PHP_EOL."Disallow:"; // Do not use dom_eol() since having no line break is not an option here
     }
 
     function string_human($beautify = false)
     {
-        return "/* SITE */". // Do not use eol() since having no line break is not an option here
+        return "/* SITE */". // Do not use dom_eol() since having no line break is not an option here
 
             PHP_EOL.  "Standards"     .": ".  "HTML5, CSS3".
             PHP_EOL.  "Language"      .": ".  "French".
@@ -3753,16 +3782,15 @@
     {
         return '
 
-//  importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
-    importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js");
+    importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.4/workbox-sw.js");
 
 if (workbox)
 {
     const LOCALHOST = ("localhost" == self.location.host);
     
-    const VERSION = "0.0.0.1";
+    const VERSION = "0.0.0.3";
 
-    const  cache_prefix = "'.strtoupper(to_classname(dom_get("canonical"))).'";
+    const  cache_prefix = "'.strtoupper(dom_to_classname(dom_get("canonical"))).'";
     const  cache_suffix = VERSION;
     
     const FALLBACK_HTML_URL = "index.php";
@@ -3785,12 +3813,12 @@ if (workbox)
     workbox.core.skipWaiting();
     workbox.core.clientsClaim();
 
-    var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60 });
+    var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60, purgeOnQuotaError: true });
 
 //  workbox.routing.registerRoute(new RegExp(".+\\\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp(".+\\\\.css$"),                      new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-css"    + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp("\.(?:png|jpg|jpeg|svg|gif)$"),    new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-images" + "-" + cache_suffix, plugins: [expiration] }));
-//  workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.NetworkFirst(         { cacheName: cache_prefix + "-" + "cache-POST"   + "-" + cache_suffix, plugins: [expiration] }), "POST");
+    workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.NetworkFirst(         { cacheName: cache_prefix + "-" + "cache-POST"   + "-" + cache_suffix, plugins: [expiration] }), "POST");
     workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-GET"    + "-" + cache_suffix, plugins: [expiration] }), "GET");
     workbox.routing.setDefaultHandler(                                          new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-OTHERS" + "-" + cache_suffix, plugins: [expiration] }));
 
@@ -3945,7 +3973,7 @@ else
     function url_facebook_page_about        ($page     = false)                 { $page     = ($page     === false) ? dom_get("facebook_page")      : $page;       return "https://www.facebook.com/$page/about";                             }
     function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
     function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
-	function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
+    function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
     function url_amp                        ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(dom_is_localhost()?"#development=1":"");   }
 
     function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
@@ -3958,8 +3986,7 @@ else
     function url_seloger                    ($url = false)                      { return ($url === false) ? dom_get("seloger_url",   dom_get("seloger",   "https://www.seloger.com"))  : $url; }
         
     function url_void                       ()                                  { return "#!"; }
-//  function url_print                      ()                                  { return if_then(dom_AMP(), url_void(), "javascript:window.print();");   }
-    function url_print                      ()                                  { return if_then(dom_AMP(), url_void(), "javascript:scan_and_print();"); }
+    function url_print                      ()                                  { return dom_AMP() ? url_void() : "javascript:scan_and_print();"; }
     
     #endregion
     #region API : DOM : COLORS
@@ -3971,6 +3998,9 @@ else
     function color_twitter          () { return '#00ACED'; }
     function color_linkedin         () { return '#0077B5'; }
     function color_google           () { return array('#DB4437', '#F4B400', '#0F9D58', '#4285F4'); } function color_googlenews() { return color_google(); }
+    function color_deezer           () { return array('#DB4437', '#F4B400', '#0F9D58', '#4285F4'); }
+    function color_soundcloud       () { return '#f79810'; }
+    function color_link             () { return '#FFFFFF'; }
     function color_youtube          () { return '#BB0000'; }
     function color_instagram        () { return '#517FA4'; }
     function color_pinterest        () { return '#CB2027'; }
@@ -4007,8 +4037,13 @@ else
     
     function self($html) { return $html; }
 
-    function include_file($filename, $silent_errors = false)
+    function include_file($filename, $silent_errors = DOM_AUTO)
     {
+        if ($silent_errors === DOM_AUTO)
+        {
+            $silent_errors = is_localhost() ? false : true;
+        }
+
         ob_start();
 
         $content = "";
@@ -4032,9 +4067,9 @@ else
     function raw_js         ($js,   $force_minify = false)  { if (!!dom_get("no_js"))   return ''; if (!!dom_get("minify",false) || $force_minify) { $js      = minify_js     ($js);      } return $js;   }
     function raw_css        ($css,  $force_minify = false)  { if (!!dom_get("no_css"))  return ''; if (!!dom_get("minify",false) || $force_minify) { $css     = minify_css    ($css);     } return $css;  }
 
-    function include_html   ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (include_file($filename), $force_minify); }
-    function include_css    ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (include_file($filename), $force_minify); }
-    function include_js     ($filename, $force_minify = false) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (include_file($filename), $force_minify); }
+    function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
+    function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
+    function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
     
     /*
      * CSS tags
@@ -4149,7 +4184,7 @@ else
 
     function _jsonfeed($json = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
     //  TODO : https://jsonfeed.org/mappingrssandatom => Only html hooks ? hooks => array => json => json feed
     //  TODO : https://daringfireball.net/feeds/json
@@ -4172,7 +4207,7 @@ else
 
     function _rss($xml = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         if ("rss" == dom_get("doctype", "html"))
         {
@@ -4181,19 +4216,19 @@ else
                 $xml = rss_channel
                 (
                             rss_title           (dom_get("title"))
-                . eol() .   rss_description     (dom_get("keywords", dom_get("title")))
-                . eol() .   rss_link            (dom_get("url")."/"."rss")
-                . eol() .   rss_lastbuilddate   ()
-                . eol() .   rss_copyright       ()
+                . dom_eol() .   rss_description     (dom_get("keywords", dom_get("title")))
+                . dom_eol() .   rss_link            (dom_get("url")."/"."rss")
+                . dom_eol() .   rss_lastbuilddate   ()
+                . dom_eol() .   rss_copyright       ()
 
-                . eol() .   rss_image
+                . dom_eol() .   rss_image
                             (
                                         rss_url     (dom_get("url")."/".dom_get("image"))
-                            . eol() .   rss_title   (dom_get("title"))
-                            . eol() .   rss_link    (dom_get("url")."/"."rss")
+                            . dom_eol() .   rss_title   (dom_get("title"))
+                            . dom_eol() .   rss_link    (dom_get("url")."/"."rss")
                             )
 
-                . eol() .   wrap_each(dom_get("rss_items", array()), eol(), "rss_item_from_item_info", false)
+                . dom_eol() .   wrap_each(dom_get("rss_items", array()), dom_eol(), "rss_item_from_item_info", false)
                 );
             }
 
@@ -4205,10 +4240,10 @@ else
             .       (!!$path_css ? ('<?xml-stylesheet href="'.$path_css.'" type="text/css" ?>') : '')
         /*  .       '<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:media="https://search.yahoo.com/mrss/">'    */
             .       '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">'
-            . eol()   
-            . eol() . $xml
-            . eol()   
-            . eol() . '</rss>';
+            . dom_eol()   
+            . dom_eol() . $xml
+            . dom_eol()   
+            . dom_eol() . '</rss>';
         }
     }
 
@@ -4219,7 +4254,7 @@ else
 
     function _tile($xml = false)
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         if ("tile" == dom_get("doctype", "html"))
         {
@@ -4233,9 +4268,9 @@ else
             }
 
             return '<?xml version="1.0" encoding="'.dom_get("encoding", "utf-8").'" ?>'
-            . eol()   
-            . eol() . $xml
-            . eol();
+            . dom_eol()   
+            . dom_eol() . $xml
+            . dom_eol();
         }
     }
 
@@ -4283,7 +4318,7 @@ else
 
     function html($html = "")
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
     
         $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
         $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
@@ -4308,8 +4343,8 @@ else
                 {
                     while (true)
                     {
-                        $pos = stripos($html, eol(3)); if (false === $pos) break;
-                        $html = substr_replace($html, eol(2), $pos, strlen(eol(3)));
+                        $pos = stripos($html, dom_eol(3)); if (false === $pos) break;
+                        $html = substr_replace($html, dom_eol(2), $pos, strlen(dom_eol(3)));
                     }
                 }
 
@@ -4319,28 +4354,30 @@ else
                 
                 return raw_html('<!doctype html>'.comment($welcome)
                 
-                . eol()
-                . eol() . pan('<!--[if lt IE 7]>',      22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8 lt-ie7"', 40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . eol() . pan('<!--[if IE 7]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8"',        40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
-                . eol()
-                . eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
-                  eol()
-                . eol() . '</html>');
+                . dom_eol()
+                . dom_eol() . pan('<!--[if lt IE 7]>',      22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8 lt-ie7"', 40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
+                . dom_eol() . pan('<!--[if IE 7]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8"',        40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
+                . dom_eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
+                . dom_eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
+                . dom_eol()
+                . dom_eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
+                  dom_eol()
+                . dom_eol() . '</html>');
             }
             else
             {
                 call_asyncs_start();
 
-                return call_asyncs();
+                $async_response = call_asyncs();
+           
+                return $async_response;
             }
         }
     }
 
     function doc($html)
     {
-        dom_debug_track_timing();        
+        $profiler = dom_debug_track_timing();        
         return call_user_func(dom_get("doctype", "html"), $html);
     }
 
@@ -4365,25 +4402,25 @@ else
 
         return title()
 
-            . eol(2) . comment("DOM Head Metadata")
-            . eol(2) . metas()
-            . eol(2) . link_rel_manifest()
+            . dom_eol(2) . comment("DOM Head Metadata")
+            . dom_eol(2) . metas()
+            . dom_eol(2) . link_rel_manifest()
             
-            . eol(2) . comment("DOM Head styles")
-            . eol(2) . link_styles($async_css)
-            . eol(2) . styles()
+            . dom_eol(2) . comment("DOM Head styles")
+            . dom_eol(2) . link_styles($async_css)
+            . dom_eol(2) . styles()
                                                                                 . (!$path_css ? "" : (""
-            . eol(2) . comment("DOM Head project-specific main stylesheet")     
-            . eol(2) . style($path_css)                                         ))
+            . dom_eol(2) . comment("DOM Head project-specific main stylesheet")     
+            . dom_eol(2) . style($path_css)                                         ))
             
-            . eol(2) . comment("DOM Head scripts")
-            . eol(2) . scripts_head()
+            . dom_eol(2) . comment("DOM Head scripts")
+            . dom_eol(2) . scripts_head()
             ;
     }
 
     function head($html = false, $async_css = false)
     { 
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         if (false === $html)
         {
@@ -4403,9 +4440,9 @@ else
         {
             $amp_scripts =
                 
-                eol(2) . '<style amp-custom>' . delayed_component("_amp_css") . '</style>'.                        
-                eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
-                eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
+                dom_eol(2) . '<style amp-custom>' . delayed_component("_amp_css") . '</style>'.                        
+                dom_eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
+                dom_eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
 
                 script_amp_iframe                   ().
                 script_amp_sidebar                  ().
@@ -4419,7 +4456,7 @@ else
                 "";
         }
 
-        return tag('head', eol(2) . $html . eol(2) . $amp_scripts); 
+        return tag('head', dom_eol(2) . $html . dom_eol(2) . $amp_scripts); 
     }
 
     function delayed_component($callback, $arg = false, $priority = 1)
@@ -4439,14 +4476,14 @@ else
     function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false, 2); }
     function script_amp_script                  () { return delayed_component("_".__FUNCTION__, false, 2); }
 
-    function _script_amp_install_serviceworker  () { return if_then(has_amp_requirement("install-serviceworker"),   eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>'); }
-    function _script_amp_iframe                 () { return if_then(has_amp_requirement("iframe"),                  eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>'); }
-    function _script_amp_sidebar                () { return if_then(has_amp_requirement("sidebar"),                 eol(1) . '<script async custom-element="amp-sidebar'               . '" src="https://cdn.ampproject.org/v0/amp-sidebar'               . '-0.1.js"></script>'); }
-    function _script_amp_position_observer      () { return if_then(has_amp_requirement("position-observer"),       eol(1) . '<script async custom-element="amp-position-observer'     . '" src="https://cdn.ampproject.org/v0/amp-position-observer'     . '-0.1.js"></script>'); }
-    function _script_amp_animation              () { return if_then(has_amp_requirement("animation"),               eol(1) . '<script async custom-element="amp-animation'             . '" src="https://cdn.ampproject.org/v0/amp-animation'             . '-0.1.js"></script>'); }
-    function _script_amp_form                   () { return if_then(has_amp_requirement("form"),                    eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>'); }
-    function _script_amp_youtube                () { return if_then(has_amp_requirement("youtube"),                 eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>'); }
-    function _script_amp_script                 () { return if_then(has_amp_requirement("script"),                  eol(1) . '<script async custom-element="amp-script'                . '" src="https://cdn.ampproject.org/v0/amp-script'                . '-0.1.js"></script>'); }
+    function _script_amp_install_serviceworker  () { return has_amp_requirement("install-serviceworker") ? (dom_eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>') : ""; }
+    function _script_amp_iframe                 () { return has_amp_requirement("iframe")                ? (dom_eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>') : ""; }
+    function _script_amp_sidebar                () { return has_amp_requirement("sidebar")               ? (dom_eol(1) . '<script async custom-element="amp-sidebar'               . '" src="https://cdn.ampproject.org/v0/amp-sidebar'               . '-0.1.js"></script>') : ""; }
+    function _script_amp_position_observer      () { return has_amp_requirement("position-observer")     ? (dom_eol(1) . '<script async custom-element="amp-position-observer'     . '" src="https://cdn.ampproject.org/v0/amp-position-observer'     . '-0.1.js"></script>') : ""; }
+    function _script_amp_animation              () { return has_amp_requirement("animation")             ? (dom_eol(1) . '<script async custom-element="amp-animation'             . '" src="https://cdn.ampproject.org/v0/amp-animation'             . '-0.1.js"></script>') : ""; }
+    function _script_amp_form                   () { return has_amp_requirement("form")                  ? (dom_eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>') : ""; }
+    function _script_amp_youtube                () { return has_amp_requirement("youtube")               ? (dom_eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>') : ""; }
+    function _script_amp_script                 () { return has_amp_requirement("script")                ? (dom_eol(1) . '<script async custom-element="amp-script'                . '" src="https://cdn.ampproject.org/v0/amp-script'                . '-0.1.js"></script>') : ""; }
 
     function title  ($title = false) { return delayed_component("_".__FUNCTION__, $title); }
     function _title ($title = false) { return ($title === false) ? tag('title', dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')) : tag('title', $title); }
@@ -4461,10 +4498,10 @@ else
 
     function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = null, $alternate = false)
     {
-        if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? eol() : "").$html_icon; } return $html; }
-        if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? eol() : "").$html_icon; } return $html; }
-        if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? eol() : "").$html_icon; } return $html; }
-        if (is_array($type)) { $html = ""; foreach ($type as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $ext, $_   , $alternate); $html .= (($i > 0 && $html_icon != "") ? eol() : "").$html_icon; } return $html; }
+        if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
+        if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
+        if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
+        if (is_array($type)) { $html = ""; foreach ($type as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $ext, $_   , $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
 
         if ($type === null && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
         if ($type === null && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
@@ -4500,7 +4537,7 @@ else
                 if (!array_key_exists("orientation", $media))
                 {
                     return        link_rel_icon($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate)
-                        . eol() . link_rel_icon($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate);
+                        . dom_eol() . link_rel_icon($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate);
                 }
             }
         }
@@ -4528,65 +4565,65 @@ else
     function metas  () { return delayed_component("_".__FUNCTION__, false); }
     function _metas ()
     {
-        dom_debug_track_timing();
+        $profiler = dom_debug_track_timing();
         
         return          meta_charset('utf-8')
-            .   eol()
-            .   eol() .                        meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
-            .   eol() . if_then(dom_AMP(), '', meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
-            .   eol() .                        meta_http_equiv('content-language',  dom_get("lang","en"))
-            .   eol()       
-            .   eol() . meta(array("title" =>                       dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')))
-            .   eol()       
-            .   eol() . meta('keywords',                            dom_get("title").((!!dom_get("keywords") && "" != dom_get("keywords")) ? (', '.dom_get("keywords")) : "")    )
-            .   eol()       
-            .   eol() . meta('format-detection',                    'telephone=no')
-            .   eol() . meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
-        //  .   eol() . meta('robots',                              'NOODP') // Deprecated
-        //  .   eol() . meta('googlebot',                           'NOODP')
-            .   eol() . meta('description',                         dom_get('description', dom_get('title')))
-            .   eol() . meta('author',                              dom_get('author',DOM_AUTHOR))
-            .   eol() . meta('copyright',                           dom_get('author',DOM_AUTHOR).' 2000-'.date('Y'))
-            .   eol() . meta('title',                               dom_get('title'))
-            .   eol() . meta('theme-color',                         dom_get("theme_color"))
-            .   eol()       
-            .   eol() . meta('DC.title',                            dom_get('title'))
-            .   eol() . meta('DC.format',                           'text/html')
-            .   eol() . meta('DC.language',                         dom_get('lang','en'))
-            .   eol()       
-            .   eol() . meta('geo.region',                          dom_get('geo_region'))
-            .   eol() . meta('geo.placename',                       dom_get('geo_placename'))
-            .   eol() . meta('geo.position',                        dom_get('geo_position_x').';'. dom_get('geo_position_y'))
-            .   eol() . meta('ICBM',                                dom_get('geo_position_x').', '.dom_get('geo_position_y'))              
-            .   eol()       
-            .   eol() . meta('twitter:card',                        'summary')              . if_then(dom_has('twitter_page'), ""
-            .   eol() . meta('twitter:site',                        dom_get('twitter_page'))    )
-            .   eol() . meta('twitter:url',                         dom_get('canonical'))
-            .   eol() . meta('twitter:title',                       dom_get('title'))
-            .   eol() . meta('twitter:description',                 dom_get('description', dom_get('title')))
-            .   eol() . meta('twitter:image',                       dom_path(dom_get('image')))
-            .   eol()       
-            .   eol() . meta_property('og:site_name',               dom_get('og_site_name', dom_get('title')))
-            .   eol() . meta_property('og:image',                   dom_path(dom_get('image')))
-            .   eol() . meta_property('og:title',                   dom_get('title'))
-            .   eol() . meta_property('og:description',             dom_get('description'))
-            .   eol() . meta_property('og:url',                     dom_get('canonical'))            
-            .   eol() . meta_property('og:type',                    'website')
-            .   eol()       
-            .   eol() . meta('application-name',                    dom_get('title'))                               
-            .   eol()                                                                                             . if_then(dom_has("pinterest_site_verification"), ""
-			.	eol() . meta('p:domain_verify', 					dom_get("pinterest_site_verification"))     ) . if_then(dom_has("google_site_verification"),    ""
-            .   eol() . meta('google-site-verification',            dom_get("google_site_verification"))        )
-            .   eol()
-            .   eol() . meta('msapplication-TileColor',            	dom_get("theme_color"))
-            .   eol() . meta('msapplication-TileImage',            	dom_path(dom_get("icons_path").'ms-icon-144x144.png'))
-            .   eol()
-            .   (dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ) ? (eol() . meta('msapplication-square70x70logo',     dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ) ? (eol() . meta('msapplication-square150x150logo',   dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ) ? (eol() . meta('msapplication-wide310x150logo',     dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (eol() . meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
-            .   eol()
-            .   eol() . meta('msapplication-notification',         	'frequency=30;'
+            .   dom_eol()
+            .   dom_eol() .                   meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
+            .   dom_eol() . (dom_AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
+            .   dom_eol() .                   meta_http_equiv('content-language',  dom_get("lang","en"))
+            .   dom_eol()       
+            .   dom_eol() . meta(array("title" =>                       dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')))
+            .   dom_eol()       
+            .   dom_eol() . meta('keywords',                            dom_get("title").((!!dom_get("keywords") && "" != dom_get("keywords")) ? (', '.dom_get("keywords")) : "")    )
+            .   dom_eol()       
+            .   dom_eol() . meta('format-detection',                    'telephone=no')
+            .   dom_eol() . meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
+        //  .   dom_eol() . meta('robots',                              'NOODP') // Deprecated
+        //  .   dom_eol() . meta('googlebot',                           'NOODP')
+            .   dom_eol() . meta('description',                         dom_get('description', dom_get('title')))
+            .   dom_eol() . meta('author',                              dom_get('author',DOM_AUTHOR))
+            .   dom_eol() . meta('copyright',                           dom_get('author',DOM_AUTHOR).' 2000-'.date('Y'))
+            .   dom_eol() . meta('title',                               dom_get('title'))
+            .   dom_eol() . meta('theme-color',                         dom_get("theme_color"))
+            .   dom_eol()       
+            .   dom_eol() . meta('DC.title',                            dom_get('title'))
+            .   dom_eol() . meta('DC.format',                           'text/html')
+            .   dom_eol() . meta('DC.language',                         dom_get('lang','en'))
+            .   dom_eol()       
+            .   dom_eol() . meta('geo.region',                          dom_get('geo_region'))
+            .   dom_eol() . meta('geo.placename',                       dom_get('geo_placename'))
+            .   dom_eol() . meta('geo.position',                        dom_get('geo_position_x').';'. dom_get('geo_position_y'))
+            .   dom_eol() . meta('ICBM',                                dom_get('geo_position_x').', '.dom_get('geo_position_y'))              
+            .   dom_eol()       
+            .   dom_eol() . meta('twitter:card',                        'summary')                  . (dom_has('twitter_page') ? (""
+            .   dom_eol() . meta('twitter:site',                        dom_get('twitter_page'))    ) : "")
+            .   dom_eol() . meta('twitter:url',                         dom_get('canonical'))
+            .   dom_eol() . meta('twitter:title',                       dom_get('title'))
+            .   dom_eol() . meta('twitter:description',                 dom_get('description', dom_get('title')))
+            .   dom_eol() . meta('twitter:image',                       dom_path(dom_get('image')))
+            .   dom_eol()       
+            .   dom_eol() . meta_property('og:site_name',               dom_get('og_site_name', dom_get('title')))
+            .   dom_eol() . meta_property('og:image',                   dom_path(dom_get('image')))
+            .   dom_eol() . meta_property('og:title',                   dom_get('title'))
+            .   dom_eol() . meta_property('og:description',             dom_get('description'))
+            .   dom_eol() . meta_property('og:url',                     dom_get('canonical'))            
+            .   dom_eol() . meta_property('og:type',                    'website')
+            .   dom_eol()       
+            .   dom_eol() . meta('application-name',                    dom_get('title'))                               
+            .   dom_eol()                                                                                                   . (dom_has("pinterest_site_verification") ? (""
+            .   dom_eol() . meta('p:domain_verify',                     dom_get("pinterest_site_verification"))     ) : "") . (dom_has("google_site_verification")    ? (""
+            .   dom_eol() . meta('google-site-verification',            dom_get("google_site_verification"))        ) : "")
+            .   dom_eol()
+            .   dom_eol() . meta('msapplication-TileColor',                dom_get("theme_color"))
+            .   dom_eol() . meta('msapplication-TileImage',                dom_path(dom_get("icons_path").'ms-icon-144x144.png'))
+            .   dom_eol()
+            .   (dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ) ? (dom_eol() . meta('msapplication-square70x70logo',     dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ) ? (dom_eol() . meta('msapplication-square150x150logo',   dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ) ? (dom_eol() . meta('msapplication-wide310x150logo',     dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (dom_eol() . meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
+            .   dom_eol()
+            .   dom_eol() . meta('msapplication-notification',             'frequency=30;'
                                                                 .   'polling-uri' .'=/?rss=tile&id=1;'
                                                                 .   'polling-uri2'.'=/?rss=tile&id=2;'
                                                                 .   'polling-uri3'.'=/?rss=tile&id=3;'
@@ -4595,20 +4632,21 @@ else
                                                                
             // TODO FIX HREFLANG ALTERNATE
 
-            .   eol()   // Placeholder for 3rd parties who look for a css <link> in order to insert some before
-            .   eol() . '<link rel="stylesheet" type="text/css" media="screen"/>'
-            .   eol()   
-            .   eol() . link_rel("alternate",   "/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
-            .   eol() . link_rel("alternate",   "/?lang=en", array("hreflang" => "en-EN"))
-            .   eol() . link_rel("alternate",   "/?lang=fr", array("hreflang" => "fr-fr"))                              . if_then(dom_AMP(), '', ''
-            .   eol() . link_rel("amphtml",     "/?amp=1")                                                              )
-            .   eol() . link_rel("canonical",   dom_get('canonical')) 
-            .   eol()
-            .   eol() . link_rel_icon("img/icon.svg")
-            .   eol()
-            .   eol() . link_rel_icon(dom_get("image"), false, false, false, false, /*alternate*/true)
-            .   eol()
-            .   eol() . link_rel_icon(array(
+                // Placeholder for 3rd parties who look for a css <link> in order to insert something before
+            .   (!AMP() ? (dom_eol(2) . '<link rel="stylesheet" type="text/css" media="screen"/>') : "")
+
+            .   dom_eol()   
+            .   dom_eol() . link_rel("alternate",   "/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
+            .   dom_eol() . link_rel("alternate",   "/?lang=en", array("hreflang" => "en-EN"))
+            .   dom_eol() . link_rel("alternate",   "/?lang=fr", array("hreflang" => "fr-fr"))                              . (dom_AMP() ? '' : (''
+            .   dom_eol() . link_rel("amphtml",     "/?amp=1")                                                              ))
+            .   dom_eol() . link_rel("canonical",   dom_get('canonical')) 
+            .   dom_eol()
+            .   dom_eol() . link_rel_icon("img/icon.svg")
+            .   dom_eol()
+            .   dom_eol() . link_rel_icon(dom_get("image"), false, false, false, false, /*alternate*/true)
+            .   dom_eol()
+            .   dom_eol() . link_rel_icon(array(
             
                     dom_get("icons_path")."favicon",
                     dom_get("icons_path")."android-icon",
@@ -4618,18 +4656,18 @@ else
                     
                     false, false, false, false, /*alternate*/true)
 
-            .   eol()
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1536x2048" , array( 768, 1024, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "828x1792"  , array( 414,  896, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "750x1334"  , array( 375,  667, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "640x1136"  , array( 320,  568, 2)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
-            .   eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
-            .   eol()          
+            .   dom_eol()
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1536x2048" , array( 768, 1024, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "828x1792"  , array( 414,  896, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "750x1334"  , array( 375,  667, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "640x1136"  , array( 320,  568, 2)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
+            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
+            .   dom_eol()          
             ;
     }
     
@@ -4642,22 +4680,21 @@ else
                         
     function manifest($filename = "manifest.json") 
     {
-        return link_rel("manifest", $filename) . if_then(!dom_AMP() && !dom_is_localhost(), eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>'); 
+        return link_rel("manifest", $filename) . ((!dom_AMP() && !dom_is_localhost()) ? (dom_eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>') : ""); 
     }
 
     function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return tag('link', '', dom_attributes($attributes,$pan), false, true); }
     function link_rel($rel, $href, $type = false, $pan = 0)                 { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
 //  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
-    function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
+    function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href, false, true) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style( $filename_or_code = "",                                                             $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = eol().($filename ? include_css($filename, $force_minify) : raw_css ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
+    function style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
+    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_json_ld($properties)                                                                                                                    { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false)  { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = eol().($filename ? include_js ($filename, $force_minify) : raw_js  ($filename_or_code, $force_minify)).eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                          { if (!!dom_get("no_js")) return ''; return if_then(!$force && dom_AMP(), '', tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
-    function script_json_ld($properties)                                                                                        { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
-    
-    function dom_script_ajax_head()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_head())); }
-    function dom_script_ajax_body()                                             { return if_then(!dom_AMP(), script(dom_string_script_ajax_body())); }
+    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : script(dom_string_script_ajax_head()); }
+    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : script(dom_string_script_ajax_body()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -4671,9 +4708,9 @@ else
         if (!!$fonts) { if (0 === stripos($fonts, '|')) $fonts = substr($fonts,1); }
 
         return        (!!$fonts ? link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts), "screen", $async) : '')
-            . eol() . (true     ? link_style('https://fonts.googleapis.com/icon?family=Material+Icons',               "screen", $async) : '');
+            . dom_eol() . (true     ? link_style('https://fonts.googleapis.com/icon?family=Material+Icons',               "screen", $async) : '');
     }
-	
+    
     function link_styles($async = false, $fonts = false)
     {
         if ($fonts === false) $fonts = dom_get("fonts");
@@ -4686,22 +4723,22 @@ else
         $path_google_fonts      = dom_path("css/google-fonts.css");
         $path_material_icons    = dom_path("css/material-icons.css");
         $path_slick             = dom_path("css/slick.css");
-        $path_slick             = dom_path("css/slick-theme.css");
+        $path_slick_theme       = dom_path("css/slick-theme.css");
 
         return                                                                                                                                                                                                                                                                                     (("normalize" == dom_get("normalize")) ? (""
             .           ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
-            .   eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
-        //  .   eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
+            .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
+        //  .   dom_eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
                                                                                                                                                                                                                                                                                                  . (("material"  == dom_get("framework")) ? (""
-            .   eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == dom_get("framework")) ? (""
-            .   eol() . ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . dom_get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == dom_get("framework")) ? (""
-            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
-            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .   eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                         ) : "") . (!!$fonts                          ? (""
-            .   eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                             "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
-            .   eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                           "screen", $async    ))         ) : "") . (!!dom_get("support_sliders", false)   ? (""
-            .   eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick.css',                           "screen", $async    ))
-            .   eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick-theme.css',                     "screen", $async    ))         ) : "")
+            .   dom_eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == dom_get("framework")) ? (""
+            .   dom_eol() . ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . dom_get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == dom_get("framework")) ? (""
+            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
+            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
+            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                          ? (""
+            .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                                 "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
+            .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "") . (!!dom_get("support_sliders", false)   ? (""
+            .   dom_eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick.css',                               "screen", $async    ))
+            .   dom_eol() . ($path_slick_theme    ? link_style($path_slick_theme    , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick-theme.css',                         "screen", $async    ))         ) : "")
             ;
     }
     
@@ -4720,7 +4757,7 @@ else
 
     function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
     {
-        return $selectors == "" ? eol() : str_pad(eol().tab(1).$selectors, $pad)."{ ".$styles." }";
+        return $selectors == "" ? dom_eol() : str_pad(dom_eol().dom_tab(1).$selectors, $pad)."{ ".$styles." }";
     }
 
     function css_aspect_ratio($classname, $w, $h)
@@ -4754,33 +4791,38 @@ else
     {
         if (!!dom_get("no_css")) return '';
 
-        $css = '
+        dom_heredoc_start(-1); ?>
+        <style>
+        <?php dom_heredoc_flush(null); ?>
 
     /* DOM CSS boilerplate */
 
     :root
     {
-    	' . eol() . tab(2) . env("theme_color", 	        dom_get("theme_color")                  )
-          . eol() . tab(2) . env("text_color", 		        dom_get("text_color")                   )
-          . eol() . tab(2) . env("link_color", 		        dom_get("link_color")                   )
-          . eol() . tab(2) . env("background_color",        dom_get("background_color")             )
-          
-          . eol() . tab(2) . env("header_height",           dom_get("header_height")                )
-          . eol() . tab(2) . env("header_min_height",       dom_get("header_min_height")            )
-          . eol() . tab(2) . env("header_toolbar_height",   dom_get("header_toolbar_height")        )
-          
-          . eol() . tab(2) . env("main_max_width",          "1024px"                                )
-          
-          . eol() . tab(2) . env("dom_gap",                 "10px")
-          
-          . eol() . tab(2) . env("default_image_width",     dom_get("default_image_width",  300)    )
-          . eol() . tab(2) . env("default_image_height",    dom_get("default_image_height", 200)    )
-          . eol() . tab(2) . env("default_image_ratio",     "calc(var(--default-image-width) / var(--default-image-height))")
-          
-          . eol() . tab(2) . env("scrollbar_width",         "17px")
+        --non_empty_ruleset: #000;
 
-          . eol() . tab(2) . env("svg_size",                "24px")
-        ; 
+        <?= env("theme_color",              dom_get("theme_color")                  ) ?> 
+        <?= env("text_color",               dom_get("text_color")                   ) ?> 
+        <?= env("link_color",               dom_get("link_color")                   ) ?> 
+        <?= env("background_color",         dom_get("background_color")             ) ?> 
+        
+        <?= env("header_height",            dom_get("header_height")                ) ?> 
+        <?= env("header_min_height",        dom_get("header_min_height")            ) ?> 
+        <?= env("header_toolbar_height",    dom_get("header_toolbar_height")        ) ?> 
+        
+        <?= env("main_max_width",           "1024px"                                ) ?> 
+        
+        <?= env("dom_gap",                  "10px") ?> 
+        
+        <?= env("default_image_width",      dom_get("default_image_width",  300)    ) ?> 
+        <?= env("default_image_height",     dom_get("default_image_height", 200)    ) ?> 
+        <?= env("default_image_ratio",      "calc(var(--default-image-width) / var(--default-image-height))") ?> 
+        
+        <?= env("scrollbar_width",          "17px") ?> 
+
+        <?= env("svg_size",                 "24px") ?> 
+
+        <?php $css = "";
 
         foreach (predefined_svg_brands() as $svg)
         {
@@ -4790,19 +4832,19 @@ else
             $class    = "palette-$svg";
             $var      = "--color-$svg";
 
-            $css .= eol().tab(2);
+            $css .= dom_eol().dom_tab(2);
             for ($i = 0; $i < count($colors); ++$i) $css .= pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
         }
           
-        $css .= '
+        echo $css; ?> 
     }
 
-                                  '.str_pad(" ", strlen(get("main_max_width"))).            '   :root { --main-width: 100vw; }
-    @media screen and (min-width: '.                    env("main_max_width", false, true).') { :root { --main-width: '.env("main_max_width", false, true).'; } }
+                      <?= str_pad(" ", strlen(get("main_max_width"))) ?>               :root { --main-width: 100vw; }
+    @media screen and (min-width: <?=         env("main_max_width", false, true) ?>) { :root { --main-width: <?= env("main_max_width", false, true) ?>; } }
     
     /* Font stack */
 
-    body,h1,h2,h3,h4,h5,h6                          { font-family: '.string_system_font_stack().'; }
+    body,h1,h2,h3,h4,h5,h6                          { font-family: <?= string_system_font_stack() ?>; }
 
     /* Colors */
     
@@ -4834,7 +4876,7 @@ else
     .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
  /* .toolbar-row     .cell                          { overflow: hidden; } */
-    .toolbar-row-nav                                { padding-right: margin-right: var(--dom-gap); }
+    .toolbar-row-nav                                { padding-right: var(--dom-gap); margin-right: var(--dom-gap); }
     .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
     .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left; }
     .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; }
@@ -4876,11 +4918,11 @@ else
     .cd-top.cd-fade-out                             { opacity: .5; }
     .cd-top:hover                                   { opacity: 1; text-decoration: none }
 
-    '.((get("no_js")) ? '' : '
+<?php if (!get("no_js")) { ?> 
     
     .cd-top                                         { visibility: hidden; opacity: 0; }
-    
-    ').'
+
+<?php } ?> 
     
     @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
     @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
@@ -4932,7 +4974,7 @@ else
     body                                            {  scrollbar-color: var(--theme-color)                                                      var(--background-color); }
     body::-webkit-scrollbar-thumb                   { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
 
-    '; $css .= css_boilerplate_aspect_ratio(); $css .= ' 
+    <?= css_boilerplate_aspect_ratio() ?> 
 
     /* SVG */
 
@@ -4940,20 +4982,21 @@ else
     .span-svg-wrapper-aligned                       { position: relative; bottom: -6px; padding-right: 6px; }
     .span-svg-wrapper svg                           { width: var(--svg-size); height: var(--svg-size); }
 
-    '; $css .= predefined_svg_brands_css_boilerplate(); $css .= '
+    <?= predefined_svg_brands_css_boilerplate() ?> 
 
-'/*<-- !AMP */.(!!dom_AMP() ? '' : '
+<?php if (!AMP()) { ?> 
 
     /* Toolbar */
 
-    '.((dom_get("no_js")) ? '
+<?php if (dom_get("no_js")) { ?> 
     
-    .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); } '.'
-    ' : '
+    .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
 
-    .toolbar                                        { position: fixed; top: 0px; } '.include_css_main_toolbar_adaptation().'
+<?php } else { ?> 
 
-    ').'
+    .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation() ?> 
+
+<?php } ?> 
     
     /* Menu open/close mechanism */
 
@@ -4966,9 +5009,7 @@ else
     #menu-open        .menu                         { display: none;  max-height:   0vh; }
     #menu-open:target .menu                         { display: block; max-height: 100vh; }
     
-')./* !AMP -->*/'
-
-'/*<-- AMP */.(!dom_AMP() ? '' : '
+<?php } if (AMP()) { ?> 
 
     /* AMP DEFAULTS */
     
@@ -4980,15 +5021,13 @@ else
     amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
 
     
-')./* AMP -->*/'
-
-'/*<-- material */.(("material" != dom_get("framework")) ? '' : '
+<?php } if ("material" == dom_get("framework")) { ?> 
 
     /* MATERIAL DESIGN DEFAULTS */
     
     :root
     {
-    	--mdc-theme-primary:    var(--theme-color);
+        --mdc-theme-primary:    var(--theme-color);
         --mdc-theme-secondary:  var(--link-color);
         --mdc-theme-background: var(--background-color);
     }
@@ -5002,32 +5041,28 @@ else
 
     .mdc-top-app-bar--dense 
     .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
-    .mdc-top-app-bar            { '.(dom_AMP() ? 'position: inherit;' : '').' }
+    .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> }
     .mdc-top-app-bar__section   { flex: 0 1 auto; }
-    .mdc-top-app-bar--dense
+    .mdc-top-app-bar--dense 
     .mdc-top-app-bar__title     { padding-left: 0px; }
     .mdc-menu--open             { margin-top: var(--header-toolbar-height); }
     
-')./* material -->*/'
-
-'/*<-- bootstrap */.(("bootstrap" != dom_get("framework")) ? '' : '
+<?php } if ("bootstrap" == dom_get("framework")) { ?> 
 
     /* BOOTSTRAP DEFAULTS */
     
     .menu   { display: block } /* BOOTSTRAP LIB DYNAMIC MENU SUPPORTED */
     .navbar { padding: 0px }
     
-')./* bootstrap -->*/'
-
-'/*<-- spectre */.(("spectre" != dom_get("framework")) ? '' : '
+<?php } if ("spectre" == dom_get("framework")) { ?> 
 
     /* SPECTRE DEFAULTS */
     
-    .text-primary:      var(--theme-color);
-    .text-secondary:    var(--link-color);
-    .bg-primary:        var(--background-color);
+    .text-primary       { color: var(--theme-color);        }
+    .text-secondary     { color: var(--link-color);         }
+    .bg-primary         { color: var(--background-color);   }
     
-')./* spectre -->*/'
+<?php } ?> 
 
     /* PRINT */
         
@@ -5041,11 +5076,12 @@ else
         
         .main { margin-top:  0px }
         
-        body>.footer, iframe { display: none; height: 0px; }
+        body>.footer, iframe, .cd-top { display: none; height: 0px; }
     }    
-        ';
-        
-        return $css;
+
+        <?php dom_heredoc_flush("raw_css"); ?> 
+        </style>
+        <?php return dom_heredoc_stop(null);        
     }
     
     function styles()
@@ -5056,16 +5092,16 @@ else
     function scripts_head()
     {   
         return     dom_script_ajax_head()         
-        . eol(2) . script(js_scan_and_print_head()) 
+        . dom_eol(2) . script(js_scan_and_print_head()) 
                                                             . (!dom_AMP() ? "" : (""
-        . eol(2) . comment("AMP Javascript")
-        . eol(2) . delayed_component("_amp_scripts_head")   ))
+        . dom_eol(2) . comment("AMP Javascript")
+        . dom_eol(2) . delayed_component("_amp_scripts_head")   ))
         ; 
     }
 
     function back_to_top_link()
     {
-        return eol(2) . a("▲", !get("no_js") ? url_void() : "#top", "cd-top");
+        return dom_eol(2) . a("▲", !get("no_js") ? url_void() : "#top", "cd-top");
     }
 
     function script_google_analytics_snippet()
@@ -5073,9 +5109,9 @@ else
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
 
         return script(
-            eol(1) . '/*  Google analytics */ '.
-            eol(2) . tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
-            eol(1)
+            dom_eol(1) . '/*  Google analytics */ '.
+            dom_eol(2) . dom_tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
+            dom_eol(1)
             );
     }
 
@@ -5083,8 +5119,8 @@ else
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
 
-        return  eol(2) . script_google_analytics_snippet().
-                eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer');
+        return  dom_eol(2) . script_google_analytics_snippet().
+                dom_eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer');
     }
 
     function js_scan_and_print_head()
@@ -5098,27 +5134,25 @@ else
     {
         if (dom_has("ajax")) return '';
 
-        return  eol(1) . tab(1)
-            .   eol(1) . tab(2) .   '/* SCAN AND PRINT UTILITY */'
-            .   eol(1) . tab(1)
-            .   eol(1) . tab(2) .   '$(window).on("load", function()'
-            .   eol(1) . tab(2) .   '{ '
-            .   eol(1) . tab(3) .       'scan_and_print = function()'
-            .   eol(1) . tab(3) .       '{'
-            .   eol(1) . tab(4) .           '$("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {'
-            .   eol(1) . tab(4) .           '$("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });'
-            .   eol(1) . tab(3) .       '};'
-            .   eol(1) . tab(2) .   '});'
-            .   eol(1) . tab(1)
+        return  dom_eol(1) . dom_tab(1)
+            .   dom_eol(1) . dom_tab(2) .   '/* SCAN AND PRINT UTILITY */'
+            .   dom_eol(1) . dom_tab(1)
+            .   dom_eol(1) . dom_tab(2) .   '$(window).on("load", function()'
+            .   dom_eol(1) . dom_tab(2) .   '{ '
+            .   dom_eol(1) . dom_tab(3) .       'scan_and_print = function()'
+            .   dom_eol(1) . dom_tab(3) .       '{'
+            .   dom_eol(1) . dom_tab(4) .           '$("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {'
+            .   dom_eol(1) . dom_tab(4) .           '$("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });'
+            .   dom_eol(1) . dom_tab(3) .       '};'
+            .   dom_eol(1) . dom_tab(2) .   '});'
+            .   dom_eol(1) . dom_tab(1)
             ;
     }
 
     function js_pwa_install($init_function)
     {
         dom_heredoc_start(-1); ?>
-
-            <script>
-
+        <script>
         <?php dom_heredoc_flush(null); ?>
         
             /* PWA (PROGRESSIVE WEB APP) INSTALL */
@@ -5334,72 +5368,72 @@ else
 
         return 
                         
-            eol(1) . tab(1)
-        .   eol(1) . tab(2) . '/* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(2) . 'if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(2) . '/*  Adjust toolbar margin */'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(3) .     '$(".mdc-top-app-bar").css("position", "fixed");'
-        .   eol(1) . tab(3) . '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
-        .   eol(1) . tab(1)       
-        .   eol(1) . tab(3) .     '(function()'
-        .   eol(1) . tab(3) .     '{'
-        .   eol(1) . tab(4) .         'var pollId = 0;'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(4) .         'pollId = setInterval(function()'
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(5) .             'if (e != null)'
-        .   eol(1) . tab(5) .             '{ '
-        .   eol(1) . tab(6) .                 'var pos = getComputedStyle(e).position;'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(6) .                 'if (pos === "fixed" || pos === "relative")'
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                     'material_init();'
-        .   eol(1) . tab(7) .                     'clearInterval(pollId);'
-        .   eol(1) . tab(6) .                 '}'
-        .   eol(1) . tab(5) .             '}'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(4) .         '}, 250);'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(4) .         'function material_init()'
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(5) .             'if (e != null && typeof mdc !== "undefined")'
-        .   eol(1) . tab(5) .             '{ '
-        .   eol(1) . tab(6) .                 'var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);'
-        .   eol(1) . tab(6) .                 'toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");'
-        .   eol(1) . tab(5) .             '}'
-        .   eol(1) . tab(4) .         '}'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(3) .     '})(); '
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(2) . '/*  Menu */'
-        .   eol(1) . tab(1) 
-        .   eol(1) . tab(3) .     'var menuEl = document.querySelector(".mdc-menu");'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(3) .     'if (menuEl != null && typeof mdc !== "undefined")'
-        .   eol(1) . tab(3) .     '{  '
-        .   eol(1) . tab(4) .         'var menuToggle = document.querySelector(".menu-toggle");'
-        .   eol(1) . tab(4) .         'var menu       = new mdc.menu.MDCMenu(menuEl);'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(4) .         'menuToggle.addEventListener("click", function() '
-        .   eol(1) . tab(4) .         '{ '
-        .   eol(1) . tab(5) .             'menu.open = !menu.open; '
-        .   eol(1) . tab(4) .         '});'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(4) .         'menuEl.addEventListener("MDCMenu:selected", function(evt) '
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'const detail = evt.detail;'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(5) .             'detail.item.textContent;'
-        .   eol(1) . tab(5) .             'detail.index;'
-        .   eol(1) . tab(4) .         '});'
-        .   eol(1) . tab(3) .     '}'
+            dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . '/* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(2) . 'if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(2) . '/*  Adjust toolbar margin */'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(3) .     '$(".mdc-top-app-bar").css("position", "fixed");'
+        .   dom_eol(1) . dom_tab(3) . '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
+        .   dom_eol(1) . dom_tab(1)       
+        .   dom_eol(1) . dom_tab(3) .     '(function()'
+        .   dom_eol(1) . dom_tab(3) .     '{'
+        .   dom_eol(1) . dom_tab(4) .         'var pollId = 0;'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(4) .         'pollId = setInterval(function()'
+        .   dom_eol(1) . dom_tab(4) .         '{'
+        .   dom_eol(1) . dom_tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(5) .             'if (e != null)'
+        .   dom_eol(1) . dom_tab(5) .             '{ '
+        .   dom_eol(1) . dom_tab(6) .                 'var pos = getComputedStyle(e).position;'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(6) .                 'if (pos === "fixed" || pos === "relative")'
+        .   dom_eol(1) . dom_tab(6) .                 '{'
+        .   dom_eol(1) . dom_tab(7) .                     'material_init();'
+        .   dom_eol(1) . dom_tab(7) .                     'clearInterval(pollId);'
+        .   dom_eol(1) . dom_tab(6) .                 '}'
+        .   dom_eol(1) . dom_tab(5) .             '}'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(4) .         '}, 250);'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(4) .         'function material_init()'
+        .   dom_eol(1) . dom_tab(4) .         '{'
+        .   dom_eol(1) . dom_tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(5) .             'if (e != null && typeof mdc !== "undefined")'
+        .   dom_eol(1) . dom_tab(5) .             '{ '
+        .   dom_eol(1) . dom_tab(6) .                 'var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);'
+        .   dom_eol(1) . dom_tab(6) .                 'toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");'
+        .   dom_eol(1) . dom_tab(5) .             '}'
+        .   dom_eol(1) . dom_tab(4) .         '}'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(3) .     '})(); '
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(2) . '/*  Menu */'
+        .   dom_eol(1) . dom_tab(1) 
+        .   dom_eol(1) . dom_tab(3) .     'var menuEl = document.querySelector(".mdc-menu");'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(3) .     'if (menuEl != null && typeof mdc !== "undefined")'
+        .   dom_eol(1) . dom_tab(3) .     '{  '
+        .   dom_eol(1) . dom_tab(4) .         'var menuToggle = document.querySelector(".menu-toggle");'
+        .   dom_eol(1) . dom_tab(4) .         'var menu       = new mdc.menu.MDCMenu(menuEl);'
+        .   dom_eol(1) . dom_tab(1)   
+        .   dom_eol(1) . dom_tab(4) .         'menuToggle.addEventListener("click", function() '
+        .   dom_eol(1) . dom_tab(4) .         '{ '
+        .   dom_eol(1) . dom_tab(5) .             'menu.open = !menu.open; '
+        .   dom_eol(1) . dom_tab(4) .         '});'
+        .   dom_eol(1) . dom_tab(1)   
+        .   dom_eol(1) . dom_tab(4) .         'menuEl.addEventListener("MDCMenu:selected", function(evt) '
+        .   dom_eol(1) . dom_tab(4) .         '{'
+        .   dom_eol(1) . dom_tab(5) .             'const detail = evt.detail;'
+        .   dom_eol(1) . dom_tab(1)   
+        .   dom_eol(1) . dom_tab(5) .             'detail.item.textContent;'
+        .   dom_eol(1) . dom_tab(5) .             'detail.index;'
+        .   dom_eol(1) . dom_tab(4) .         '});'
+        .   dom_eol(1) . dom_tab(3) .     '}'
         ;
     }
 
@@ -5407,62 +5441,101 @@ else
     {
         return 
 
-            eol() . tab(1)
-        .   eol() . tab(2) .    '/* IMAGES LOADING */'
-        .   eol() . tab(1)
-        .   eol() . tab(2) .    '$("img").on("error", function() { $(this).attr("src", "' . url_img_blank() . '"); });'
-        .   eol() . tab(2)
-        .   eol() . tab(2) .    'var images_error_handler = function() { this.style.display = "none"; };'
-        .   eol() . tab(1)
-        .   eol() . tab(2) .    'function '.$update_function.'() '
-        .   eol() . tab(2) .    '{'
-        .   eol() . tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-        .   eol() . tab(2)
-        .   eol() . tab(3) .        '$("img.lazy[data-src]").each(function(i, img) '
-        .   eol() . tab(3) .        '{'
-        .   eol() . tab(4) .            'var rect = img.getBoundingClientRect();'
-        .   eol() . tab(2) 
-        .   eol() . tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
-        .   eol() . tab(4) .            '{'
-        .   eol() . tab(5) .                '$(img).parent().find("source.lazy[data-srcset]").each(function(i, src) '
-        .   eol() . tab(5) .                '{'
-        .   eol() . tab(6) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
-        .   eol() . tab(6) .                    '$(src).removeAttr("data-srcset");'
-        .   eol() . tab(5) .                '});'
-        .   eol() . tab(5) .                ''
-        .   eol() . tab(5) .                '$(img).attr("src", $(img).attr("data-src"));'
-        .   eol() . tab(5) .                '$(img).removeAttr("data-src");'
-        .   eol() . tab(5) .                '$(img).on("load", function() { $(img).removeClass("lazy"); $(img).removeClass("loading"); $(img).addClass("loaded"); });'
-        .   eol() . tab(4) .            '}'
-        .   eol() . tab(4) .            'else'
-        .   eol() . tab(4) .            '{'
-        .   eol() . tab(4) .            '}'
-        .   eol() . tab(3) .        '});'
-        .   eol() . tab(2)
-        .   eol() . tab(3) .        '$("iframe.lazy[data-src]").each(function(i, e) '
-        .   eol() . tab(3) .        '{'
-        .   eol() . tab(4) .            'var rect = e.getBoundingClientRect();'
-        .   eol() . tab(2) 
-        .   eol() . tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
-        .   eol() . tab(4) .            '{'
-        .   eol() . tab(5) .                '$(e).attr("src", $(e).attr("data-src"));'
-        .   eol() . tab(5) .                '$(e).removeAttr("data-src");'
-        .   eol() . tab(5) .                '$(e).on("load", function() { $(e).removeClass("lazy"); $(e).removeClass("loading"); $(e).addClass("loaded"); });'
-        .   eol() . tab(4) .            '}'
-        .   eol() . tab(4) .            'else'
-        .   eol() . tab(4) .            '{'
-        .   eol() . tab(4) .            '}'
-        .   eol() . tab(3) .        '});'
-        .   eol() . tab(2) .    '}'
-        .   eol() . tab(1)
-        .   eol() . tab(2) /*.    ''.$update_function.'();'*/
-        .   eol() . tab(1)
-        .   eol() . tab(2) .    'function '.$init_function.'() '
-        .   eol() . tab(2) .    '{'
-        .   eol() . tab(3) .      'setTimeout(function() { setInterval('.$update_function.', 500); },  50);'
-        .   eol() . tab(3) .      ''.$update_function.'();'
-        .   eol() . tab(2) .    '}'
-        .   eol() . tab(1)
+            dom_eol() . dom_tab(1)
+        .   dom_eol() . dom_tab(2) .    '/* IMAGES LOADING */'
+        .   dom_eol() . dom_tab(2) .    ''
+        .   dom_eol() . dom_tab(2) .    'console.log("Register images handlers");'
+        .   dom_eol() . dom_tab(2) .    ''
+        .   dom_eol() . dom_tab(2) .    'function dom_on_load(e, handler)'
+        .   dom_eol() . dom_tab(2) .    '{'
+        .   dom_eol() . dom_tab(3) .        'if (e.length > 0)'
+        .   dom_eol() . dom_tab(3) .        '{'
+        .   dom_eol() . dom_tab(4) .            'e.one("load", function() { handler(this);                                 })'
+        .   dom_eol() . dom_tab(4) .            ' .each(       function() { if(this.complete) { $(this).trigger("load"); } });'
+        .   dom_eol() . dom_tab(3) .        '}'
+        .   dom_eol() . dom_tab(2) .    '}'
+        .   dom_eol() . dom_tab(2) .    ''
+        .   dom_eol() . dom_tab(2) .    'function dom_on_each(e, handler)'
+        .   dom_eol() . dom_tab(2) .    '{'
+        .   dom_eol() . dom_tab(3) .        'if (e.length > 0)'
+        .   dom_eol() . dom_tab(3) .        '{'
+        .   dom_eol() . dom_tab(4) .            'e.each(function() { handler(this); });'
+        .   dom_eol() . dom_tab(3) .        '}'
+        .   dom_eol() . dom_tab(2) .    '}'
+        .   dom_eol() . dom_tab(2) .    ''      
+        .   dom_eol() . dom_tab(2) .    '$("img").on("error", function() { $(this).attr("src", "' . url_img_blank() . '"); });'
+        .   dom_eol() . dom_tab(2)
+        .   dom_eol() . dom_tab(2) .    'var images_error_handler = function() { this.style.display = "none"; };'
+        .   dom_eol() . dom_tab(1)
+        .   dom_eol() . dom_tab(2) .    'function '.$update_function.'() '
+        .   dom_eol() . dom_tab(2) .    '{'
+    //  .   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+        .   dom_eol() . dom_tab(3) .        ''
+        .   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+        .   dom_eol() . dom_tab(2)
+        .   dom_eol() . dom_tab(3) .        '$("img.lazy-ready").each(function(i, img) '
+        .   dom_eol() . dom_tab(3) .        '{'
+        .   dom_eol() . dom_tab(4) .            'var rect = img.getBoundingClientRect();'
+        .   dom_eol() . dom_tab(2) 
+        .   dom_eol() . dom_tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
+        .   dom_eol() . dom_tab(4) .            '{'
+        .   dom_eol() . dom_tab(5) .                '$(img).parent().find("source[data-srcset]").each(function(i, src) '
+        .   dom_eol() . dom_tab(5) .                '{'
+        .   dom_eol() . dom_tab(6) .                    '$(src).removeAttr("srcset");'
+        .   dom_eol() . dom_tab(6) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
+        .   dom_eol() . dom_tab(6) .                    '$(src).removeAttr("data-srcset");'
+        .   dom_eol() . dom_tab(6) .                    ''
+        .   dom_eol() . dom_tab(6) .                    '$(src).removeClass("lazy");'
+        .   dom_eol() . dom_tab(6) .                    '$(src).removeClass("lazy-ready");'
+        .   dom_eol() . dom_tab(5) .                '});'
+        .   dom_eol() . dom_tab(5) .                ''
+        .   dom_eol() . dom_tab(5) .                '$(img).removeAttr("src");'
+        .   dom_eol() . dom_tab(5) .                '$(img).attr("src", $(img).attr("data-src"));'
+        .   dom_eol() . dom_tab(5) .                '$(img).removeAttr("data-src");'
+        .   dom_eol() . dom_tab(5) .                 ''
+        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("lazy-ready"); '
+        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("lazy"); '
+        .   dom_eol() . dom_tab(5) .                 ''
+        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("loading"); '
+        .   dom_eol() . dom_tab(5) .                '$(img).addClass("loaded"); '
+        .   dom_eol() . dom_tab(4) .            '}'
+        .   dom_eol() . dom_tab(4) .            'else'
+        .   dom_eol() . dom_tab(4) .            '{'
+        .   dom_eol() . dom_tab(4) .            '}'
+        .   dom_eol() . dom_tab(3) .        '});'
+        .   dom_eol() . dom_tab(2)
+        .   dom_eol() . dom_tab(3) .        '$("iframe.lazy-ready").each(function(i, e) '
+        .   dom_eol() . dom_tab(3) .        '{'
+        .   dom_eol() . dom_tab(4) .            'var rect = e.getBoundingClientRect();'
+        .   dom_eol() . dom_tab(2) 
+        .   dom_eol() . dom_tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
+        .   dom_eol() . dom_tab(4) .            '{'
+        .   dom_eol() . dom_tab(5) .                '$(e).removeAttr("src");'
+        .   dom_eol() . dom_tab(5) .                '$(e).attr("src", $(e).attr("data-src"));'
+        .   dom_eol() . dom_tab(5) .                '$(e).removeAttr("data-src");'
+        .   dom_eol() . dom_tab(5) .                ''
+        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("lazy-ready");'
+        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("lazy");'
+        .   dom_eol() . dom_tab(5) .                ''
+        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("loading");'
+        .   dom_eol() . dom_tab(5) .                '$(e).addClass("loaded");'
+        .   dom_eol() . dom_tab(4) .            '}'
+        .   dom_eol() . dom_tab(4) .            'else'
+        .   dom_eol() . dom_tab(4) .            '{'
+        .   dom_eol() . dom_tab(4) .            '}'
+        .   dom_eol() . dom_tab(3) .        '});'
+        .   dom_eol() . dom_tab(2) .    '}'
+        .   dom_eol() . dom_tab(1)
+        .   dom_eol() . dom_tab(2) /*.    ''.$update_function.'();'*/
+        .   dom_eol() . dom_tab(1)
+        .   dom_eol() . dom_tab(2) .    'function '.$init_function.'() '
+        .   dom_eol() . dom_tab(2) .    '{'
+        .   dom_eol() . dom_tab(3) .      'setTimeout(function() { setInterval('.$update_function.', 500); },  50);'
+        .   dom_eol() . dom_tab(3) .      ''.$update_function.'();'
+        .   dom_eol() . dom_tab(2) .    '}'
+        .   dom_eol() . dom_tab(1)
         ;
     }
 
@@ -5470,32 +5543,32 @@ else
     {
         return
     
-            eol(1) . tab(1)
-        .   eol(1) . tab(2) . '/* TOOLBAR */'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) .   'function '.$update_function.'()'
-        .   eol(1) . tab(2) .   '{'
-        .   eol(1) . tab(3) .   '   if ($(".toolbar-row-banner")[0])'
-        .   eol(1) . tab(3) .   '   {'
-        .   eol(1) . tab(4) .           'var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");'
-        .   eol(1) . tab(4) .           'var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");'
-        .   eol(1) . tab(4) 
-        .   eol(1) . tab(4) .           'var stuck_height = header_max_height - header_min_height;'
-        .   eol(1) . tab(4) 
-        .   eol(1) . tab(4) .           'if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
-        .   eol(1) . tab(4) .           'else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
-        .   eol(1) . tab(4) 
-        .   eol(1) . tab(4) .           '$(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());'
-        .   eol(1) . tab(3) .   '   }'
-        .   eol(1) . tab(2) .   '}'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) .   '$(".menu-switch-link").on("click", function(event)'
-        .   eol(1) . tab(2) .   '{'
-        .   eol(1) . tab(3) .    /* 'event.preventDefault();' */ ""
-        .   eol(1) . tab(2) .   '});'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) .   ''.$update_function.'();'
-        .   eol(1) . tab(1)
+            dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . '/* TOOLBAR */'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) .   'function '.$update_function.'()'
+        .   dom_eol(1) . dom_tab(2) .   '{'
+        .   dom_eol(1) . dom_tab(3) .   '   if ($(".toolbar-row-banner")[0])'
+        .   dom_eol(1) . dom_tab(3) .   '   {'
+        .   dom_eol(1) . dom_tab(4) .           'var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");'
+        .   dom_eol(1) . dom_tab(4) .           'var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");'
+        .   dom_eol(1) . dom_tab(4) 
+        .   dom_eol(1) . dom_tab(4) .           'var stuck_height = header_max_height - header_min_height;'
+        .   dom_eol(1) . dom_tab(4) 
+        .   dom_eol(1) . dom_tab(4) .           'if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
+        .   dom_eol(1) . dom_tab(4) .           'else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
+        .   dom_eol(1) . dom_tab(4) 
+        .   dom_eol(1) . dom_tab(4) .           '$(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());'
+        .   dom_eol(1) . dom_tab(3) .   '   }'
+        .   dom_eol(1) . dom_tab(2) .   '}'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) .   '$(".menu-switch-link").on("click", function(event)'
+        .   dom_eol(1) . dom_tab(2) .   '{'
+        .   dom_eol(1) . dom_tab(3) .    /* 'event.preventDefault();' */ ""
+        .   dom_eol(1) . dom_tab(2) .   '});'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) .   ''.$update_function.'();'
+        .   dom_eol(1) . dom_tab(1)
         ;
     }
 
@@ -5503,31 +5576,31 @@ else
     {
         return
 
-            eol(1) . tab(1)     
-        .   eol(1) . tab(2) .   '/*  BACK TO TOP BUTTON */'
-        .   eol(1) . tab(1)     
-        .   eol(1) . tab(2) .   'var $back_to_top                    = null;'
-        .   eol(1) . tab(2) .   'var  back_to_top_offset             =  300;'
-        .   eol(1) . tab(2) .   'var  back_to_top_offset_opacity     = 1200;'
-        .   eol(1) . tab(2) .   'var  back_to_top_scroll_duration    =  700;'
-        .   eol(1) . tab(1)     
-        .   eol(1) . tab(2) .   'function '.$update_function.'()'
-        .   eol(1) . tab(2) .   '{'
-        .   eol(1) . tab(3) .       '($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");'
-        .   eol(1) . tab(1)     
-        .   eol(1) . tab(3) .       'if ($(window).scrollTop() > back_to_top_offset_opacity)'
-        .   eol(1) . tab(3) .       '{ '
-        .   eol(1) . tab(4) .           '$back_to_top.addClass("cd-fade-out");'
-        .   eol(1) . tab(3) .       '}'
-        .   eol(1) . tab(2) .   '}'
-        .   eol(1) . tab(1)     
-        .   eol(1) . tab(2) .   '$back_to_top = $(".cd-top");'
-        .   eol(1) . tab(2) .   '$back_to_top.on("click", function(event)'
-        .   eol(1) . tab(2) .   '{'
-        .   eol(1) . tab(3) .       'event.preventDefault();'
-        .   eol(1) . tab(3) .       '$("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);'
-        .   eol(1) . tab(2) .   '});'
-        .   eol(1) . tab(1)     
+            dom_eol(1) . dom_tab(1)     
+        .   dom_eol(1) . dom_tab(2) .   '/*  BACK TO TOP BUTTON */'
+        .   dom_eol(1) . dom_tab(1)     
+        .   dom_eol(1) . dom_tab(2) .   'var $back_to_top                    = null;'
+        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_offset             =  300;'
+        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_offset_opacity     = 1200;'
+        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_scroll_duration    =  700;'
+        .   dom_eol(1) . dom_tab(1)     
+        .   dom_eol(1) . dom_tab(2) .   'function '.$update_function.'()'
+        .   dom_eol(1) . dom_tab(2) .   '{'
+        .   dom_eol(1) . dom_tab(3) .       '($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");'
+        .   dom_eol(1) . dom_tab(1)     
+        .   dom_eol(1) . dom_tab(3) .       'if ($(window).scrollTop() > back_to_top_offset_opacity)'
+        .   dom_eol(1) . dom_tab(3) .       '{ '
+        .   dom_eol(1) . dom_tab(4) .           '$back_to_top.addClass("cd-fade-out");'
+        .   dom_eol(1) . dom_tab(3) .       '}'
+        .   dom_eol(1) . dom_tab(2) .   '}'
+        .   dom_eol(1) . dom_tab(1)     
+        .   dom_eol(1) . dom_tab(2) .   '$back_to_top = $(".cd-top");'
+        .   dom_eol(1) . dom_tab(2) .   '$back_to_top.on("click", function(event)'
+        .   dom_eol(1) . dom_tab(2) .   '{'
+        .   dom_eol(1) . dom_tab(3) .       'event.preventDefault();'
+        .   dom_eol(1) . dom_tab(3) .       '$("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);'
+        .   dom_eol(1) . dom_tab(2) .   '});'
+        .   dom_eol(1) . dom_tab(1)     
         ;
     }
 
@@ -5535,19 +5608,19 @@ else
     {
         return 
  
-            eol(1) . tab(1)
-        .   eol(1) . tab(2) . '/* SLICK SLIDERS */'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) . 'function updateSlickSlider()'
-        .   eol(1) . tab(2) . '{'.if_then(dom_get("support_sliders", false), ''
-        .   eol(1) . tab(3) .     '$(".slider").not(".slick-initialized").slick({"autoplay":true});'
-        .   eol(1) . tab(2) . '').'}'
-        .   eol(1) . tab(2)
-        .   eol(1) . tab(2) . 'function '.$init_function.'()'
-        .   eol(1) . tab(2) . '{'.if_then(dom_get("support_sliders", false), ''
-        .   eol(1) . tab(3) .     'setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);'
-        .   eol(1) . tab(2) . '').'}'
-        .   eol(1) . tab(1)
+            dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . '/* SLICK SLIDERS */'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . 'function updateSlickSlider()'
+        .   dom_eol(1) . dom_tab(2) . '{'.(!dom_get("support_sliders", false) ? '' : (''
+        .   dom_eol(1) . dom_tab(3) .     '$(".slider").not(".slick-initialized").slick({"autoplay":true});'
+        .   dom_eol(1) . dom_tab(2) . '')).'}'
+        .   dom_eol(1) . dom_tab(2)
+        .   dom_eol(1) . dom_tab(2) . 'function '.$init_function.'()'
+        .   dom_eol(1) . dom_tab(2) . '{'.(!dom_get("support_sliders", false) ? '' : (''
+        .   dom_eol(1) . dom_tab(3) .     'setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);'
+        .   dom_eol(1) . dom_tab(2) . '')).'}'
+        .   dom_eol(1) . dom_tab(1)
         ;
     }
 
@@ -5555,31 +5628,47 @@ else
     {
         return
 
-            eol(1) . tab(1)
-        .   eol(1) . tab(2) . '/* TOOLBAR BANNER IMAGE ROTATION */'
-        .   eol(1) . tab(1)
-        .   eol(1) . tab(2) . 'function '.$init_function.'()'
-        .   eol(1) . tab(2) . '{ ' . if_then(!dom_has("support_header_backgrounds") || (false === dom_get("support_header_backgrounds")), '', ''
-        .   eol(1) . tab(3) .     'dom_ajax("?ajax=header-backgrounds", function(content)'
-        .   eol(1) . tab(3) .     '{' 
-        .   eol(1) . tab(4) .         'if (content != "")'
-        .   eol(1) . tab(4) .         '{'
-        .   eol(1) . tab(5) .             'var index_url = 0;'
-        .   eol(1) . tab(5) .             'var urls = content.split(",");'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(5) .             'if (urls && !(typeof urls === "undefined") && urls.length > 0)'
-        .   eol(1) . tab(5) .             '{'
-        .   eol(1) . tab(6) .                 'setInterval(function()'
-        .   eol(1) . tab(6) .                 '{'
-        .   eol(1) . tab(7) .                     '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
-        .   eol(1) . tab(7) .                     'index_url = (index_url + 1) % urls.length;'
-        .   eol(1) . tab(1)   
-        .   eol(1) . tab(6) .                 '}, 10*1000);'
-        .   eol(1) . tab(5) .             '}'
-        .   eol(1) . tab(4) .         '}'
-        .   eol(1) . tab(3) .     '});' ).''
-        .   eol(1) . tab(2) . '}'
-        .   eol(1) . tab(1)
+            dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . '/* TOOLBAR BANNER IMAGE ROTATION */'
+        .   dom_eol(1) . dom_tab(1)
+        .   dom_eol(1) . dom_tab(2) . 'function '.$init_function.'()'
+        .   dom_eol(1) . dom_tab(2) . '{ ' . ((!dom_has("support_header_backgrounds") || (false === dom_get("support_header_backgrounds"))) ? '' : (''
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     'var rotate_backgrounds = function(content)'
+        .   dom_eol(1) . dom_tab(3) .     '{' 
+        .   dom_eol(1) . dom_tab(4) .         'if (content != "")'
+        .   dom_eol(1) . dom_tab(4) .         '{'
+        .   dom_eol(1) . dom_tab(5) .             'var index_url = 0;'
+        .   dom_eol(1) . dom_tab(5) .             'var urls = content.split(",");'
+        .   dom_eol(1) . dom_tab(1)   
+        .   dom_eol(1) . dom_tab(5) .             'if (urls && !(typeof urls === "undefined") && urls.length > 0)'
+        .   dom_eol(1) . dom_tab(5) .             '{'
+        .   dom_eol(1) . dom_tab(6) .                 'setInterval(function()'
+        .   dom_eol(1) . dom_tab(6) .                 '{'
+        .   dom_eol(1) . dom_tab(7) .                     '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
+        .   dom_eol(1) . dom_tab(7) .                     'index_url = (index_url + 1) % urls.length;'
+        .   dom_eol(1) . dom_tab(1)   
+        .   dom_eol(1) . dom_tab(6) .                 '}, 10*1000);'
+        .   dom_eol(1) . dom_tab(5) .             '}'
+        .   dom_eol(1) . dom_tab(4) .         '}'
+        .   dom_eol(1) . dom_tab(3) .     '};'
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     ''    .((has("noajax") && is_string(get("support_header_backgrounds"))) ? (''
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     'rotate_backgrounds("'.get("support_header_backgrounds").'");' 
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     ''    ) : (''
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     'dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);'
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     ''    )).''
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(3) .     ''  )).''
+        .   dom_eol(1) . dom_tab(3) .     '' 
+        .   dom_eol(1) . dom_tab(2) . '}'
+        .   dom_eol(1) . dom_tab(1)
         ;
     }
 
@@ -5587,75 +5676,69 @@ else
     {
         $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
-        return  ((!dom_AMP() && $jquery_local_filename) ? script_src($jquery_local_filename) : 
-                (
-                    script_src('https://code.jquery.com/jquery-'                . dom_get("version_jquery") . '.min.js',        false, 'crossorigin="anonymous"')
-                //  script_src('https://ajax.googleapis.com/ajax/libs/jquery/'  . dom_get("version_jquery") . '/jquery.min.js', false, 'crossorigin="anonymous"')
-                //  script_src('https://ajax.microsoft.com/ajax/jquery/jquery-' . dom_get("version_jquery") . '.min.js',        false, 'crossorigin="anonymous"')
-
-                ))
-        
-            .   if_then(dom_get("support_sliders", false),   eol(2) . script_src('https://cdn.jsdelivr.net/jquery.slick/'            . dom_get("version_slick")     . '/slick.min.js'))            
-            .   if_then("material"  == dom_get("framework"), eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web.min.js'))
-            .   if_then("bootstrap" == dom_get("framework"), eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper.min.js'))
-            .   if_then("bootstrap" == dom_get("framework"), eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap.min.js'))
+        return  ((!dom_AMP() && $jquery_local_filename) ?                script_src($jquery_local_filename) :                 
+                                                                         script_src('https://code.jquery.com/jquery-'                   . dom_get("version_jquery")    . '.min.js', false, 'crossorigin="anonymous"'))
+            .   dom_if(dom_get("support_sliders", false),   dom_eol(2) . script_src('https://cdn.jsdelivr.net/jquery.slick/'            . dom_get("version_slick")     . '/slick.min.js'))            
+            .   dom_if("material"  == dom_get("framework"), dom_eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web.min.js'))
+            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper.min.js'))
+            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap.min.js'))
             ;
     }
     
     function scripts_body()
     {
-        return  eol(2) . script_externals        ()
-            .   eol(2) . dom_script_ajax_body    ()
-            .   eol(2) . script_google_analytics ()
+        return  dom_eol(2) . script_externals        ()
+            .   dom_eol(2) . dom_script_ajax_body    ()
+            .   dom_eol(2) . script_google_analytics ()
 
-            .   eol(2) . script(
+            .   dom_eol(2) . script(
         
-                    eol(1) . tab(1) .   '$(document).ready(function()'
-                .   eol(1) . tab(1) .   '{'
-                .   eol(1) . tab(2) .       js_toolbar                 (                    "onScrollToolbarHeight")
-                .   eol(1) . tab(2) .       js_back_to_top             (                    "onScrollBackToTopButton")
-                .   eol(1) . tab(2) .       js_images_loading          ("onLoadLazyImages", "onScrollLazyImages")
-                .   eol(1) . tab(2) .       js_slick_slider            ("onLoadSliders")
-                .   eol(1) . tab(1)      
-                .   eol(1) . tab(2) .       '/* DOM main mechanisms */'
-                .   eol(1) . tab(1)      
-                .   eol(1) . tab(2) .       '$(window).scroll(function()'
-                .   eol(1) . tab(2) .       '{'
-                .   eol(1) . tab(3) .           'onScrollBackToTopButton    ();'
-                .   eol(1) . tab(3) .           'onScrollLazyImages         ();'
-                .   eol(1) . tab(3) .           'onScrollToolbarHeight      ();'
-                .   eol(1) . tab(2) .       '});'
-                .   eol(1) . tab(1)      
-                .   eol(1) . tab(2) .       '$(window).on("load", function()'
-                .   eol(1) . tab(2) .       '{ '
-                .   eol(1) . tab(3) .           'onLoadLazyImages       ();'
-                .   eol(1) . tab(3) .           'onLoadSliders          ();'
-                .   eol(1) . tab(2) .       '});'
-                .   eol(1) . tab(1) .   '});'
-                .   eol(1)
+                    dom_eol(1) . dom_tab(1) .   '$(document).ready(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{'
+                .   dom_eol(1) . dom_tab(2) .       js_toolbar                 (                    "onScrollToolbarHeight")
+                .   dom_eol(1) . dom_tab(2) .       js_back_to_top             (                    "onScrollBackToTopButton")
+                .   dom_eol(1) . dom_tab(2) .       js_images_loading          ("onLoadLazyImages", "onScrollLazyImages")
+                .   dom_eol(1) . dom_tab(2) .       js_slick_slider            ("onLoadSliders")
+                .   dom_eol(1) . dom_tab(1)      
+                .   dom_eol(1) . dom_tab(2) .       '/* DOM main mechanisms */'
+                .   dom_eol(1) . dom_tab(1)      
+                .   dom_eol(1) . dom_tab(2) .       '$(window).scroll(function()'
+                .   dom_eol(1) . dom_tab(2) .       '{'
+                .   dom_eol(1) . dom_tab(3) .           'onScrollBackToTopButton    ();'
+                .   dom_eol(1) . dom_tab(3) .           'onScrollLazyImages         ();'
+                .   dom_eol(1) . dom_tab(3) .           'onScrollToolbarHeight      ();'
+                .   dom_eol(1) . dom_tab(2) .       '});'
+                .   dom_eol(1) . dom_tab(1)      
+                .   dom_eol(1) . dom_tab(2) .       '$(window).on("load", function()'
+                .   dom_eol(1) . dom_tab(2) .       '{ '
+                .   dom_eol(1) . dom_tab(3) .           'onLoadLazyImages       ();'
+                .   dom_eol(1) . dom_tab(3) .           'onLoadSliders          ();'
+                .   dom_eol(1) . dom_tab(2) .       '});'
+                .   dom_eol(1) . dom_tab(1) .   '});'
+                .   dom_eol(1)
 
                 ) // Split in two to bypass AMP restrictions. TODO: one script per module
 
-            .   eol(2) . script(
+            .   dom_eol(2) . script(
         
-                    eol(1) . tab(1) .   '$(document).ready(function()'
-                .   eol(1) . tab(1) .   '{'
-                .   eol(1) . tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
-                .   eol(1) . tab(2) .       js_service_worker          ("onLoadServiceWorker")
-                .   eol(1) . tab(2) .       js_pwa_install             ("onLoadPWA")
-                .   eol(1) . tab(2) .       js_framework_material      ()
-                .   eol(1) . tab(2) .       js_scan_and_print_body     ()
-                .   eol(1) . tab(1)      
-                .   eol(1) . tab(2) .       '/* DOM main mechanisms */'
-                .   eol(1) . tab(1)      
-                .   eol(1) . tab(2) .       '$(window).on("load", function()'
-                .   eol(1) . tab(2) .       '{ '
-                .   eol(1) . tab(3) .           'onLoadRotatingHeaders  ();'
-                .   eol(1) . tab(3) .           'onLoadServiceWorker    ();'
-                .   eol(1) . tab(3) .           'onLoadPWA              ();'
-                .   eol(1) . tab(2) .       '});'
-                .   eol(1) . tab(1) .   '});'
-                .   eol(1)
+                    dom_eol(1) . dom_tab(1) .   '$(document).ready(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{'
+                .   dom_eol(1) . dom_tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
+                .   dom_eol(1) . dom_tab(2) .       js_service_worker          ("onLoadServiceWorker")
+                .   dom_eol(1) . dom_tab(2) .       js_pwa_install             ("onLoadPWA")
+                .   dom_eol(1) . dom_tab(2) .       js_framework_material      ()
+                .   dom_eol(1) . dom_tab(2) .       js_scan_and_print_body     ()
+                .   dom_eol(1) . dom_tab(1)      
+                .   dom_eol(1) . dom_tab(2) .       '/* DOM main mechanisms */'
+                .   dom_eol(1) . dom_tab(1)      
+                .   dom_eol(1) . dom_tab(2) .       '$(window).on("load", function()'
+                .   dom_eol(1) . dom_tab(2) .       '{ '
+                .   dom_eol(1) . dom_tab(3) .           'onLoadRotatingHeaders  ();'
+                .   dom_eol(1) . dom_tab(3) .           'onLoadServiceWorker    ();'
+                .   dom_eol(1) . dom_tab(3) .           'onLoadPWA              ();'
+                .   dom_eol(1) . dom_tab(2) .       '});'
+                .   dom_eol(1) . dom_tab(1) .   '});'
+                .   dom_eol(1)
 
                 );
     }
@@ -5664,30 +5747,29 @@ else
     #region API : DOM : HTML COMPONENTS : MARKUP : BODY
     ######################################################################################################################################
 
-    function comment($text) { return (dom_has("rss")) ? '' : ('<!-- ' . $text . ' //-->'); }
-    
+    function comment($text) { return (dom_has("rss")) ? "" : ("<!-- $text //-->"); }
+
     function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
     {
         $space_pos = strpos($tag, ' ');
         
         return (dom_has('rss') && !$force_display) ? '' : (
-
-            
-            (
-                '<'.$tag.dom_attributes($attributes).
-                (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
-            ) . 
-            (
-                ($self_closing) ? '/>' : 
-                ('>'.$html.'</'.(($space_pos === false) ? $tag : substr($tag, 0, $space_pos)).'>')
-            )
+                
+                (
+                    '<'.$tag.dom_attributes($attributes).
+                    (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
+                ) . 
+                (
+                    ($self_closing) ? '/>' : 
+                    ('>'.$html.'</'.(($space_pos === false) ? $tag : substr($tag, 0, $space_pos)).'>')
+                )
 
             );
     }
     
     function body($html = "", $html_post_scripts = "", $dark_theme = null)
     {
-        dom_debug_track_timing("start");
+        $profiler = dom_debug_track_timing();
         
         $properties_organization = array
         (
@@ -5718,38 +5800,35 @@ else
         
         $body = ''
 
-        . eol(2) . if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
+        . dom_eol(2) . if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
         
     /*  . "<span id='!'></span>" */ // To match url_void() #!
         
-        . eol(2) . if_then(dom_get("support_metadata_person",       false), script_json_ld($properties_person))
-        . eol(2) . if_then(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
+        . dom_eol(2) . dom_if(dom_get("support_metadata_person",       false), script_json_ld($properties_person))
+        . dom_eol(2) . dom_if(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
         
-        . eol(2) . $html
+        . dom_eol(2) . $html
 
-        . eol(2) . if_then(dom_AMP(), comment("DOM AMP sidebars"))
-        . eol(2) . delayed_component("_amp_sidebars")
-        . eol(2) . delayed_component("_amp_scripts_body")
+        . dom_eol(2) . dom_if(dom_AMP(), comment("DOM AMP sidebars"))
+        . dom_eol(2) . delayed_component("_amp_sidebars")
+        . dom_eol(2) . delayed_component("_amp_scripts_body")
 
-        . eol(2) . comment("DOM Body boilerplate markup")
-        . eol(2) . back_to_top_link()
+        . dom_eol(2) . comment("DOM Body boilerplate markup")
+        . dom_eol(2) . back_to_top_link()
 
-        . eol(2) . comment("DOM Body scripts")
-        . eol(2) . scripts_body()
-        . eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
-    //  . eol(2) . ($app_js ? script_src($app_js)      : comment('Could not find any app.js default user script'))
-        . eol(2) . ($app_js ? script($app_js) : '')
-        . eol(2) . $html_post_scripts
+        . dom_eol(2) . comment("DOM Body scripts")
+        . dom_eol(2) . scripts_body()
+        . dom_eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
+        . dom_eol(2) . ($app_js ? script($app_js) : '')
+        . dom_eol(2) . $html_post_scripts
 
-        . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
-        . eol(2) . if_then(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
+        . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
+        . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
 
-        dom_debug_track_timing("end");
-        
         if (is_null($dark_theme)) $dark_theme = dom_get("dark_theme", false);
         
-        return cosmetic(eol(2)).tag('body', $body, dom_component_class('body').($dark_theme ? dom_component_class('dark') : ''));
+        return cosmetic(dom_eol(2)).tag('body', $body, dom_component_class('body').($dark_theme ? dom_component_class('dark') : ''));
     }
     
     function cosmetic($html)
@@ -5759,23 +5838,23 @@ else
     
 //  HTML tags
     
-    function div            ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('div',                        $html,                                                $attributes                                                         );                      }
-    function p              ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('p',                          $html,                                                $attributes                                                         );                      }
+    function div            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('div',                        $html,                                                $attributes                                                         );                      }
+    function p              ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return                     tag ('i',                          $html,                                                $attributes                                                         );                      }
-    function pre            ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('pre',                        $html,                                                $attributes                                                         );                      }
-    function ul             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('ul',                         $html.cosmetic(eol(1)),                               $attributes                                                         );                      }
-    function ol             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('ol',                         $html.cosmetic(eol(1)),                               $attributes                                                         );                      }
-    function li             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('li',                         $html,                                                $attributes                                                         );                      }
+    function pre            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('pre',                        $html,                                                $attributes                                                         );                      }
+    function ul             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('ul',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
+    function ol             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('ol',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
+    function li             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('li',                         $html,                                                $attributes                                                         );                      }
 
-    function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('table',                      $html.cosmetic(eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
-    function tr             ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('tr',                         $html,                                                $attributes                                                         );                      }
+    function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('table',                      $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
+    function tr             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('tr',                         $html,                                                $attributes                                                         );                      }
     function td             ($html = "", $attributes = false) {                             return                     tag ('td',                         $html,                                                $attributes                                                         );                      }
     function th             ($html = "", $attributes = false) {                             return                     tag ('th',                         $html,                                                $attributes                                                         );                      }
 
     function strong         ($html = "", $attributes = false) {                             return                     tag ('strong',                     $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return                     tag ('em',                         $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return                     tag ('span',                       $html,                                                $attributes                                                         );                      }
-    function figure         ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('figure',                     $html.cosmetic(eol(1)),                               $attributes                                                         );                      }
+    function figure         ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('figure',                     $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
     function figcaption     ($html = "", $attributes = false) {                             return                     tag ('figcaption',                 $html,                                                $attributes                                                         );                      }
 
     function checkbox       ($id, $html = "", $attributes = false) {                        return                     tag('input',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox')),       "id"  => $id, "type" => "checkbox") );     }
@@ -5785,7 +5864,7 @@ else
     function button_label   ($html = "", $attributes = false) {                             return                     tag ('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
 
     function h          ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
-                                                                                            return  cosmetic(eol(1)).
+                                                                                            return  cosmetic(dom_eol(1)).
                                                                                                     (($h>=get("headline_anchor_level",2))?anchor(!!$anchor ? $anchor : $html):'').
                                                                                                                        tag ('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
@@ -5794,19 +5873,19 @@ else
     function h3             ($html = "", $attributes = false, $anchor = false) {            return                     h(3,                               $html,                                                $attributes, $anchor                                                );                      }
     function h4             ($html = "", $attributes = false, $anchor = false) {            return                     h(4,                               $html,                                                $attributes, $anchor                                                );                      }
     function h5             ($html = "", $attributes = false, $anchor = false) {            return                     h(5,                               $html,                                                $attributes, $anchor                                                );                      }
-    function section        ($html = "", $attributes = false) {                             return    cosmetic(eol(1)).tag ('section',                    $html,                     dom_attributes_add_class(  $attributes, 'section')                                             );                      }
-    function dom_header     ($html = "", $attributes = false) { dom_debug_track_timing();   return    cosmetic(eol(1)).tag ('header',                     $html.cosmetic(eol(1)),    dom_attributes_add_class(  $attributes, 'header')                                              ).cosmetic(eol(1));     }
+    function section        ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('section',                    $html,                     dom_attributes_add_class(  $attributes, 'section')                                             );                      }
+    function dom_header     ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return    cosmetic(dom_eol(1)).tag ('header',                     $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, 'header')                                              ).cosmetic(dom_eol(1));     }
                    
-    function hr             (            $attributes = false) {                             return    cosmetic(eol(1)).tag ('hr',                         false,                                                $attributes, false, true                                            );                      }
+    function hr             (            $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return                     tag ('br',                         false,                                                $attributes, false, true                                            );                      }
 
     function clearfix       () { return div("","clearfix"); }
 
     function dom_main       ($html = "", $attributes = false) { return content($html, $attributes); }
-    function content        ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('main',     cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('main')                 .                           ' ' . 
+    function content        ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return clearfix().cosmetic(dom_eol(2)).tag ('main',     cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('main')                 .                           ' ' . 
                                                                                                                                                                                                                                         dom_component_class('content')              . (!!dom_get("toolbar") ? ( ' ' . 
-                                                                                                                                                                                                                                        dom_component_class('main-below-toolbar')   ) : '')) ).cosmetic(eol(1)); }
-    function footer         ($html = "", $attributes = false) { dom_debug_track_timing();   return clearfix().cosmetic(eol(2)).tag ('footer',   cosmetic(eol(1)).$html.cosmetic(eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
+                                                                                                                                                                                                                                        dom_component_class('main-below-toolbar')   ) : '')) ).cosmetic(dom_eol(1)); }
+    function footer         ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return clearfix().cosmetic(dom_eol(2)).tag ('footer',   cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
     
     function icon           ($icon, $attributes = false) { return      i($icon,      dom_attributes_add_class($attributes, 'material-icons')); }
     function button_icon    ($icon, $label      = false) { return button(icon($icon, dom_component_class('action-button-icon')), array("class" => dom_component_class("action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
@@ -5820,6 +5899,7 @@ else
             array(16,  9),
             array(16, 10),
             array( 5,  4),
+            array( 5,  1),
             array( 4,  3),
             array( 3,  2),
             array( 2,  1),
@@ -5857,8 +5937,8 @@ else
         
     }
         
-	function iframe($url, $title = false, $classes = false, $w = false, $h = false)
-	{   
+    function iframe($url, $title = false, $classes = false, $w = false, $h = false)
+    {   
     //  TODO. See https://benmarshall.me/responsive-iframes/ for frameworks integration   
 
         $lazy = !AMP() && !dom_get("no_js");
@@ -5870,44 +5950,46 @@ else
 
         $classes = (!!$lazy) ? ((!$classes) ? "lazy" : "lazy $classes") : $classes;
 
-        return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe')
+        return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
-            .($lazy ? ' data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
+            .($lazy ? ' src="about:blank" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
+            .dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>')
+            .'</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
     }
 
-	function google_calendar($id, $w = false, $h = false)
-	{
+    function google_calendar($id, $w = false, $h = false)
+    {
         $src = $id;
 
         if (false === stripos($id, "http"))
         {
             $src = 'https://calendar.google.com/calendar/embed'
             
-            .'?'    .'showTitle'		.'=0'
-            .'&amp;'.'showPrint'		.'=0'
-            .'&amp;'.'showCalendars'	.'=0'
-            .'&amp;'.'showTz'			.'=0'
-            .'&amp;'.'height'			.'='.$h.''
-            .'&amp;'.'wkst'				.'=2'
-            .'&amp;'.'bgcolor'			.'=%23FFFFFF'
-            .'&amp;'.'src'				.'='.$id.'%40group.calendar.google.com'
-            .'&amp;'.'color'			.'=%2307bdcb'
-            .'&amp;'.'ctz'				.'=Europe%2FParis';
+            .'?'    .'showTitle'        .'=0'
+            .'&amp;'.'showPrint'        .'=0'
+            .'&amp;'.'showCalendars'    .'=0'
+            .'&amp;'.'showTz'            .'=0'
+            .'&amp;'.'height'            .'='.$h.''
+            .'&amp;'.'wkst'                .'=2'
+            .'&amp;'.'bgcolor'            .'=%23FFFFFF'
+            .'&amp;'.'src'                .'='.$id.'%40group.calendar.google.com'
+            .'&amp;'.'color'            .'=%2307bdcb'
+            .'&amp;'.'ctz'                .'=Europe%2FParis';
         }
         
         if (dom_AMP()) return a('https://calendar.google.com', $src, EXTERNAL_LINK);
         
-		return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, EXTERNAL_LINK);
-	}
+        return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, EXTERNAL_LINK);
+    }
         
-	function google_map($embed_url, $w = false, $h = false)
-	{
+    function google_map($embed_url, $w = false, $h = false)
+    {
         return iframe($embed_url, "Google Map", "google-map", $w, $h);
     }
         
-	function google_doc($id, $w = false, $h = false)
-	{
+    function google_doc($id, $w = false, $h = false)
+    {
         $src = $id;
 
         if (false === stripos($id, "http"))
@@ -5918,8 +6000,8 @@ else
         return iframe($src, "Google Doc", "google-doc", $w, $h);
     }
        
-	function google_video($id, $w = false, $h = false)
-	{
+    function google_video($id, $w = false, $h = false)
+    {
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
 
@@ -5932,9 +6014,9 @@ else
         {        
             $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
 
-            return div_aspect_ratio('<'.if_then(dom_AMP(), 'amp-iframe sandbox="allow-scripts"', 'iframe').' title="Google Video" src="'.$url.'" height="'.$h.'" width="'.$w.'" layout="responsive" scrolling="no" frameborder="0" allowfullscreen=""></'.if_then(dom_AMP(), 'amp-iframe', 'iframe').'>', $w, $h);
+            return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').' title="Google Video" src="'.$url.'" height="'.$h.'" width="'.$w.'" layout="responsive" scrolling="no" frameborder="0" allowfullscreen=""></'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
         }
-	}
+    }
         
     function json_google_photo_album_from_content($url)
     {
@@ -5966,7 +6048,7 @@ else
         if (dom_AMP()) return a($url, $url, EXTERNAL_LINK);
 
         $results = json_google_photo_album_from_content($url);
-        $photos  = $results[1];
+        $photos  = (is_array($results)) ? $results[1] : array();
         
         $images = "";
         
@@ -5979,10 +6061,10 @@ else
 
         return a(call_user_func($wrapper, $images), $url, EXTERNAL_LINK);
     }
-	
+    
     // Components with BlogPosting microdata
 
-    function article            ($html = "", $attributes = false) { return cosmetic(eol(1)).tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ dom_attributes_add_class($attributes, "article")); }
+    function article            ($html = "", $attributes = false) { return cosmetic(dom_eol(1)).tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ dom_attributes_add_class($attributes, "article")); }
     
     function span_author        ($html)             { return span ($html/*, array("itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person" )*/); }
     function span_name          ($html)             { return span ($html/*, array("itemprop" => "name"                                                                 )*/); }
@@ -6076,11 +6158,11 @@ else
     function char_anchor() { return "⚓"; }
   //function char_unsec()  { return " "; }
     function char_unsec()  { return "&nbsp;"; }
-    
-//  function nbsp($count = 1) { return str_repeat("&nbsp;",     $count); }
+    function char_amp()    { return "&amp;"; }
+   
     function nbsp($count = 1) { return str_repeat(char_unsec(), $count); }
     
-    function anchor_name($name, $tolower = true) { return to_classname($name, $tolower); }
+    function anchor_name($name, $tolower = true) { return dom_to_classname($name, $tolower); }
 
     function anchor($name, $character = false, $tolower = true)
     {
@@ -6239,6 +6321,7 @@ else
 
         if ($path === false) return '';
 
+        $path     = dom_path($path);
         $info     = explode('?', $path);
         $info     = $info[0];
         $info     = pathinfo($info);
@@ -6309,7 +6392,10 @@ else
             "seloger",        
             "numerama",
             "google",
-            "github"
+            "github",
+            "deezer",
+            "soundcloud",
+            "link"
         );
     }
 
@@ -6325,7 +6411,7 @@ else
             $class    = "palette-$svg";
             $var      = "--color-$svg";
     
-            $css .= eol().tab(1);
+            $css .= dom_eol().dom_tab(1);
             for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { fill: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
         }
 
@@ -6348,7 +6434,7 @@ else
             $colors   = is_array($colors) ? $colors : array($colors);
             $class    = "palette-$svg";
     
-            $css .= eol().tab(1);
+            $css .= dom_eol().dom_tab(1);
             
             for ($i = 0; $i < count($colors); ++$i)
             {
@@ -6381,28 +6467,105 @@ else
 
     // !TOOD DEPRECATE FUNCTION SIGNATURE AND REMOVE COLOR PARAM
 
-    function svg_500px          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-500px";           return svg('<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />',  $w, $h, $label === null ? "500px"         : $label,   0,   0,  980,      997,     $align); }
-    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-flickr";          return svg('<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       $w, $h, $label === null ? "Flickr"            : $label,   0,   0, 232.422, 232.422, $align); }
-    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-facebook";        return svg('<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-twitter";         return svg('<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-linkedin";        return svg('<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Linkedin"          : $label,   0,   0,  24,      24,     $align); }
-    function svg_github         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-github";          return svg('<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>',                                                                                                                                                  $w, $h, $label === null ? "Github"            : $label,   0,   0,  16,      16,     $align); }
-    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-instagram";       return svg('<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-pinterest";       return svg('<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-tumblr";          return svg('<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,   0,  24,      24,     $align); }
-    function svg_rss            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-rss";             return svg('<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,   0,  24,      24,     $align); }
-    function svg_printer        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-printer";         return svg('<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,   0,  24,      24,     $align); }
-    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-printer";         return svg('<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,   0,  24,      24,     $align); }
-    function svg_messenger		($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-messenger";       return svg('<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,   0,  24,      24,     $align); }
-    function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-alert";           return svg('<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,   0,  24,      24,     $align); }
-    function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-amp";             return svg('<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22, -22, 300,     300,     $align); }
-    function svg_loading        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-loading";         return svg('<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                $w, $h, $label === null ? "Loading"           : $label,   0,   0,  96,      96,     $align); }
-    function svg_darkandlight   ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-darkandlight";    return svg('<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12, -12, 640,     640,     $align); }
-    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-leboncoin";       return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $w, $h, $label === null ? "Leboncoin" : $label, 0, 0, 151.0, 151.0, $align); }
-    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-seloger";         return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                    $w, $h, $label === null ? "Seloger"   : $label, 0, 0, 152.0, 152.0, $align); }
-    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-numerama";        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                           $w, $h, $label === null ? "Numerama"          : $label, 0, 0,  80.0,    80.0,   $align); }
-    function svg_google         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-google";          return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                          $w, $h, $label === null ? "Google"            : $label, 0, 0,  48,      48,     $align); }
-    
+    function svg_flickr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-flickr";          return svg('<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       $w, $h, $label === null ? "Flickr"            : $label,   0,      0,     232.422, 232.422,  $align); }
+    function svg_facebook       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-facebook";        return svg('<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     $w, $h, $label === null ? "Facebook"          : $label,   0,      0,      24,      24,      $align); }
+    function svg_twitter        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-twitter";         return svg('<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />',                                                                                                 $w, $h, $label === null ? "Twitter"           : $label,   0,      0,      24,      24,      $align); }
+    function svg_linkedin       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-linkedin";        return svg('<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />',                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Linkedin"          : $label,   0,      0,      24,      24,      $align); }
+    function svg_github         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-github";          return svg('<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>',                                                                                                                                                  $w, $h, $label === null ? "Github"            : $label,   0,      0,      16,      16,      $align); }
+    function svg_instagram      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-instagram";       return svg('<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />',                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Instagram"         : $label,   0,      0,      24,      24,      $align); }
+    function svg_pinterest      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-pinterest";       return svg('<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',  $w, $h, $label === null ? "Pinterest"         : $label,   0,      0,      24,      24,      $align); }
+    function svg_tumblr         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-tumblr";          return svg('<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Tumblr"            : $label,   0,      0,      24,      24,      $align); }
+    function svg_rss            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-rss";             return svg('<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 $w, $h, $label === null ? "RSS"               : $label,   0,      0,      24,      24,      $align); }
+    function svg_printer        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-printer";         return svg('<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         $w, $h, $label === null ? "Printer"           : $label,   0,      0,      24,      24,      $align); }
+    function svg_notifications  ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-printer";         return svg('<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Notifications"     : $label,   0,      0,      24,      24,      $align); }
+    function svg_messenger      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-messenger";       return svg('<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Messenger"         : $label,   0,      0,      24,      24,      $align); }
+    function svg_alert          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-alert";           return svg('<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          $w, $h, $label === null ? "Alert"             : $label,   0,      0,      24,      24,      $align); }
+    function svg_amp            ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-amp";             return svg('<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />',                                                                                                                                                                                                                                                                                                                                                                                                                                   $w, $h, $label === null ? "AMP"               : $label, -22,    -22,     300,     300,      $align); }
+    function svg_loading        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-loading";         return svg('<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                $w, $h, $label === null ? "Loading"           : $label,   0,      0,      96,      96,      $align); }
+    function svg_darkandlight   ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-darkandlight";    return svg('<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                              $w, $h, $label === null ? "DarkAndLight"      : $label, -12,    -12,     640,     640,      $align); }
+    function svg_google         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-google";          return svg('<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>',                                                                                                                                                                          $w, $h, $label === null ? "Google"            : $label,   0,      0,      48,      48,      $align); }
+    function svg_numerama       ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-numerama";        return svg('<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                           $w, $h, $label === null ? "Numerama"          : $label,   0,      0,      80,      80,      $align); }
+    function svg_soundcloud     ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-soundcloud";      return svg('<g xmlns="http://www.w3.org/2000/svg"><path style="fill:#FF7700;" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>',                                                                 $w, $h, $label === null ? "Soundcloud"        : $label,   0,      0,     291.319, 291.319,  $align); } 
+
+    function svg_link           ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-link";            return svg('<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>',                                                                                                                                                                                                                                                                                        $w, $h, $label === null ? "Link"              : $label,   0,      0,      48,      48,      $align); }
+
+    function svg_leboncoin      ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-leboncoin";       return svg('<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               $w, $h, $label === null ? "Leboncoin"   : $label,   0,   0,  151.0,    151.0,   $align); }
+    function svg_500px          ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-500px";           return svg('<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />',   $w, $h, $label === null ? "500px"       : $label,   0,   0,  980,      997,     $align); }
+    function svg_seloger        ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-seloger";         return svg('<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>',                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  $w, $h, $label === null ? "Seloger"     : $label,   0,   0,  152.0,    152.0,   $align); }
+
+    function svg_deezer         ($w = 24, $h = 24, $color = false, $align = null, $label = null) { $class = "palette-deezer";          return svg(' <style type="text/css">
+        .st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}
+        .st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}
+        .st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}
+        .st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}
+        .st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}
+        .st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}
+        .st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}
+        .st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}
+        .st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}
+        .st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}
+    </style>
+    <g id="g8252" transform="translate(0,86.843818)">
+ 
+     <rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#358C7B"/>
+     <stop  offset="0.5256" style="stop-color:#33A65E"/>
+     </linearGradient>
+     <rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#222B90"/>
+     <stop  offset="1" style="stop-color:#367B99"/>
+     </linearGradient>
+     <rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#FF9900"/>
+     <stop  offset="1" style="stop-color:#FF8000"/>
+     </linearGradient>
+     <rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#FF8000"/>
+     <stop  offset="1" style="stop-color:#CC1953"/>
+     </linearGradient>
+     <rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#CC1953"/>
+     <stop  offset="1" style="stop-color:#241284"/>
+     </linearGradient>
+     <rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#222B90"/>
+     <stop  offset="1" style="stop-color:#3559A6"/>
+     </linearGradient>
+     <rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="0" style="stop-color:#CC1953"/>
+     <stop  offset="1" style="stop-color:#241284"/>
+     </linearGradient>
+     <rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="2.669841e-03" style="stop-color:#FFCC00"/>
+     <stop  offset="0.9999" style="stop-color:#CE1938"/>
+     </linearGradient>
+     <rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/>
+ 
+     <linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)">
+     <stop  offset="2.669841e-03" style="stop-color:#FFD100"/>
+     <stop  offset="1" style="stop-color:#FD5A22"/>
+     </linearGradient>
+     <rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/>
+ 
+    </g>', $w, $h, $label === null ? "Deezer"            : $label, 0, 0,192.1,      192.1,     $align); }
+
+
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code),  "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                     "img-pinterest" ); }
     function img_facebook       ($username   = false, $size_code = false)   { return img(url_img_facebook   ($username),                "img-facebook"  ); }
@@ -6419,9 +6582,10 @@ else
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
-    function url_unsplash()                 { return "https://unsplash.com";                            }
-    function url_unsplash_author($id)       { return "https://unsplash.com/@".$id;                      }
-    function url_unsplash_img($id,$w,$h)    { return "https://source.unsplash.com/".$id."/".$w."x".$h;  }
+    function url_unsplash()                         { return "https://unsplash.com";                            }
+    function url_unsplash_author($id)               { return "https://unsplash.com/@".$id;                      }
+    function url_unsplash_img($id,$w,$h)            { return "https://source.unsplash.com/".$id."/".$w."x".$h;  }
+    function url_unsplash_img_random($search,$w,$h) { return "https://source.unsplash.com/".$w."x".$h."/?$search";  }
 
     function url_img_unsplash($id, $w = false, $h = false, $author = false)
     {
@@ -6573,9 +6737,9 @@ else
         return (($media !== false) ? section($media, dom_attributes_add_class($attributes, dom_component_class("card-media"))) : "");
     }
 
-    function card_text($text = false)
+    function card_text($text = false, $cleanup = false)
     {
-        if ($text !== false)
+        if ($text !== false && !!$cleanup)
         {
             $text = dom_clean_social_media_text($text);
         }
@@ -6597,18 +6761,9 @@ else
                                                 :                          array("class" => $attributes, "style" => "transform: rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);");
         }
     
-        return article($html, dom_attributes_add_class($attributes, dom_component_class("card").($horizontal ? dom_component_class("card-horizontal") : ''))).cosmetic(eol());
+        return article($html, dom_attributes_add_class($attributes, dom_component_class("card").($horizontal ? dom_component_class("card-horizontal") : ''))).cosmetic(dom_eol());
     }
 
-/*  function card_builder($media = false, $title = false, $text = false, $button = false, $attributes = false, $horizontal = false)
-    {   
-        return card(
-            card_title  ($title).
-            card_media  ($media).
-            card_text   ($text).
-            card_actions($button), $attributes, $horizontal);
-    }
-*/
     function card_from_metadata($metadata, $attributes = false)
     {
     //  CARD INFO FROM METADATA
@@ -6648,7 +6803,7 @@ else
         }
     
         $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, EXTERNAL_LINK)                                  : $data["content"];
-        $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], eol(), "div")) : $data["content"];
+        $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], dom_eol(), "div")) : $data["content"];
 
         $data["title_main"]     = dom_at($metadata, "post_title");
         $data["title_img_src"]  = dom_at($metadata, "user_img_url");
@@ -6705,7 +6860,7 @@ else
             if (dom_get("genre")                    !== false) $properties["genre"]         = dom_get("genre", "Website");
             if (dom_get("publisher")                !== false) $properties["publisher"]     = array("@type" => "Organization","name" => dom_get("publisher", DOM_AUTHOR), "logo" => array("@type" => "ImageObject", "url"=> dom_get("canonical").'/'.dom_get("image")));
             
-            if (dom_at($metadata, "post_text")      !== false) $properties["keywords"]      = implode(' ', array_hashtags(          dom_at($metadata, "post_text")));
+            if (dom_at($metadata, "post_text")      !== false) $properties["keywords"]      = implode(' ', dom_array_hashtags(          dom_at($metadata, "post_text")));
             if (dom_at($metadata, "post_text")      !== false) $properties["articleBody"]   =                                       dom_at($metadata, "post_text");
             if (dom_at($metadata, "post_img_url")   !== false) $properties["image"]         =                                       dom_at($metadata, "post_img_url"); // TODO MULTIPLE IMAGES
             if (dom_at($metadata, "post_title")     !== false) $properties["headline"]      =                                substr(dom_at($metadata, "post_title"), 0, 110);
@@ -6735,14 +6890,14 @@ else
                 ).
 
             card_media  (dom_at($data,"content")).
-            card_text   (dom_at($data, "desc")).
+            card_text   (dom_at($data, "desc", true)).
 
             card_actions(false),
             
             $attributes
             ).
 
-            if_then($properties !== false && dom_get("jsonld",true), script_json_ld($properties));
+            dom_if($properties !== false && dom_get("jsonld",true), script_json_ld($properties));
     }
 
     function img_from_metadata($metadata, $attributes = false)
@@ -6755,10 +6910,10 @@ else
         return img($metadata["post_img_url"], $attributes, $short_label, $lazy);
     }
 
-    function card_      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_card   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container);                 }        
-    function imgs       ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_imgs   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container, true);           }    
-    function cards      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), $container, true, $s,$m,$l); }    
-    function cells_card ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), eol(2), "cell",     true, $s,$m,$l); }    
+    function card_      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_card   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), dom_eol(2), $container);                 }        
+    function imgs       ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_imgs   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), dom_eol(2), $container, true);           }    
+    function cards      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), dom_eol(2), $container, true, $s,$m,$l); }    
+    function cells_card ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $s = 4, $m = 4, $l = 4)  { return wrap_each(array_cards  ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), dom_eol(2), "cell",     true, $s,$m,$l); }    
 
     // PROGRESS-BAR
     
@@ -6815,7 +6970,7 @@ else
     {
         if (is_array($icon_entries))
         {
-            return wrap_each($icon_entries, eol(), "dom_icon_entry_to_link", false);
+            return wrap_each($icon_entries, dom_eol(), "dom_icon_entry_to_link", false);
         }
         else if (is_string($icon_entries))
         {
@@ -6851,7 +7006,7 @@ else
             {
                 if ($menu_entry == array() || $menu_entry == "")
                 {
-                    $menu_lis .= cosmetic(eol()) . li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
+                    $menu_lis .= cosmetic(dom_eol()) . li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
                 }
                 else
                 {    
@@ -6863,7 +7018,7 @@ else
                     $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
                     $attributes = false;
                     
-                    $menu_lis .= eol().li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= dom_eol().li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
                 }
             }
         }
@@ -6877,7 +7032,7 @@ else
         if (dom_AMP() && !!$sidebar)
         {
             hook_amp_sidebar(
-                cosmetic(eol(1)).
+                cosmetic(dom_eol(1)).
                 tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
                 );
 
@@ -6887,13 +7042,13 @@ else
         return $html;
     }
 
-    function menu_switch() { return if_then(dom_get("framework") == "material",  a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
-                                .   if_then(dom_get("framework") == "bootstrap", a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                .   if_then(dom_get("framework") == "spectre",   a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                .   if_then(dom_get("framework") == "NONE",      a(span("☰", "menu-switch-symbol menu-toggle-content")   
+    function menu_switch() { return dom_if(dom_get("framework") == "material",  a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
+                                .   dom_if(dom_get("framework") == "bootstrap", a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
+                                .   dom_if(dom_get("framework") == "spectre",   a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
+                                .   dom_if(dom_get("framework") == "NONE",      a(span("☰", "menu-switch-symbol menu-toggle-content")   
                                                                                . a(span("✕", "menu-close-symbol  menu-close-content"), "#menu-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
                                                                                                                                      , "#menu-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
-                            //  .   if_then(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,    array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
+                            //  .   dom_if(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,    array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
                                                             ; 
     }
 
@@ -6938,7 +7093,7 @@ else
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, INTERNAL_LINK, $sidebar);
 
-        return if_then(dom_get("framework") != "bootstrap", div($html, "menu-entries " . dom_component_class("menu")), $html);
+        return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
     }
     
     function menu_toggle($html, $sidebar = null)
@@ -7042,7 +7197,7 @@ else
         
         if (dom_has("support_header_backgrounds") && (false !== dom_get("support_header_backgrounds")))
         {
-            if (is_string("support_header_backgrounds"))
+            if (is_string(dom_get("support_header_backgrounds")))
             {
                 foreach (explode(',', dom_get("support_header_backgrounds")) as $i => $url)
                 {
@@ -7113,7 +7268,7 @@ else
         {
             $html .= dom_ajax_call($registered_async);
         }
-
+        
         return $html;
     }
     
@@ -7150,27 +7305,27 @@ else
         
         $rss =  
                     rss_title       (dom_at($item_info,"title",dom_get("title")))
-        . eol() .   rss_link        (dom_get("canonical"))
-        . eol() .   rss_description (dom_at($item_info,"description",""))
-        . eol() .   rss_pubDate     (dom_at($item_info,"timestamp",0));
+        . dom_eol() .   rss_link        (dom_get("canonical"))
+        . dom_eol() .   rss_description (dom_at($item_info,"description",""))
+        . dom_eol() .   rss_pubDate     (dom_at($item_info,"timestamp",0));
         
         foreach ($item_info["img_url"] as $img_url)
         {       
             if (!!$img_url)
             {
-                $rss .= eol() . raw('<enclosure url="'     .rawurlencode($img_url)  .'" type="image/'.((false !== stripos($img_url, '.jpg'))?'jpg':'png').'" length="262144" />')
-                     .  eol() . raw('<media:content url="' .rawurlencode($img_url)  .'" medium="image" />');
+                $rss .= dom_eol() . raw('<enclosure url="'     .rawurlencode($img_url)  .'" type="image/'.((false !== stripos($img_url, '.jpg'))?'jpg':'png').'" length="262144" />')
+                     .  dom_eol() . raw('<media:content url="' .rawurlencode($img_url)  .'" medium="image" />');
             }
         }
         
-        $rss .= eol() . raw('<source url="'.dom_get("canonical")."/?rss".'">RSS</source>')
-        //   .  eol() . raw('<guid isPermaLink="true">https://web.cyanide-studio.com/rss/bb2/xml/?&amp;limit_matches=50&amp;limit_leagues=50&amp;days_leagues=7&amp;days_matches=1&amp;id=3518</guid>')
+        $rss .= dom_eol() . raw('<source url="'.dom_get("canonical")."/?rss".'">RSS</source>')
+        //   .  dom_eol() . raw('<guid isPermaLink="true">https://web.cyanide-studio.com/rss/bb2/xml/?&amp;limit_matches=50&amp;limit_leagues=50&amp;days_leagues=7&amp;days_matches=1&amp;id=3518</guid>')
         ;
 
         return rss_item($rss);
     }
  
-    function rss_channel        ($html = "")                        { return cosmetic(eol()).tag('channel',                  $html,  false,         true); }
+    function rss_channel        ($html = "")                        { return cosmetic(dom_eol()).tag('channel',                  $html,  false,         true); }
     function rss_image          ($html = "")                        { return                 tag('image',                    $html,  false,         true); }
     function rss_url            ($html = "")                        { return                 tag('url',                      $html,  false,         true); }
     function rss_item           ($html = "")                        { return                 tag('item',                     $html,  false,         true); }
@@ -7202,14 +7357,14 @@ else
         }
         
         $tile  = '<tile><visual lang="en-US" version="2">';
-        $tile .= tile_binding($images. eol() . tile_text($item_info["description"]), 'Tile'.'Square'.'150x150'.'PeekImageAndText'.'02');
-        $tile .= tile_binding($images. eol() . tile_text($item_info["description"]), 'Tile'.'Wide'.  '310x150'.'PeekImageAndText'.'01');                      
+        $tile .= tile_binding($images. dom_eol() . tile_text($item_info["description"]), 'Tile'.'Square'.'150x150'.'PeekImageAndText'.'02');
+        $tile .= tile_binding($images. dom_eol() . tile_text($item_info["description"]), 'Tile'.'Wide'.  '310x150'.'PeekImageAndText'.'01');                      
         $tile .= '</visual></tile>';
         
         return $tile;
     }
     
-    function tile_binding   ($html, $template)      { return tag('binding', eol().$html.eol(), array("template" => $template), true); }
+    function tile_binding   ($html, $template)      { return tag('binding', dom_eol().$html.dom_eol(), array("template" => $template), true); }
     function tile_image     ($src,      $id = 1)    { return raw('<image id="'.$id.'" src="'.tile_sanitize($src).'"/>'); }
     function tile_text      ($txt = "", $id = 1)    { return raw('<text id="'.$id.'">'.tile_sanitize($txt).'</text>'); }
     
@@ -7333,7 +7488,7 @@ else
         $gg = (strlen("".$g)===1) ? "0".$g:$g;
         $bb = (strlen("".$b)===1) ? "0".$b:$b;
 
-        return $rr.$gg.$bb;
+        return "#".$rr.$gg.$bb;
    }
 
     function dom_rotate($color, $rotate = 180)
@@ -7369,9 +7524,9 @@ else
     {        
         $rrggbb = ltrim($rrggbb, "#");
 
-        return "rgb(" . hexdec(substr($rrggbb, 0, 2)).
-                        hexdec(substr($rrggbb, 2, 2)).
-                        hexdec(substr($rrggbb, 4, 2)) . ")";
+        return "rgb(".hexdec(substr($rrggbb, 0, 2)).",".
+                      hexdec(substr($rrggbb, 2, 2)).",".
+                      hexdec(substr($rrggbb, 4, 2)).")";
     }
 
     // (c) https://github.com/gdkraus/wcag2-color-contrast

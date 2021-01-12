@@ -4,9 +4,9 @@
 
     set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
 
-    set("unsplash_photo_id", "ThIY-N_LLfY");
-    set("url_banner_img", url_img_unsplash(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
-    set("url_card_img",   url_img_unsplash(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
+    set("unsplash_photo_id",    "ThIY-N_LLfY");
+    set("url_banner_img",       url_img_unsplash(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
+    set("url_card_img",         url_img_unsplash(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
 
     dom_init();
 
