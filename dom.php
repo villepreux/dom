@@ -1969,7 +1969,7 @@
             $json_articles_page = json_facebook_articles_from_content("https://www.facebook.com/pg/".dom_get("facebook_page")."/notes/?ref=page_internal");
             $json_articles_page = dom_at($json_articles_page, "require");
             
-            foreach ($json_articles_page as $entry)
+            if (is_array($json_articles_page)) foreach ($json_articles_page as $entry)
             {
                 $ownerName = dom_at($entry, array(3, 1, "ownerName"), false);
                 if (!$ownerName) continue;
