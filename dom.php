@@ -6036,12 +6036,20 @@ else
         $html    = @file_get_contents($url, false, $context);
 
         if ($html)
-        {          
-            $tag_bgn = 'data:function(){return';
+        {
+        //   This parsing seems already obsolete :-(
+
+        /*  $tag_bgn = 'data:function(){return';
             $tag_end = '}});</script>';
             
             $pos_bgn = strpos($html, $tag_bgn, 0);
-            $pos_end = strpos($html, $tag_end, $pos_bgn);
+            $pos_end = strpos($html, $tag_end, $pos_bgn);*/
+
+            $tag_bgn = ", data:";
+            $tag_end = "});</script>";
+            
+            $pos_bgn = strrpos($html, $tag_bgn, 0);
+            $pos_end =  strpos($html, $tag_end, $pos_bgn);
             
             if (false !== $pos_bgn && false !== $pos_end)
             {
@@ -6059,13 +6067,13 @@ else
         if (dom_AMP()) return a($url, $url, EXTERNAL_LINK);
 
         $results = json_google_photo_album_from_content($url);
-        $photos  = (is_array($results)) ? $results[1] : array();
+        $photos  = dom_at($results, 1, array());
         
         $images = "";
         
         foreach ($photos as $i => $photo_result)
         {
-            $photo_url = $photo_result[1][0];
+            $photo_url = dom_at(dom_at($photo_result, 1), 0);
             
             $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"));
         }
