@@ -83,7 +83,7 @@
     define("DOM_AUTHOR",            "Antoine Villepreux");
     define("DOM_VERSION",           "0.5.0");
     define("DOM_PATH_MAX_DEPTH",    8);
-    define("DOM_AUTO",              "__DOM_AUTO__");
+    define("DOM_AUTO",              "__DOM_AUTO__"); // TODO : migrate to null as auto param
 
     #region API : GET/SET
     ######################################################################################################################################
@@ -3780,15 +3780,15 @@
 
     function string_service_worker($beautify = false)
     {
-        return '
-
-    importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.4/workbox-sw.js");
+        // TODO : Check TOKEN_GOOGLE_ANALYTICS
+    
+        return 'importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.4/workbox-sw.js");
 
 if (workbox)
 {
     const LOCALHOST = ("localhost" == self.location.host);
     
-    const VERSION = "0.0.0.3";
+    const VERSION = "0.0.0.4";
 
     const  cache_prefix = "'.strtoupper(dom_to_classname(dom_get("canonical"))).'";
     const  cache_suffix = VERSION;
@@ -3809,9 +3809,11 @@ if (workbox)
     
     ]))); });
 
-    workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime", googleAnalytics: "ga" });
+    workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime" /*, googleAnalytics: "ga"*/ });
     workbox.core.skipWaiting();
     workbox.core.clientsClaim();
+    
+  //workbox.googleAnalytics.initialize(); // Moved as said in https://github.com/GoogleChrome/workbox/issues/2375
 
     var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60, purgeOnQuotaError: true });
 
@@ -3853,7 +3855,7 @@ if (workbox)
         return Response.error();
     });
 
-    workbox.googleAnalytics.initialize();  
+  //workbox.googleAnalytics.initialize(); // Moved as said in https://github.com/GoogleChrome/workbox/issues/2375
 } 
 else 
 {
@@ -4498,6 +4500,10 @@ else
 
     function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = null, $alternate = false)
     {
+        if ($name === false || $name === null) $name = "favicon";
+        if ($ext  === false || $ext  === null) $ext  = "png";
+        if ($type === false || $type === null) $type = null;
+
         if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
         if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
         if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
@@ -4536,7 +4542,7 @@ else
 
                 if (!array_key_exists("orientation", $media))
                 {
-                    return        link_rel_icon($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate)
+                    return            link_rel_icon($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate)
                         . dom_eol() . link_rel_icon($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate);
                 }
             }
@@ -4636,11 +4642,11 @@ else
             .   (!AMP() ? (dom_eol(2) . '<link rel="stylesheet" type="text/css" media="screen"/>') : "")
 
             .   dom_eol()   
-            .   dom_eol() . link_rel("alternate",   "/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
-            .   dom_eol() . link_rel("alternate",   "/?lang=en", array("hreflang" => "en-EN"))
-            .   dom_eol() . link_rel("alternate",   "/?lang=fr", array("hreflang" => "fr-fr"))                              . (dom_AMP() ? '' : (''
-            .   dom_eol() . link_rel("amphtml",     "/?amp=1")                                                              ))
-            .   dom_eol() . link_rel("canonical",   dom_get('canonical')) 
+            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
+            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?lang=en", array("hreflang" => "en-EN"))
+            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?lang=fr", array("hreflang" => "fr-fr"))                              . (dom_AMP() ? '' : (''
+            .   dom_eol() . link_rel("amphtml",     dom_get('canonical')."/?amp=1")                                                              ))
+            .   dom_eol() . link_rel("canonical",   dom_get('canonical'))
             .   dom_eol()
             .   dom_eol() . link_rel_icon("img/icon.svg")
             .   dom_eol()
@@ -4650,7 +4656,8 @@ else
             
                     dom_get("icons_path")."favicon",
                     dom_get("icons_path")."android-icon",
-                    dom_get("icons_path")."apple-icon"),
+                    dom_get("icons_path")."apple-icon",
+                    dom_get("icons_path")."apple-touch-icon"),
 
                     array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512),
                     
@@ -4935,6 +4942,7 @@ else
     
     .app-install                                    { display: none }
     .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
+    summary>.anchor                                 { display: inline-block; } /* ? should always be inline ? */
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
     
         
@@ -5856,6 +5864,9 @@ else
     function span           ($html = "", $attributes = false) {                             return                     tag ('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('figure',                     $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
     function figcaption     ($html = "", $attributes = false) {                             return                     tag ('figcaption',                 $html,                                                $attributes                                                         );                      }
+
+    function details        ($html = "", $attributes = false) {                             return                     tag ('details',                    $html,                                                $attributes                                                         );                      }
+    function summary        ($html = "", $attributes = false) {                             return                     tag ('summary',                    $html,                                                $attributes                                                         );                      }
 
     function checkbox       ($id, $html = "", $attributes = false) {                        return                     tag('input',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox')),       "id"  => $id, "type" => "checkbox") );     }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return                     tag('label',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox-label')), "for" => $id)      );                      }
