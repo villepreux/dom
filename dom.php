@@ -181,7 +181,7 @@
 
         dom_set("scrollbar_width",                  "17px");
 
-        dom_set("image",                            "image.png");
+        dom_set("image",                            "image.jpg");
         dom_set("geo_region",                       "FR-75");
         dom_set("geo_placename",                    "Paris");
         dom_set("geo_position_x",                   48.862808);
@@ -2062,19 +2062,19 @@
             (
                 "full_name"         => "John Doe"
             ,   "username"          => "Johnny"
-            ,   "profile_picture"   => "https://web.cyanide-studio.com/image.png"
+            ,   "profile_picture"   => "https://www.villepreux.net/image.jpg"
             )
         ,   "caption" => array
             (
                 "text" => "Loremp ipsum est!"
             )
         ,   "created_time"  => date("d/m/Y")
-        ,   "link"          => "https://web.cyanide-studio.com"
+        ,   "link"          => "https://www.villepreux.net"
         ,   "images"        => array
             (
                 "low_resolution" => array
                 (
-                    "url" => "https://web.cyanide-studio.com/image.png"
+                    "url" => "https://www.villepreux.net/image.jpg"
                 )
             )
 
@@ -2941,12 +2941,12 @@
             "TYPE"              => "facebook"
         ,   "user_name"         => dom_get("name")
         ,   "user_url"          => dom_get("url")
-        ,   "user_img_url"      => "image.png"
+        ,   "user_img_url"      => "image.jpg"
         ,   "post_title"        => dom_get("title")
         ,   "post_text"         => dom_get("description")
         ,   "post_timestamp"    => strtotime(date("Y/m/d", time()))
         ,   "post_url"          => dom_get("url")
-        ,   "post_img_url"      => "image.png"
+        ,   "post_img_url"      => "image.jpg"
         ,   "DEBUG_SOURCE"      => array("content" => $content)
         ,   "LAZY"              => true
         ));*/
@@ -3655,7 +3655,7 @@
             "background_color" => dom_get("background_color"),
             "theme_color"      => dom_get("theme_color"),
            
-            "start_url"        => "./?utm_source=homescreen",
+            "start_url"        => ((is_localhost() ? dom_get("canonical") : "/").(!get("static") ? "?utm_source=homescreen" : "")),
             "display"          => "standalone",
             
             "related_applications"=> array( 
@@ -3729,7 +3729,7 @@
         '</script></head><body></body></html>';
     }
 
-    function string_system_font_stack()
+    function string_system_font_stack($quote = '"')
     {
         $fonts = dom_get("font_stack", array(
 
@@ -3739,13 +3739,13 @@
             'system-ui',
             'BlinkMacSystemFont',
             'ui-sans-serif',
-            '"Segoe UI"',
+            $quote.'Segoe UI'.$quote,
             'Helvetica',
             'Arial',
             'sans-serif',
-            '"Apple Color Emoji"',
-            '"Segoe UI Emoji"',
-            '"Segoe UI Symbol"'
+            $quote.'Apple Color Emoji'.$quote,
+            $quote.'Segoe UI Emoji'.$quote,
+            $quote.'Segoe UI Symbol'.$quote
 
             ));
 
@@ -3759,8 +3759,6 @@
 
     function string_loading_html($beautify = false)
     {
-        $css_font_family = string_system_font_stack();
-
         return '<html>'
         .      '<head>'
         .          '<title>Please wait...</title>'
@@ -3769,9 +3767,9 @@
         .          '<meta http-equiv="content-language" content="en" />'
         .          '<meta name="format-detection" content="telephone=no" />'
         .          '<meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />'
-        .          '<meta http-equiv="refresh" content="3;URL=.">'
+        .          '<meta http-equiv="refresh" content="3">'
         .      '</head>'
-        .      '<body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: '.$css_font_family.'; padding-top: calc(50vh - 2em - 64px);">'
+        .      '<body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: '.string_system_font_stack("\'").'; padding-top: calc(50vh - 2em - 64px);">'
         .          '<p>OFFLINE<br>Please wait...</p>'
         .          '<p><img alt="Please wait..." src="'.string_loading_svg_src_base64($beautify).'" /></p>'
         .      '</body>'
@@ -3782,42 +3780,43 @@
     {
         // TODO : Check TOKEN_GOOGLE_ANALYTICS
     
-        return 'importScripts("https://storage.googleapis.com/workbox-cdn/releases/5.1.4/workbox-sw.js");
+        return 'importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.0.2/workbox-sw.js");
 
 if (workbox)
 {
     const LOCALHOST = ("localhost" == self.location.host);
     
-    const VERSION = "0.0.0.4";
+    const VERSION = "0.0.6.2";
 
     const  cache_prefix = "'.strtoupper(dom_to_classname(dom_get("canonical"))).'";
     const  cache_suffix = VERSION;
     
-    const FALLBACK_HTML_URL = "index.php";
+    const FALLBACK_HTML_URL = "offline.html";
     const FALLBACK_IMG_URL  = "loading.svg";
     
     if (LOCALHOST) console.log("Worbox debugging");
     workbox.setConfig({debug: LOCALHOST});
         
-//  self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
-//  self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });
+  //self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
+  //self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });
 
     self.addEventListener("install", (event) => { event.waitUntil(caches.open(workbox.core.cacheNames.runtime).then((cache) => cache.addAll([
     
-    //  FALLBACK_HTML_URL,
+      //FALLBACK_HTML_URL,
         FALLBACK_IMG_URL
     
     ]))); });
 
     workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime" /*, googleAnalytics: "ga"*/ });
-    workbox.core.skipWaiting();
     workbox.core.clientsClaim();
-    
+
+    self.skipWaiting();
+
   //workbox.googleAnalytics.initialize(); // Moved as said in https://github.com/GoogleChrome/workbox/issues/2375
 
     var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60, purgeOnQuotaError: true });
 
-//  workbox.routing.registerRoute(new RegExp(".+\\\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));
+  //workbox.routing.registerRoute(new RegExp(".+\\\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp(".+\\\\.css$"),                      new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-css"    + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp("\.(?:png|jpg|jpeg|svg|gif)$"),    new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-images" + "-" + cache_suffix, plugins: [expiration] }));
     workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.NetworkFirst(         { cacheName: cache_prefix + "-" + "cache-POST"   + "-" + cache_suffix, plugins: [expiration] }), "POST");
@@ -3828,27 +3827,22 @@ if (workbox)
     {
         if (event && !event.request && event.event) event = event.event;
 
-        if (event && event.request)
+        if (event && event.request && event.request.destination)
         {
-            if (event.request.destination)
-            {
-                var default_html = \''.string_loading_html($beautify).'\';
+            var default_html = \''.string_loading_html($beautify).'\';
 
-                switch (event.request.destination)
-                { 
-                    case "style":       break;
-                    case "script":      break;
-                //  case "document":    return caches.match(FALLBACK_HTML_URL); break;
-                    case "document":    return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
-                    case "audio":       break;
-                    case "video":       break;
-                    case "manifest":    break;
-                    case "image":       return caches.match(FALLBACK_IMG_URL);  break;
-                    case "font":        break;
-                    case "unknown":     return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
-                //  default:            return new Response(default_html, { headers: {"content-type": "text/html"} } ); break;
-                //  default:            return Response.error();
-                }
+            switch (event.request.destination)
+            { 
+                case "style":       break;
+                case "script":      break;
+            //  case "document":    return caches.match(FALLBACK_HTML_URL);
+                case "document":    return new Response(default_html, { headers: {"content-type": "text/html"} } );
+                case "audio":       break;
+                case "video":       break;
+                case "manifest":    break;
+                case "image":       return caches.match(FALLBACK_IMG_URL);
+                case "font":        break;
+                case "unknown":     return new Response(default_html, { headers: {"content-type": "text/html"} } );
             }
         }
 
@@ -3935,7 +3929,8 @@ else
             " "."background: linear-gradient(-45deg, $to 0%, $from 100%);".
             " "."color: $from;".
             
-            " "."display: inline-block;".
+        //  " "."display: inline-block;".
+            " "."width: fit-content;".
 
             " "."-webkit-background-clip: text;".
             " ".   "-moz-background-clip: text;".
@@ -4714,7 +4709,7 @@ else
         
         if (!!$fonts) { if (0 === stripos($fonts, '|')) $fonts = substr($fonts,1); }
 
-        return        (!!$fonts ? link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts), "screen", $async) : '')
+        return            (!!$fonts ? link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts), "screen", $async) : '')
             . dom_eol() . (true     ? link_style('https://fonts.googleapis.com/icon?family=Material+Icons',               "screen", $async) : '');
     }
     
@@ -4767,26 +4762,26 @@ else
         return $selectors == "" ? dom_eol() : str_pad(dom_eol().dom_tab(1).$selectors, $pad)."{ ".$styles." }";
     }
 
-    function css_aspect_ratio($classname, $w, $h)
+    function css_aspect_ratio($e, $w, $h)
     {
         return '/* Aspect Ratio wrappers */'.
             css_line().
-            css_line('.'.$classname.'::before',         'content: ""; display: block; padding-bottom: calc(100% / ('.$w.' / '.$h.'));').
-            css_line('.'.$classname.'',                 'position: relative;').
-            css_line('.'.$classname.' > :first-child',  'position: absolute; top: 0; left: 0; width:  100%; height: 100%;').
-            css_line('.'.$classname.' > img',           'height: auto;').
+            css_line($e.'::before',         'content: ""; display: block; padding-bottom: calc(100% / ('.$w.' / '.$h.'));').
+            css_line($e.'',                 'position: relative;').
+            css_line($e.' > :first-child',  'position: absolute; top: 0; left: 0; width:  100%; height: 100%;').
+            css_line($e.' > img',           'height: auto;').
             css_line().
             css_line();
     }
 
-    function css_boilerplate_aspect_ratio($classname = "aspect-ratio", $w = 16, $h = 9)
+    function css_boilerplate_aspect_ratio($e = ".aspect-ratio", $w = 16, $h = 9)
     {
-        $css = css_aspect_ratio($classname, $w, $h);
+        $css = css_aspect_ratio($e, $w, $h);
 
         foreach (dom_supported_ratios() as $ratio) 
         {
             $css .= css_line(
-                '.'.$classname.'-'.$ratio[0].'-'.$ratio[1].'::before',
+                $e.'-'.$ratio[0].'-'.$ratio[1].'::before',
                 'padding-bottom: calc(100% / ('.$ratio[0].' / '.$ratio[1].')); '.($ratio[0]<10 ? ' ' : '').($ratio[1]<10 ? ' ' : '').''
                 );
         }
@@ -4845,9 +4840,6 @@ else
           
         echo $css; ?> 
     }
-
-                      <?= str_pad(" ", strlen(get("main_max_width"))) ?>               :root { --main-width: 100vw; }
-    @media screen and (min-width: <?=         env("main_max_width", false, true) ?>) { :root { --main-width: <?= env("main_max_width", false, true) ?>; } }
     
     /* Font stack */
 
@@ -4882,10 +4874,9 @@ else
     .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
     .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
- /* .toolbar-row     .cell                          { overflow: hidden; } */
     .toolbar-row-nav                                { padding-right: var(--dom-gap); margin-right: var(--dom-gap); }
     .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
-    .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left; }
+    .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left;  }
     .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; }
 
     .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
@@ -4902,50 +4893,6 @@ else
     .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
 
-    body>.footer                                    { background-color: var(--theme-color); color: var(--background-color); }
-
-    /* Images */
-
-    picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
-    figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
-    img, amp-img                                    { max-width: 100%; object-fit: cover; }
-
-    /* Grid */
-
-    .grid                                           { display: grid; grid-gap: var(--dom-gap); }
-
-    /* Back-to-top style */    
-    
-    .cd-top, .cd-top:visited                        { background-color: var(--theme-color); color: var(--background-color); }
-    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; }
-    .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
-    .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
-    .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
-    .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
-    .cd-top.cd-fade-out                             { opacity: .5; }
-    .cd-top:hover                                   { opacity: 1; text-decoration: none }
-
-<?php if (!get("no_js")) { ?> 
-    
-    .cd-top                                         { visibility: hidden; opacity: 0; }
-
-<?php } ?> 
-    
-    @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
-    @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
-    
-    /* Animations */
-
-    a, a svg path                                   { transition: .6s ease-in-out }
-
-    /* Other utilities */    
-    
-    .app-install                                    { display: none }
-    .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
-    summary>.anchor                                 { display: inline-block; } /* ? should always be inline ? */
-    .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
-    
-        
     /* Menu open/close button layout */
 
     .menu-switch-symbol, .menu-close-symbol         { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
@@ -4964,12 +4911,52 @@ else
     .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
     .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
 
+    /* Footer */
+
+    body>.footer                                    { background-color: var(--theme-color); color: var(--background-color); }
+
+    /* Images */
+
+    picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
+    figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
+
+    /* Grid */
+
+    .grid                                           { display: grid; grid-gap: var(--dom-gap); }
+
+    /* Back-to-top style */    
+    
+    .cd-top, .cd-top:visited                        { background-color: var(--theme-color); color: var(--background-color); }
+    .cd-top                                         { text-decoration: none; display: inline-block; height: 40px; width: 40px; position: fixed; bottom: 40px; right: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.05); text-align: center; line-height: 40px; }
+    .cd-top                                         { transition: opacity .3s 0s, visibility 0s .3s; }
+    .cd-top.cd-is-visible, .cd-top.cd-fade-out,    
+    .no-touch .cd-top:hover                         { transition: opacity .3s 0s, visibility 0s 0s; }
+    .cd-top.cd-is-visible                           { visibility: visible; opacity: 1; }
+    .cd-top.cd-fade-out                             { opacity: .5; }
+    .cd-top:hover                                   { opacity: 1; text-decoration: none }
+<?php if (!get("no_js")) { ?> 
+    .cd-top                                         { visibility: hidden; opacity: 0; }
+<?php } ?> 
+    @media only screen and (min-width:  768px)      { .cd-top { right: 20px; bottom: 20px; } }
+    @media only screen and (min-width: 1024px)      { .cd-top { right: 30px; bottom: 30px; line-height: 60px; height: 60px; width: 60px; font-size: 30px } }
+    
+    /* Animations */
+
+    a, a svg path                                   { transition: .6s ease-in-out }
+
+    /* Other utilities */    
+    
+    .app-install                                    { display: none }
+    .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
+    summary>.anchor                                 { display: inline-block; } /* ? should always be inline ? */
+    .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
+
     /* Main images */
         
     main figure                                     { display: inline-block; }
     main figure > picture, main figure > amp-img    { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default-image-ratio)); overflow: hidden; position: relative; }
     
-    main figure img                                 { /* position: absolute; */ left: 0px; top: 0px; width: 100%; height: 100%;}
+    main figure img                                 { left: 0px; top: 0px; width: 100%; height: 100%;}
     
     main amp-img, main img, main picture            { object-fit: cover; }    
     amp-img.loading, img.loading, picture.loading   { object-fit: none;  }
@@ -5145,7 +5132,7 @@ else
         return  dom_eol(1) . dom_tab(1)
             .   dom_eol(1) . dom_tab(2) .   '/* SCAN AND PRINT UTILITY */'
             .   dom_eol(1) . dom_tab(1)
-            .   dom_eol(1) . dom_tab(2) .   '$(window).on("load", function()'
+            .   dom_eol(1) . dom_tab(2) .   'dom_on_loaded(function()'
             .   dom_eol(1) . dom_tab(2) .   '{ '
             .   dom_eol(1) . dom_tab(3) .       'scan_and_print = function()'
             .   dom_eol(1) . dom_tab(3) .       '{'
@@ -5477,12 +5464,12 @@ else
         .   dom_eol() . dom_tab(1)
         .   dom_eol() . dom_tab(2) .    'function '.$update_function.'() '
         .   dom_eol() . dom_tab(2) .    '{'
-    //  .   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-        .   dom_eol() . dom_tab(3) .        ''
-        .   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-        .   dom_eol() . dom_tab(2)
+      //.   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+      //.   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+      //.   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+      //.   dom_eol() . dom_tab(3) .        ''
+      //.   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+      //.   dom_eol() . dom_tab(2)
         .   dom_eol() . dom_tab(3) .        '$("img.lazy-ready").each(function(i, img) '
         .   dom_eol() . dom_tab(3) .        '{'
         .   dom_eol() . dom_tab(4) .            'var rect = img.getBoundingClientRect();'
@@ -5540,8 +5527,13 @@ else
         .   dom_eol() . dom_tab(1)
         .   dom_eol() . dom_tab(2) .    'function '.$init_function.'() '
         .   dom_eol() . dom_tab(2) .    '{'
-        .   dom_eol() . dom_tab(3) .      'setTimeout(function() { setInterval('.$update_function.', 500); },  50);'
-        .   dom_eol() . dom_tab(3) .      ''.$update_function.'();'
+        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
+        .   dom_eol() . dom_tab(3) .        ''
+        .   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+        .   dom_eol() . dom_tab(2)
+        .   dom_eol() . dom_tab(3) .        'setTimeout(function() { setInterval('.$update_function.', 500); },  500);'
+        .   dom_eol() . dom_tab(3) .        ''.$update_function.'();'
         .   dom_eol() . dom_tab(2) .    '}'
         .   dom_eol() . dom_tab(1)
         ;
@@ -5569,11 +5561,6 @@ else
         .   dom_eol(1) . dom_tab(4) .           '$(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());'
         .   dom_eol(1) . dom_tab(3) .   '   }'
         .   dom_eol(1) . dom_tab(2) .   '}'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) .   '$(".menu-switch-link").on("click", function(event)'
-        .   dom_eol(1) . dom_tab(2) .   '{'
-        .   dom_eol(1) . dom_tab(3) .    /* 'event.preventDefault();' */ ""
-        .   dom_eol(1) . dom_tab(2) .   '});'
         .   dom_eol(1) . dom_tab(1)
         .   dom_eol(1) . dom_tab(2) .   ''.$update_function.'();'
         .   dom_eol(1) . dom_tab(1)
@@ -5699,29 +5686,71 @@ else
             .   dom_eol(2) . dom_script_ajax_body    ()
             .   dom_eol(2) . script_google_analytics ()
 
+            .   dom_eol(2) . script('
+
+                /* DOM INTERNAL READY AND LOADED CALLBACK MECHANISM */
+
+                var dom_event_ready  = false;
+                var dom_event_loaded = false;
+
+                var dom_ready_callbacks  = Array();
+                var dom_loaded_callbacks = Array();
+                var dom_scroll_callbacks = Array();
+
+                function dom_on_ready(callback)  { dom_ready_callbacks.push(callback);  }
+                function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); }
+                function dom_on_scroll(callback) { dom_scroll_callbacks.push(callback); }
+
+                function dom_on_init_event(event)
+                {
+                    var was_not_ready_and_loaded = (!dom_event_ready || !dom_event_loaded);
+
+                    if (!dom_event_ready  && event == "ready")  { dom_event_ready  = true; console.log("DOCUMENT READY"); dom_ready_callbacks.forEach(function(callback) { callback(); }); }
+                    if (!dom_event_loaded && event == "loaded") { dom_event_loaded = true; console.log("DOCUMENT LOADED"); }
+                    
+                    if (was_not_ready_and_loaded && dom_event_ready && dom_event_loaded)
+                    {
+                        dom_loaded_callbacks.forEach(function(callback) { callback(); });
+                    }
+                }
+
+                window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
+                if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
+                else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
+            
+                $(window).scroll(function() {
+
+                    if (dom_event_ready && dom_event_loaded)
+                    {
+                        dom_scroll_callbacks.forEach(function(callback) { callback(); });
+                    }
+                });
+            
+                ')
+        
             .   dom_eol(2) . script(
         
-                    dom_eol(1) . dom_tab(1) .   '$(document).ready(function()'
+                    dom_eol(1) . dom_tab(1) .   js_toolbar                 (                    "onUpdateToolbarHeight")
+                .   dom_eol(1) . dom_tab(1) .   js_back_to_top             (                    "onUpdateBackToTopButton")
+                .   dom_eol(1) . dom_tab(1) .   js_images_loading          ("onInitLazyImages", "onUpdateLazyImages")
+                .   dom_eol(1) . dom_tab(1) .   js_slick_slider            ("onInitSliders")
+                .   dom_eol(1) . dom_tab(1)     
+                .   dom_eol(1) . dom_tab(1) .   'dom_on_scroll(function()'
                 .   dom_eol(1) . dom_tab(1) .   '{'
-                .   dom_eol(1) . dom_tab(2) .       js_toolbar                 (                    "onScrollToolbarHeight")
-                .   dom_eol(1) . dom_tab(2) .       js_back_to_top             (                    "onScrollBackToTopButton")
-                .   dom_eol(1) . dom_tab(2) .       js_images_loading          ("onLoadLazyImages", "onScrollLazyImages")
-                .   dom_eol(1) . dom_tab(2) .       js_slick_slider            ("onLoadSliders")
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateBackToTopButton ();'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateLazyImages      ();'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight   ();'
+                .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(2) .       '/* DOM main mechanisms */'
+                .   dom_eol(1) . dom_tab(1) .   'dom_on_ready(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight();'
+                .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(2) .       '$(window).scroll(function()'
-                .   dom_eol(1) . dom_tab(2) .       '{'
-                .   dom_eol(1) . dom_tab(3) .           'onScrollBackToTopButton    ();'
-                .   dom_eol(1) . dom_tab(3) .           'onScrollLazyImages         ();'
-                .   dom_eol(1) . dom_tab(3) .           'onScrollToolbarHeight      ();'
-                .   dom_eol(1) . dom_tab(2) .       '});'
-                .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(2) .       '$(window).on("load", function()'
-                .   dom_eol(1) . dom_tab(2) .       '{ '
-                .   dom_eol(1) . dom_tab(3) .           'onLoadLazyImages       ();'
-                .   dom_eol(1) . dom_tab(3) .           'onLoadSliders          ();'
-                .   dom_eol(1) . dom_tab(2) .       '});'
+                .   dom_eol(1) . dom_tab(1) .   'dom_on_loaded(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{ '
+                .   dom_eol(1) . dom_tab(2) .       'onInitLazyImages ();'
+                .   dom_eol(1) . dom_tab(2) .       'onInitSliders    ();'
                 .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1)
 
@@ -5729,22 +5758,17 @@ else
 
             .   dom_eol(2) . script(
         
-                    dom_eol(1) . dom_tab(1) .   '$(document).ready(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{'
-                .   dom_eol(1) . dom_tab(2) .       js_toolbar_banner_rotation ("onLoadRotatingHeaders")
-                .   dom_eol(1) . dom_tab(2) .       js_service_worker          ("onLoadServiceWorker")
-                .   dom_eol(1) . dom_tab(2) .       js_pwa_install             ("onLoadPWA")
-                .   dom_eol(1) . dom_tab(2) .       js_framework_material      ()
-                .   dom_eol(1) . dom_tab(2) .       js_scan_and_print_body     ()
+                    dom_eol(1) . dom_tab(1) .   js_toolbar_banner_rotation ("onInitRotatingHeaders")
+                .   dom_eol(1) . dom_tab(1) .   js_service_worker          ("onInitServiceWorker")
+                .   dom_eol(1) . dom_tab(1) .   js_pwa_install             ("onInitPWA")
+                .   dom_eol(1) . dom_tab(1) .   js_framework_material      ()
+                .   dom_eol(1) . dom_tab(1) .   js_scan_and_print_body     ()
                 .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(2) .       '/* DOM main mechanisms */'
-                .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(2) .       '$(window).on("load", function()'
-                .   dom_eol(1) . dom_tab(2) .       '{ '
-                .   dom_eol(1) . dom_tab(3) .           'onLoadRotatingHeaders  ();'
-                .   dom_eol(1) . dom_tab(3) .           'onLoadServiceWorker    ();'
-                .   dom_eol(1) . dom_tab(3) .           'onLoadPWA              ();'
-                .   dom_eol(1) . dom_tab(2) .       '});'
+                .   dom_eol(1) . dom_tab(1) .   'dom_on_loaded(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{ '
+                .   dom_eol(1) . dom_tab(2) .       'onInitRotatingHeaders  ();'
+                .   dom_eol(1) . dom_tab(2) .       'onInitServiceWorker    ();'
+                .   dom_eol(1) . dom_tab(2) .       'onInitPWA              ();'
                 .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1)
 
@@ -5848,7 +5872,7 @@ else
     
     function div            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('div',                        $html,                                                $attributes                                                         );                      }
     function p              ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('p',                          $html,                                                $attributes                                                         );                      }
-    function i              ($html = "", $attributes = false) {                             return                     tag ('i',                          $html,                                                $attributes                                                         );                      }
+    function i              ($html = "", $attributes = false) {                             return                         tag ('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('pre',                        $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('ul',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
     function ol             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('ol',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
@@ -5856,8 +5880,8 @@ else
 
     function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('table',                      $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
     function tr             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).tag ('tr',                         $html,                                                $attributes                                                         );                      }
-    function td             ($html = "", $attributes = false) {                             return                     tag ('td',                         $html,                                                $attributes                                                         );                      }
-    function th             ($html = "", $attributes = false) {                             return                     tag ('th',                         $html,                                                $attributes                                                         );                      }
+    function td             ($html = "", $attributes = false) {                             return                         tag ('td',                         $html,                                                $attributes                                                         );                      }
+    function th             ($html = "", $attributes = false) {                             return                         tag ('th',                         $html,                                                $attributes                                                         );                      }
 
     function strong         ($html = "", $attributes = false) {                             return                     tag ('strong',                     $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return                     tag ('em',                         $html,                                                $attributes                                                         );                      }
@@ -5907,14 +5931,14 @@ else
     {
         return array(
                 
-            array(16,  9),
-            array(16, 10),
-            array( 5,  4),
-            array( 5,  1),
-            array( 4,  3),
-            array( 3,  2),
-            array( 2,  1),
-            array( 1,  1)
+            array(16,  9),  array( 9, 16),  
+            array(16, 10),  array(10, 16),  
+            array( 5,  4),  array( 4,  5),  
+            array( 5,  1),  array( 1,  5),  
+            array( 4,  3),  array( 3,  4),  
+            array( 3,  2),  array( 2,  3),  
+            array( 2,  1),  array( 1,  2),  
+            array( 1,  1),  array( 1,  1)   
             );
     }
 
@@ -7195,7 +7219,7 @@ else
             $amp_observer = '<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
         }
 
-        return $amp_anim . dom_header($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class('toolbar')));
+        return $amp_anim . dom_header($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container")));
     }
     
     #endregion
