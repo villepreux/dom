@@ -1,13 +1,17 @@
-<?php #https://github.com/villepreux/dom
+<?php
 
     #region DOM PUBLIC API
     ######################################################################################################################################
     
     # Forward shortname function (that mimic html markup) to private API functions (if names are not used)
 
-    if (!defined("INTERNAL_LINK"))                      define("INTERNAL_LINK", "_self");
-    if (!defined("EXTERNAL_LINK"))                      define("EXTERNAL_LINK", "_blank");
+    #region API : CONSTANTS
+    ######################################################################################################################################
 
+    if (!defined("DOM_INTERNAL_LINK"))                  define("DOM_INTERNAL_LINK", "_self");
+    if (!defined("DOM_EXTERNAL_LINK"))                  define("DOM_EXTERNAL_LINK", "_blank");
+
+    #endregion
     #region API : GET/SET
     ######################################################################################################################################
 
@@ -80,11 +84,15 @@
     #region PRIVATE API
     ######################################################################################################################################
     
+    #region API : CONSTANTS
+    ######################################################################################################################################
+    
     define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.5.0");
+    define("DOM_VERSION",           "0.5.2");
     define("DOM_PATH_MAX_DEPTH",    8);
     define("DOM_AUTO",              "__DOM_AUTO__"); // TODO : migrate to null as auto param
 
+    #endregion
     #region API : GET/SET
     ######################################################################################################################################
 
@@ -96,20 +104,191 @@
     function dom_set($k, $v = true, $aname = false)                     { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
     #endregion
+    #region HELPERS : SERVER ARGS
+    ######################################################################################################################################
+    
+    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE', $default); }
+    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',          $default); }
+    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',          $default); }
+    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',          $default); }
+    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS',                $default); }
+    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',            $default); }
+
+    #endregion
     #region API : CONTEXT
     ######################################################################################################################################
 
-    function dom_is_localhost()                                         { return (false !== stripos(dom_server_http_host(), "localhost"))
-                                                                              || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
+    function dom_is_localhost() { return (false !== stripos(dom_server_http_host(), "localhost"))
+                                      || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
+
+    #endregion
+    #region HELPERS : PROFILING
+    ######################################################################################################################################
+    
+    $__dom_profiling = array();
+    
+    function dom_debug_timings($totals_only = true)
+    {
+        $report = array();
+
+        global $__dom_profiling;
+
+        $totals = array();
+
+        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] = 0;
+        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] += $profiling["dt"];
+
+        if (!$totals_only)
+        {
+            foreach ($__dom_profiling as $profiling)
+            {
+                $report[] = str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(" . $profiling["tag"] . ")") : "");
+            }
+        }
+
+        foreach ($totals as $function => $total)
+        {
+            $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
+        }
+
+        return $report;
+    }
+    
+    function dom_debug_callstack($shift_current_call = true)
+    {
+        $callstack = ((PHP_VERSION_ID >= 50400) ? debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 0)  : 
+                     ((PHP_VERSION_ID >= 50306) ? debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT)     : 
+                     ((PHP_VERSION_ID >= 50205) ? debug_backtrace(true)                               : 
+                                                  debug_backtrace()                                   )));
+                                                  
+        if ($shift_current_call) array_shift($callstack);
+        return $callstack;
+    }
+    
+    function dom_debug_functions_callstack($shift_current_call = true)
+    {
+        $callstack = dom_debug_callstack($shift_current_call);
+        if ($shift_current_call) array_shift($callstack);
+
+        $functions = array();
+        foreach ($callstack as $call) $functions[] = $call["function"];        
+        return $functions;
+    }
+
+    function dom_debug_track_delta($tag = false, $dt = false)
+    {
+        $functions_callstack = dom_debug_functions_callstack();
+        array_shift($functions_callstack); // dom_debug_track_delta
+        array_shift($functions_callstack); // __destruct
+
+        if (count($functions_callstack) == 0)
+        {
+            $functions_callstack[] = "_";
+        }
+
+        $functions_callstack_string = implode(" <- ", $functions_callstack);
+
+        global $__dom_profiling;
+
+        $__dom_profiling[] = array(
+            "dt"        => $dt,
+            "tag"       => $tag,
+            "callstack" => $functions_callstack_string,
+            "function"  => $functions_callstack[0],
+            "t"         => null
+            );
+
+        return "";
+    }
+
+    class dom_debug_track_delta_scope
+    {
+        function __construct($annotation = false) { $this->t = microtime(true); $this->annotation = $annotation;  }
+        function __destruct() { dom_debug_track_delta($this->annotation, microtime(true) - $this->t); }
+    }
+    
+    function dom_debug_track_timing($annotation = false)
+    {
+        return new dom_debug_track_delta_scope($annotation);
+    }
+
+    #endregion
+    #region HELPERS : PATH FINDER
+    ######################################################################################################################################
+        
+    function dom_path($path0, $default = false, $search = true, $depth0 = DOM_PATH_MAX_DEPTH, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path0 = ".")
+    {
+        $profiler = dom_debug_track_timing();
+
+        $searches = array(array($path0, $depth0, $offset_path0));
+
+        while (count($searches) > 0)
+        {
+            $path = $searches[0][0]; $depth = $searches[0][1]; $offset_path = $searches[0][2];
+            array_shift($searches);
+    
+            // Minimal early validation for when user is not providing a real url or path but some random text content
+
+            if (false !== stripos($path, "\n") ) return $default;
+            if (false !== stripos($path, "{")  ) return $default;
+            if (false !== stripos($path, "\"") ) return $default;
+        
+            // If URL format then keep it as-is
+
+            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") return $path;
+            if (0 === stripos($path, "http"))                             return $path;
+  
+            // If path exists then directly return it
+
+            if (@file_exists($path))                                return $path;
+            if (($max_depth == $depth) && dom_url_exists($path))    return $path;
+
+            // If we have already searched too many times then return fallback
+
+            if ($depth <= 0) return $default;
+
+            // If beyond root then stop here
+
+            $root_hint_file = "dom/dom.php"; // ! TODO WTF?
+
+            if (file_exists("$offset_path/$root_hint_file")) $search = false;
+
+            // If requested then search in parent folder
+
+            if ($search)
+            {
+                $searches[] = array("../$path", $depth - 1, "../$offset_path");
+            }
+        }
+
+        return $default;
+    }
+
+    function dom_path_coalesce()
+    {
+        $args = func_get_args();
+        return dom_path_coalesce_FUNC_ARGS($args);
+    }
+
+    function dom_path_coalesce_FUNC_ARGS($args)
+    {
+        foreach ($args as $arg)
+        {
+            $path = dom_path($arg);
+            if (!!$path) return $path;
+        }
+
+        return false;
+    }
 
     #endregion
     #region DEPENDENCIES
     ######################################################################################################################################
     
     // ! TODO Use more standard paths
-                                        @include dom_path("tokens.php");
-    if (!function_exists("markdown"))   @include dom_path(dirname(__FILE__)."/../php/vendor/markdown.php");
-                                        @include dom_path(dirname(__FILE__)."/../php/vendor/smartypants.php");
+                                        @dom_include(dom_path("tokens.php"));
+    if (!function_exists("markdown"))   @dom_include(dom_path(dirname(__FILE__)."/../php/vendor/markdown.php"));
+                                        @dom_include(dom_path(dirname(__FILE__)."/../php/vendor/smartypants.php"));
 
     #endregion
     #region CONFIG : PHP SETTINGS
@@ -126,7 +305,9 @@
             foreach ($argv as $arg)
             {
                 $arg = explode("=", $arg);
-                dom_set($arg[0], $arg[1]);
+
+                if (count($arg) > 1) dom_set($arg[0], $arg[1]);
+                else                 dom_set($arg[0], true);
             }
         }
 
@@ -147,6 +328,14 @@
         if (!defined('PHP_VERSION_ID')) { $version = explode('.',PHP_VERSION); define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2])); }
     }
     
+    #endregion
+    #region API : DOM : URLS UTILITIES
+    ######################################################################################################################################
+
+    function dom_host_url   ()                  { return rtrim("http".((dom_server_https()=='on')?"s":"")."://".dom_server_http_host(),"/"); }
+    function dom_url_branch ($params = false)   { $uri = explode('?', dom_server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return $uri; }
+    function dom_url        ($params = false)   { $branch = dom_url_branch($params); return ($branch == "") ? dom_host_url() : dom_host_url()."/".$branch; }
+
     #endregion
     #region CONFIG : USER OPTIONS
     ######################################################################################################################################
@@ -250,6 +439,8 @@
     {
         if (!defined("DOM_AJAX_PARAMS_SEPARATOR1")) define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
         if (!defined("DOM_AJAX_PARAMS_SEPARATOR2")) define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
+        
+        if (dom_has("rand_seed")) { mt_srand(dom_get("rand_seed")); }
     }
 
     #endregion
@@ -483,69 +674,6 @@
     }
 
     #endregion
-    #region HELPERS : PATH FINDER
-    ######################################################################################################################################
-        
-    function dom_path($path0, $default = false, $search = true, $depth0 = DOM_PATH_MAX_DEPTH, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path0 = ".")
-    {
-        $profiler = dom_debug_track_timing();
-
-        $searches = array(array($path0, $depth0, $offset_path0));
-
-        while (count($searches) > 0)
-        {
-            $path = $searches[0][0]; $depth = $searches[0][1]; $offset_path = $searches[0][2];
-            array_shift($searches);
-    
-            // Minimal early validation for when user is not providing a real url or path but some random text content
-
-            if (false !== stripos($path, "\n") ) return $default;
-            if (false !== stripos($path, "{")  ) return $default;
-            if (false !== stripos($path, "\"") ) return $default;
-        
-            // If URL format then keep it as-is
-
-            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") return $path;
-            if (0 === stripos($path, "http"))                             return $path;
-  
-            // If path exists then directly return it
-
-            if (@file_exists($path))                                return $path;
-            if (($max_depth == $depth) && dom_url_exists($path))    return $path;
-
-            // If we have already searched too many times then return fallback
-
-            if ($depth <= 0) return $default;
-
-            // If requested then search in parent folder
-
-            if ($search)
-            {
-                $searches[] = array("../$path", $depth - 1, "../$offset_path");
-            }
-        }
-
-        return $default;
-    }
-
-    function dom_path_coalesce()
-    {
-        $args = func_get_args();
-        return dom_path_coalesce_FUNC_ARGS($args);
-    }
-
-    function dom_path_coalesce_FUNC_ARGS($args)
-    {
-        foreach ($args as $arg)
-        {
-            $path = dom_path($arg);
-            if (!!$path) return $path;
-        }
-
-        return false;
-    }
-
-    #endregion
     #region HELPERS : DOM COMPONENTS: TAG ATTRIBUTES
     ######################################################################################################################################
 
@@ -710,108 +838,6 @@
         
         return $classname;
     }
-
-    #endregion
-    #region HELPERS : PROFILING
-    ######################################################################################################################################
-    
-    $__dom_profiling = array();
-    
-    function dom_debug_timings($totals_only = true)
-    {
-        $report = array();
-
-        global $__dom_profiling;
-
-        $totals = array();
-
-        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] = 0;
-        foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] += $profiling["dt"];
-
-        if (!$totals_only)
-        {
-            foreach ($__dom_profiling as $profiling)
-            {
-                $report[] = str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(" . $profiling["tag"] . ")") : "");
-            }
-        }
-
-        foreach ($totals as $function => $total)
-        {
-            $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
-        }
-
-        return $report;
-    }
-    
-    function dom_debug_callstack($shift_current_call = true)
-    {
-        $callstack = ((PHP_VERSION_ID >= 50400) ? debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 0)  : 
-                     ((PHP_VERSION_ID >= 50306) ? debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT)     : 
-                     ((PHP_VERSION_ID >= 50205) ? debug_backtrace(true)                               : 
-                                                  debug_backtrace()                                   )));
-                                                  
-        if ($shift_current_call) array_shift($callstack);
-        return $callstack;
-    }
-    
-    function dom_debug_functions_callstack($shift_current_call = true)
-    {
-        $callstack = dom_debug_callstack($shift_current_call);
-        if ($shift_current_call) array_shift($callstack);
-
-        $functions = array();
-        foreach ($callstack as $call) $functions[] = $call["function"];        
-        return $functions;
-    }
-
-    function dom_debug_track_delta($tag = false, $dt = false)
-    {
-        $functions_callstack = dom_debug_functions_callstack();
-        array_shift($functions_callstack); // dom_debug_track_delta
-        array_shift($functions_callstack); // __destruct
-
-        if (count($functions_callstack) == 0)
-        {
-            $functions_callstack[] = "_";
-        }
-
-        $functions_callstack_string = implode(" <- ", $functions_callstack);
-
-        global $__dom_profiling;
-
-        $__dom_profiling[] = array(
-            "dt"        => $dt,
-            "tag"       => $tag,
-            "callstack" => $functions_callstack_string,
-            "function"  => $functions_callstack[0],
-            "t"         => null
-            );
-
-        return "";
-    }
-
-    class dom_debug_track_delta_scope
-    {
-        function __construct($annotation = false) { $this->t = microtime(true); $this->annotation = $annotation;  }
-        function __destruct() { dom_debug_track_delta($this->annotation, microtime(true) - $this->t); }
-    }
-    
-    function dom_debug_track_timing($annotation = false)
-    {
-        return new dom_debug_track_delta_scope($annotation);
-    }
-
-    #endregion
-    #region HELPERS : SERVER ARGS
-    ######################################################################################################################################
-    
-    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE', $default); }
-    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',          $default); }
-    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',          $default); }
-    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',          $default); }
-    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS',                $default); }
-    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',            $default); }
 
     #endregion
     #region HELPERS : LOCALIZATION
@@ -1068,7 +1094,7 @@
                 $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
             }
             
-            $hashtag = a('#'.$hashtag, $url, "hashtag", EXTERNAL_LINK);
+            $hashtag = a('#'.$hashtag, $url, "hashtag", DOM_EXTERNAL_LINK);
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -1253,6 +1279,22 @@
     {
         dom_set("toolbar",      true);
         dom_set("toolbar_$row", true);
+    }
+
+    // Body extension
+    
+    $hook_body = "";
+    
+    function hook_body($html)
+    {
+        global $hook_body;
+        $hook_body .= $html;
+    }
+
+    function _body()
+    {
+        global $hook_body;
+        return $hook_body;
     }
 
     // AM Sidebars
@@ -3454,20 +3496,17 @@
     #region API : PHP DOCUMENT
     ######################################################################################################################################
 
-    function dom_include($path)
-    {
-        include($path);
-    }
+    function dom_include($path) { if (!!$path) include($path); }
 
     function dom_redirect($url)
     {   
         if (!!get("static")) // PHP redirect does not work for static website
         {
-            echo "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
+            echo "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".dom_href($url)."'\" /></head></html>";
         }
         else
         {
-            header("Location: ".href($url));
+            header("Location: ".dom_href($url));
         }
 
         exit;
@@ -3950,10 +3989,6 @@ else
     #region API : DOM : URLS
     ######################################################################################################################################
 
-    function dom_host_url   ()                  { return rtrim("http".((dom_server_https()=='on')?"s":"")."://".dom_server_http_host(),"/"); }
-    function dom_url_branch ($params = false)   { $uri = explode('?', dom_server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (dom_get_all() as $key => $val) $uri .= "&$key=$val"; } return $uri; }
-    function dom_url        ($params = false)   { $branch = dom_url_branch($params); return ($branch == "") ? dom_host_url() : dom_host_url()."/".$branch; }
-
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? dom_get("pinterest_user")     : $username; 
                                                                                   $board    = ($board    === false) ? dom_get("pinterest_board")    : $board;      return "https://www.pinterest.com/$username/$board/";                      }
     function url_instagram_user             ($username = false)                 { $username = ($username === false) ? dom_get("instagram_user")     : $username;   return "https://www.instagram.com/$username/";                             }
@@ -4045,8 +4080,8 @@ else
 
         $content = "";
 
-        if ($silent_errors) { @include $filename; $content = @ob_get_clean(); }
-        else                {  include $filename; $content =  ob_get_clean(); }
+        if ($silent_errors) { @dom_include($filename); $content = @ob_get_clean(); }
+        else                {  dom_include($filename); $content =  ob_get_clean(); }
         
         if (false !== $content) { return $content; }
 
@@ -4625,11 +4660,11 @@ else
             .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (dom_eol() . meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
             .   dom_eol()
             .   dom_eol() . meta('msapplication-notification',             'frequency=30;'
-                                                                .   'polling-uri' .'=/?rss=tile&id=1;'
-                                                                .   'polling-uri2'.'=/?rss=tile&id=2;'
-                                                                .   'polling-uri3'.'=/?rss=tile&id=3;'
-                                                                .   'polling-uri4'.'=/?rss=tile&id=4;'
-                                                                .   'polling-uri5'.'=/?rss=tile&id=5; cycle=1')
+                                                                .   'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
+                                                                .   'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
+                                                                .   'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
+                                                                .   'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
+                                                                .   'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
                                                                
             // TODO FIX HREFLANG ALTERNATE
 
@@ -4686,9 +4721,9 @@ else
     }
 
     function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return tag('link', '', dom_attributes($attributes,$pan), false, true); }
-    function link_rel($rel, $href, $type = false, $pan = 0)                 { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
-//  function link_style($href, $media = "screen")                           {                           return link_rel("stylesheet", $href, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
-    function link_style($href, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($href, false, true) : link_rel("stylesheet", $href, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
+    function link_rel($rel, $link, $type = false, $pan = 0)                 { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
+//  function link_style($link, $media = "screen")                           {                           return link_rel("stylesheet", $link, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
+    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
     function style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (tag('style',  $css                        )); }
     function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (tag('script', $js, array("type" => $type) )); }
@@ -4728,7 +4763,7 @@ else
         $path_slick_theme       = dom_path("css/slick-theme.css");
 
         return                                                                                                                                                                                                                                                                                     (("normalize" == dom_get("normalize")) ? (""
-            .           ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
+            .               ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
             .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
         //  .   dom_eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
                                                                                                                                                                                                                                                                                                  . (("material"  == dom_get("framework")) ? (""
@@ -5840,7 +5875,8 @@ else
         . dom_eol(2) . dom_if(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
         
         . dom_eol(2) . $html
-
+        . dom_eol(2) . delayed_component("_body")
+        
         . dom_eol(2) . dom_if(dom_AMP(), comment("DOM AMP sidebars"))
         . dom_eol(2) . delayed_component("_amp_sidebars")
         . dom_eol(2) . delayed_component("_amp_scripts_body")
@@ -5860,7 +5896,7 @@ else
 
         if (is_null($dark_theme)) $dark_theme = dom_get("dark_theme", false);
         
-        return cosmetic(dom_eol(2)).tag('body', $body, dom_component_class('body').($dark_theme ? dom_component_class('dark') : ''));
+        return cosmetic(dom_eol(2)).tag('body', $body, array("id" => "!", "name" => "!", "class" => dom_component_class('body').($dark_theme ? dom_component_class('dark') : '')));
     }
     
     function cosmetic($html)
@@ -6013,9 +6049,9 @@ else
             .'&amp;'.'ctz'                .'=Europe%2FParis';
         }
         
-        if (dom_AMP()) return a('https://calendar.google.com', $src, EXTERNAL_LINK);
+        if (dom_AMP()) return a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
         
-        return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, EXTERNAL_LINK);
+        return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
     }
         
     function google_map($embed_url, $w = false, $h = false)
@@ -6088,7 +6124,7 @@ else
     
     function google_photo_album($url, $wrapper = "div", $img_wrapper = "self")
     {        
-        if (dom_AMP()) return a($url, $url, EXTERNAL_LINK);
+        if (dom_AMP()) return a($url, $url, DOM_EXTERNAL_LINK);
 
         $results = json_google_photo_album_from_content($url);
         $photos  = dom_at($results, 1, array());
@@ -6102,7 +6138,7 @@ else
             $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"));
         }
 
-        return a(call_user_func($wrapper, $images), $url, EXTERNAL_LINK);
+        return a(call_user_func($wrapper, $images), $url, DOM_EXTERNAL_LINK);
     }
     
     // Components with BlogPosting microdata
@@ -6116,11 +6152,13 @@ else
     
     // LINKS
 
-    function href($link, $target = false)
+    $__includes = array();
+
+    function dom_href($link, $target = false)
     {
         $extended_link = $link;
 
-        if ($target !== EXTERNAL_LINK)
+        if ($target !== DOM_EXTERNAL_LINK)
         {
             foreach (dom_get("forwarded_flags") as $forward_flag)
             {
@@ -6143,13 +6181,13 @@ else
         &&  $external_attributes === false
         &&  $target              === false) $url = $html;
 
-        if (($external_attributes === INTERNAL_LINK || $external_attributes === EXTERNAL_LINK) && $target === false) { $target = $external_attributes; $external_attributes = false; }
-        if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? EXTERNAL_LINK : INTERNAL_LINK; }
+        if (($external_attributes === DOM_INTERNAL_LINK || $external_attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $external_attributes; $external_attributes = false; }
+        if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? DOM_EXTERNAL_LINK : DOM_INTERNAL_LINK; }
         
-        $extended_link = href($url, $target);
+        $extended_link = dom_href($url, $target);
 
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
-        if ($target == EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
+        if ($target == DOM_EXTERNAL_LINK) $internal_attributes["rel"] = "noopener";
 
         $attributes = "";
         
@@ -6184,7 +6222,7 @@ else
         
         if (dom_AMP())
         {
-            return a($text, "mailto:" . $email, $attributes, EXTERNAL_LINK);
+            return a($text, "mailto:" . $email, $attributes, DOM_EXTERNAL_LINK);
         }
         else
         {
@@ -6192,7 +6230,7 @@ else
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), DOM_EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
@@ -6767,10 +6805,11 @@ else
         
         $title = "";
         
-        if ($title_icon !== false) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false) $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), EXTERNAL_LINK);
-        if ($title_main !== false) $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
-        if ($title_sub  !== false) $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_icon !== false && false === stripos($title_icon, "<img")) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false && false === stripos($title_link, "<a"))   $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
+        if ($title_main !== false && false === stripos($title_main, "<h"))   $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+        if ($title_main !== false && false !== stripos($title_main, "<h"))   $title .=                 $title_main;
+        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))   $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
     }
@@ -6845,7 +6884,7 @@ else
             }
         }
     
-        $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, EXTERNAL_LINK)                                  : $data["content"];
+        $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, DOM_EXTERNAL_LINK)                                  : $data["content"];
         $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], dom_eol(), "div")) : $data["content"];
 
         $data["title_main"]     = dom_at($metadata, "post_title");
@@ -6858,7 +6897,7 @@ else
                                 : (dom_has($metadata, "post_date")      ? span_datepublished(              dom_at($metadata, "post_date", ''  ), strtotime(dom_at($metadata, "post_date"))      ) : '');
         
         $data["title_sub"]      = dom_has($metadata, "user_name")       ? cat($data["title_sub"],' ',span_author(span_name($metadata["user_name"]))) : $data["title_sub"];
-        $data["title_sub"]      = dom_has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, EXTERNAL_LINK)                              : $data["title_sub"];
+        $data["title_sub"]      = dom_has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, DOM_EXTERNAL_LINK)                              : $data["title_sub"];
         
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
         
@@ -6985,13 +7024,13 @@ else
     {
         $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
         
-        if (($attributes === INTERNAL_LINK || $attributes === EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
-        if ($target === false) { $target = INTERNAL_LINK; }
+        if (($attributes === DOM_INTERNAL_LINK || $attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
+        if ($target === false) { $target = DOM_INTERNAL_LINK; }
         
         return array($icon, $label, $link, $id, $target, $attributes);
     }
 
-    function dom_icon_entry_to_link($icon_entry, $default_target = INTERNAL_LINK)
+    function dom_icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
     {
         $icon       = dom_get($icon_entry, "icon",          dom_get($icon_entry, 0, ""));
         $label      = dom_get($icon_entry, "label",         dom_get($icon_entry, 1, ""));
@@ -7009,7 +7048,7 @@ else
         return a($icon, $link, $attributes, $target);
     }
 
-    function icon_entries($icon_entries, $default_target = INTERNAL_LINK)
+    function icon_entries($icon_entries, $default_target = DOM_INTERNAL_LINK)
     {
         if (is_array($icon_entries))
         {
@@ -7034,7 +7073,7 @@ else
 
     $__dom_ul_menu_index = -1;
 
-    function ul_menu($menu_entries = array(), $default_target = INTERNAL_LINK, $sidebar = null)
+    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = null)
     {
         global $__dom_ul_menu_index;
         ++$__dom_ul_menu_index;
@@ -7134,7 +7173,7 @@ else
     function menu_entries($html, $sidebar = null)
     {
         if (false === stripos($html, "menu-list") 
-        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, INTERNAL_LINK, $sidebar);
+        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
 
         return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
     }
@@ -7159,7 +7198,7 @@ else
     }
    
     function  ul_menu_auto($sidebar = null) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = null) { return ul_menu(get("hook_sections"), INTERNAL_LINK, $sidebar); }
+    function _ul_menu_auto($sidebar = null) { return ul_menu(get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
 
     function  menu_toggle_auto($sidebar = null) { return menu_toggle(ul_menu_auto(), $sidebar); }
 

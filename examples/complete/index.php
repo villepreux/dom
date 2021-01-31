@@ -1,6 +1,6 @@
 <?php
 
-    require_once(dirname(__FILE__)."/dom.php"); 
+    require_once(dirname(__FILE__)."/../../dom.php"); 
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 
@@ -27,7 +27,7 @@
                     toolbar_nav(
                         toolbar_nav_menu(ul_menu_auto()).
                         toolbar_nav_title("Hello World!").
-                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(24, 24, "white", false, false), url_void(), "darkandlight", INTERNAL_LINK))
+                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(24, 24, "white", false, false), url_void(), "darkandlight", DOM_INTERNAL_LINK))
                         )
                     ).
 
@@ -94,8 +94,8 @@
 
                     hr().
 
-                    //  p("Photo by ".a("A. L.",         "https://unsplash.com/@overdriv3",    EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       EXTERNAL_LINK)."")
-                        p("Photo by ".a("Cosmin Serban", "https://unsplash.com/@cosminserban", EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", EXTERNAL_LINK)."")
+                    //  p("Photo by ".a("A. L.",         "https://unsplash.com/@overdriv3",    DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       DOM_EXTERNAL_LINK)."")
+                        p("Photo by ".a("Cosmin Serban", "https://unsplash.com/@cosminserban", DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", DOM_EXTERNAL_LINK)."")
                 ).
 
                 footer(

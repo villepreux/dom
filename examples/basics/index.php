@@ -1,6 +1,6 @@
 <?php
 
-    require_once(dirname(__FILE__)."/dom.php"); 
+    require_once(dirname(__FILE__)."/../../dom.php"); 
 
     set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
 
