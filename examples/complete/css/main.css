@@ -13,13 +13,16 @@ set("text_color",               "#DDDDDD");
 set("text_color_light",         "#444444");
 set("link_color",               "#ff3333");
 
-function set_missing_theme_colors()
+if (!function_exists("set_missing_theme_colors")) // TODO DEBUG WHY DOUBLE INCLUDE IF RSS HERE
 {
-    foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
-    foreach (array("dark", "light", "print") as $theme) set($var."_".$theme, get($var."_".$theme, get($var)));
-    
-    foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
-    foreach (array("dark", "light", "print") as $theme) set($var, get($var, get($var."_dark")));
+    function set_missing_theme_colors()
+    {
+        foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
+        foreach (array("dark", "light", "print") as $theme) set($var."_".$theme, get($var."_".$theme, get($var)));
+        
+        foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
+        foreach (array("dark", "light", "print") as $theme) set($var, get($var, get($var."_dark")));
+    }
 }
 
 set_missing_theme_colors();

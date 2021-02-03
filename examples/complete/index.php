@@ -27,7 +27,7 @@
                     toolbar_nav(
                         toolbar_nav_menu(ul_menu_auto()).
                         toolbar_nav_title("Hello World!").
-                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(24, 24, "white", false, false), url_void(), "darkandlight", DOM_INTERNAL_LINK))
+                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(), url_void(), "darkandlight", DOM_INTERNAL_LINK))
                         )
                     ).
 
@@ -110,8 +110,8 @@
                 $(function() {
 
                     $(".darkandlight").click(function() {
-                        // TODO SOMETHING MORE ROBUST
-                        document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
+                        /* TODO SOMETHING MORE ROBUST */
+                        /* document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark"); */
                         });
 
                     function update_current_link_from_scroll() {
