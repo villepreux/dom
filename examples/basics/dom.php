@@ -1,1 +1,0 @@
-<?php include dirname(__FILE__)."/../"."dom.php"; ?>

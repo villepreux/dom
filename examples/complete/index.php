@@ -1,6 +1,6 @@
 <?php
 
-    require_once("dom.php"); 
+    require_once(dirname(__FILE__)."/../../dom.php"); 
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
 
@@ -16,7 +16,7 @@
 
                 style("
 
-                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "content_default_margin", "content_default_margin").") { main { padding-left: var(--content-default-margin); padding-right: var(--content-default-margin); } }
+                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "dom_gap", "dom_gap").") { main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
@@ -27,7 +27,7 @@
                     toolbar_nav(
                         toolbar_nav_menu(ul_menu_auto()).
                         toolbar_nav_title("Hello World!").
-                        toolbar_nav_toolbar(ul_menu_auto().a(svg_dark_and_light(24, 24, "white", false, false), url_void(), "dark-and-light", INTERNAL_LINK))
+                        toolbar_nav_toolbar(ul_menu_auto().a(svg_darkandlight(), url_void(), "darkandlight", DOM_INTERNAL_LINK))
                         )
                     ).
 
@@ -94,7 +94,8 @@
 
                     hr().
 
-                        p("Photo by ".a("A. L.", "https://unsplash.com/@overdriv3", EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red", EXTERNAL_LINK)."")
+                    //  p("Photo by ".a("A. L.",         "https://unsplash.com/@overdriv3",    DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       DOM_EXTERNAL_LINK)."")
+                        p("Photo by ".a("Cosmin Serban", "https://unsplash.com/@cosminserban", DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", DOM_EXTERNAL_LINK)."")
                 ).
 
                 footer(
@@ -108,9 +109,9 @@
 
                 $(function() {
 
-                    $(".dark-and-light").click(function() {
-                        // TODO SOMETHING MORE ROBUST
-                        document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark");
+                    $(".darkandlight").click(function() {
+                        /* TODO SOMETHING MORE ROBUST */
+                        /* document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark"); */
                         });
 
                     function update_current_link_from_scroll() {
