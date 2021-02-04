@@ -859,6 +859,20 @@
     #region HELPERS : MISC
     ######################################################################################################################################
 
+    
+    function dom_coalesce()
+    {
+        $args = func_get_args();
+        return dom_coalesce_FUNC_ARGS($args);
+    }
+
+    function dom_coalesce_FUNC_ARGS($args, $fallback = false)
+    {
+        foreach ($args as $arg) if (!!$arg) return $arg;
+        return $fallback;
+    }
+
+
     function dom_to_classname($str, $tolower = DOM_AUTO) { if ($tolower === DOM_AUTO) $tolower = true; $str = str_replace("é","e",str_replace("è","e",str_replace("à","a",$str))); return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str)); }
 
     function dom_AMP() { return false !== dom_get("amp", false) && 0 !== dom_get("amp", false) && "0" !== dom_get("amp", false); }
@@ -1424,7 +1438,7 @@
 
     function hook_feed_item($metadata)
     {           
-        if (dom_has("rss") || !!dom_get("force_hook_feed_items"))
+        if (dom_has("rss"))
         {
             global $hook_feed_nth_item;
             
@@ -3553,23 +3567,22 @@
         if ($encoding   === false) { $encoding  = "utf-8"; }
 
         $binary_types = array("png");
-
         $binary = in_array($doctype, $binary_types);
 
         dom_set("doctype",  $doctype);
         dom_set("encoding", $encoding);
-        dom_set("binary",   $binary);
-        
+        dom_set("binary",   $binary);        
+
         $types = array
         (
-            "xml"   => 'text/xml'    
-        ,   "rss"   => 'text/xml'
-        ,   "tile"  => 'text/xml'
-        ,   "png"   => 'image/png'
-        ,   "json"  => 'application/json' 
-        ,   "html"  => 'text/html'        
-        ,   "csv"   => 'text/csv'           . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.csv') : '')
-        ,   "zip"   => 'application/zip'    . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.zip') : '')
+            "xml"       => 'text/xml'    
+        ,   "rss"       => 'text/xml'
+        ,   "tile"      => 'text/xml'
+        ,   "png"       => 'image/png'
+        ,   "json"      => 'application/json'
+        ,   "html"      => 'text/html'
+        ,   "csv"       => 'text/csv'           . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.csv') : '')
+        ,   "zip"       => 'application/zip'    . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.zip') : '')
         );
     
         $dispositions = array
@@ -3578,12 +3591,23 @@
         ,   "zip"   => 'attachment'         . (($attachement_basename !== false) ? ('; filename="'  . $attachement_basename . '.zip"') : '')
         );
 
-        if (!$binary && $content_encoding_header !== false) header('Content-Encoding: ' . $encoding         . '');
-        if (array_key_exists($doctype, $types))              header('Content-type: '     . $types[$doctype]  . '; charset=' . $encoding);
+        $type = $doctype;
+        {
+            if (!array_key_exists($type, $types))
+            {
+                foreach (array("html","xml","png","json","csv","zip") as $t)
+                {
+                    if (false !== stripos($doctype, "/$t")) $type = $t;
+                }
+            }
+        }
+
+        if (!$binary && $content_encoding_header !== false)  header('Content-Encoding: ' . $encoding      . '');
+        if (array_key_exists($type, $types))                 header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
 
         if ($attachement_basename !== false)
         {
-            if (array_key_exists($doctype, $dispositions))  @header('Content-Disposition: ' . $dispositions[$doctype]                                                                            . '');
+            if (array_key_exists($type, $dispositions))     @header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
             if ($attachement_length !== false)              @header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
         }
         
@@ -7384,7 +7408,7 @@ else
 
     function dom_cdata($html) { return "<![CDATA[$html]]>"; }
 
-    function rss_sanitize($html) { return trim(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'utf-8')); }
+    function dom_rss_sanitize($html) { return trim(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'utf-8')); }
     
     function rss_item_from_item_info($item_info)
     {
@@ -7414,13 +7438,13 @@ else
         return rss_item($rss);
     }
  
-    function rss_channel        ($html = "")                        { return cosmetic(dom_eol()).   dom_tag('channel',                  $html,  false,         true); }
-    function rss_image          ($html = "")                        { return                        dom_tag('image',                    $html,  false,         true); }
-    function rss_url            ($html = "")                        { return                        dom_tag('url',                      $html,  false,         true); }
-    function rss_item           ($html = "")                        { return                        dom_tag('item',                     $html,  false,         true); }
-    function rss_link           ($html = "")                        { return                        dom_tag('link',                     $html,  false,         true); }
-    function rss_title          ($html = "")                        { return                        dom_tag('title',       rss_sanitize($html), false,         true); }
-    function rss_description    ($html = "", $attributes = false)   { return                        dom_tag('description', rss_sanitize($html), $attributes,   true); }
+    function rss_channel        ($html = "")                        { return cosmetic(dom_eol()).   dom_tag('channel',                      $html,  false,         true); }
+    function rss_image          ($html = "")                        { return                        dom_tag('image',                        $html,  false,         true); }
+    function rss_url            ($html = "")                        { return                        dom_tag('url',                          $html,  false,         true); }
+    function rss_item           ($html = "")                        { return                        dom_tag('item',                         $html,  false,         true); }
+    function rss_link           ($html = "")                        { return                        dom_tag('link',                         $html,  false,         true); }
+    function rss_title          ($html = "")                        { return                        dom_tag('title',       dom_rss_sanitize($html), false,         true); }
+    function rss_description    ($html = "", $attributes = false)   { return                        dom_tag('description', dom_rss_sanitize($html), $attributes,   true); }
 
     function rss_lastbuilddate  ($date = false)                     { return                        dom_tag('lastBuildDate', (false === $date) ? ((!!dom_get("rss_date_granularity_daily")) ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
     function rss_pubDate        ($date = false)                     { return                        dom_tag('pubDate',       (false === $date) ? ((!!dom_get("rss_date_granularity_daily")) ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
