@@ -5,14 +5,16 @@
     
     # Forward shortname function (that mimic html markup) to private API functions (if names are not used)
 
-    #region API : CONSTANTS
+    #region CONSTANTS
     ######################################################################################################################################
 
-    if (!defined("DOM_INTERNAL_LINK"))                  define("DOM_INTERNAL_LINK", "_self");
-    if (!defined("DOM_EXTERNAL_LINK"))                  define("DOM_EXTERNAL_LINK", "_blank");
-
+    if (!defined("DOM_INTERNAL_LINK"))      define("DOM_INTERNAL_LINK",     "_self");
+    if (!defined("DOM_EXTERNAL_LINK"))      define("DOM_EXTERNAL_LINK",     "_blank");
+    if (!defined("DOM_MENU_ID"))            define("DOM_MENU_ID",           "menu");
+    if (!defined("DOM_PATH_MAX_DEPTH"))     define("DOM_PATH_MAX_DEPTH",    8);
+    
     #endregion
-    #region API : GET/SET
+    #region CONFIG
     ######################################################################################################################################
 
     if (!function_exists("at"))                         { function at($a, $k, $d = false)                                                                                                   { return dom_at($a, $k, $d);                    } }
@@ -26,51 +28,25 @@
     if (!function_exists("AMP"))                        { function AMP()                                                                                                                    { return dom_AMP(); } }
 
     #endregion
-    #region HELPERS : AJAX / ASYNC
-    ######################################################################################################################################
-
-    if (!function_exists("ajax_classes"))               { function ajax_classes     ($ajax_params, $extra = false)                                                                          { return dom_ajax_classes   ($ajax_params, $extra);                } }
-    if (!function_exists("ajax_container"))             { function ajax_container   ($ajax_params, $placeholder = false, $period = -1)                                                      { return dom_ajax_container ($ajax_params, $placeholder, $period); } }
-
-    if (!function_exists("async"))                      { function async            ($f)                                                                                                    { return $args = func_get_args(); dom_async_FUNC_ARGS($f, $args); } }
-
-    #endregion                              
-    #region JAVASCRIPT SNIPPETS                             
-    ######################################################################################################################################                              
-
-    if (!function_exists("string_script_ajax_head"))    { function string_script_ajax_head  ()                                                                                              { return dom_string_script_ajax_head(); } }
-    if (!function_exists("string_script_ajax_body"))    { function string_script_ajax_body  ()                                                                                              { return dom_string_script_ajax_body(); } }
-
-    #endregion                              
-    #region SCRIPT WIDGETS                              
-    ######################################################################################################################################                              
-
-    if (!function_exists("script_ajax_head"))           { function script_ajax_head         ()                                                                                              { return dom_script_ajax_head(); } }
-    if (!function_exists("script_ajax_body"))           { function script_ajax_body         ()                                                                                              { return dom_script_ajax_body(); } }
-
-    #endregion                              
-    #region DEBUG                               
-    ######################################################################################################################################                              
-
-    if (!function_exists("debug_timings"))              { function debug_timings()                                                                                                          { return dom_debug_timings();                       } }
-    if (!function_exists("debug_callstack"))            { function debug_callstack($shift_current_call = true)                                                                              { return dom_debug_callstack($shift_current_call);  } }
-
-    #endregion
-    #region HELPERS : LOCALIZATION
+    #region LOCALIZATION
     ######################################################################################################################################
 
     if (!function_exists("T"))                          { function T($label, $default = false, $lang = false)                                                                               { return dom_T($label, $default = false, $lang = false); } }
 
     #endregion
-    #region WIP
+    #region STRINGS MANIPULATION
     ######################################################################################################################################
 
-    if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                                                             { return dom_a($html, $url, $attributes, $target); } }
-    if (!function_exists("to_classname"))               { function to_classname($str, $tolower = true)                                                                                      { return dom_to_classname($str, $tolower); } }
     if (!function_exists("tab"))                        { function tab($n = 1)                                                                                                              { return dom_tab($n); } }
     if (!function_exists("eol"))                        { function eol($n = 1)                                                                                                              { return dom_eol($n); } }
 
+    #endregion
+    #region HTML MARKUP & COMPONENTS
+    ######################################################################################################################################
+
     if (!function_exists("tag"))                        { function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)      { return dom_tag($tag, $html, $attributes, $force_display, $self_closing, $extra_attributes_raw); } }
+
+    if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                                                             { return dom_a($html, $url, $attributes, $target); } }
     if (!function_exists("footer"))                     { function footer($html = "", $attributes = false)                                                                                  { return dom_footer($html, $attributes); } }
 
     ######################################################################################################################################
@@ -87,17 +63,15 @@
     #region PRIVATE API
     ######################################################################################################################################
     
-    #region API : CONSTANTS
+    #region CONSTANTS
     ######################################################################################################################################
     
-    define("DOM_AUTHOR",            "Antoine Villepreux");
-    define("DOM_VERSION",           "0.5.2");
-    define("DOM_PATH_MAX_DEPTH",    8);
-    define("DOM_AUTO",              "__DOM_AUTO__"); // TODO : migrate to null as auto param
-    define("DOM_MENU_ID",           "menu");
-    
+    define("DOM_AUTHOR",    "Antoine Villepreux");
+    define("DOM_VERSION",   "0.6.0");
+    define("DOM_AUTO",      "__DOM_AUTO__");    // ? migrate to null as auto param ?
+
     #endregion
-    #region API : GET/SET
+    #region HELPERS : CONFIG
     ######################################################################################################################################
 
     function dom_at($a, $k, $d = false)                                 { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = dom_at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
@@ -119,7 +93,7 @@
     function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',            $default); }
 
     #endregion
-    #region API : CONTEXT
+    #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
 
     function dom_is_localhost() { return (false !== stripos(dom_server_http_host(), "localhost"))
@@ -130,13 +104,12 @@
     ######################################################################################################################################
     
     $__dom_profiling = array();
-    
+
     function dom_debug_timings($totals_only = true)
     {
-        $report = array();
-
         global $__dom_profiling;
 
+        $report = array();
         $totals = array();
 
         foreach ($__dom_profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? $profiling["tag"] : "")] = 0;
@@ -217,7 +190,7 @@
     }
 
     #endregion
-    #region HELPERS : PATH FINDER
+    #region HELPERS : FILE AND FOLDERS PATH FINDER
     ######################################################################################################################################
         
     function dom_path($path0, $default = false, $search = true, $depth0 = DOM_PATH_MAX_DEPTH, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path0 = ".")
@@ -286,16 +259,21 @@
     }
 
     #endregion
-    #region DEPENDENCIES
+    #region HELPERS : PHP FILE INCLUDE
+
+    function dom_include($path) { if (!!$path) include($path); }
+
+    #endregion
+    #region WIP DEPENDENCIES
     ######################################################################################################################################
     
     // ! TODO Use more standard paths
                                         @dom_include(dom_path("tokens.php"));
-    if (!function_exists("markdown"))   @dom_include(dom_path(dirname(__FILE__)."/../php/vendor/markdown.php"));
-                                        @dom_include(dom_path(dirname(__FILE__)."/../php/vendor/smartypants.php"));
+    if (!function_exists("markdown"))   @dom_include(dom_path("php/vendor/markdown.php"));
+                                        @dom_include(dom_path("php/vendor/smartypants.php"));
 
     #endregion
-    #region CONFIG : PHP SETTINGS
+    #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
     ######################################################################################################################################
 
     function dom_init_php()
@@ -331,9 +309,9 @@
 
         if (!defined('PHP_VERSION_ID')) { $version = explode('.',PHP_VERSION); define('PHP_VERSION_ID', ($version[0] * 10000 + $version[1] * 100 + $version[2])); }
     }
-    
+
     #endregion
-    #region API : DOM : URLS UTILITIES
+    #region HELPERS : CURRENT URL
     ######################################################################################################################################
 
     function dom_host_url   ()                  { return rtrim("http".((dom_server_https()=='on')?"s":"")."://".dom_server_http_host(),"/"); }
@@ -341,7 +319,7 @@
     function dom_url        ($params = false)   { $branch = dom_url_branch($params); return ($branch == "") ? dom_host_url() : dom_host_url()."/".$branch; }
 
     #endregion
-    #region CONFIG : USER OPTIONS
+    #region SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
     ######################################################################################################################################
 
     function dom_init_options()
@@ -436,7 +414,7 @@
     }
 
     #endregion
-    #region CONFIG : INTERNALS
+    #region WIP CONFIG : INTERNALS
     ######################################################################################################################################
 
     function dom_init_internals()
@@ -448,7 +426,7 @@
     }
 
     #endregion
-    #region HELPERS : AJAX / ASYNC
+    #region WIP HELPERS : AJAX / ASYNC
     ######################################################################################################################################
 
     function dom_ajax_url_base_params($get = true, $post = true, $session = false)
@@ -544,7 +522,7 @@
     }
 
     #endregion
-    #region HELPERS : HEREDOC
+    #region WIP HELPERS : HEREDOC
 
     function dom_modify_tab($txt, $tab_offset, $tab = "    ", $line_sep = PHP_EOL)
     {
@@ -605,10 +583,10 @@
     }
 
     #endregion
-    #region JAVASCRIPT SNIPPETS
+    #region WIP JAVASCRIPT SNIPPETS
     ######################################################################################################################################
 
-    function dom_string_script_ajax_head()
+    function dom_js_ajax_head()
     {
         dom_heredoc_start(-2); ?>        
         <script>        
@@ -626,7 +604,7 @@
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function dom_string_script_ajax_body()
+    function dom_js_ajax_body()
     {
         dom_heredoc_start(-2); ?>
         <script>        
@@ -666,7 +644,7 @@
                 {
                     var ajax_pending_call = dom_ajax_pending_calls.pop();
             
-                    <?php if (!!dom_get("debug")) { ?> console.log("Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?>
+                    <?php if (!!dom_get("debug")) { ?> console.log("DOM: Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?>
                     dom_process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
                 }
             };
@@ -678,7 +656,7 @@
     }
 
     #endregion
-    #region HELPERS : DOM COMPONENTS: TAG ATTRIBUTES
+    #region WIP HELPERS : DOM COMPONENTS: TAG ATTRIBUTES
     ######################################################################################################################################
 
     function dom_attributes($attributes, $pan = 0)
@@ -844,7 +822,7 @@
     }
 
     #endregion
-    #region HELPERS : LOCALIZATION
+    #region WIP HELPERS : LOCALIZATION
     ######################################################################################################################################
     
     function dom_T($label, $default = false, $lang = false)
@@ -856,7 +834,7 @@
     }
     
     #endregion
-    #region HELPERS : MISC
+    #region WIP HELPERS : MISC
     ######################################################################################################################################
 
     
@@ -987,6 +965,22 @@
         return $hashtags;
     }
 
+    #endregion
+    #region API : UTILITIES : STRINGS MANIPULATION
+
+    function dom_dup($html, $n)                             { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
+    function dom_eol($n = 1)                                { if (!!dom_get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dom_dup("\r\n",$n); case 'DAR': return dom_dup("\r",$n); } return dom_dup("\n",$n); }
+    function dom_tab($n = 1)                                { if (!!dom_get("minify",false)) return ' '; return dom_dup(' ', 4*$n); }
+    function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x;  $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
+    function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
+    function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
+    function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
+    function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
+    function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
+    
+    #endregion
+    #region WIP ????
+
     function dom_str_replace_all($from, $to, $str)
     {
         if (is_string($str))
@@ -1033,17 +1027,8 @@
         return array() === $a || array_keys($a) === range(0, count($a) - 1);
     }
 
-    function dom_dup($html, $n)                             { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
-    function dom_eol($n = 1)                                { if (!!dom_get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dom_dup("\r\n",$n); case 'DAR': return dom_dup("\r",$n); } return dom_dup("\n",$n); }
-    function dom_tab($n = 1)                                { if (!!dom_get("minify",false)) return ' '; return dom_dup(' ', 4*$n); }
-    function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x;  $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
-    function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
-    function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
-    function cat()                                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
-    function cat_FUNC_ARGS($args)                           { return wrap_each($args,''); }
     function dom_if($expr, $html)                           { return (!!$expr) ? $html : ""; }
-    function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
-    
+
     function wrap_each($a, $glue = "", $transform = "self", $flatten_array = true)
     {
         $args = func_get_args();
@@ -1162,7 +1147,7 @@
     }
 
     #endregion
-    #region LOREM IPSUM
+    #region WIP LOREM IPSUM
 
     function lorem_ipsum($nb_paragraphs = 5, $tag = "p")
     {
@@ -1184,7 +1169,7 @@
     function lorem($nb_paragraphs = 5, $tag = "p") { return lorem_ipsum($nb_paragraphs, $tag); }
 
     #endregion
-    #region HELPERS : HOOKS & PAGINATION
+    #region WIP HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
     $__dom_user_hooks = array();
@@ -1482,7 +1467,7 @@
     }
     
     #endregion
-    #region HELPERS : PAGINATION
+    #region WIP HELPERS : PAGINATION
 
     $__dom_next_post_index = 0;
     
@@ -1509,7 +1494,7 @@
     }
 
     #endregion
-    #region HELPERS : XML DOM PARSER
+    #region WIP HELPERS : XML DOM PARSER
 
     function dom_doc_load_from_html($html)
     {
@@ -1707,7 +1692,7 @@
     }
         
     #endregion
-    #region HELPERS : JSON API END-POINTS
+    #region WIP HELPERS : JSON API END-POINTS
     ######################################################################################################################################
     
     function json_pinterest_pin($pin, $token = false)
@@ -2333,7 +2318,7 @@
     }
     
     #endregion
-    #region HELPERS : JSON METADATA FROM SOCIAL NETWORKS 
+    #region WIP HELPERS : JSON METADATA FROM SOCIAL NETWORKS 
     ######################################################################################################################################
     
     function sort_cmp_post_timestamp($a,$b)
@@ -3388,7 +3373,7 @@
     function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__dom_card_headline; $__dom_card_headline = 1+get_last_headline(); return array_cards_from_metadata(call_user_func("array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? dom_attributes_add_class($attributes, dom_component_class('card-thumb')) : $attributes); }
     
     #endregion
-    #region HELPERS : DEBUG
+    #region WIP HELPERS : DEBUG
     ######################################################################################################################################
     
     function raw_array_debug($content, $html_entities = false, $fields_sep = " ")
@@ -3401,7 +3386,7 @@
     }
     
     #endregion
-    #region HELPERS : MINIFIERS (QUICK AND DIRTY)
+    #region WIP HELPERS : MINIFIERS (QUICK AND DIRTY)
     ######################################################################################################################################
 
     function minify_html($html)
@@ -3441,7 +3426,7 @@
     }
 
     #endregion
-    #region API : CACHE SYSTEM
+    #region WIP API : CACHE SYSTEM
     ######################################################################################################################################
 
     function cache_start()
@@ -3511,10 +3496,8 @@
     }
     
     #endregion
-    #region API : PHP DOCUMENT
+    #region WIP API : PHP DOCUMENT
     ######################################################################################################################################
-
-    function dom_include($path) { if (!!$path) include($path); }
 
     function dom_redirect($url)
     {   
@@ -3675,7 +3658,7 @@
     }
 
     #endregion
-    #region DOCUMENTS GENERATION
+    #region WIP DOCUMENTS GENERATION
 
     function string_ms_browserconfig($beautify = false)
     {
@@ -3745,7 +3728,7 @@
             "background_color" => dom_get("background_color"),
             "theme_color"      => dom_get("theme_color"),
            
-            "start_url"        => ((is_localhost() ? dom_get("canonical") : "/").(!get("static") ? "?utm_source=homescreen" : "")),
+            "start_url"        => ((is_localhost() ? dom_get("canonical") : "")."/"),
             "display"          => "standalone",
             
             "related_applications"=> array( 
@@ -3808,36 +3791,50 @@
             '{'.
             '    navigator.serviceWorker.register(swsource).then(function(reg)'.
             '    {'.
-            '        console.log("AMP ServiceWorker scope: ", reg.scope);'.
+            '        console.log("DOM: AMP ServiceWorker scope: ", reg.scope);'.
             '    })'.
             '    .catch(function(err)'.
             '    {'.
-            '        console.log("AMP ServiceWorker registration failed: ", err);'.
+            '        console.log("DOM: AMP ServiceWorker registration failed: ", err);'.
             '    });'.
             '};'.
             ''.
         '</script></head><body></body></html>';
     }
 
-    function string_system_font_stack($quote = '"')
+    function string_system_font_stack($quote = '"', $condensed = false)
     {
         $fonts = dom_get("font_stack", array(
 
-            'Inter',
-            'Roboto',
-            '-apple-system',
-            'system-ui',
-            'BlinkMacSystemFont',
-            'ui-sans-serif',
-            $quote.'Segoe UI'.$quote,
-            'Helvetica',
-            'Arial',
-            'sans-serif',
+            'Inter', 'Roboto', '-apple-system',
+            'system-ui', 'BlinkMacSystemFont',
+            'ui-sans-serif', $quote.'Segoe UI'.$quote,
+            $quote.'San Francisco'.$quote,
+            'Helvetica', 'Arial', 'sans-serif',
             $quote.'Apple Color Emoji'.$quote,
             $quote.'Segoe UI Emoji'.$quote,
             $quote.'Segoe UI Symbol'.$quote
 
             ));
+
+        if ($condensed)
+        {
+            $fonts = array_merge(array(
+
+                $quote.'AvenirNextCondensed-Bold'.$quote,
+                $quote.'Futura-CondensedExtraBold'.$quote,
+                'HelveticaNeue-CondensedBold',
+                $quote.'Ubuntu Condensed'.$quote,
+                $quote.'Liberation Sans Narrow'.$quote,
+                $quote.'Franklin Gothic Demi Cond'.$quote,
+                $quote.'Arial Narrow'.$quote,
+                'sans-serif-condensed', 'Arial',
+                $quote.'Trebuchet MS'.$quote,
+                $quote.'Lucida Grande'.$quote,
+                'Tahoma', 'Verdana', 'sans-serif'
+
+                ), $fonts);
+        }
 
         return implode(", ", $fonts);
     }
@@ -3876,15 +3873,15 @@ if (workbox)
 {
     const LOCALHOST = ("localhost" == self.location.host);
     
-    const VERSION = "0.0.6.2";
+    const VERSION = "'.DOM_VERSION.'";
 
     const  cache_prefix = "'.strtoupper(dom_to_classname(dom_get("canonical"))).'";
     const  cache_suffix = VERSION;
     
-    const FALLBACK_HTML_URL = "offline.html";
-    const FALLBACK_IMG_URL  = "loading.svg";
+    const FALLBACK_HTML_URL = "'.dom_get('canonical').'/offline.html";
+    const FALLBACK_IMG_URL  = "'.dom_get('canonical').'/loading.svg";
     
-    if (LOCALHOST) console.log("Worbox debugging");
+    if (LOCALHOST) console.log("DOM: Worbox debugging");
     workbox.setConfig({debug: LOCALHOST});
         
   //self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
@@ -3943,7 +3940,7 @@ if (workbox)
 } 
 else 
 {
-    console.log("Could not load workbox framework!");
+    console.log("DOM: Could not load workbox framework!");
 }';
 
     }
@@ -4009,10 +4006,10 @@ else
     }
 
     #endregion
-    #region CSS snippets
+    #region WIP API : CSS snippets
     ######################################################################################################################################
     
-    function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
+    function dom_css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
     {
         return "/* Text gradient */".
 
@@ -4025,19 +4022,19 @@ else
             " "."-webkit-background-clip: text;".
             " ".   "-moz-background-clip: text;".
             " ".     "-o-background-clip: text;".
-            " ".       "background-clip: text;".
+            " ".        "background-clip: text;".
 
             "-webkit-text-fill-color: transparent;".
         "";
     }
     
-    function css_gradient_unset()
+    function dom_css_gradient_unset()
     {
         return "-webkit-text-fill-color: unset;";
     }
 
     #endregion
-    #region API : DOM : URLS
+    #region WIP API : DOM : URLS
     ######################################################################################################################################
 
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? dom_get("pinterest_user")     : $username; 
@@ -4072,7 +4069,7 @@ else
     function url_print                      ()                                  { return dom_AMP() ? url_void() : "javascript:scan_and_print();"; }
     
     #endregion
-    #region API : DOM : COLORS
+    #region WIP API : DOM : COLORS
     ######################################################################################################################################
 
     // https://paulund.co.uk/social-media-colours
@@ -4111,7 +4108,7 @@ else
     function color_darkandlight     () { return '#FFFFFF'; }
    
     #endregion
-    #region API : DOM : HTML COMPONENTS : SPECIAL TAGS
+    #region WIP API : DOM : HTML COMPONENTS : SPECIAL TAGS
     ######################################################################################################################################
 
     /**
@@ -4174,8 +4171,8 @@ else
 
     function css_name($name) { return trim(str_replace("_","-",$name)); }
 
-    function css_var($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
-    function css_env($var, $val = false, $pre_processing = false, $pan = null) { if (null === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '/*.((false !== stripos($var,"_unitless")) ? "" : css_env($var."_unitless", str_replace(array("px","%","vw","vh","cm","em","rem","pt","deg","rad"), array("","","","","","","","","",""), $val)))*/; }
+    function css_var($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { if (DOM_AUTO === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_env($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { if (DOM_AUTO === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : dom_get($var)); dom_set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '/*.((false !== stripos($var,"_unitless")) ? "" : css_env($var."_unitless", str_replace(array("px","%","vw","vh","cm","em","rem","pt","deg","rad"), array("","","","","","","","","",""), $val)))*/; }
 
     function css_env_add($vars, $pre_processing = false)
     {
@@ -4245,9 +4242,9 @@ else
         return $res.$unit;
     }
     
-    function env        ($var, $val = false, $pre_processing = false, $pan = null) { return css_env      ($var, $val, $pre_processing, $pan); }
-    function env_add    ($vars,              $pre_processing = false, $pan = null) { return css_env_add  ($vars,      $pre_processing, $pan); }
-    function env_mul    ($vars,              $pre_processing = false, $pan = null) { return css_env_mul  ($vars,      $pre_processing, $pan); }
+    function env        ($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { return css_env      ($var, $val, $pre_processing, $pan); }
+    function env_add    ($vars,              $pre_processing = false, $pan = DOM_AUTO) { return css_env_add  ($vars,      $pre_processing, $pan); }
+    function env_mul    ($vars,              $pre_processing = false, $pan = DOM_AUTO) { return css_env_mul  ($vars,      $pre_processing, $pan); }
     
     
     /*
@@ -4257,7 +4254,7 @@ else
     function if_browser($condition, $html) { return (dom_has("rss")) ? '' : ('<!--[if '.$condition.']>' . $html . '<![endif]-->'); }
 
     #endregion
-    #region API : DOM : HTML COMPONENTS : DOCUMENT ROOT
+    #region WIP API : DOM : HTML COMPONENTS : DOCUMENT ROOT
     ######################################################################################################################################
 
     function jsonfeed($json = false)
@@ -4467,7 +4464,7 @@ else
     }
 
     #endregion
-    #region API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
+    #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
 
@@ -4581,21 +4578,21 @@ else
         return link_rel("manifest", $path_manifest, $type, $pan);
     }
 
-    function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = null, $alternate = false)
+    function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = DOM_AUTO, $alternate = false)
     {
-        if ($name === false || $name === null) $name = "favicon";
-        if ($ext  === false || $ext  === null) $ext  = "png";
-        if ($type === false || $type === null) $type = null;
+        if ($name === false || $name === DOM_AUTO) $name = "favicon";
+        if ($ext  === false || $ext  === DOM_AUTO) $ext  = "png";
+        if ($type === false || $type === DOM_AUTO) $type = false;
 
         if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
         if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
         if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
         if (is_array($type)) { $html = ""; foreach ($type as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $ext, $_   , $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
 
-        if ($type === null && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
-        if ($type === null && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
-        if ($type === null && false !== stripos($name,"apple"))                                         $type = "apple-touch-icon";
-        if ($type === null)                                                                             $type = "icon";
+        if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
+        if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
+        if ($type === false && false !== stripos($name,"apple"))                                         $type = "apple-touch-icon";
+        if ($type === false)                                                                             $type = "icon";
 
         if (!!$size)
         {
@@ -4783,8 +4780,8 @@ else
     function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                                                                    { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : script(dom_string_script_ajax_head()); }
-    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : script(dom_string_script_ajax_body()); }
+    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : script(dom_js_ajax_head()); }
+    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : script(dom_js_ajax_body()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -5245,11 +5242,11 @@ else
             {
                 let deferredPrompt = null;
                 
-                console.log("Register Before Install Prompt callback");
+                console.log("DOM: Register Before Install Prompt callback");
                 
                 window.addEventListener("beforeinstallprompt", function(e) 
                 {
-                    console.log("Before Install Prompt");
+                    console.log("DOM: Before Install Prompt");
                     e.preventDefault();
                     deferredPrompt = e;
                     $(".app-install").css({"display": "inline-block"}); /* TODO change this hardcoded style by a class */
@@ -5265,15 +5262,15 @@ else
                         
                         deferredPrompt.userChoice.then(function(choiceResult)
                         {
-                            if (choiceResult.outcome === "accepted") console.log("User accepted the A2HS prompt");
-                            else                                     console.log("User dismissed the A2HS prompt");
+                            if (choiceResult.outcome === "accepted") console.log("DOM: User accepted the A2HS prompt");
+                            else                                     console.log("DOM: User dismissed the A2HS prompt");
                             
                             deferredPrompt = null;
                         });
                     }
                     else
                     {
-                        console.log("Install promt callback not received yet");
+                        console.log("DOM: Install promt callback not received yet");
                     }
                 }); 
             }; 
@@ -5307,24 +5304,24 @@ else
 
                 if ("serviceWorker" in navigator)
                 {
-                    console.log("Service Worker is supported. Registering...");
+                    console.log("DOM: Service Worker is supported. Registering...");
 
                     navigator.serviceWorker.register("<?= dom_path('sw.js') ?>").then(
                         
                     function(registration)
                     {
-                        console.log("ServiceWorker registration successful with scope: ", registration.scope);
+                        console.log("DOM: ServiceWorker registration successful with scope: ", registration.scope);
                         
                         var registration_installing = registration.installing;
                         var registration_waiting    = registration.waiting;
 
                         if (registration_installing && registration_installing != null)
                         {
-                            console.log("Installing...");
+                            console.log("DOM: Installing...");
 
                             if (registration_installing.state === "activated" && !registration_waiting)
                             {
-                                console.log("Send Clients claim");
+                                console.log("DOM: Send Clients claim");
 
                                 registration_installing.postMessage({type: "CLIENTS_CLAIM" });
                             }
@@ -5333,7 +5330,7 @@ else
                             {
                                 if (registration_installing.state === "activated" && !registration_waiting) 
                                 {
-                                    console.log("Send Clients claim");
+                                    console.log("DOM: Send Clients claim");
                                     
                                     registration_installing.postMessage({ type: "CLIENTS_CLAIM" });
                                 }
@@ -5346,11 +5343,11 @@ else
                             {
                                 if (!(subscription === null)) 
                                 {
-                                    console.log("User IS subscribed.");
+                                    console.log("DOM: User IS subscribed.");
                                 }
                                 else 
                                 {
-                                    console.log("User is NOT subscribed.");
+                                    console.log("DOM: User is NOT subscribed.");
                                 }
                             })
 
@@ -5363,7 +5360,7 @@ else
 
                             }).then(function(pushSubscription)
                             {
-                                console.log("Received PushSubscription: ", JSON.stringify(pushSubscription));
+                                console.log("DOM: Received PushSubscription: ", JSON.stringify(pushSubscription));
                                 return pushSubscription;
                             })
 
@@ -5377,17 +5374,17 @@ else
                             }
                             else
                             {  
-                                console.log("ServiceWorker registration sync is undefined");
+                                console.log("DOM: ServiceWorker registration sync is undefined");
                             }
                         });
                     },                     
                     function(err) 
                     {
-                        console.log("ServiceWorker registration failed: ", err);
+                        console.log("DOM: ServiceWorker registration failed: ", err);
 
                     }).catch(function(err)
                     {
-                        console.log("Service Worker registration failed: ", err);
+                        console.log("DOM: Service Worker registration failed: ", err);
 
                     });
 
@@ -5396,13 +5393,13 @@ else
                     if ("PushManager" in window) 
                     {
                     /*
-                        console.log("Service Worker push notifications are supported. Registering...");
+                        console.log("DOM: Service Worker push notifications are supported. Registering...");
 
                         new Promise(function(resolve, reject) 
                         {
                             Notification.requestPermission().then(function(permission) 
                             {
-                                console.log("Notifications permissions : " + permission);
+                                console.log("DOM: Notifications permissions : " + permission);
                                 if (permission !== "granted") return reject(Error("Denied notification permission"));
                                 resolve();
                             });
@@ -5420,12 +5417,12 @@ else
                         })
                         .then(function()
                         {
-                            console.log("Sync registered");
+                            console.log("DOM: Sync registered");
 
                         })
                         .catch(function(err) 
                         {
-                            console.log("It broke");
+                            console.log("DOM: It broke");
                             console.log(err.message);
                         });
                     */
@@ -5433,7 +5430,7 @@ else
                 }
                 else
                 {
-                    console.log("Service worker not supported");
+                    console.log("DOM: Service worker not supported");
                 }
 
             <?php /* support_service_worker */ } ?> 
@@ -5528,7 +5525,7 @@ else
             dom_eol() . dom_tab(1)
         .   dom_eol() . dom_tab(2) .    '/* IMAGES LOADING */'
         .   dom_eol() . dom_tab(2) .    ''
-        .   dom_eol() . dom_tab(2) .    'console.log("Register images handlers");'
+        .   dom_eol() . dom_tab(2) .    'console.log("DOM: Register images handlers");'
         .   dom_eol() . dom_tab(2) .    ''
         .   dom_eol() . dom_tab(2) .    'function dom_on_load(e, handler)'
         .   dom_eol() . dom_tab(2) .    '{'
@@ -5546,94 +5543,54 @@ else
         .   dom_eol() . dom_tab(4) .            'e.each(function() { handler(this); });'
         .   dom_eol() . dom_tab(3) .        '}'
         .   dom_eol() . dom_tab(2) .    '}'
-        .   dom_eol() . dom_tab(2) .    ''      
-      //.   dom_eol() . dom_tab(2) .    '$("img").on("error", function(e) { $(this).attr("src", "' . url_img_blank()   . '");                                                   });' /* Accept failure */
-        .   dom_eol() . dom_tab(2) .    '$("img").on("error", function(e) { $(this).attr("src", "' . url_img_loading() . '"); $(this).attr("data-src", $(this).attr("src"));    });' /* Retry DOM_NEW */
-        .   dom_eol() . dom_tab(2)
-        .   dom_eol() . dom_tab(2) .    'var images_error_handler = function() { this.style.display = "none"; };'
         .   dom_eol() . dom_tab(1)
+        .   dom_eol() . dom_tab(3) .    'var img_interaction_observer = null;'
+        .   dom_eol() . dom_tab(2)
+        .   dom_eol() . dom_tab(3) .    'function dom_img_observer_callback(changes, observer) { '
+        .   dom_eol() . dom_tab(3) .    ''
+        .   dom_eol() . dom_tab(4) .        'for (change of changes) { '
+        .   dom_eol() . dom_tab(3)  
+        .   dom_eol() . dom_tab(5) .            'if (change.isIntersecting)'
+        .   dom_eol() . dom_tab(5) .            '{'
+        .   dom_eol() . dom_tab(6) .                '$(change.target).parent().find("source[data-srcset]").each(function(i, src) '
+        .   dom_eol() . dom_tab(6) .                '{'
+        .   dom_eol() . dom_tab(7) .                    '$(src).removeAttr("srcset");'
+        .   dom_eol() . dom_tab(7) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
+        .   dom_eol() . dom_tab(7) .                    '$(src).removeAttr("data-srcset");'
+        .   dom_eol() . dom_tab(7) .                    '$(src).removeClass("lazy");'
+        .   dom_eol() . dom_tab(6) .                '});'
+        .   dom_eol() . dom_tab(6) .                ''
+        .   dom_eol() . dom_tab(6) .                '$(change.target).removeAttr("src");'
+        .   dom_eol() . dom_tab(6) .                '$(change.target).attr("src", $(change.target).attr("data-src"));'
+        .   dom_eol() . dom_tab(6) .                '$(change.target).removeAttr("data-src");'
+        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("lazy-observed"); '
+        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("lazy"); '
+        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("loading"); '
+        .   dom_eol() . dom_tab(6) .                '$(change.target).addClass("loaded"); '
+        .   dom_eol() . dom_tab(6) .                 ''
+        .   dom_eol() . dom_tab(6) .                'observer.unobserve(change.target); '
+        .   dom_eol() . dom_tab(5) .            '}'
+        .   dom_eol() . dom_tab(4) .        '};'
+        .   dom_eol() . dom_tab(3) .    '};'
+        .   dom_eol() . dom_tab(2) 
         .   dom_eol() . dom_tab(2) .    'function '.$update_function.'() '
         .   dom_eol() . dom_tab(2) .    '{'
-      //.   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-      //.   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-      //.   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-      //.   dom_eol() . dom_tab(3) .        ''
-      //.   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-      //.   dom_eol() . dom_tab(2)
-
-      //.   dom_eol() . dom_tab(3) .        '$("img").on("error", function(e) { $(this).attr("src", "' . url_img_blank()   . '");                                                   });' /* Accept failure  DOM_NEW */
-      //.   dom_eol() . dom_tab(3) .        '$("img").on("error", function(e) { $(this).attr("src", "' . url_img_loading() . '"); $(this).attr("data-src", $(this).attr("src"));    });' /* Retry           DOM_NEW */
-
-        .   dom_eol() . dom_tab(2)
-
-        .   dom_eol() . dom_tab(3) .        '$("img.lazy-ready").each(function(i, img) '
-        .   dom_eol() . dom_tab(3) .        '{'
-        .   dom_eol() . dom_tab(4) .            'var rect = img.getBoundingClientRect();'
+      //.   dom_eol() . dom_tab(3) .        '$("img")       .on("error", function()  { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
+      //.   dom_eol() . dom_tab(2) .        '$("img")       .on("error", function(e) { $(this).attr("src", "' . url_img_blank()   . '");                                                   });' /* Accept failure */
+        .   dom_eol() . dom_tab(2) .        '$("img.loaded").on("error", function(e) { $(this).attr("src", "' . url_img_loading() . '"); $(this).attr("data-src", $(this).attr("src"));    });' /* Retry DOM_NEW */
         .   dom_eol() . dom_tab(2) 
-        .   dom_eol() . dom_tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
-        .   dom_eol() . dom_tab(4) .            '{'
-        .   dom_eol() . dom_tab(5) .                '$(img).parent().find("source[data-srcset]").each(function(i, src) '
-        .   dom_eol() . dom_tab(5) .                '{'
-        .   dom_eol() . dom_tab(6) .                    '$(src).removeAttr("srcset");'
-        .   dom_eol() . dom_tab(6) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
-        .   dom_eol() . dom_tab(6) .                    '$(src).removeAttr("data-srcset");'
-        .   dom_eol() . dom_tab(6) .                    ''
-        .   dom_eol() . dom_tab(6) .                    '$(src).removeClass("lazy");'
-        .   dom_eol() . dom_tab(6) .                    '$(src).removeClass("lazy-ready");'
-        .   dom_eol() . dom_tab(5) .                '});'
-        .   dom_eol() . dom_tab(5) .                ''
-        .   dom_eol() . dom_tab(5) .                '$(img).removeAttr("src");'
-        .   dom_eol() . dom_tab(5) .                '$(img).attr("src", $(img).attr("data-src"));'
-        .   dom_eol() . dom_tab(5) .                '$(img).removeAttr("data-src");'
-
-      //.   dom_eol() . dom_tab(5) .                '$(img).on("load", function() { $(img).removeAttr("data-src"); $(img).removeClass("lazy"); $(img).removeClass("loading"); $(img).addClass("loaded"); });' /* DOM_NEW */
-        
-        .   dom_eol() . dom_tab(5) .                 ''
-        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("lazy-ready"); '
-        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("lazy"); '
-        .   dom_eol() . dom_tab(5) .                 ''
-        .   dom_eol() . dom_tab(5) .                '$(img).removeClass("loading"); '
-        .   dom_eol() . dom_tab(5) .                '$(img).addClass("loaded"); '
-        .   dom_eol() . dom_tab(4) .            '}'
-        .   dom_eol() . dom_tab(4) .            'else'
-        .   dom_eol() . dom_tab(4) .            '{'
-        .   dom_eol() . dom_tab(4) .            '}'
-        .   dom_eol() . dom_tab(3) .        '});'
-        .   dom_eol() . dom_tab(2)
-        .   dom_eol() . dom_tab(3) .        '$("iframe.lazy-ready").each(function(i, e) '
-        .   dom_eol() . dom_tab(3) .        '{'
-        .   dom_eol() . dom_tab(4) .            'var rect = e.getBoundingClientRect();'
-        .   dom_eol() . dom_tab(2) 
-        .   dom_eol() . dom_tab(4) .            'if (rect.bottom >= 0 && rect.right >= 0 && rect.top <= (window.innerHeight || document.documentElement.clientHeight)) '
-        .   dom_eol() . dom_tab(4) .            '{'
-        .   dom_eol() . dom_tab(5) .                '$(e).removeAttr("src");'
-        .   dom_eol() . dom_tab(5) .                '$(e).attr("src", $(e).attr("data-src"));'
-        .   dom_eol() . dom_tab(5) .                '$(e).removeAttr("data-src");'
-        .   dom_eol() . dom_tab(5) .                ''
-        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("lazy-ready");'
-        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("lazy");'
-        .   dom_eol() . dom_tab(5) .                ''
-        .   dom_eol() . dom_tab(5) .                '$(e).removeClass("loading");'
-        .   dom_eol() . dom_tab(5) .                '$(e).addClass("loaded");'
-        .   dom_eol() . dom_tab(4) .            '}'
-        .   dom_eol() . dom_tab(4) .            'else'
-        .   dom_eol() . dom_tab(4) .            '{'
-        .   dom_eol() . dom_tab(4) .            '}'
-        .   dom_eol() . dom_tab(3) .        '});'
+      //.   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
+        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
+        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
         .   dom_eol() . dom_tab(2) .    '}'
-        .   dom_eol() . dom_tab(1)
-        .   dom_eol() . dom_tab(2) /*.    ''.$update_function.'();'*/
         .   dom_eol() . dom_tab(1)
         .   dom_eol() . dom_tab(2) .    'function '.$init_function.'() '
-        .   dom_eol() . dom_tab(2) .    '{'
-        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-ready"); });'
-        .   dom_eol() . dom_tab(3) .        ''
-        .   dom_eol() . dom_tab(3) .        '$("img").on("error", function() { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-        .   dom_eol() . dom_tab(2)
-        .   dom_eol() . dom_tab(3) .        'setTimeout(function() { setInterval('.$init_function.', 1000); },  500);'
-        .   dom_eol() . dom_tab(3) .        ''.$update_function.'();'
-        .   dom_eol() . dom_tab(2) .    '}'
+        .   dom_eol() . dom_tab(2) .    '{  '
+        .   dom_eol() . dom_tab(3) .        'img_interaction_observer = new IntersectionObserver(dom_img_observer_callback);'
+        .   dom_eol() . dom_tab(3) .        'setTimeout(function() { '.$update_function.'(); }, 0);'
+        .   dom_eol() . dom_tab(3) .        'setInterval('.$update_function.', 1000);'
+      //.   dom_eol() . dom_tab(3) .        ''.$update_function.'();' // OBSERVER FAILURE IF CALLED
+        .   dom_eol() . dom_tab(2) .    '};'
         .   dom_eol() . dom_tab(1)
         ;
     }
@@ -5797,8 +5754,8 @@ else
                 var dom_scroll_callbacks = Array();
                 var dom_resize_callbacks = Array();
 
-                function dom_on_ready(callback)  { dom_ready_callbacks.push(callback);  if (dom_event_ready)                        { dom_ready_callbacks.forEach( function(callback) { callback(); }); dom_ready_callbacks  = []; } }
-                function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); if (dom_event_ready && dom_event_loaded)    { dom_loaded_callbacks.forEach(function(callback) { callback(); }); dom_loaded_callbacks = []; } }
+                function dom_on_ready(callback)  { dom_ready_callbacks.push(callback);  if (dom_event_ready)                        { console.log("DOM: DOCUMENT ALREADY READY : Processing " + dom_ready_callbacks.length + " CALLBACKS"); dom_ready_callbacks.forEach( function(callback) { callback(); }); dom_ready_callbacks  = []; } }
+                function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); if (dom_event_ready && dom_event_loaded)    { console.log("DOM: DOCUMENT ALREADY LOADED : Processing " + dom_loaded_callbacks.length + " CALLBACKS"); dom_loaded_callbacks.forEach(function(callback) { callback(); }); dom_loaded_callbacks = []; } }
                 function dom_on_scroll(callback) { dom_scroll_callbacks.push(callback); }
                 function dom_on_resize(callback) { dom_resize_callbacks.push(callback); }
 
@@ -5806,19 +5763,23 @@ else
                 {
                     var was_not_ready_and_loaded = (!dom_event_ready || !dom_event_loaded);
 
-                    if (!dom_event_ready  && event == "ready")  { dom_event_ready  = true; console.log("DOCUMENT READY"); dom_ready_callbacks.forEach(function(callback) { callback(); }); dom_ready_callbacks = []; }
-                    if (!dom_event_loaded && event == "loaded") { dom_event_loaded = true; console.log("DOCUMENT LOADED"); }
+                    if (!dom_event_ready  && event == "ready")  { dom_event_ready  = true; console.log("DOM: DOCUMENT READY"); console.log("DOM: DOCUMENT READY : Processing " + dom_ready_callbacks.length + " CALLBACKS"); dom_ready_callbacks.forEach(function(callback) { callback(); }); dom_ready_callbacks = []; }
+                    if (!dom_event_loaded && event == "loaded") { dom_event_loaded = true; console.log("DOM: DOCUMENT LOADED"); }
                     
                     if (was_not_ready_and_loaded && dom_event_ready && dom_event_loaded)
                     {
+                        console.log("DOM: DOCUMENT LOADED : Processing " + dom_loaded_callbacks.length + " CALLBACKS");
                         dom_loaded_callbacks.forEach(function(callback) { callback(); });
                         dom_loaded_callbacks = [];
                     }
                 }
 
-                window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
-                if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
-                else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
+              //window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
+              //if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
+              //else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
+
+                $(document).ready(   function() { dom_on_init_event("ready");  } );
+                $(window).on("load", function() { dom_on_init_event("loaded"); } );
             
                 $(window).scroll(function() {
 
@@ -5844,13 +5805,6 @@ else
                 .   dom_eol(1) . dom_tab(1) .   js_back_to_top             (                    "onUpdateBackToTopButton")
                 .   dom_eol(1) . dom_tab(1) .   js_images_loading          ("onInitLazyImages", "onUpdateLazyImages")
                 .   dom_eol(1) . dom_tab(1) .   js_slick_slider            ("onInitSliders")
-                .   dom_eol(1) . dom_tab(1)     
-                .   dom_eol(1) . dom_tab(1) .   'dom_on_scroll(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateBackToTopButton ();'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateLazyImages      ();'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight   ();'
-                .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1) . dom_tab(1)      
                 .   dom_eol(1) . dom_tab(1) .   'dom_on_ready(function()'
                 .   dom_eol(1) . dom_tab(1) .   '{'
@@ -5861,6 +5815,13 @@ else
                 .   dom_eol(1) . dom_tab(1) .   '{ '
                 .   dom_eol(1) . dom_tab(2) .       'onInitLazyImages ();'
                 .   dom_eol(1) . dom_tab(2) .       'onInitSliders    ();'
+                .   dom_eol(1) . dom_tab(1) .   '});'
+                .   dom_eol(1) . dom_tab(1)     
+                .   dom_eol(1) . dom_tab(1) .   'dom_on_scroll(function()'
+                .   dom_eol(1) . dom_tab(1) .   '{'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateBackToTopButton ();'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateLazyImages      ();'
+                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight   ();'
                 .   dom_eol(1) . dom_tab(1) .   '});'
                 .   dom_eol(1)
 
@@ -5886,7 +5847,7 @@ else
     }
     
     #endregion
-    #region API : DOM : HTML COMPONENTS : MARKUP : BODY
+    #region WIP API : DOM : HTML COMPONENTS : MARKUP : BODY
     ######################################################################################################################################
 
     function dom_html_comment($text) { return "<!-- $text //-->"; }
@@ -5912,7 +5873,7 @@ else
             );
     }
     
-    function body($html = "", $html_post_scripts = "", $dark_theme = null)
+    function body($html = "", $html_post_scripts = "", $dark_theme = DOM_AUTO)
     {
         $profiler = dom_debug_track_timing();
         
@@ -5972,7 +5933,7 @@ else
         . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
         ;
 
-        if (is_null($dark_theme)) $dark_theme = dom_get("dark_theme", false);
+        if (DOM_AUTO === $dark_theme) $dark_theme = dom_get("dark_theme", false);
         
         return cosmetic(dom_eol(2)).dom_tag('body', $body, array("id" => "!", "name" => "!", "class" => dom_component_class('body').($dark_theme ? dom_component_class('dark') : '')));
     }
@@ -6102,7 +6063,7 @@ else
         return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
-            .($lazy ? ' src="about:blank" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
+            .($lazy ? ' src="about:blank" loading="lazy" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
             .dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>')
             .'</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
     }
@@ -6172,19 +6133,11 @@ else
         $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
-
+        
         if ($html)
         {
-        //   This parsing seems already obsolete :-(
-
-        /*  $tag_bgn = 'data:function(){return';
-            $tag_end = '}});</script>';
-            
-            $pos_bgn = strpos($html, $tag_bgn, 0);
-            $pos_end = strpos($html, $tag_end, $pos_bgn);*/
-
             $tag_bgn = ", data:";
-            $tag_end = "});</script>";
+            $tag_end = ", sideChannel";
             
             $pos_bgn = strrpos($html, $tag_bgn, 0);
             $pos_end =  strpos($html, $tag_end, $pos_bgn);
@@ -6201,10 +6154,11 @@ else
     }
     
     function google_photo_album($url, $wrapper = "div", $img_wrapper = "self")
-    {        
+    {   
         if (dom_AMP()) return a($url, $url, DOM_EXTERNAL_LINK);
 
         $results = json_google_photo_album_from_content($url);
+
         $photos  = dom_at($results, 1, array());
         
         $images = "";
@@ -6406,9 +6360,15 @@ else
 
         return tag
         (
-            "video"
-        ,   dom_tag("source", '', dom_attributes(array("src" => $path, "type" => ("video/".str_replace(".","",$ext)))), false, true)
-        ,   dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), array("width" => "100%", "controls" => "no"))) . dom_attributes_add_class($attributes, "immediate")
+            "video",
+            dom_tag("source", '', dom_attributes(array("src" => $path, "type" => ("video/".str_replace(".","",$ext)))), false, true),
+            dom_attributes(
+                array_merge(
+                    dom_AMP() ? array() : array("alt" => $alt), 
+                    array("width" => "100%", "controls" => "no")
+                    )
+                ).
+            dom_attributes_add_class($attributes, "immediate")
         );
     }
     
@@ -6447,6 +6407,8 @@ else
 
     function source($path, $attributes = false, $alt = false, $lazy = true, $lazy_src = false, $content = '')
     {
+        $lazy = false; // UNECESSARY ?
+
         if (is_array($path))
         {
             return wrap_each($path, "", "source", true, $attributes, $alt, $lazy);
@@ -6497,8 +6459,8 @@ else
 
         if (!!dom_get("no_js")) $lazy = false;
 
-        return ($lazy && !dom_AMP()) ? dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src" => $lazy_src, "data-src" => $path))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
-                                     : dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src"                          => $path))) . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
+        return ($lazy && !dom_AMP()) ? dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src" => $lazy_src, "data-src" => $path, "loading" => "lazy"))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
+                                     : dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src"                          => $path)))                      . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
     }
     
     function img_svg($path, $attributes = false)
@@ -6792,25 +6754,27 @@ else
 
     #region Hook - feed context recording
 
-    $__dom_hook_card_contexts = array();
+    $__dom_hook_card_context = array();
 
     function dom_hook_card_set_context($key, $val)
     {
-        global $__dom_hook_card_contexts;
-        if (count($__dom_hook_card_contexts) == 0 || array_key_exists($key, $__dom_hook_card_contexts[count($__dom_hook_card_contexts)-1])) $__dom_hook_card_contexts[] = array();
-        $__dom_hook_card_contexts[count($__dom_hook_card_contexts)-1][$key] = $val;
+        global $__dom_hook_card_context;
+        if (!array_key_exists($key, $__dom_hook_card_context)) $__dom_hook_card_context[$key] = ""; else $__dom_hook_card_context[$key] .= " ";
+        $__dom_hook_card_context[$key] .= $val;
+        return $val;
     }
 
-    function dom_hook_card_flush_context()
+    function dom_hook_card_flush_context($html = "")
     {
-        global $__dom_hook_card_contexts;
+        global $__dom_hook_card_context;
 
-        if (count($__dom_hook_card_contexts) > 0)
+        if (count($__dom_hook_card_context) > 0)
         {
-            $hook_context = array_pop($__dom_hook_card_contexts);
-    
-            record_rss_item(dom_at($hook_context, "title"), dom_at($hook_context, "text"));
+            record_rss_item(dom_at($__dom_hook_card_context, "title"), dom_at($__dom_hook_card_context, "text"));
+            $__dom_hook_card_context = array();
         }
+
+        return $html;
     }
 
     #endregion
@@ -7102,12 +7066,12 @@ else
 
     $__dom_ul_menu_index = -1;
 
-    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = null)
+    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
     {
         global $__dom_ul_menu_index;
         ++$__dom_ul_menu_index;
 
-        if ($sidebar === null) $sidebar = (0 == $__dom_ul_menu_index);
+        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__dom_ul_menu_index);
 
         $menu_lis = "";
         {
@@ -7199,7 +7163,7 @@ else
             );
     }
 
-    function menu_entries($html, $sidebar = null)
+    function menu_entries($html, $sidebar = DOM_AUTO)
     {
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
@@ -7207,7 +7171,7 @@ else
         return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
     }
     
-    function menu_toggle($html, $sidebar = null)
+    function menu_toggle($html, $sidebar = DOM_AUTO)
     {
         if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
         if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
@@ -7226,12 +7190,12 @@ else
                         dom_component_class("toolbar-cell-right-shrink"))));
     }
    
-    function  ul_menu_auto($sidebar = null) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = null) { return ul_menu(get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
+    function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
+    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
 
-    function  menu_toggle_auto($sidebar = null) { return menu_toggle(ul_menu_auto(), $sidebar); }
+    function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
-    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = null)
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = DOM_AUTO)
     {
         if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
         if (false === $html)                                            $html = menu_toggle_auto($sidebar);
@@ -7291,7 +7255,7 @@ else
     }
     
     #endregion
-    #region API : DOM : HTML COMPONENTS : ASYNC
+    #region WIP API : DOM : HTML COMPONENTS : ASYNC
     ######################################################################################################################################
     
     $call_asyncs_started = false;
@@ -7403,7 +7367,7 @@ else
        
 
     #endregion
-    #region API : DOM : RSS
+    #region WIP API : DOM : RSS
     ######################################################################################################################################
 
     function dom_cdata($html) { return "<![CDATA[$html]]>"; }
@@ -7452,7 +7416,7 @@ else
     function rss_copyright      ($author = false)                   { return                        dom_tag('copyright', "Copyright " . ((false === $author) ? dom_get("author", DOM_AUTHOR) : $author), false, true); }
     
     #endregion
-    #region API : DOM : TILE
+    #region WIP API : DOM : TILE
     ######################################################################################################################################
 
     function tile_sanitize($html) { return trim(htmlspecialchars($html, ENT_QUOTES, 'utf-8')); }
@@ -7482,7 +7446,7 @@ else
     function tile_text      ($txt = "", $id = 1)    { return raw('<text id="'.$id.'">'.tile_sanitize($txt).'</text>'); }
     
     #endregion
-    #region HELPERS - COLOR
+    #region WIP HELPERS - COLOR
     ######################################################################################################################################
     
     function dom_valid_hex($hex)

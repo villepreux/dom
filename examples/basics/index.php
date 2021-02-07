@@ -24,7 +24,7 @@
 
                     .toolbar-row-banner             { background: center/cover url(".get("url_banner_img")."); }
 
-                    .headline2                      { ".css_gradient()." }
+                    .headline2                      { ".dom_css_gradient()." }
 
                     .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
 
