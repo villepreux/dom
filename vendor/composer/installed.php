@@ -6,7 +6,7 @@
     'aliases' => 
     array (
     ),
-    'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+    'reference' => '581ba2d2eb773fccd914bbf80d7d4fc74fcb65cb',
     'name' => 'villepreux/dom',
   ),
   'versions' => 
@@ -18,7 +18,7 @@
       'aliases' => 
       array (
       ),
-      'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+      'reference' => '581ba2d2eb773fccd914bbf80d7d4fc74fcb65cb',
     ),
   ),
 );
