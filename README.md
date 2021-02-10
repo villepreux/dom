@@ -1,25 +1,24 @@
 # DOM.PHP
 
-Web **Do**cument PHP **M**arkup framework
+Web **Do**cument PHP **M**arkup & components framework
 
   * https://github.com/villepreux/dom
   * https://villepreux.github.io/dom
 
-## Intention
 
-  * Writing web documents quickly.
-  * Using HTML markup syntax.
-  * Automatization of boilerplate code.
-  * Automatization of derived content (jsonfeed, RSS, ...)
-  * "Crossplay"
-    * Writing markup that is compatible with different frameworks (normalize vs sanitize vs reset, material vs bootstrap vs spectre vs..., AMP,...).
-    * Switching framework without touching markup
-  * Components
-    * Provide ready-to-use component (videos, social-media cards, maps, ...)
-    * Easy building of new custom-made components
-  * Fast
-  * Valid markup (HTML, CSS, JSON, AMP...)
-  * Good automatic SEO
+## Intentions
+
+  * Writing web documents/pages quickly.
+  * Using HTML known markup syntax.
+  * Without having to worry about boilerplate code
+  * Automaticaly generating derived content (jsonfeed, RSS, sitemap...)
+  * Independently of chooosen component/styling/whatever framework (normalize vs sanitize vs reset, material vs bootstrap vs spectre vs..., AMP or not,...)
+  * Having access to comonly used predefined components (videos, social-media cards, maps, ...)
+  * Being able to create and/or compose new components with ease
+  * Compiling into fast code
+  * Compiling into valid markup (HTML, CSS, JSON, AMP...)
+  * Compiling into good SEO
+
 
 ## Getting started
 
@@ -29,28 +28,25 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
 
 ## Known issues
 
-### Coding conventions
+  * Codebase: Formating: Very long line lengths & extrem single-line functions use: Hard to read.
+  * Codebase: Naming conventions: Missing lot of lib prefixes
+  * Features: Social networks content scrapping: Broken in many cases
 
-  * Line length. Single-line functions extrem use.
-  * Function naming. Sticking close to html markup vs avoiding conflicts. providing both "options" (prefix/namespace vs short html markup) ?
-  * ...
-
-### Others
-
-WIP
 
 ## TODO List
 
-  * Refactoring: Make a facade (without changing current user interface)
-  * Options for CSS automatic classes naming conventions
+  * Codebase: Refactoring: WIP: Prefix everything + provide unprefixed facade for components markup
+  * Add options for CSS automatic classes naming conventions
+  * Reduce boilerplate CSS size
+  * Add option for CSS classes prefixing
   * Optimize server-side performances
   * Where possible, use sub-components aggregation instead of multiple parameters
+  * Convert default parameters to "auto" parameters where appropriate
   * Where possible, use named, unordered & optional parameters
-  * Refactor of toolbar component
-  * Make internal css boilerplate smaller and also optionnal
+
 
 ----
 
 ![Build](https://github.com/villepreux/dom/workflows/Build/badge.svg)
 
-(c) Antoine Villepreux 2020-20XX
+© Antoine Villepreux 2020-20XX
