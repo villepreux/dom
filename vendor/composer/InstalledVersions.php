@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+    'reference' => '38b93b809dae532228faeb9e6944de2c3766fb34',
     'name' => 'villepreux/dom',
   ),
   'versions' => 
@@ -42,7 +42,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+      'reference' => '38b93b809dae532228faeb9e6944de2c3766fb34',
     ),
   ),
 );
