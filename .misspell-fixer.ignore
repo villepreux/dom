@@ -1,2 +1,2 @@
-^.phplint-cache
-^vendor
+^./.phplint-cache
+^./vendor/*
