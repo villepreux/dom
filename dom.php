@@ -11,7 +11,6 @@
     if (!defined("DOM_INTERNAL_LINK"))      define("DOM_INTERNAL_LINK",     "_self");
     if (!defined("DOM_EXTERNAL_LINK"))      define("DOM_EXTERNAL_LINK",     "_blank");
     if (!defined("DOM_MENU_ID"))            define("DOM_MENU_ID",           "menu");
-    if (!defined("DOM_PATH_MAX_DEPTH"))     define("DOM_PATH_MAX_DEPTH",    8);
     
     #endregion
     #region CONFIG
@@ -193,9 +192,12 @@
     #region HELPERS : FILE AND FOLDERS PATH FINDER
     ######################################################################################################################################
         
-    function dom_path($path0, $default = false, $search = true, $depth0 = DOM_PATH_MAX_DEPTH, $max_depth = DOM_PATH_MAX_DEPTH, $offset_path0 = ".")
+    function dom_path($path0, $default = false, $search = true, $depth0 = DOM_AUTO, $max_depth = DOM_AUTO, $offset_path0 = ".")
     {
         $profiler = dom_debug_track_timing();
+
+        if ($depth0    === DOM_AUTO) $depth0    = dom_get("dom_path_max_depth", 8);
+        if ($max_depth === DOM_AUTO) $max_depth = dom_get("dom_path_max_depth", 8);
 
         $searches = array(array($path0, $depth0, $offset_path0));
 
@@ -319,7 +321,7 @@
     function dom_url        ($params = false)   { $branch = dom_url_branch($params); return ($branch == "") ? dom_host_url() : dom_host_url()."/".$branch; }
 
     #endregion
-    #region SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
+    #region WIP SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
     ######################################################################################################################################
 
     function dom_init_options()
@@ -328,10 +330,10 @@
 
         // Cannot be modified at browser URL level
 
-      //dom_set("title",                             "Blog");
+      //dom_set("title",                             "Blog"); // Will be deducted from document headlines
         dom_set("keywords",                          "");
 
-      //dom_set("url",                               dom_url());                         if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
+      //dom_set("url",                               dom_url());                              if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
       //dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
 
         dom_set("normalize",                        "sanitize");
@@ -448,7 +450,7 @@
     function dom_ajax_placeholder   ($ajax_params, $html = "")                          { return div($html, dom_ajax_classes($ajax_params)); }
     
     function dom_ajax_classes       ($ajax_params, $extra = false)                      { return "ajax-container ajax-container-".dom_to_classname($ajax_params).(($extra !== false) ? (" ajax-container-".dom_to_classname($extra)) : ""); }
-    function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) { $(".ajax-container-'.dom_to_classname($ajax_params).'").fadeOut("slow", function() { $(this).replaceWith(content); $(this).fadeIn("slow"); }); }, '.$period.'); </script>'; }
+    function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) { $(".ajax-container-'.dom_to_classname($ajax_params).'").fadeOut("slow", function() { $(this).replaceWith(content); $(this).fadeIn("slow"); dom_on_ajax_reception(); }); }, '.$period.'); </script>'; }
 
     function dom_ajax_call          ($f)                                                { $args = func_get_args(); return dom_ajax_call_FUNC_ARGS($f, $args); }
         
@@ -1403,7 +1405,7 @@
     
     function record_rss_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
     {
-        $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : date(DATE_RSS/*"Y/m/d"*/, time()));
+        $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : (!!dom_get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00", time()) : date(DATE_RSS, time())));
         
         dom_set("rss_items", array_merge(dom_get("rss_items", array()), array(array
         (
@@ -3785,7 +3787,7 @@
     {
         return '<!doctype html><html><head><title>Installing service worker</title><script type="text/javascript">'.
             ''.
-            'var swsource = "https://web.cyanide-studio.coml/bloodbowl/sw.js";'.
+            'var swsource = "'.dom_get("canonical").'/sw.js";'.
             ''.
             'if ("serviceWorker" in navigator)'.
             '{'.
@@ -3872,7 +3874,7 @@
 if (workbox)
 {
     const LOCALHOST = ("localhost" == self.location.host);
-    
+
     const VERSION = "'.DOM_VERSION.'";
 
     const  cache_prefix = "'.strtoupper(dom_to_classname(dom_get("canonical"))).'";
@@ -3992,8 +3994,20 @@ else
         { 
             if ($generated["generate"])
             {   
-                $f = fopen($generated["path"], "w+");
-                if (!$f) continue;
+                $dst_path = $generated["path"];
+                
+                if (!!dom_get("generate_dst"))
+                {
+                    $dst_path = dom_get("generate_dst")."/".$generated["path"];
+                }
+
+                $f = @fopen($dst_path, "w+");
+
+                if (!$f)
+                {
+                    error_log("COULD NOT OPEN ".getcwd()."/$dst_path");/*DEBUG*/
+                    continue;
+                }
 
                 $content = $generated["function"]($beautify);
 
@@ -4812,16 +4826,16 @@ else
         $path_slick             = dom_path("css/slick.css");
         $path_slick_theme       = dom_path("css/slick-theme.css");
 
-        return                                                                                                                                                                                                                                                                                     (("normalize" == dom_get("normalize")) ? (""
+        return                                                                                                                                                                                                                                                                                         (("normalize" == dom_get("normalize")) ? (""
             .               ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
             .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
         //  .   dom_eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
-                                                                                                                                                                                                                                                                                                 . (("material"  == dom_get("framework")) ? (""
+                                                                                                                                                                                                                                                                                                     . (("material"  == dom_get("framework")) ? (""
             .   dom_eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == dom_get("framework")) ? (""
             .   dom_eol() . ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . dom_get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == dom_get("framework")) ? (""
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                          ? (""
+            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                              ? (""
             .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                                 "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
             .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "") . (!!dom_get("support_sliders", false)   ? (""
             .   dom_eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick.css',                               "screen", $async    ))
@@ -5753,11 +5767,13 @@ else
                 var dom_loaded_callbacks = Array();
                 var dom_scroll_callbacks = Array();
                 var dom_resize_callbacks = Array();
+                var dom_ajax_callbacks   = Array();
 
                 function dom_on_ready(callback)  { dom_ready_callbacks.push(callback);  if (dom_event_ready)                        { console.log("DOM: DOCUMENT ALREADY READY : Processing " + dom_ready_callbacks.length + " CALLBACKS"); dom_ready_callbacks.forEach( function(callback) { callback(); }); dom_ready_callbacks  = []; } }
                 function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); if (dom_event_ready && dom_event_loaded)    { console.log("DOM: DOCUMENT ALREADY LOADED : Processing " + dom_loaded_callbacks.length + " CALLBACKS"); dom_loaded_callbacks.forEach(function(callback) { callback(); }); dom_loaded_callbacks = []; } }
                 function dom_on_scroll(callback) { dom_scroll_callbacks.push(callback); }
                 function dom_on_resize(callback) { dom_resize_callbacks.push(callback); }
+                function dom_on_ajax(callback)   { dom_ajax_callbacks.push(callback);   }
 
                 function dom_on_init_event(event)
                 {
@@ -5796,6 +5812,12 @@ else
                         dom_resize_callbacks.forEach(function(callback) { callback(); });
                     }
                 });
+                
+                function dom_on_ajax_reception() { 
+                    
+                    dom_ajax_callbacks.forEach(function(callback) { callback(); });
+                }
+
 
                 ')
         
@@ -6051,7 +6073,7 @@ else
     {   
     //  TODO. See https://benmarshall.me/responsive-iframes/ for frameworks integration   
 
-        $lazy = !AMP() && !dom_get("no_js");
+        $lazy = !AMP()/* && !dom_get("no_js")*/;
 
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
@@ -6063,7 +6085,8 @@ else
         return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
-            .($lazy ? ' src="about:blank" loading="lazy" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
+            .($lazy ?                        ' loading="lazy" src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
+          //.($lazy ? ' src="about:blank" loading="lazy" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
             .dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>')
             .'</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
     }
@@ -7384,7 +7407,7 @@ else
                         rss_title       (dom_at($item_info,"title",dom_get("title")))
         . dom_eol() .   rss_link        (dom_get("canonical"))
         . dom_eol() .   rss_description (dom_at($item_info,"description",""))
-        . dom_eol() .   rss_pubDate     (dom_at($item_info,"timestamp",0));
+        . dom_eol() .   rss_pubDate     (dom_at($item_info,"timestamp", 0));
         
         foreach ($item_info["img_url"] as $img_url)
         {       
@@ -7410,8 +7433,8 @@ else
     function rss_title          ($html = "")                        { return                        dom_tag('title',       dom_rss_sanitize($html), false,         true); }
     function rss_description    ($html = "", $attributes = false)   { return                        dom_tag('description', dom_rss_sanitize($html), $attributes,   true); }
 
-    function rss_lastbuilddate  ($date = false)                     { return                        dom_tag('lastBuildDate', (false === $date) ? ((!!dom_get("rss_date_granularity_daily")) ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
-    function rss_pubDate        ($date = false)                     { return                        dom_tag('pubDate',       (false === $date) ? ((!!dom_get("rss_date_granularity_daily")) ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
+    function rss_lastbuilddate  ($date = false)                     { return                        dom_tag('lastBuildDate', (false === $date) ? (!!dom_get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
+    function rss_pubDate        ($date = false)                     { return                        dom_tag('pubDate',       (false === $date) ? (!!dom_get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
 
     function rss_copyright      ($author = false)                   { return                        dom_tag('copyright', "Copyright " . ((false === $author) ? dom_get("author", DOM_AUTHOR) : $author), false, true); }
     
