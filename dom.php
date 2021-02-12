@@ -30,23 +30,26 @@
     #region LOCALIZATION
     ######################################################################################################################################
 
-    if (!function_exists("T"))                          { function T($label, $default = false, $lang = false)                                                                               { return dom_T($label, $default = false, $lang = false); } }
+    if (!function_exists("T"))                          { function T($label, $default = false, $lang = false)                                                                                   { return dom_T($label, $default = false, $lang = false); } }
 
     #endregion
     #region STRINGS MANIPULATION
     ######################################################################################################################################
 
-    if (!function_exists("tab"))                        { function tab($n = 1)                                                                                                              { return dom_tab($n); } }
-    if (!function_exists("eol"))                        { function eol($n = 1)                                                                                                              { return dom_eol($n); } }
+    if (!function_exists("tab"))                        { function tab($n = 1)                                                                                                                  { return dom_tab($n); } }
+    if (!function_exists("eol"))                        { function eol($n = 1)                                                                                                                  { return dom_eol($n); } }
 
     #endregion
     #region HTML MARKUP & COMPONENTS
     ######################################################################################################################################
 
-    if (!function_exists("tag"))                        { function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)      { return dom_tag($tag, $html, $attributes, $force_display, $self_closing, $extra_attributes_raw); } }
+    if (!function_exists("tag"))                        { function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)          { return dom_tag($tag, $html, $attributes, $force_display, $self_closing, $extra_attributes_raw); } }
 
-    if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                                                             { return dom_a($html, $url, $attributes, $target); } }
-    if (!function_exists("footer"))                     { function footer($html = "", $attributes = false)                                                                                  { return dom_footer($html, $attributes); } }
+    if (!function_exists("a"))                          { function a($html, $url = false, $attributes = false, $target = false)                                                                 { return dom_a($html, $url, $attributes, $target); } }
+    if (!function_exists("footer"))                     { function footer($html = "", $attributes = false)                                                                                      { return dom_footer($html, $attributes); } }
+
+    if (!function_exists("style"))                      { function style( $filename_or_code = "",                                            $force_minify = false, $silent_errors = DOM_AUTO)  { return dom_style( $filename_or_code,                $force_minify, $silent_errors); } }
+    if (!function_exists("script"))                     { function script($filename_or_code = "", $type = "text/javascript", $force = false, $force_minify = false, $silent_errors = DOM_AUTO)  { return dom_script($filename_or_code, $type, $force, $force_minify, $silent_errors); } }
 
     ######################################################################################################################################
     #endregion
@@ -84,12 +87,12 @@
     #region HELPERS : SERVER ARGS
     ######################################################################################################################################
     
-    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE', $default); }
-    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',          $default); }
-    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',          $default); }
-    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',          $default); }
-    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS',                $default); }
-    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',            $default); }
+    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE',           $default); }
+    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',                    $default); }
+    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',                    $default); }
+    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',                    $default); }
+    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS', is_localhost() ? "off" : $default); }
+    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',                      $default); }
 
     #endregion
     #region HELPERS : DEVELOPMENT ENVIRONMENT
@@ -590,9 +593,7 @@
 
     function dom_js_ajax_head()
     {
-        dom_heredoc_start(-2); ?>        
-        <script>        
-        <?php dom_heredoc_flush(null); ?>
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
             /* DOM Head Javascript boilerplate */
 
@@ -608,9 +609,7 @@
 
     function dom_js_ajax_body()
     {
-        dom_heredoc_start(-2); ?>
-        <script>        
-        <?php dom_heredoc_flush(null); ?>
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
             /* DOM Body Javascript boilerplate */
 
@@ -646,7 +645,7 @@
                 {
                     var ajax_pending_call = dom_ajax_pending_calls.pop();
             
-                    <?php if (!!dom_get("debug")) { ?> console.log("DOM: Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?>
+                    <?php if (!!dom_get("debug")) { ?> console.log("DOM: Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?> 
                     dom_process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
                 }
             };
@@ -4507,7 +4506,7 @@ else
             . dom_eol(2) . styles()
                                                                                 . (!$path_css ? "" : (""
             . dom_eol(2) . comment("DOM Head project-specific main stylesheet")     
-            . dom_eol(2) . style($path_css)                                         ))
+            . dom_eol(2) . dom_style($path_css)                                   ))
             
             . dom_eol(2) . comment("DOM Head scripts")
             . dom_eol(2) . scripts_head()
@@ -4787,15 +4786,15 @@ else
     function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes($attributes,$pan), false, true); }
     function link_rel($rel, $link, $type = false, $pan = 0)                 { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
 //  function link_style($link, $media = "screen")                           {                           return link_rel("stylesheet", $link, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
-    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
+    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? dom_style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (dom_tag('style',  $css                        )); }
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (dom_tag('script', $js, array("type" => $type) )); }
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
-    function script_json_ld($properties)                                                                                                                    { return script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
+    function dom_style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (dom_tag('style',  $css                        )); }
+    function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (dom_tag('script', $js, array("type" => $type) )); }
+    function script_src($src,                   $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_json_ld($properties)                                                                                                                    { return dom_script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : script(dom_js_ajax_head()); }
-    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : script(dom_js_ajax_body()); }
+    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : dom_script(dom_js_ajax_head()); }
+    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : dom_script(dom_js_ajax_body()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -5136,7 +5135,7 @@ else
 
     .mdc-top-app-bar--dense 
     .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
-    .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> }
+    .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> } 
     .mdc-top-app-bar__section   { flex: 0 1 auto; }
     .mdc-top-app-bar--dense 
     .mdc-top-app-bar__title     { padding-left: 0px; }
@@ -5174,20 +5173,18 @@ else
         body>.footer, iframe, .cd-top { display: none; height: 0px; }
     }    
 
-        <?php dom_heredoc_flush("raw_css"); ?> 
-        </style>
-        <?php return dom_heredoc_stop(null);        
+        <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);        
     }
     
     function styles()
     {
-        return style(include_css_boilerplate());
+        return dom_style(include_css_boilerplate());
     }
 
     function scripts_head()
     {   
         return     dom_script_ajax_head()         
-        . dom_eol(2) . script(js_scan_and_print_head()) 
+        . dom_eol(2) . dom_script(dom_js_scan_and_print_head()) 
                                                             . (!dom_AMP() ? "" : (""
         . dom_eol(2) . comment("AMP Javascript")
         . dom_eol(2) . delayed_component("_amp_scripts_head")   ))
@@ -5199,60 +5196,59 @@ else
         return dom_eol(2) . a("▲", !get("no_js") ? url_void() : "#top", "cd-top");
     }
 
-    function script_google_analytics_snippet()
+    function dom_script_google_analytics_snippet()
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
 
-        return script(
+        return dom_script(
             dom_eol(1) . '/*  Google analytics */ '.
             dom_eol(2) . dom_tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
             dom_eol(1)
             );
     }
 
-    function script_google_analytics()
+    function dom_script_google_analytics()
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
 
-        return  dom_eol(2) . script_google_analytics_snippet().
+        return  dom_eol(2) . dom_script_google_analytics_snippet().
                 dom_eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer');
     }
 
-    function js_scan_and_print_head()
+    function dom_js_scan_and_print_head()
     {
         if (dom_has("ajax")) return '';
         
         return 'var scan_and_print = function() { alert("Images are not loaded yet"); };';
     }
 
-    function js_scan_and_print_body()
+    function dom_js_scan_and_print_body()
     {
         if (dom_has("ajax")) return '';
 
-        return  dom_eol(1) . dom_tab(1)
-            .   dom_eol(1) . dom_tab(2) .   '/* SCAN AND PRINT UTILITY */'
-            .   dom_eol(1) . dom_tab(1)
-            .   dom_eol(1) . dom_tab(2) .   'dom_on_loaded(function()'
-            .   dom_eol(1) . dom_tab(2) .   '{ '
-            .   dom_eol(1) . dom_tab(3) .       'scan_and_print = function()'
-            .   dom_eol(1) . dom_tab(3) .       '{'
-            .   dom_eol(1) . dom_tab(4) .           '$("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {'
-            .   dom_eol(1) . dom_tab(4) .           '$("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });'
-            .   dom_eol(1) . dom_tab(3) .       '};'
-            .   dom_eol(1) . dom_tab(2) .   '});'
-            .   dom_eol(1) . dom_tab(1)
-            ;
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+        
+            /* SCAN AND PRINT UTILITY */
+        
+            dom_on_loaded(function()
+            {
+                scan_and_print = function()
+                {
+                    $("html").animate({ scrollTop: $(document).height() }, 1000, "swing", function() {
+                    $("html").animate({ scrollTop: 0                    }, 1000, "swing", function() { window.print(); }); });
+                };
+            });
+
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_pwa_install($init_function)
+    function dom_js_pwa_install()
     {
-        dom_heredoc_start(-1); ?>
-        <script>
-        <?php dom_heredoc_flush(null); ?>
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
         
             /* PWA (PROGRESSIVE WEB APP) INSTALL */
                 
-            function <?= $init_function ?>()
+            function onInitPWA()
             {
                 let deferredPrompt = null;
                 
@@ -5288,34 +5284,23 @@ else
                     }
                 }); 
             }; 
+
+            dom_on_loaded(function() { onInitPWA(); });
             
-        <?php dom_heredoc_flush("raw_js"); ?>
-
-              </script>
-
-        <?php return dom_heredoc_stop(null);        
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_service_worker($init_function)
+    function dom_js_service_worker()
     {
-        dom_heredoc_start(-1); ?>
-
-            <script>
-
-        <?php dom_heredoc_flush(null); ?> 
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
             /* SERVICE WORKER */
 
-        <?php if (!dom_has("ajax") && dom_has("push_public_key")) { ?> 
-
+            <?php if (!dom_has("ajax") && dom_has("push_public_key")) { ?>
             function urlBase64ToUint8Array(base64String) { const padding = "=".repeat((4 - base64String.length % 4) % 4); const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/"); const rawData = window.atob(base64); return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0))); }
-
-        <?php } ?> 
-
-            function <?= $init_function ?>()
+            <?php } ?>
+            function onInitServiceWorker()
             {
-            <?php if (!dom_has("ajax") && dom_get("support_service_worker", false)) { ?>
-
                 if ("serviceWorker" in navigator)
                 {
                     console.log("DOM: Service Worker is supported. Registering...");
@@ -5445,299 +5430,381 @@ else
                 else
                 {
                     console.log("DOM: Service worker not supported");
-                }
-
-            <?php /* support_service_worker */ } ?> 
+                } 
             }
+
+            dom_on_loaded(function() { onInitServiceWorker(); });
             
-        <?php dom_heredoc_flush("raw_js"); ?>
-
-            </script>
-
-        <?php return dom_heredoc_stop(null);
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_framework_material()
+    function dom_js_framework_material()
     {
         if ("material" != dom_get("framework")) return "";
 
-        return 
-                        
-            dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . '/* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(2) . 'if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(2) . '/*  Adjust toolbar margin */'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(3) .     '$(".mdc-top-app-bar").css("position", "fixed");'
-        .   dom_eol(1) . dom_tab(3) . '/*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(' . dom_get("header_height") . ' + ' . dom_get("header_toolbar_height") . ')"); */ '
-        .   dom_eol(1) . dom_tab(1)       
-        .   dom_eol(1) . dom_tab(3) .     '(function()'
-        .   dom_eol(1) . dom_tab(3) .     '{'
-        .   dom_eol(1) . dom_tab(4) .         'var pollId = 0;'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(4) .         'pollId = setInterval(function()'
-        .   dom_eol(1) . dom_tab(4) .         '{'
-        .   dom_eol(1) . dom_tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(5) .             'if (e != null)'
-        .   dom_eol(1) . dom_tab(5) .             '{ '
-        .   dom_eol(1) . dom_tab(6) .                 'var pos = getComputedStyle(e).position;'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(6) .                 'if (pos === "fixed" || pos === "relative")'
-        .   dom_eol(1) . dom_tab(6) .                 '{'
-        .   dom_eol(1) . dom_tab(7) .                     'material_init();'
-        .   dom_eol(1) . dom_tab(7) .                     'clearInterval(pollId);'
-        .   dom_eol(1) . dom_tab(6) .                 '}'
-        .   dom_eol(1) . dom_tab(5) .             '}'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(4) .         '}, 250);'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(4) .         'function material_init()'
-        .   dom_eol(1) . dom_tab(4) .         '{'
-        .   dom_eol(1) . dom_tab(5) .             'var e = document.querySelector(".mdc-top-app-bar");'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(5) .             'if (e != null && typeof mdc !== "undefined")'
-        .   dom_eol(1) . dom_tab(5) .             '{ '
-        .   dom_eol(1) . dom_tab(6) .                 'var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);'
-        .   dom_eol(1) . dom_tab(6) .                 'toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");'
-        .   dom_eol(1) . dom_tab(5) .             '}'
-        .   dom_eol(1) . dom_tab(4) .         '}'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(3) .     '})(); '
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(2) . '/*  Menu */'
-        .   dom_eol(1) . dom_tab(1) 
-        .   dom_eol(1) . dom_tab(3) .     'var menuEl = document.querySelector(".mdc-menu");'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(3) .     'if (menuEl != null && typeof mdc !== "undefined")'
-        .   dom_eol(1) . dom_tab(3) .     '{  '
-        .   dom_eol(1) . dom_tab(4) .         'var menuToggle = document.querySelector(".menu-toggle");'
-        .   dom_eol(1) . dom_tab(4) .         'var menu       = new mdc.menu.MDCMenu(menuEl);'
-        .   dom_eol(1) . dom_tab(1)   
-        .   dom_eol(1) . dom_tab(4) .         'menuToggle.addEventListener("click", function() '
-        .   dom_eol(1) . dom_tab(4) .         '{ '
-        .   dom_eol(1) . dom_tab(5) .             'menu.open = !menu.open; '
-        .   dom_eol(1) . dom_tab(4) .         '});'
-        .   dom_eol(1) . dom_tab(1)   
-        .   dom_eol(1) . dom_tab(4) .         'menuEl.addEventListener("MDCMenu:selected", function(evt) '
-        .   dom_eol(1) . dom_tab(4) .         '{'
-        .   dom_eol(1) . dom_tab(5) .             'const detail = evt.detail;'
-        .   dom_eol(1) . dom_tab(1)   
-        .   dom_eol(1) . dom_tab(5) .             'detail.item.textContent;'
-        .   dom_eol(1) . dom_tab(5) .             'detail.index;'
-        .   dom_eol(1) . dom_tab(4) .         '});'
-        .   dom_eol(1) . dom_tab(3) .     '}'
-        ;
-    }
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
-    function js_images_loading($init_function, $update_function)
-    {
-        return 
+    /*  MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
+   
+        if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
+   
+    /*  Adjust toolbar margin */
+   
+        $(".mdc-top-app-bar").css("position", "fixed");
+    /*  $(".mdc-top-app-bar--dense-fixed-adjust").css("margin-top", "calc(<?= dom_get("header_height") ?> + <?= dom_get("header_toolbar_height") ?>)"); */ 
 
-            dom_eol() . dom_tab(1)
-        .   dom_eol() . dom_tab(2) .    '/* IMAGES LOADING */'
-        .   dom_eol() . dom_tab(2) .    ''
-        .   dom_eol() . dom_tab(2) .    'console.log("DOM: Register images handlers");'
-        .   dom_eol() . dom_tab(2) .    ''
-        .   dom_eol() . dom_tab(2) .    'function dom_on_load(e, handler)'
-        .   dom_eol() . dom_tab(2) .    '{'
-        .   dom_eol() . dom_tab(3) .        'if (e.length > 0)'
-        .   dom_eol() . dom_tab(3) .        '{'
-        .   dom_eol() . dom_tab(4) .            'e.one("load", function() { handler(this);                                 })'
-        .   dom_eol() . dom_tab(4) .            ' .each(       function() { if(this.complete) { $(this).trigger("load"); } });'
-        .   dom_eol() . dom_tab(3) .        '}'
-        .   dom_eol() . dom_tab(2) .    '}'
-        .   dom_eol() . dom_tab(2) .    ''
-        .   dom_eol() . dom_tab(2) .    'function dom_on_each(e, handler)'
-        .   dom_eol() . dom_tab(2) .    '{'
-        .   dom_eol() . dom_tab(3) .        'if (e.length > 0)'
-        .   dom_eol() . dom_tab(3) .        '{'
-        .   dom_eol() . dom_tab(4) .            'e.each(function() { handler(this); });'
-        .   dom_eol() . dom_tab(3) .        '}'
-        .   dom_eol() . dom_tab(2) .    '}'
-        .   dom_eol() . dom_tab(1)
-        .   dom_eol() . dom_tab(3) .    'var img_interaction_observer = null;'
-        .   dom_eol() . dom_tab(2)
-        .   dom_eol() . dom_tab(3) .    'function dom_img_observer_callback(changes, observer) { '
-        .   dom_eol() . dom_tab(3) .    ''
-        .   dom_eol() . dom_tab(4) .        'for (change of changes) { '
-        .   dom_eol() . dom_tab(3)  
-        .   dom_eol() . dom_tab(5) .            'if (change.isIntersecting)'
-        .   dom_eol() . dom_tab(5) .            '{'
-        .   dom_eol() . dom_tab(6) .                '$(change.target).parent().find("source[data-srcset]").each(function(i, src) '
-        .   dom_eol() . dom_tab(6) .                '{'
-        .   dom_eol() . dom_tab(7) .                    '$(src).removeAttr("srcset");'
-        .   dom_eol() . dom_tab(7) .                    '$(src).attr("srcset", $(src).attr("data-srcset"));'
-        .   dom_eol() . dom_tab(7) .                    '$(src).removeAttr("data-srcset");'
-        .   dom_eol() . dom_tab(7) .                    '$(src).removeClass("lazy");'
-        .   dom_eol() . dom_tab(6) .                '});'
-        .   dom_eol() . dom_tab(6) .                ''
-        .   dom_eol() . dom_tab(6) .                '$(change.target).removeAttr("src");'
-        .   dom_eol() . dom_tab(6) .                '$(change.target).attr("src", $(change.target).attr("data-src"));'
-        .   dom_eol() . dom_tab(6) .                '$(change.target).removeAttr("data-src");'
-        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("lazy-observed"); '
-        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("lazy"); '
-        .   dom_eol() . dom_tab(6) .                '$(change.target).removeClass("loading"); '
-        .   dom_eol() . dom_tab(6) .                '$(change.target).addClass("loaded"); '
-        .   dom_eol() . dom_tab(6) .                 ''
-        .   dom_eol() . dom_tab(6) .                'observer.unobserve(change.target); '
-        .   dom_eol() . dom_tab(5) .            '}'
-        .   dom_eol() . dom_tab(4) .        '};'
-        .   dom_eol() . dom_tab(3) .    '};'
-        .   dom_eol() . dom_tab(2) 
-        .   dom_eol() . dom_tab(2) .    'function '.$update_function.'() '
-        .   dom_eol() . dom_tab(2) .    '{'
-      //.   dom_eol() . dom_tab(3) .        '$("img")       .on("error", function()  { $(this).addClass("failed"); $(this).attr("src", "' . url_img_blank() . '"); });'
-      //.   dom_eol() . dom_tab(2) .        '$("img")       .on("error", function(e) { $(this).attr("src", "' . url_img_blank()   . '");                                                   });' /* Accept failure */
-        .   dom_eol() . dom_tab(2) .        '$("img.loaded").on("error", function(e) { $(this).attr("src", "' . url_img_loading() . '"); $(this).attr("data-src", $(this).attr("src"));    });' /* Retry DOM_NEW */
-        .   dom_eol() . dom_tab(2) 
-      //.   dom_eol() . dom_tab(3) .        'dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
-        .   dom_eol() . dom_tab(3) .        'dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
-        .   dom_eol() . dom_tab(3) .        'dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });'
-        .   dom_eol() . dom_tab(2) .    '}'
-        .   dom_eol() . dom_tab(1)
-        .   dom_eol() . dom_tab(2) .    'function '.$init_function.'() '
-        .   dom_eol() . dom_tab(2) .    '{  '
-        .   dom_eol() . dom_tab(3) .        'img_interaction_observer = new IntersectionObserver(dom_img_observer_callback);'
-        .   dom_eol() . dom_tab(3) .        'setTimeout(function() { '.$update_function.'(); }, 0);'
-        .   dom_eol() . dom_tab(3) .        'setInterval('.$update_function.', 1000);'
-      //.   dom_eol() . dom_tab(3) .        ''.$update_function.'();' // OBSERVER FAILURE IF CALLED
-        .   dom_eol() . dom_tab(2) .    '};'
-        .   dom_eol() . dom_tab(1)
-        ;
-    }
-
-    function js_toolbar($update_function)
-    {
-        return
+        (function()
+        {
+            var pollId = 0;
+   
+            pollId = setInterval(function()
+            {
+                var e = document.querySelector(".mdc-top-app-bar");
+   
+                if (e != null)
+                { 
+                    var pos = getComputedStyle(e).position;
+   
+                    if (pos === "fixed" || pos === "relative")
+                    {
+                        material_init();
+                        clearInterval(pollId);
+                    }
+                }
+   
+            }, 250);
+   
+            function material_init()
+            {
+                var e = document.querySelector(".mdc-top-app-bar");
+   
+                if (e != null && typeof mdc !== "undefined")
+                { 
+                    var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);
+                    toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");
+                }
+            }
+   
+        })();
+   
+        /*  Menu */
+   
+        var menuEl = document.querySelector(".mdc-menu");
+   
+        if (menuEl != null && typeof mdc !== "undefined")
+        {  
+            var menuToggle = document.querySelector(".menu-toggle");
+            var menu       = new mdc.menu.MDCMenu(menuEl);
     
-            dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . '/* TOOLBAR */'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) .   'function '.$update_function.'()'
-        .   dom_eol(1) . dom_tab(2) .   '{'
-        .   dom_eol(1) . dom_tab(3) .   '   if ($(".toolbar-row-banner")[0])'
-        .   dom_eol(1) . dom_tab(3) .   '   {'
-        .   dom_eol(1) . dom_tab(4) .           'var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");'
-        .   dom_eol(1) . dom_tab(4) .           'var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");'
-        .   dom_eol(1) . dom_tab(4) 
-        .   dom_eol(1) . dom_tab(4) .           'var stuck_height = header_max_height - header_min_height;'
-        .   dom_eol(1) . dom_tab(4) 
-        .   dom_eol(1) . dom_tab(4) .           'if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }'
-        .   dom_eol(1) . dom_tab(4) .           'else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }'
-        .   dom_eol(1) . dom_tab(4) 
-        .   dom_eol(1) . dom_tab(4) .           '$(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());'
-        .   dom_eol(1) . dom_tab(3) .   '   }'
-        .   dom_eol(1) . dom_tab(2) .   '}'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) .   ''.$update_function.'();'
-        .   dom_eol(1) . dom_tab(1)
-        ;
+            menuToggle.addEventListener("click", function() 
+            { 
+                menu.open = !menu.open; 
+            });
+    
+            menuEl.addEventListener("MDCMenu:selected", function(evt) 
+            {
+                const detail = evt.detail;
+    
+                detail.item.textContent;
+                detail.index;
+            });
+        }  
+
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_back_to_top($update_function)
+    function dom_js_images_loading()
     {
-        return
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
-            dom_eol(1) . dom_tab(1)     
-        .   dom_eol(1) . dom_tab(2) .   '/*  BACK TO TOP BUTTON */'
-        .   dom_eol(1) . dom_tab(1)     
-        .   dom_eol(1) . dom_tab(2) .   'var $back_to_top                    = null;'
-        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_offset             =  300;'
-        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_offset_opacity     = 1200;'
-        .   dom_eol(1) . dom_tab(2) .   'var  back_to_top_scroll_duration    =  700;'
-        .   dom_eol(1) . dom_tab(1)     
-        .   dom_eol(1) . dom_tab(2) .   'function '.$update_function.'()'
-        .   dom_eol(1) . dom_tab(2) .   '{'
-        .   dom_eol(1) . dom_tab(3) .       '($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");'
-        .   dom_eol(1) . dom_tab(1)     
-        .   dom_eol(1) . dom_tab(3) .       'if ($(window).scrollTop() > back_to_top_offset_opacity)'
-        .   dom_eol(1) . dom_tab(3) .       '{ '
-        .   dom_eol(1) . dom_tab(4) .           '$back_to_top.addClass("cd-fade-out");'
-        .   dom_eol(1) . dom_tab(3) .       '}'
-        .   dom_eol(1) . dom_tab(2) .   '}'
-        .   dom_eol(1) . dom_tab(1)     
-        .   dom_eol(1) . dom_tab(2) .   '$back_to_top = $(".cd-top");'
-        .   dom_eol(1) . dom_tab(2) .   '$back_to_top.on("click", function(event)'
-        .   dom_eol(1) . dom_tab(2) .   '{'
-        .   dom_eol(1) . dom_tab(3) .       'event.preventDefault();'
-        .   dom_eol(1) . dom_tab(3) .       '$("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);'
-        .   dom_eol(1) . dom_tab(2) .   '});'
-        .   dom_eol(1) . dom_tab(1)     
-        ;
+            /* IMAGES LOADING */
+            
+            console.log("DOM: Register images handlers");
+            
+            function dom_on_load(e, handler)
+            {
+                if (e.length > 0)
+                {
+                    e.one("load", function() { handler(this);                                 })
+                    .each(        function() { if(this.complete) { $(this).trigger("load"); } });
+                }
+            }
+            
+            function dom_on_each(e, handler)
+            {
+                if (e.length > 0)
+                {
+                    e.each(function() { handler(this); });
+                }
+            }
+                
+            var img_interaction_observer = null;
+                
+            function dom_img_observer_callback(changes, observer) { 
+            
+                for (change of changes) { 
+                
+                    if (change.isIntersecting)
+                    {
+                        $(change.target).filter("[data-src]").each(function (i, e) {
+                                
+                            $(e).parent().find("source[data-srcset]").each(function(j, src) 
+                            {
+                                $(src).removeAttr("srcset");
+                                $(src).attr("srcset", $(src).attr("data-srcset"));
+                                $(src).removeAttr("data-srcset");
+
+                                $(src).removeClass("lazy");
+                            });
+
+                            $(e).removeAttr("src");
+                            $(e).attr("src", $(e).attr("data-src"));
+                            $(e).removeAttr("data-src");
+                                                                <?php if (!dom_get("dom_lazy_unload")) { ?>
+                            $(e).removeClass("lazy-observed"); 
+                            $(e).removeClass("lazy");           <?php } ?> 
+                            $(e).addClass("lazy-loaded"); 
+
+                            $(e).removeClass("loading"); 
+                            $(e).addClass("loaded"); 
+                        
+                        });                                     <?php if (!dom_get("dom_lazy_unload")) { ?>
+                        
+                        observer.unobserve(change.target);      <?php } ?> 
+                    }                                           
+                    else
+                    {                                                                       <?php if (!!dom_get("dom_lazy_unload")) { ?>
+                        $(change.target).filter(".lazy-loaded").each(function (i, e) {
+                                
+                            $(e).parent().find("source[srcset]").each(function(j, src) 
+                            {
+                                $(src).removeAttr("data-srcset");
+                                $(src).attr("data-srcset", $(src).attr("srcset"));
+                                $(src).removeAttr("srcset");
+
+                                $(src).addClass("lazy");
+                            });
+
+                            $(e).removeAttr("data-src");
+                            $(e).attr("data-src", $(e).attr("src"));
+                            $(e).removeAttr("src");
+                            $(e).attr("src", "<?= url_img_loading() ?>");
+
+                            $(e).removeClass("lazy-loaded"); 
+
+                            $(e).addClass("loading"); 
+                            $(e).removeClass("loaded"); 
+                                                                            
+                        });                                                                 <?php } ?> 
+                    }
+                };
+            };
+                        
+            function onUpdateLazyImages() 
+            {
+                $("img")       .on("error", function()  { $(this).attr("src", "<?= url_img_blank()   ?>"); $(this).addClass("failed");                      });
+                $("img")       .on("error", function(e) { $(this).attr("src", "<?= url_img_blank()   ?>");                                                  }); /* Accept failure */
+                $("img.loaded").on("error", function(e) { $(this).attr("src", "<?= url_img_loading() ?>"); $(this).attr("data-src", $(this).attr("src"));   }); /* Retry DOM_NEW */
+
+                dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });
+                dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });
+                dom_on_each($("iframe.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });
+            };
+            
+            function onInitLazyImages() 
+            {  
+                img_interaction_observer = new IntersectionObserver(dom_img_observer_callback);
+                setTimeout(function() { onUpdateLazyImages(); }, 0);
+                setInterval(onUpdateLazyImages, 1000);
+              //onUpdateLazyImages(); // OBSERVER FAILURE IF CALLED
+            };  
+
+            dom_on_loaded(function() { onInitLazyImages(); 
+            dom_on_scroll(function() { onUpdateLazyImages(); });  });
+            
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_slick_slider($init_function)
+    function dom_js_toolbar()
     {
-        return 
- 
-            dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . '/* SLICK SLIDERS */'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . 'function updateSlickSlider()'
-        .   dom_eol(1) . dom_tab(2) . '{'.(!dom_get("support_sliders", false) ? '' : (''
-        .   dom_eol(1) . dom_tab(3) .     '$(".slider").not(".slick-initialized").slick({"autoplay":true});'
-        .   dom_eol(1) . dom_tab(2) . '')).'}'
-        .   dom_eol(1) . dom_tab(2)
-        .   dom_eol(1) . dom_tab(2) . 'function '.$init_function.'()'
-        .   dom_eol(1) . dom_tab(2) . '{'.(!dom_get("support_sliders", false) ? '' : (''
-        .   dom_eol(1) . dom_tab(3) .     'setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);'
-        .   dom_eol(1) . dom_tab(2) . '')).'}'
-        .   dom_eol(1) . dom_tab(1)
-        ;
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+
+            /* TOOLBAR */
+        
+            function onUpdateToolbarHeight()
+            {
+                if ($(".toolbar-row-banner")[0])
+                {
+                    var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");
+                    var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");
+          
+                    var stuck_height = header_max_height - header_min_height;
+          
+                    if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }
+                    else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }
+          
+                    $(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());
+                }
+            }
+
+            dom_on_ready( function() { onUpdateToolbarHeight(); });
+            dom_on_loaded(function() { onUpdateToolbarHeight();
+            dom_on_scroll(function() { onUpdateToolbarHeight(); }); }); 
+
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function js_toolbar_banner_rotation($init_function)
+    function dom_js_back_to_top()
     {
-        return
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+            
+            /*  BACK TO TOP BUTTON */
+            
+            var $back_to_top                    = null;
+            var  back_to_top_offset             =  300;
+            var  back_to_top_offset_opacity     = 1200;
+            var  back_to_top_scroll_duration    =  700;
+            
+            function onUpdateBackToTopButton()
+            {
+                ($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");
+            
+                if ($(window).scrollTop() > back_to_top_offset_opacity)
+                {
+                    $back_to_top.addClass("cd-fade-out");
+                }
+            }
+            
+            $back_to_top = $(".cd-top");
+            $back_to_top.on("click", function(event)
+            {
+                event.preventDefault();
+                $("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);
+            });
 
-            dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . '/* TOOLBAR BANNER IMAGE ROTATION */'
-        .   dom_eol(1) . dom_tab(1)
-        .   dom_eol(1) . dom_tab(2) . 'function '.$init_function.'()'
-        .   dom_eol(1) . dom_tab(2) . '{ ' . ((!dom_has("support_header_backgrounds") || (false === dom_get("support_header_backgrounds"))) ? '' : (''
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     'var rotate_backgrounds = function(content)'
-        .   dom_eol(1) . dom_tab(3) .     '{' 
-        .   dom_eol(1) . dom_tab(4) .         'if (content != "")'
-        .   dom_eol(1) . dom_tab(4) .         '{'
-        .   dom_eol(1) . dom_tab(5) .             'var index_url = 0;'
-        .   dom_eol(1) . dom_tab(5) .             'var urls = content.split(",");'
-        .   dom_eol(1) . dom_tab(1)   
-        .   dom_eol(1) . dom_tab(5) .             'if (urls && !(typeof urls === "undefined") && urls.length > 0)'
-        .   dom_eol(1) . dom_tab(5) .             '{'
-        .   dom_eol(1) . dom_tab(6) .                 'setInterval(function()'
-        .   dom_eol(1) . dom_tab(6) .                 '{'
-        .   dom_eol(1) . dom_tab(7) .                     '$(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");'
-        .   dom_eol(1) . dom_tab(7) .                     'index_url = (index_url + 1) % urls.length;'
-        .   dom_eol(1) . dom_tab(1)   
-        .   dom_eol(1) . dom_tab(6) .                 '}, 10*1000);'
-        .   dom_eol(1) . dom_tab(5) .             '}'
-        .   dom_eol(1) . dom_tab(4) .         '}'
-        .   dom_eol(1) . dom_tab(3) .     '};'
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     ''    .((has("noajax") && is_string(get("support_header_backgrounds"))) ? (''
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     'rotate_backgrounds("'.get("support_header_backgrounds").'");' 
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     ''    ) : (''
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     'dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);'
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     ''    )).''
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(3) .     ''  )).''
-        .   dom_eol(1) . dom_tab(3) .     '' 
-        .   dom_eol(1) . dom_tab(2) . '}'
-        .   dom_eol(1) . dom_tab(1)
-        ;
+            dom_on_loaded(function() { 
+            dom_on_scroll(function() { onUpdateBackToTopButton(); }); });
+        
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function script_externals()
+    function dom_js_slick_slider()
+    {
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+                
+            /* SLICK SLIDERS */
+            
+            function updateSlickSlider()
+            {
+                $(".slider").not(".slick-initialized").slick({"autoplay":true});
+            }
+            
+            function onInitSliders()
+            {
+                setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);
+            }
+
+            dom_on_loaded(function() { onInitSliders(); });
+            
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_js_toolbar_banner_rotation()
+    {
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+            
+            /* TOOLBAR BANNER IMAGE ROTATION */
+            
+            function onInitRotatingHeaders()
+            {
+                var rotate_backgrounds = function(content)
+                { 
+                    if (content != "")
+                    {
+                        var index_url = 0;
+                        var urls = content.split(",");
+            
+                        if (urls && !(typeof urls === "undefined") && urls.length > 0)
+                        {
+                            setInterval(function()
+                            {
+                                $(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");
+                                index_url = (index_url + 1) % urls.length;
+            
+                            }, 10*1000);
+                        }
+                    }
+                };
+                
+                <?php if (has("noajax") && is_string(get("support_header_backgrounds"))) { ?>
+                rotate_backgrounds("<?= get("support_header_backgrounds") ?>"); 
+                <?php } else { ?> 
+                dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);
+                <?php } ?> 
+            }
+
+            dom_on_loaded(function() { onInitRotatingHeaders(); });
+        
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_js_on_document_events()
+    {
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+
+            /* DOM INTERNAL READY AND LOADED CALLBACK MECHANISM */
+
+            var dom_event_ready  = false;
+            var dom_event_loaded = false;
+
+            var dom_ready_callbacks  = Array();
+            var dom_loaded_callbacks = Array();
+            var dom_scroll_callbacks = Array();
+            var dom_resize_callbacks = Array();
+            var dom_ajax_callbacks   = Array();
+
+            function dom_process_callbacks(callbacks, log, clear)
+            {
+                if (typeof log != "undefined" && log) console.log("DOM: DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
+                callbacks.forEach(function(callback) { callback(); });
+                if (typeof log != "undefined" && clear) callbacks = [];
+            }
+
+            function dom_process_ready_callbacks()  { dom_process_callbacks(dom_ready_callbacks,  "READY",  true); }
+            function dom_process_loaded_callbacks() { dom_process_callbacks(dom_loaded_callbacks, "LOADED", true); }
+
+            function dom_on_ready(callback)  {  dom_ready_callbacks.push(callback); if (dom_event_ready)                     { dom_process_ready_callbacks();  } }
+            function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); if (dom_event_ready && dom_event_loaded) { dom_process_loaded_callbacks(); } }
+            function dom_on_scroll(callback) { dom_scroll_callbacks.push(callback); }
+            function dom_on_resize(callback) { dom_resize_callbacks.push(callback); }
+            function dom_on_ajax(callback)   {   dom_ajax_callbacks.push(callback); }
+
+            function dom_on_init_event(event)
+            {
+                var was_not_ready_and_loaded = (!dom_event_ready || !dom_event_loaded);
+
+                if (!dom_event_ready  && event == "ready")  { dom_event_ready  = true; console.log("DOM: DOCUMENT READY"); dom_process_ready_callbacks(); }
+                if (!dom_event_loaded && event == "loaded") { dom_event_loaded = true; console.log("DOM: DOCUMENT LOADED"); }
+
+                if (was_not_ready_and_loaded && dom_event_ready && dom_event_loaded) { dom_process_loaded_callbacks(); }
+            }
+
+          //window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
+          //if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
+          //else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
+
+            $(document).ready(   function() { dom_on_init_event("ready");  } );
+            $(window).on("load", function() { dom_on_init_event("loaded"); } );
+        
+            $(window).scroll(function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_scroll_callbacks); } });
+            $(window).resize(function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_resize_callbacks); } });
+            
+            function dom_on_ajax_reception() { dom_process_callbacks(dom_ajax_callbacks); }
+        
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_script_third_parties()
     {
         $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
@@ -5752,120 +5819,21 @@ else
     
     function scripts_body()
     {
-        return  dom_eol(2) . script_externals        ()
-            .   dom_eol(2) . dom_script_ajax_body    ()
-            .   dom_eol(2) . script_google_analytics ()
+        if (dom_has("ajax")) return "";
 
-            .   dom_eol(2) . script('
-
-                /* DOM INTERNAL READY AND LOADED CALLBACK MECHANISM */
-
-                var dom_event_ready  = false;
-                var dom_event_loaded = false;
-
-                var dom_ready_callbacks  = Array();
-                var dom_loaded_callbacks = Array();
-                var dom_scroll_callbacks = Array();
-                var dom_resize_callbacks = Array();
-                var dom_ajax_callbacks   = Array();
-
-                function dom_on_ready(callback)  { dom_ready_callbacks.push(callback);  if (dom_event_ready)                        { console.log("DOM: DOCUMENT ALREADY READY : Processing " + dom_ready_callbacks.length + " CALLBACKS"); dom_ready_callbacks.forEach( function(callback) { callback(); }); dom_ready_callbacks  = []; } }
-                function dom_on_loaded(callback) { dom_loaded_callbacks.push(callback); if (dom_event_ready && dom_event_loaded)    { console.log("DOM: DOCUMENT ALREADY LOADED : Processing " + dom_loaded_callbacks.length + " CALLBACKS"); dom_loaded_callbacks.forEach(function(callback) { callback(); }); dom_loaded_callbacks = []; } }
-                function dom_on_scroll(callback) { dom_scroll_callbacks.push(callback); }
-                function dom_on_resize(callback) { dom_resize_callbacks.push(callback); }
-                function dom_on_ajax(callback)   { dom_ajax_callbacks.push(callback);   }
-
-                function dom_on_init_event(event)
-                {
-                    var was_not_ready_and_loaded = (!dom_event_ready || !dom_event_loaded);
-
-                    if (!dom_event_ready  && event == "ready")  { dom_event_ready  = true; console.log("DOM: DOCUMENT READY"); console.log("DOM: DOCUMENT READY : Processing " + dom_ready_callbacks.length + " CALLBACKS"); dom_ready_callbacks.forEach(function(callback) { callback(); }); dom_ready_callbacks = []; }
-                    if (!dom_event_loaded && event == "loaded") { dom_event_loaded = true; console.log("DOM: DOCUMENT LOADED"); }
-                    
-                    if (was_not_ready_and_loaded && dom_event_ready && dom_event_loaded)
-                    {
-                        console.log("DOM: DOCUMENT LOADED : Processing " + dom_loaded_callbacks.length + " CALLBACKS");
-                        dom_loaded_callbacks.forEach(function(callback) { callback(); });
-                        dom_loaded_callbacks = [];
-                    }
-                }
-
-              //window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
-              //if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
-              //else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
-
-                $(document).ready(   function() { dom_on_init_event("ready");  } );
-                $(window).on("load", function() { dom_on_init_event("loaded"); } );
-            
-                $(window).scroll(function() {
-
-                    if (dom_event_ready && dom_event_loaded)
-                    {
-                        dom_scroll_callbacks.forEach(function(callback) { callback(); });
-                    }
-                });
-            
-                $(window).resize(function() {
-
-                    if (dom_event_ready && dom_event_loaded)
-                    {
-                        dom_resize_callbacks.forEach(function(callback) { callback(); });
-                    }
-                });
-                
-                function dom_on_ajax_reception() { 
-                    
-                    dom_ajax_callbacks.forEach(function(callback) { callback(); });
-                }
-
-
-                ')
-        
-            .   dom_eol(2) . script(
-        
-                    dom_eol(1) . dom_tab(1) .   js_toolbar                 (                    "onUpdateToolbarHeight")
-                .   dom_eol(1) . dom_tab(1) .   js_back_to_top             (                    "onUpdateBackToTopButton")
-                .   dom_eol(1) . dom_tab(1) .   js_images_loading          ("onInitLazyImages", "onUpdateLazyImages")
-                .   dom_eol(1) . dom_tab(1) .   js_slick_slider            ("onInitSliders")
-                .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(1) .   'dom_on_ready(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight();'
-                .   dom_eol(1) . dom_tab(1) .   '});'
-                .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(1) .   'dom_on_loaded(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{ '
-                .   dom_eol(1) . dom_tab(2) .       'onInitLazyImages ();'
-                .   dom_eol(1) . dom_tab(2) .       'onInitSliders    ();'
-                .   dom_eol(1) . dom_tab(1) .   '});'
-                .   dom_eol(1) . dom_tab(1)     
-                .   dom_eol(1) . dom_tab(1) .   'dom_on_scroll(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateBackToTopButton ();'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateLazyImages      ();'
-                .   dom_eol(1) . dom_tab(2) .       'onUpdateToolbarHeight   ();'
-                .   dom_eol(1) . dom_tab(1) .   '});'
-                .   dom_eol(1)
-
-                ) // Split in two to bypass AMP restrictions. TODO: one script per module
-
-            .   dom_eol(2) . script(
-        
-                    dom_eol(1) . dom_tab(1) .   js_toolbar_banner_rotation ("onInitRotatingHeaders")
-                .   dom_eol(1) . dom_tab(1) .   js_service_worker          ("onInitServiceWorker")
-                .   dom_eol(1) . dom_tab(1) .   js_pwa_install             ("onInitPWA")
-                .   dom_eol(1) . dom_tab(1) .   js_framework_material      ()
-                .   dom_eol(1) . dom_tab(1) .   js_scan_and_print_body     ()
-                .   dom_eol(1) . dom_tab(1)      
-                .   dom_eol(1) . dom_tab(1) .   'dom_on_loaded(function()'
-                .   dom_eol(1) . dom_tab(1) .   '{ '
-                .   dom_eol(1) . dom_tab(2) .       'onInitRotatingHeaders  ();'
-                .   dom_eol(1) . dom_tab(2) .       'onInitServiceWorker    ();'
-                .   dom_eol(1) . dom_tab(2) .       'onInitPWA              ();'
-                .   dom_eol(1) . dom_tab(1) .   '});'
-                .   dom_eol(1)
-
-                );
+        return  dom_eol(2).dom_script_third_parties                  ().
+                dom_eol(2).dom_script_ajax_body                      ().
+                dom_eol(2).dom_script_google_analytics               ().               ((!!dom_get("dom_script_document_events",    true)) ? (
+                dom_eol(2).dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_toolbar",            true)) ? (
+                dom_eol(2).dom_script(dom_js_toolbar                 ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
+                dom_eol(2).dom_script(dom_js_back_to_top             ()).   "") : ""). ((!!dom_get("dom_script_images_loading",     true)) ? (
+                dom_eol(2).dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",              false)) ? (
+                dom_eol(2).dom_script(dom_js_slick_slider            ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
+                dom_eol(2).dom_script(dom_js_toolbar_banner_rotation ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
+                dom_eol(2).dom_script(dom_js_service_worker          ()).   "") : ""). ((!!dom_get("dom_script_pwa_install",        true)) ? (
+                dom_eol(2).dom_script(dom_js_pwa_install             ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
+                dom_eol(2).dom_script(dom_js_framework_material      ()).   "") : ""). ((!!dom_get("dom_script_scan_and_print",     true)) ? (
+                dom_eol(2).dom_script(dom_js_scan_and_print_body     ()).   "") : "");
     }
     
     #endregion
@@ -5948,7 +5916,7 @@ else
         . dom_eol(2) . comment("DOM Body scripts")
         . dom_eol(2) . scripts_body()
         . dom_eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
-        . dom_eol(2) . ($app_js ? script($app_js) : '')
+        . dom_eol(2) . ($app_js ? dom_script($app_js) : '')
         . dom_eol(2) . $html_post_scripts
 
         . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
@@ -6285,7 +6253,7 @@ else
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), DOM_EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), DOM_EXTERNAL_LINK).dom_script("eval(unescape('".$crypted_script."'))");
         }
     }
 
