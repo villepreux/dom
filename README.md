@@ -19,7 +19,6 @@ Web **Do**cument PHP **M**arkup & components framework
   * Compiling into valid markup (HTML, CSS, JSON, AMP...)
   * Compiling into good SEO
 
-
 ## Getting started
 
 Why not start with [examples](https://github.com/villepreux/dom/tree/master/examples)?
@@ -43,6 +42,9 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
   * Where possible, use sub-components aggregation instead of multiple parameters
   * Convert default parameters to "auto" parameters where appropriate
   * Where possible, use named, unordered & optional parameters
+  * Use heredoc syntax where possible
+  * Remove jquery internal usage
+  * Document the code
 
 
 ----
