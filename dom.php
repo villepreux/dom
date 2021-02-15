@@ -1123,7 +1123,7 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
-    function md($text, $hard_wrap = false, $headline_level_offset = false, $no_header = false, $smartypants = true, $markdown = true)
+    function dom_markdow($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $smartypants = true, $markdown = true)
     {
         if ($markdown)    $html = Markdown($text);
         if ($smartypants) $html = SmartyPants($html);
@@ -1137,10 +1137,29 @@
 
         if ($headline_level_offset !== false)
         {
-            for ($h = 9; $h >=1; --$h)
+            for ($h = 9; $h >= 1; --$h)
             {
-                $html = str_replace("<h"  . $h,       "<h"  . ($h+$headline_level_offset),       $html);
-                $html = str_replace("</h" . $h . ">", "</h" . ($h+$headline_level_offset) . ">", $html);
+                $pos_end = 0;
+
+                while (true)
+                {
+                    $tag_end       = "</h$h>";
+                    $pos_bgn       = stripos($html, "<h$h",   $pos_end);       if (false === $pos_bgn)       break;
+                    $pos_bgn_inner = stripos($html, ">",      $pos_bgn);       if (false === $pos_bgn_inner) break; $pos_bgn_inner++;
+                    $pos_end_inner = stripos($html, $tag_end, $pos_bgn_inner); if (false === $pos_end_inner) break;
+                    $pos_end       = $pos_end_inner + strlen($tag_end);
+
+                    $inner = substr($html, $pos_bgn_inner, $pos_end_inner - $pos_bgn_inner);
+
+                    $headline = h($h + $headline_level_offset, $inner);
+
+                    $html_before = substr($html, 0, $pos_bgn);
+                    $html_after  = substr($html, $pos_end);
+
+                    $html = $html_before . $headline . $html_after;
+
+                    $pos_end = strlen($html_before . $headline) + strlen($tag_end);
+                }
             }
         }
     
@@ -1835,8 +1854,6 @@
         $html    = @file_get_contents($url, false, $context);
     */
         $html = dom_array_open_url($url, "html");
-
-    //  echo $html; die();
 
         return array($url, htmlentities($html));
 
@@ -4891,9 +4908,7 @@ else
     {
         if (!!dom_get("no_css")) return '';
 
-        dom_heredoc_start(-1); ?>
-        <style>
-        <?php dom_heredoc_flush(null); ?>
+        dom_heredoc_start(-1); ?><style><?php dom_heredoc_flush(null); ?>
 
     /* DOM CSS boilerplate */
 
@@ -5173,7 +5188,7 @@ else
         body>.footer, iframe, .cd-top { display: none; height: 0px; }
     }    
 
-        <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);        
+        <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);
     }
     
     function styles()
@@ -5613,14 +5628,15 @@ else
             
             function onInitLazyImages() 
             {  
-                img_interaction_observer = new IntersectionObserver(dom_img_observer_callback);
+                var options = { rootMargin: '100px 100px 100px 100px' }; // Anticipation
+                img_interaction_observer = new IntersectionObserver(dom_img_observer_callback, options);
                 setTimeout(function() { onUpdateLazyImages(); }, 0);
                 setInterval(onUpdateLazyImages, 1000);
               //onUpdateLazyImages(); // OBSERVER FAILURE IF CALLED
             };  
 
-            dom_on_loaded(function() { onInitLazyImages(); 
-            dom_on_scroll(function() { onUpdateLazyImages(); });  });
+            dom_on_loaded(onInitLazyImages);
+            dom_on_scroll(onUpdateLazyImages);
             
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -5647,9 +5663,9 @@ else
                 }
             }
 
-            dom_on_ready( function() { onUpdateToolbarHeight(); });
-            dom_on_loaded(function() { onUpdateToolbarHeight();
-            dom_on_scroll(function() { onUpdateToolbarHeight(); }); }); 
+            dom_on_ready( onUpdateToolbarHeight);
+            dom_on_loaded(onUpdateToolbarHeight);
+            dom_on_scroll(onUpdateToolbarHeight); 
 
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -5682,8 +5698,7 @@ else
                 $("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);
             });
 
-            dom_on_loaded(function() { 
-            dom_on_scroll(function() { onUpdateBackToTopButton(); }); });
+            dom_on_scroll(onUpdateBackToTopButton);
         
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -5704,7 +5719,7 @@ else
                 setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);
             }
 
-            dom_on_loaded(function() { onInitSliders(); });
+            dom_on_loaded(onInitSliders);
             
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -5743,7 +5758,7 @@ else
                 <?php } ?> 
             }
 
-            dom_on_loaded(function() { onInitRotatingHeaders(); });
+            dom_on_loaded(onInitRotatingHeaders);
         
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -5965,7 +5980,7 @@ else
 
     function h              ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
                                                                                             return  cosmetic(dom_eol(1)).
-                                                                                                    (($h>=get("headline_anchor_level",2))?anchor(!!$anchor ? $anchor : $html):'').
+                                                                                                    (($h==get("headline_anchor_level",2))?anchor(!!$anchor ? $anchor : $html):'').
                                                                                                                        dom_tag('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
@@ -6444,6 +6459,8 @@ else
         $alt      = ($alt === false || $alt === "") ? $codename : $alt;
         
         $lazy_src = ($lazy_src === false) ? url_img_loading() : $lazy_src;
+
+        if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_width",  300);
         $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_height", 200);
