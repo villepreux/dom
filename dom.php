@@ -69,7 +69,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.6.0");
+    define("DOM_VERSION",   "0.6.6");
     define("DOM_AUTO",      "__DOM_AUTO__");    // ? migrate to null as auto param ?
 
     #endregion
@@ -852,7 +852,16 @@
     }
 
 
-    function dom_to_classname($str, $tolower = DOM_AUTO) { if ($tolower === DOM_AUTO) $tolower = true; $str = str_replace("é","e",str_replace("è","e",str_replace("à","a",$str))); return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str)); }
+    function dom_to_classname($str, $tolower = DOM_AUTO)
+    {
+        if ($tolower === DOM_AUTO) $tolower = true;
+        
+        $str =  str_replace("é","e",
+                str_replace("è","e",
+                str_replace("à","a",$str)));
+                
+        return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str));
+    }
 
     function dom_AMP() { return false !== dom_get("amp", false) && 0 !== dom_get("amp", false) && "0" !== dom_get("amp", false); }
 
@@ -1123,7 +1132,7 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
-    function dom_markdow($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $smartypants = true, $markdown = true)
+    function dom_markdow($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = true, $markdown = true)
     {
         if ($markdown)    $html = Markdown($text);
         if ($smartypants) $html = SmartyPants($html);
@@ -1151,7 +1160,7 @@
 
                     $inner = substr($html, $pos_bgn_inner, $pos_end_inner - $pos_bgn_inner);
 
-                    $headline = h($h + $headline_level_offset, $inner);
+                    $headline = h($h + $headline_level_offset, $inner, false, $anchor);
 
                     $html_before = substr($html, 0, $pos_bgn);
                     $html_after  = substr($html, $pos_end);
@@ -4147,7 +4156,7 @@ else
     
     function self($html) { return $html; }
 
-    function include_file($filename, $silent_errors = DOM_AUTO)
+    function dom_include_file($filename, $silent_errors = DOM_AUTO)
     {
         if ($silent_errors === DOM_AUTO)
         {
@@ -4177,9 +4186,9 @@ else
     function raw_js         ($js,   $force_minify = false)  { if (!!dom_get("no_js"))   return ''; if (!!dom_get("minify",false) || $force_minify) { $js      = minify_js     ($js);      } return $js;   }
     function raw_css        ($css,  $force_minify = false)  { if (!!dom_get("no_css"))  return ''; if (!!dom_get("minify",false) || $force_minify) { $css     = minify_css    ($css);     } return $css;  }
 
-    function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
-    function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
-    function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
+    function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_html")) ? '' : raw_html   (dom_include_file($filename, $silent_errors), $force_minify); }
+    function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_css"))  ? '' : raw_css    (dom_include_file($filename, $silent_errors), $force_minify); }
+    function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (dom_has("rss") || !!dom_get("no_js"))   ? '' : raw_js     (dom_include_file($filename, $silent_errors), $force_minify); }
     
     /*
      * CSS tags
@@ -5061,8 +5070,25 @@ else
     /* Other utilities */    
     
     .app-install                                    { display: none }
+
+    /* Until there is a better method that is not interfering with margin and padding of the element, use anchor dedicated tag insertion */
+ 
     .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
-    summary>.anchor                                 { display: inline-block; } /* ? should always be inline ? */
+    summary>.anchor                                 { display: inline-block; }
+/*
+    .headline:target,
+    .card .headline:target {
+      height:          calc(var(--header-toolbar-height) - var(--header-min-height));
+      margin-top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height));
+        }
+*/
+/*
+    .headline:target,
+    .card .headline:target {
+      margin-top: -154px;
+      padding-top: 154px;
+        }
+*/
     .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
 
     /* Main images */
@@ -5617,9 +5643,9 @@ else
                         
             function onUpdateLazyImages() 
             {
-                $("img")       .on("error", function()  { $(this).attr("src", "<?= url_img_blank()   ?>"); $(this).addClass("failed");                      });
-                $("img")       .on("error", function(e) { $(this).attr("src", "<?= url_img_blank()   ?>");                                                  }); /* Accept failure */
-                $("img.loaded").on("error", function(e) { $(this).attr("src", "<?= url_img_loading() ?>"); $(this).attr("data-src", $(this).attr("src"));   }); /* Retry DOM_NEW */
+                $("img")       .on("error", function()  { console.log("DOM: img error: "        + $(this).attr("src"));                 $(this).attr("src", "<?= url_img_blank()   ?>"); $(this).addClass("failed");                      });
+                $("img")       .on("error", function(e) { console.log("DOM: img error: "        + $(this).attr("src")); console.log(e); $(this).attr("src", "<?= url_img_blank()   ?>");                                                  }); /* Accept failure */
+                $("img.loaded").on("error", function(e) { console.log("DOM: img.loaded error: " + $(this).attr("src"));                 $(this).attr("src", "<?= url_img_loading() ?>"); $(this).attr("data-src", $(this).attr("src"));   }); /* Retry DOM_NEW */
 
                 dom_on_load($("source.lazy[data-srcset]"), function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });
                 dom_on_load($(   "img.lazy[data-src]"),    function(e) { $(e).removeClass("lazy"); $(e).addClass("lazy-observed"); img_interaction_observer.observe(e); });
@@ -5949,7 +5975,24 @@ else
     }
     
 //  HTML tags
-    
+        
+    function h($h, $html = "", $attributes = false, $anchor = false)
+    {
+        hook_headline($h, $html);
+
+        return  cosmetic(dom_eol(1)).
+                (($h==get("dom_headline_anchor_level",2) || !!$anchor)?anchor(!!$anchor ? $anchor : $html):'').
+                dom_tag(
+                    'h'.$h,
+                    $html,
+                    is_array($attributes) ? dom_attributes_add_class($attributes, dom_component_class('headline headline'.$h))
+                    : array(
+                        "class" => ("$attributes ".dom_component_class('headline headline'.$h)),
+                        "id"    => anchor_name(!!$anchor ? $anchor : $html)
+                        )
+                    );
+    }
+
     function div            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('div',                        $html,                                                $attributes                                                         );                      }
     function p              ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return                         dom_tag('i',                          $html,                                                $attributes                                                         );                      }
@@ -5964,6 +6007,8 @@ else
     function th             ($html = "", $attributes = false) {                             return                         dom_tag('th',                         $html,                                                $attributes                                                         );                      }
 
     function strong         ($html = "", $attributes = false) {                             return                     dom_tag('strong',                     $html,                                                $attributes                                                         );                      }
+    function strike         ($html = "", $attributes = false) {                             return                     dom_tag('s',                          $html,                                                $attributes                                                         );                      }
+    function del            ($html = "", $attributes = false) {                             return                     dom_tag('del',                          $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return                     dom_tag('em',                         $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return                     dom_tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('figure',                     $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
@@ -5977,11 +6022,6 @@ else
 
     function button         ($html = "", $attributes = false) {                             return                     dom_tag('button',                     $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button'))                             );                      }
     function button_label   ($html = "", $attributes = false) {                             return                     dom_tag('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
-
-    function h              ($h, $html = "", $attributes = false, $anchor = false)  { hook_headline($h, $html);
-                                                                                            return  cosmetic(dom_eol(1)).
-                                                                                                    (($h==get("headline_anchor_level",2))?anchor(!!$anchor ? $anchor : $html):'').
-                                                                                                                       dom_tag('h'.$h,                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('headline headline'.$h))           );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
     function h2             ($html = "", $attributes = false, $anchor = false) {            return                     h(2,                               $html,                                                $attributes, $anchor                                                );                      }
@@ -6159,13 +6199,18 @@ else
         return false;
     }
     
-    function google_photo_album($url, $wrapper = "div", $img_wrapper = "self")
+    function google_photo_album($url, $wrapper = "div", $img_wrapper = "self", $link_to_google = true, $randomize = false)
     {   
         if (dom_AMP()) return a($url, $url, DOM_EXTERNAL_LINK);
 
         $results = json_google_photo_album_from_content($url);
 
         $photos  = dom_at($results, 1, array());
+
+        if ($randomize)
+        {
+            shuffle($photos);
+        }
         
         $images = "";
         
@@ -6176,7 +6221,14 @@ else
             $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"));
         }
 
-        return a(call_user_func($wrapper, $images), $url, DOM_EXTERNAL_LINK);
+        $album = call_user_func($wrapper, $images);
+
+        if ($link_to_google)
+        {
+            $album = a($album, $url, DOM_EXTERNAL_LINK);
+        }
+
+        return $album;
     }
     
     // Components with BlogPosting microdata
@@ -6810,7 +6862,7 @@ else
 
         dom_hook_card_set_context("title", $title_main);
 
-        return (($title !== "") ? /*section*/dom_header($title, dom_component_class("card-title")) : "");
+        return (($title !== "") ? dom_header($title, dom_component_class("card-title")) : "");
     }
 
     function card_media($media = false, $attributes = false)
@@ -6840,8 +6892,8 @@ else
     {
         if (!!get("random_cards_rotate"))
         {
-            $attributes = is_array($attributes) ? array_merge($attributes, array("class" => "card",      "style" => "transform: rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);")) 
-                                                :                          array("class" => $attributes, "style" => "transform: rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);");
+            $attributes = is_array($attributes) ? array_merge($attributes, array("class" => "card",      "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);")) 
+                                                :                          array("class" => $attributes, "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);");
         }
     
         dom_hook_card_flush_context();
