@@ -87,13 +87,48 @@
     #region HELPERS : SERVER ARGS
     ######################################################################################################################################
     
-    function dom_server_http_accept_language    ($default = "en")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE',           $default); }
-    function dom_server_server_name             ($default = "localhost")            { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',                    $default); }
-    function dom_server_server_port             ($default = "80")                   { return dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',                    $default); }
-    function dom_server_request_uri             ($default = "www.villepreux.net")   { return dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',                    $default); }
-    function dom_server_https                   ($default = "on")                   { return dom_at(array_merge($_GET, $_SERVER), 'HTTPS', is_localhost() ? "off" : $default); }
-    function dom_server_http_host               ($default = "127.0.0.1")            { return dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',                      $default); }
+    if (!function_exists('getallheaders'))
+    {
+        function getallheaders()
+        {
+            $headers = [];
 
+            foreach ($_SERVER as $name => $value)
+            {
+                if (substr($name, 0, 5) == 'HTTP_')
+                {
+                    $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
+                }
+            }
+            return $headers;
+        }
+    }
+
+    function dom_server_headers()
+    {
+        return array_change_key_case(getallheaders(), CASE_LOWER);
+    }
+
+    function dom_header_do_not_track            ()  { return 1 == dom_at(dom_server_headers(), 'dnt',      0); }
+    function dom_header_global_privacy_control  ()  { return 1 == dom_at(dom_server_headers(), 'sec-gpc',  0); }
+
+    function dom_server_http_accept_language        ($default = "en")                   { return        dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE',             $default);  }
+    function dom_server_server_name                 ($default = "localhost")            { return        dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',                      $default);  }
+    function dom_server_server_port                 ($default = "80")                   { return        dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',                      $default);  }
+    function dom_server_request_uri                 ($default = "www.villepreux.net")   { return        dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',                      $default);  }
+    function dom_server_https                       ($default = "on")                   { return        dom_at(array_merge($_GET, $_SERVER), 'HTTPS', is_localhost() ? "off" :   $default);  }
+    function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',                        $default);  }
+    function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(array_merge($_GET, $_SERVER), 'HTTP_DNT',                         0);         }
+
+    function dom_do_not_track()
+    {
+        if (!!get("static")) return true; // PHP do not track detection would not work for static website
+
+        return dom_server_http_do_not_track()
+            || dom_header_global_privacy_control()
+            || dom_header_do_not_track();
+    }
+    
     #endregion
     #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
@@ -5241,6 +5276,11 @@ else
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
 
+        if (dom_do_not_track())
+        {
+            return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
+        }
+
         return dom_script(
             dom_eol(1) . '/*  Google analytics */ '.
             dom_eol(2) . dom_tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
@@ -6218,7 +6258,7 @@ else
         {
             $photo_url = dom_at(dom_at($photo_result, 1), 0);
             
-            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"));
+            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"), $i);
         }
 
         $album = call_user_func($wrapper, $images);
