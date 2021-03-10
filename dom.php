@@ -6258,7 +6258,7 @@ else
         {
             $photo_url = dom_at(dom_at($photo_result, 1), 0);
             
-            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"), $i);
+            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"), $i, $photo_url);
         }
 
         $album = call_user_func($wrapper, $images);
