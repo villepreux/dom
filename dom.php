@@ -1608,7 +1608,7 @@
 
     // AMP Requirements
 
-    function hook_amp_require($component)    {    if (dom_AMP())     dom_set("hook_amp_require_$component", true); }
+    function hook_amp_require($component)    {    if (dom_AMP())     dom_set("hook_amp_require_$component", true); return ""; }
     function has_amp_requirement($component) { return dom_AMP() && !!dom_get("hook_amp_require_$component");       }
     
     function dom_rss_record_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
@@ -6381,7 +6381,16 @@
 
         if (DOM_AUTO === $dark_theme) $dark_theme = dom_get("dark_theme", false);
         
-        return cosmetic(dom_eol(2)).dom_tag('body', $body, array("id" => "!", "name" => "!", "class" => dom_component_class('body').($dark_theme ? dom_component_class('dark') : '')));
+        return cosmetic(dom_eol(2)).dom_tag(
+            'body',
+            $body,
+            array_merge(array(
+                "id"    => "!",
+                "class" => dom_component_class('body').($dark_theme ? dom_component_class('dark') : '')
+                ), AMP() ? array() : array(
+                "name"  => "!"
+                ))
+            );
     }
     
     function cosmetic($html)
@@ -6431,6 +6440,8 @@
 
     function details        ($html = "", $attributes = false) {                             return                     dom_tag('details',                    $html,                                                $attributes                                                         );                      }
     function summary        ($html = "", $attributes = false) {                             return                     dom_tag('summary',                    $html,                                                $attributes                                                         );                      }
+
+    function form           ($html = "", $attributes = false) { hook_amp_require("iframe"); return                     dom_tag('form',                       $html,                                                $attributes                                                         );                      }
 
     function checkbox       ($id, $html = "", $attributes = false) {                        return                     dom_tag('input',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox')),       "id"  => $id, "type" => "checkbox") );     }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return                     dom_tag('label',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox-label')), "for" => $id)      );                      }
@@ -6511,7 +6522,7 @@
     function iframe($url, $title = false, $classes = false, $w = false, $h = false)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
-        // TODO if EXTERNAL LINK add crossorigin="anonymous"
+        // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
 
         $lazy = !AMP()/* && !dom_get("no_js")*/;
 
@@ -6695,8 +6706,8 @@
 
         $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
 
-        if ($target == DOM_EXTERNAL_LINK) $internal_attributes["rel"]         = "noopener noreferrer";
-        if ($target == DOM_EXTERNAL_LINK) $internal_attributes["crossorigin"] = "anonymous";
+        if ($target == DOM_EXTERNAL_LINK)           $internal_attributes["rel"]         = "noopener noreferrer";
+        if ($target == DOM_EXTERNAL_LINK && !AMP()) $internal_attributes["crossorigin"] = "anonymous";
 
         $attributes = "";
         
@@ -8167,45 +8178,27 @@
         $b = $b0 = hexdec(substr($rrggbb, 4, 2)) / 255;
 
         $l0 = dom_calculate_luminosity_dec_rgb($r,$g,$b);
+        
+        $percent_min = 0;
+        $percent_max = 1;
+        $percent     = 0;
+        $depth       = 8;
 
-        $delta     = ($factor > 1.0) ? 1 : -1;
-        $percent   = 0;
-        $target    = ($delta > 0 ? 1 : 0);
-        $precision = 256;
-
-        $i = $precision;
-
-        while (--$i > 0)
+        while ($depth-- > 0)
         {
+            $r = max(0, min(1, $r0 + (($factor > 1 ? 1 : 0) - $r0) * $percent));
+            $g = max(0, min(1, $g0 + (($factor > 1 ? 1 : 0) - $g0) * $percent));
+            $b = max(0, min(1, $b0 + (($factor > 1 ? 1 : 0) - $b0) * $percent));
+            
             $l1 = dom_calculate_luminosity_dec_rgb($r,$g,$b);    
+
+            $not_enough = false;
+            if ($factor >= 1.0 && $l1 < $l0 * $factor) $not_enough = true;
+            if ($factor <  1.0 && $l1 > $l0 * $factor) $not_enough = true;
             
-            if (!!$debug)
-            {
-                $comment_bgn = " /"."* ";
-                $comment_end = " *"."/ ";
-
-                if ($debug === "<!--") { $comment_bgn = "<!-- "; $comment_end = " //-->"; }
-
-              //echo PHP_EOL.$comment_bgn.str_pad($i,3,"0",STR_PAD_LEFT)." : $background (".($delta > 0 ? "++" : "--").") > #$rrggbb (".str_pad((int)(255*$r),3,"0",STR_PAD_LEFT).",".str_pad((int)(255*$g),3,"0",STR_PAD_LEFT).",".str_pad((int)(255*$b),3,"0",STR_PAD_LEFT).") => ".round($ratio,2)." / ".$contrast_ratio_target.$comment_end;
-            }
-
-            if ($factor >= 1.0 && $l1 >= $l0 * $factor) break;
-            if ($factor <  1.0 && $l1 <= $l0 * $factor) break;
-            
-            if ($delta < 0 && $r <= 0 && $g <= 0 && $b <= 0) break;
-            if ($delta > 0 && $r >= 1 && $g >= 1 && $b >= 1) break;
-
-            $percent = max(0, min(1, $percent + 1.0 / (float)$precision));
-            
-            $r = max(0, min(1, $r0 + ($target - $r0) * $percent));
-            $g = max(0, min(1, $g0 + ($target - $g0) * $percent));
-            $b = max(0, min(1, $b0 + ($target - $b0) * $percent));
-
-            if (!!$debug)
-            {
-                //echo PHP_EOL."(".str_pad($i,3,"0",STR_PAD_LEFT).") ".number_format($percent,2)." (".number_format($r,2).",".number_format($g,2).",".number_format($b,2).") = (".number_format($r0,2).",".number_format($g0,2).",".number_format($b0,2).") + (".(($delta > 0) ? "1" : "0")." - (".number_format($r,2).",".number_format($g,2).",".number_format($b,2).")) * ".number_format($percent,2)."";
-            }
-        }
+            if ($not_enough) $percent_min = $percent; else $percent_max = $percent;
+            $percent = 0.5 * ($percent_min + $percent_max);
+        } 
 
         $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
@@ -8255,13 +8248,11 @@
         $background,
         $contrast_ratio_target,
         $delta,
-       &$final_ratio,
+       &$ratio,
         $debug
 
         )
     {
-        // ! TODO DRASTICALY OPTIMIZE THIS FUNCTION. CAN BE BOTTLENECK
-
         $profiler = dom_debug_track_timing();
 
         if ($delta == 0) $delta = 1;
@@ -8277,54 +8268,26 @@
         $back_g  = hexdec(substr($back_rrggbb, 2, 2)) / 255;
         $back_b  = hexdec(substr($back_rrggbb, 4, 2)) / 255;
 
-        $ratio     = 0;
-        $percent   = 0;
-        $target    = ($delta > 0 ? 1 : 0);
-        $precision = 256;
+        $ratio       = 0;
+        $percent_min = 0;
+        $percent_max = 1;
+        $percent     = 0;
+        $depth       = 8;
 
-        $i = $precision;
-
-        while (--$i > 0)
+        while ($depth-- > 0)
         {
-            $ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r, $g, $b);
-        
-            if (!!$debug)
-            {
-              /*$comment_bgn = " /"."* ";
-                $comment_end = " *"."/ ";
-
-                if ($debug === "<!--") { $comment_bgn = "<!-- "; $comment_end = " //-->"; }
-
-                echo PHP_EOL.$comment_bgn.
-                    str_pad($i,3,"0",STR_PAD_LEFT)." : ".
-                    "$background (".($delta > 0 ? "++" : "--").") > ".
-                    "#$rrggbb (".   str_pad((int)(255*$r),3,"0",STR_PAD_LEFT).",".
-                                    str_pad((int)(255*$g),3,"0",STR_PAD_LEFT).",".
-                                    str_pad((int)(255*$b),3,"0",STR_PAD_LEFT).") => ".round($ratio,2)." / ".$contrast_ratio_target.$comment_end;*/
-            }
-
-            if ($ratio >= $contrast_ratio_target) break; 
-
-            if ($delta < 0 && $r <= 0 && $g <= 0 && $b <= 0) break;
-            if ($delta > 0 && $r >= 1 && $g >= 1 && $b >= 1) break;
-
-            $percent = max(0, min(1, $percent + 1.0 / (float)$precision));
+            $r = max(0, min(1, $r0 + (($delta > 0 ? 1 : 0) - $r0) * $percent));
+            $g = max(0, min(1, $g0 + (($delta > 0 ? 1 : 0) - $g0) * $percent));
+            $b = max(0, min(1, $b0 + (($delta > 0 ? 1 : 0) - $b0) * $percent));
             
-            $r = max(0, min(1, $r0 + ($target - $r0) * $percent));
-            $g = max(0, min(1, $g0 + ($target - $g0) * $percent));
-            $b = max(0, min(1, $b0 + ($target - $b0) * $percent));
-
-            if (!!$debug)
-            {
-              //echo PHP_EOL."(".str_pad($i,3,"0",STR_PAD_LEFT).") ".number_format($percent,2)." (".number_format($r,2).",".number_format($g,2).",".number_format($b,2).") = (".number_format($r0,2).",".number_format($g0,2).",".number_format($b0,2).") + (".(($delta > 0) ? "1" : "0")." - (".number_format($r,2).",".number_format($g,2).",".number_format($b,2).")) * ".number_format($percent,2)."";
-            }
-        }
+            $ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r, $g, $b);
+            if ($ratio < $contrast_ratio_target) $percent_min = $percent; else $percent_max = $percent;
+            $percent = 0.5 * ($percent_min + $percent_max);
+        } 
 
         $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
-
-        $final_ratio = $ratio;
 
         return "#".$rrggbb;
     }
