@@ -69,7 +69,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.6.7");
+    define("DOM_VERSION",   "0.6.8");
     define("DOM_AUTO",      "__DOM_AUTO__");    // ? migrate to null as auto param ?
 
     #endregion
@@ -1399,14 +1399,14 @@
     {
         if (!!$title && false === dom_get("title", false))
         {
-            $title = clean_from_tags($title);
+            $title = trim(clean_from_tags($title));
             dom_set("title", $title);
         }        
     }
 
     function hook_section($title)
     {
-        $title = clean_from_tags($title);
+        $title = trim(clean_from_tags($title));
         
         if (!!get("hook_section_filter"))
         {
@@ -1432,7 +1432,7 @@
     {
         if (!!$heading && false === dom_get("heading", false))
         {
-            $heading = clean_from_tags($heading);
+            $heading = trim(clean_from_tags($heading));
             dom_set("heading", $heading);
         }        
     }
@@ -1537,6 +1537,7 @@
         hook_amp_require("script");
         
         global $hook_amp_scripts;
+
         $hook_amp_scripts[] = $js;
     }
 
@@ -1586,7 +1587,7 @@
 
     // AMP CSS
     
-    $hook_amp_css = "";
+    $hook_amp_css = array();
 
     function hook_amp_css($css)
     {
@@ -1596,14 +1597,23 @@
         $css = str_replace("!important",                    '',                     $css);
         
         global $hook_amp_css;
-        $hook_amp_css .= $css;
+        $hook_amp_css[] = $css;
+
+        return dom_placeholder("AMP_CSS_".(count($hook_amp_css)-1));
     }
 
-    function _amp_css()
+    function _amp_css($_, $html)
     {
         global $hook_amp_css;
-        $hook_amp_css = css_postprocess($hook_amp_css);
-        return $hook_amp_css;
+        
+        $ordered_css = array();
+        foreach ($hook_amp_css as $i => $css) $ordered_css[stripos($html, dom_placeholder("AMP_CSS_$i"))] = $css;
+        ksort($ordered_css);
+        
+        $aggregated_css = "";
+        foreach ($ordered_css as $css) $aggregated_css .= dom_eol().css_postprocess($css);
+
+        return $aggregated_css;
     }
 
     // AMP Requirements
@@ -3809,7 +3819,7 @@
     }
 
     function dom_output($doc = "")
-    {   
+    {           
         if (!!dom_get("binary"))
         {
             die($doc);
@@ -3842,8 +3852,9 @@
             if (dom_get("compression") == "gzip") ob_start("ob_gzhandler");
 
             echo $doc;
+            
             cache_stop();
-
+        
             if ("html" == dom_get("doctype",false) && !!dom_get("debug"))
             {
                 echo dom_eol().comment("PHP Version: ".PHP_VERSION_ID);
@@ -4387,7 +4398,8 @@
     function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
     function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? dom_get("tumblr_blog")        : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
     function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? dom_get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
-    function url_amp                        ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(dom_is_localhost()?"#development=1":"");   }
+    
+    function dom_url_amp                    ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(dom_is_localhost()?"#development=1":"");   }
 
     function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
     function url_pinterest_search_by_tags   ($tags, $userdata = false)          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
@@ -4718,7 +4730,7 @@
                         
                         $html = str_replace(
                             dom_placeholder($delayed_component.$index),
-                            call_user_func($delayed_component, $param), 
+                            call_user_func($delayed_component, $param, $html), 
                             $html
                             );
                     }
@@ -4763,15 +4775,12 @@
 
             //  Return html
             
-                $welcome = "Welcome my fellow web developer!".(!get("beautify") ? " You can ?beautify=1 this source code if needed!" : "");
+                $welcome = "Welcome my fellow web developer!".((!dom_get("beautify") && !dom_get("static")) ? " You can ?beautify=1 this source code if needed!" : "");
                 
                 return raw_html('<!doctype html>'.comment($welcome)
                 
                 . dom_eol()
-                . dom_eol() . pan('<!--[if lt IE 7]>',      22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8 lt-ie7"', 40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . dom_eol() . pan('<!--[if IE 7]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9 lt-ie8"',        40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . dom_eol() . pan('<!--[if IE 8]>',         22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js lt-ie9"',               40).' lang="'.dom_get("lang","en").'"> '.pan('',     4).'<![endif]-->'
-                . dom_eol() . pan('<!--[if gt IE 8]><!-->', 22).' '.pan('<html '.((dom_AMP())?'amp ':'').'class="no-js"',                      40).' lang="'.dom_get("lang","en").'"> '.pan('<!--', 4).'<![endif]-->'
+                . dom_eol() . '<html'.((dom_AMP())?' amp':'').' class="no-js" lang="'.dom_get("lang","en").'"> '
                 . dom_eol()
                 . dom_eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
                   dom_eol()
@@ -4817,22 +4826,23 @@
             "./screen.css"
             );
 
-        return title()
+        return title().
 
-            . dom_eol(2) . comment("DOM Head Metadata")
-            . dom_eol(2) . metas()
-            . dom_eol(2) . link_rel_manifest()
+            dom_eol(2). comment("DOM Head Metadata").
+            dom_eol(2). metas().
+            dom_eol(2). link_rel_manifest().
             
-            . dom_eol(2) . comment("DOM Head styles")
-            . dom_eol(2) . link_styles($async_css)
-            . dom_eol(2) . styles()
-                                                                                . (!$path_css ? "" : (""
-            . dom_eol(2) . comment("DOM Head project-specific main stylesheet")     
-            . dom_eol(2) . dom_style($path_css)                                   ))
+            dom_eol(2). comment("DOM Head styles").
+            dom_eol(2). link_styles($async_css).
+            dom_eol(2). dom_boilerplate_style().
+                                                                                (!$path_css ? "" : (
+            dom_eol(2). comment("DOM Head project-specific main stylesheet").     
+            dom_eol(2). dom_style($path_css).                                   "")).
             
-            . dom_eol(2) . comment("DOM Head scripts")
-            . dom_eol(2) . scripts_head()
-            ;
+            dom_eol(2). comment("DOM Head scripts").
+            dom_eol(2). scripts_head().
+            
+            "";
     }
 
     function head($html = false, $async_css = false)
@@ -5115,11 +5125,10 @@
 
     function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes($attributes,$pan), false, true); }
     function link_rel($rel, $link, $type = false, $pan = 0)                 { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
-//  function link_style($link, $media = "screen")                           {                           return link_rel("stylesheet", $link, ($media === false) ? "text/css" : array("type" => "text/css", "media" => $media)); }
-    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return (dom_AMP() || !!dom_get("include_custom_css")) ? dom_style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
+    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return ((dom_AMP() && !((0 === stripos($link, "http")) || (0 === stripos($link, "//")))) || !!dom_get("include_custom_css")) ? dom_style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
 
-    function dom_style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_css($css); return dom_AMP() ? '' : (dom_tag('style',  $css                        )); }
-    function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); if (dom_AMP()) hook_amp_js($js);   return dom_AMP() ? '' : (dom_tag('script', $js, array("type" => $type) )); }
+    function dom_style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_css($css) : (dom_tag('style',  $css                        )); }
+    function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_js($js)   : (dom_tag('script', $js, array("type" => $type) )); }
     function script_src($src,                   $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                                                                        { return dom_script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
@@ -5309,7 +5318,7 @@
 
     .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
     .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-    .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; }
+    .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; vertical-align: middle; }
     .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--dom-gap); }
 
     .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
@@ -5525,9 +5534,9 @@
         <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);
     }
     
-    function styles()
+    function dom_boilerplate_style()
     {
-        return dom_style(include_css_boilerplate());
+        return dom_style(include_css_boilerplate(), false, DOM_AUTO, /* needs to be first*/true);
     }
 
     function scripts_head()
@@ -5558,8 +5567,19 @@
         }
 
         return dom_script(
+
             dom_eol(1) . '/*  Google analytics */ '.
-            dom_eol(2) . dom_tab() . 'window.ga=function(){ga.q.push(arguments)}; ga.q=[]; ga.l=+new Date; ga("create","'.TOKEN_GOOGLE_ANALYTICS.'","auto"); ga("send","pageview");'.
+
+            dom_eol(2) . dom_tab() . 'window.ga=function() { ga.q.push(arguments) };'.
+
+                ' ga.q=[];'.
+                ' ga.l=+new Date;'.
+
+                ' ga("create",'. ' "'.TOKEN_GOOGLE_ANALYTICS.'",'. ' "auto"'.   ');'.
+                ' ga("set",'.    ' "anonymizeIp",'.                ' true'.     ');'.
+                ' ga("set",'.    ' "transport",'.                  ' "beacon"'. ');'.
+                ' ga("send",'.   ' "pageview"'.                                 ');'.
+
             dom_eol(1)
             );
     }
@@ -6136,8 +6156,8 @@
             function updateSlickSlider()
             {
                 e = $(".slider");
-                e = e.not(".slick-initialized");
-                e = e.slick({"autoplay":true});
+                if (typeof(e) != 'undefined') e = e.not(".slick-initialized");
+                if (typeof(e) != 'undefined') e = e.slick({"autoplay":true});
             }
             
             function onInitSliders()
@@ -6296,10 +6316,13 @@
     #region WIP API : DOM : HTML COMPONENTS : MARKUP : BODY
     ######################################################################################################################################
 
-    function dom_html_comment($text) { return "<!-- $text //-->"; }
+    function dom_html_comment_bgn()  { return "<!-- ";  }
+    function dom_html_comment_end()  { return " //-->"; }
+    function dom_html_comment($text) { return dom_html_comment_bgn().$text.dom_html_comment_end(); }
 
     function comment($text)         { return (dom_has("rss")) ? "" : dom_html_comment($text); }
-    function dom_placeholder($text) { return                         dom_html_comment($text); }
+    
+    function dom_placeholder($text) { return dom_html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
 
     function dom_tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
     {
@@ -6628,9 +6651,7 @@
     }
     
     function google_photo_album($url, $wrapper = "div", $img_wrapper = "self", $link_to_google = true, $randomize = false)
-    {   
-        if (dom_AMP()) return a($url, $url, DOM_EXTERNAL_LINK);
-
+    {
         $results = json_google_photo_album_from_content($url);
 
         $photos  = dom_at($results, 1, array());
@@ -6646,7 +6667,7 @@
         {
             $photo_url = dom_at(dom_at($photo_result, 1), 0);
             
-            $images .= call_user_func($img_wrapper, $photo_url, img($photo_url, false, "Photo"), $i);
+            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"), $photo_url, $i);
         }
 
         $album = call_user_func($wrapper, $images);
@@ -6678,14 +6699,32 @@
 
         if ($target !== DOM_EXTERNAL_LINK)
         {
-            foreach (dom_get("forwarded_flags") as $forward_flag)
+            if (!!dom_get("static"))
             {
-                if (get($forward_flag) !== false
-                &&  false === stripos($extended_link,"?$forward_flag") 
-                &&  false === stripos($extended_link,"&$forward_flag") 
-                &&  0     !== stripos($extended_link,"#"))
+                if (false === stripos($extended_link, "?")
+                &&  false === stripos($extended_link, "&")
+                &&  false === stripos($extended_link, "#"))
                 {
-                    $extended_link = $extended_link . ((false === stripos($extended_link,"?")) ? "?" : "") . ("&$forward_flag=".get($forward_flag));
+                    foreach (dom_get("forwarded_flags") as $forward_flag)
+                    {
+                        if (!!dom_get($forward_flag) && (in_array($forward_flag, array("rss","json","tile","amp"))))
+                        {
+                            $extended_link = "$extended_link/$forward_flag";
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (dom_get("forwarded_flags") as $forward_flag)
+                {
+                    if (get($forward_flag) !== false
+                    &&  false === stripos($extended_link,"?$forward_flag") 
+                    &&  false === stripos($extended_link,"&$forward_flag") 
+                    &&  0     !== stripos($extended_link,"#"))
+                    {
+                        $extended_link .= ((false === stripos($extended_link,"?")) ? "?" : "") . ("&$forward_flag=".dom_get($forward_flag));
+                    }
                 }
             }
         }
@@ -6860,14 +6899,13 @@
                     dom_AMP() ? array() : array("alt" => $alt), 
                     array("width" => "100%", "controls" => "no")
                     )
-                ).
-            dom_attributes_add_class($attributes, "immediate")
+                )            
         );
     }
     
     // IMAGES
     
-    function picture($path_img, $path_sources = false, $attributes = false, $alt = false, $lazy = true, $lazy_src = false)
+  /*function picture($path_img, $path_sources = false, $attributes = false, $alt = false, $lazy = true, $lazy_src = false)
     {
         if (false === $path_sources) return img($path_img, $attributes, $alt, $lazy, $lazy_src);
         
@@ -6900,7 +6938,7 @@
 
     function source($path, $attributes = false, $alt = false, $lazy = true, $lazy_src = false, $content = '')
     {
-        $lazy = false; // UNECESSARY ?
+        $lazy = false; // UNNECESSARY ?
 
         if (is_array($path))
         {
@@ -6926,6 +6964,59 @@
 
         return ($lazy && !dom_AMP()) ? dom_tag(dom_AMP() ? ('amp-img layout="responsive" width='.$w.' height='.$h.'') : 'source', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), dom_AMP() ? array("srcset" => $lazy_src, "data-srcset" => $path) : array("type" => "image/$type", "srcset" => $lazy_src, "data-srcset" => $path))) . dom_attributes_add_class($attributes, "lazy"),         false, !dom_AMP() && $content == '')
                                      : dom_tag(dom_AMP() ? ('amp-img layout="responsive" width='.$w.' height='.$h.'') : 'source', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), dom_AMP() ? array("srcset"                             => $path) : array("type" => "image/$type", "srcset"                             => $path))) . dom_attributes_add_class($attributes, "immediate"),    false, !dom_AMP() && $content == '');
+    }*/
+    function picture($html, $attributes = false, $alt = false, $lazy = true, $lazy_src = false)
+    {
+        if (false === stripos($html, "<img")
+        &&  false === stripos($html, "<amp-img")) $html = img($html, false, $alt, $lazy, $lazy_src);
+
+        if (AMP())
+        {
+            $tag_bgn = dom_html_comment_bgn();
+            $tag_end = dom_html_comment_end();
+
+            $prefered_src = false;
+
+            while (true)
+            {
+                $pos_bgn = stripos($html, $tag_bgn); if (false === $pos_bgn) break;
+                $pos_end = stripos($html, $tag_end); if (false === $pos_end) break;
+
+                $prefered_src = trim(substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn)));
+                $html = substr($html, $pos_end + strlen($tag_end));
+            }
+
+            if ($prefered_src !== false)
+            {
+                return img($prefered_src, $attributes, $alt, false, false, $html);
+            }
+            else
+            {
+                return $html;
+            }
+        }
+        else
+        {
+            return dom_tag('picture', $html, $attributes);
+        }
+    }
+
+    function source($path)
+    {
+        if (AMP())
+        {
+            return dom_html_comment($path);
+        }
+        else
+        {
+            $src    = explode('?', $path);
+            $src    = $src[0];
+            $info   = pathinfo($src);
+            $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+            $type   = substr($ext,1); // ! TODO Find better solution
+
+            return dom_tag("source", "", array("type" => "image/$type", "srcset" => $path), false, true);
+        }
     }
     
     function img($path, $attributes = false, $alt = false, $lazy = true, $lazy_src = false, $content = '')
@@ -6956,8 +7047,45 @@
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
-        return ($lazy && !dom_AMP()) ? dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src" => $lazy_src, "data-src" => $path, "loading" => "lazy"))) . dom_attributes_add_class($attributes, "img img-responsive lazy loading"), false, !dom_AMP() && $content == '')
-                                     : dom_tag(dom_AMP() ? ('amp-img fallback layout="responsive" width='.$w.' height='.$h.'') : 'img', $content, dom_attributes(array_merge(dom_AMP() ? array() : array(/*"onError" => "this.src='".url_img_blank()."';",*/ "alt" => $alt), array("src"                          => $path)))                      . dom_attributes_add_class($attributes, "img img-responsive immediate"),    false, !dom_AMP() && $content == '');
+        if (AMP())
+        {
+            return dom_tag('amp-img'.               ($content =='' ? (
+                ' fallback'.                        '') : '').
+                ' layout'.  '='.'"responsive"'.
+                ' width'.   '='.$w.
+                ' height'.  '='.$h,
+                $content,
+                dom_attributes(array("src" => $path)).
+                dom_attributes_add_class($attributes, "img"),
+                false,
+                false
+                );
+        }
+        else
+        {
+            if ($lazy)
+            {
+                return dom_tag('img',
+                    $content,
+                  //dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" => $lazy_src, "data-src" => $path)).
+                    dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" => $path)).
+                  //dom_attributes_add_class($attributes, "img lazy loading"),
+                    dom_attributes_add_class($attributes, "img"),
+                    false,
+                    !dom_AMP() && $content == ''
+                    );
+            }
+            else
+            {
+                return dom_tag('img',
+                    $content,
+                    dom_attributes(array("alt" => $alt, "src" => $path)).
+                    dom_attributes_add_class($attributes, "img"),
+                    false,
+                    !dom_AMP() && $content == ''
+                    );
+            }
+        }
     }
     
     function img_svg($path, $attributes = false)
@@ -7291,11 +7419,12 @@
         
         $title = "";
         
-        if ($title_icon !== false && false === stripos($title_icon, "<img")) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false && false === stripos($title_link, "<a"))   $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
-        if ($title_main !== false && false === stripos($title_main, "<h"))   $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
-        if ($title_main !== false && false !== stripos($title_main, "<h"))   $title .=                 $title_main;
-        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))   $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_icon !== false && false === stripos($title_icon, "<img")
+                                  && false === stripos($title_icon, "<amp-img")) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
+        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+        if ($title_main !== false && false !== stripos($title_main, "<h"))       $title .=                 $title_main;
+        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         dom_hook_card_set_context("title", $title_main);
 
@@ -7608,7 +7737,7 @@
                 dom_tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
                 );
 
-            $html = span("","placeholder-amp-sidebar");
+            //$html = span("","placeholder-amp-sidebar");
         }
 
         return $html;
@@ -7766,7 +7895,7 @@
     function header_backgrounds_async()
     {
         if (dom_get("ajax") != "header-backgrounds") return "";
-        
+
         if (dom_has("support_header_backgrounds") && (false !== dom_get("support_header_backgrounds")))
         {
             if (is_string(dom_get("support_header_backgrounds")))
