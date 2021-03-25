@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+    'reference' => '83186f1acb0da8f8eb8f5a52a4052b55a2dd892b',
     'name' => 'villepreux/dom',
   ),
   'versions' => 
@@ -42,7 +42,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '1bd4d682518c011e854b92afd85246e3d694fcd1',
+      'reference' => '83186f1acb0da8f8eb8f5a52a4052b55a2dd892b',
     ),
   ),
 );
@@ -267,7 +267,6 @@ self::$canGetVendors = method_exists('Composer\Autoload\ClassLoader', 'getRegist
 $installed = array();
 
 if (self::$canGetVendors) {
-
 foreach (ClassLoader::getRegisteredLoaders() as $vendorDir => $loader) {
 if (isset(self::$installedByVendor[$vendorDir])) {
 $installed[] = self::$installedByVendor[$vendorDir];
