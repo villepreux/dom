@@ -11,7 +11,7 @@
     dom_init();
 
     dom_output(
-	
+
         html( // HTML document
 
             head(). // Header. Keeping defaults.
@@ -48,7 +48,7 @@
                 content( // My main content section
 
                     article( // Some random content
-                        h2("First Headline").
+                        anchor("here").h2("First Headline").
                         lorem_ipsum()
                         ).
 
@@ -116,6 +116,6 @@
         rss(). // I'm also interested in having a RSS feed and json-content from my content
         jsonfeed()
 
-	    );
+        );
 
 ?>

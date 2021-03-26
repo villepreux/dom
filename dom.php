@@ -281,9 +281,14 @@
 
             // If beyond root then stop here
 
-            $root_hint_file = "dom/dom.php"; // ! TODO WTF?
-
-            if (file_exists("$offset_path/$root_hint_file")) $search = false;
+            foreach (array("dom/dom.php", ".github") as $root_hint_file) // ! TODO WTF?
+            {
+                if (file_exists("$offset_path/$root_hint_file")) 
+                {
+                    $search = false;
+                    break;
+                }
+            }
 
             // If requested then search in parent folder
 
@@ -323,9 +328,10 @@
     ######################################################################################################################################
     
     // ! TODO Use more standard paths
-                                        @dom_include(dom_path("tokens.php"));
-    if (!function_exists("markdown"))   @dom_include(dom_path("php/vendor/markdown.php"));
-                                        @dom_include(dom_path("php/vendor/smartypants.php"));
+    
+    @dom_include(dom_path("tokens.php"));
+     dom_include(dom_path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
+     dom_include(dom_path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -393,10 +399,10 @@
 
         dom_set("icons_path",                       "img/icons/");
 
-        dom_set("background_color",                 "#FFF");
-        dom_set("theme_color",                      "#000");
-        dom_set("text_color",                       "#000");
-        dom_set("link_color",                       "#00F");
+        dom_set("background_color",                 "#FFFFFF");
+        dom_set("theme_color",                      "#00b0da");
+        dom_set("text_color",                       "#000000");
+        dom_set("link_color",                       "#0000FF");
         
         dom_set("header_height",                    "256px");
         dom_set("header_min_height",                  "0px");
@@ -1262,10 +1268,13 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
-    function dom_markdow($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = true, $markdown = true)
+    use Michelf\Markdown;
+    use Michelf\SmartyPants;
+        
+    function dom_markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = true, $markdown = true)
     {
-        if ($markdown)    $html = Markdown($text);
-        if ($smartypants) $html = SmartyPants($html);
+        if ($markdown)    $html = Markdown::defaultTransform($text);
+        if ($smartypants) $html = SmartyPants::defaultTransform($html);
         if ($hard_wrap)   $html = str_replace("\n", "<br>", $html);
 
         if (!!$no_header)
@@ -2560,6 +2569,8 @@
             $social_source = dom_at($source, 0);
             $username      = dom_at($source, 1);
 
+            if (0 === stripos($username,"#")) { $tags_in = substr($username,1); $username = false; }
+
             // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
             
             if (is_callable("array_".$social_source."_posts"))
@@ -2600,6 +2611,8 @@
             $source        = explode(":", $source);
             $social_source = dom_at($source, 0);
             $username      = dom_at($source, 1);
+
+            if (0 === stripos($username,"#")) { $tags_in = substr($username,1); $username = false; }
 
             // TODO handle the case of username that should contain multiple identifier (ex. pinterest)
             
@@ -4297,7 +4310,7 @@
 
         foreach ($__dom_generated as &$generated)
         { 
-            $generated["generate"] = true;
+            $generated["generate"] = !!dom_get("generate", true);
 
           //Unless generation is requested, do not generate each file that is already accessible
           //Even if it accesses a parent/inherited file

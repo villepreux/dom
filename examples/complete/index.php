@@ -2,7 +2,9 @@
 
     require_once(dirname(__FILE__)."/../../dom.php"); 
 
-    set("my_example_img_src", "https://images.unsplash.com/photo-1445586831130-7f00f5eac0f2"); // get/set can used as a helper
+    set("my_example_img_src", "https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1"); // get/set can used as a helper
+
+    define("TOKEN_FLICKR", "8359186a91acb42a4934c5a2c73195d1");
 
     dom_init();
 
@@ -47,7 +49,11 @@
 
                         h3("Social networks").
 
-                        grid(cards_async("socials", "posts", array("instagram:mimines_et_risettes"))).
+                        anchor("here").grid(
+
+                            cards_async("socials", "thumbs", array("flickr:#tokyonight"))
+
+                            ).
 
                         h3("Examples").
 
@@ -94,8 +100,8 @@
 
                     hr().
 
-                    //  p("Photo by ".a("A. L.",         "https://unsplash.com/@overdriv3",    DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       DOM_EXTERNAL_LINK)."")
-                        p("Photo by ".a("Cosmin Serban", "https://unsplash.com/@cosminserban", DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", DOM_EXTERNAL_LINK)."")
+                    //  p("Photo by ".a("A. L.",          "https://unsplash.com/@overdriv3", DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/s/photos/red",       DOM_EXTERNAL_LINK)."")
+                        p("Photo by ".a("Jezael Melgoza", "https://unsplash.com/@jezael",    DOM_EXTERNAL_LINK)." on ".a("Unsplash", "https://unsplash.com/photos/VmnOaiN2P90", DOM_EXTERNAL_LINK)."")
                 ).
 
                 footer(
