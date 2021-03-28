@@ -269,11 +269,17 @@
 
             if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") return $path.$param;
             if (0 === stripos($path, "http"))                             return $path.$param;
-  
+
             // If path exists then directly return it
 
             if (@file_exists($path))                                return $path.$param;
             if (($max_depth == $depth) && dom_url_exists($path))    return $path.$param;
+
+            if (!!dom_get("dom_htaccess_rewrite_php"))
+            {
+                if (@file_exists("$path.php"))                              return $path.$param;
+                if (($max_depth == $depth) && dom_url_exists("$path.php"))  return $path.$param;
+            }
 
             // If we have already searched too many times then return fallback
 
@@ -321,7 +327,7 @@
     #endregion
     #region HELPERS : PHP FILE INCLUDE
 
-    function dom_include($path) { if (!!$path) include($path); }
+    function dom_include($path) { if (!!$path) @include($path); }
 
     #endregion
     #region WIP DEPENDENCIES
@@ -356,7 +362,7 @@
 
         if (dom_is_localhost())
         {
-            @set_time_limit(10*60);
+            @set_time_limit(24*60*60);
             @ini_set('memory_limit', '-1');
         }
 
@@ -404,14 +410,10 @@
         dom_set("text_color",                       "#000000");
         dom_set("link_color",                       "#0000FF");
         
-        dom_set("header_height",                    "256px");
-        dom_set("header_min_height",                  "0px");
-        dom_set("header_toolbar_height",             "48px");
-            
-        dom_set("default_image_width",              "300");
-        dom_set("default_image_height",             "200");
+        dom_set("default_image_ratio_w",            "300");
+        dom_set("default_image_ratio_h",            "200");
 
-        dom_set("scrollbar_width",                  "17px");
+      //dom_set("scrollbar_width",                  "17px"); // It's a css env var
 
         dom_set("image",                            "image.jpg");
         dom_set("geo_region",                       "FR-75");
@@ -448,7 +450,7 @@
         dom_set("carousel",                         true);
             
         dom_set("version_normalize",                "7.0.0");
-        dom_set("version_sanitize",                "11.0.0");  
+        dom_set("version_sanitize",                "12.0.1");  
         dom_set("version_material",                "0.38.2"); // latest => SimpleMenu got broken in 0.30.0 => Got fixed in CSS => latest => Broken in 0.39.0 => 0.38.0
         dom_set("version_bootstrap",                "4.1.1");
         dom_set("version_spectre",                  "x.y.z");
@@ -1209,7 +1211,7 @@
                     array_shift($e_args);
                 }
 
-                $e = call_user_func_array($transform, array_merge(array($e), $e_args));
+                $e = call_user_func_array($transform, array_merge(array($e), $e_args, array($i)));
             }
             
             $html .= (($i++ > 0) ? $glue : '') . $e;
@@ -3796,6 +3798,8 @@
         ,   "png"       => 'image/png'
         ,   "json"      => 'application/json'
         ,   "html"      => 'text/html'
+        ,   "css"       => 'text/css'
+        ,   "js"        => 'text/javascript'
         ,   "csv"       => 'text/csv'           . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.csv') : '')
         ,   "zip"       => 'application/zip'    . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.zip') : '')
         );
@@ -4827,15 +4831,10 @@
     {
         $profiler = dom_debug_track_timing();
 
-        $path_css = dom_path_coalesce(
-            
-            "./css/main.css.php",
+        $path_css = dom_path_coalesce(            
             "./css/main.css",
-            "./main.css.php",
             "./main.css",
-            "./css/screen.css.php",
             "./css/screen.css",
-            "./screen.css.php",
             "./screen.css"
             );
 
@@ -4849,8 +4848,10 @@
             dom_eol(2). link_styles($async_css).
             dom_eol(2). dom_boilerplate_style().
                                                                                 (!$path_css ? "" : (
-            dom_eol(2). comment("DOM Head project-specific main stylesheet").     
-            dom_eol(2). dom_style($path_css).                                   "")).
+            dom_eol(2). comment("DOM Head project-specific main stylesheet").   (!dom_get("dom_htaccess_rewrite_php") ? (
+            dom_eol(2). dom_style($path_css).                                   "") : (
+            dom_eol(2). link_style($path_css).                                  "")).
+                                                                                "")).
             
             dom_eol(2). comment("DOM Head scripts").
             dom_eol(2). scripts_head().
@@ -4937,7 +4938,7 @@
     {
         $profiler = dom_debug_track_timing();
 
-        if (!$path_manifest) $path_manifest = dom_path_coalesce("manifest.json.php", "manifest.json");
+        if (!$path_manifest) $path_manifest = dom_path("manifest.json");
         if (!$path_manifest) return "";
 
         return link_rel("manifest", $path_manifest, $type, $pan);
@@ -5156,11 +5157,10 @@
     function link_style_google_fonts($fonts = false, $async = true)
     {    
         if ($fonts === false) $fonts = dom_get("fonts");
-        
-        if (!!$fonts) { if (0 === stripos($fonts, '|')) $fonts = substr($fonts,1); }
+        if (!!$fonts)         $fonts = str_replace(' ','+', trim($fonts, ", /|"));
 
-        return            (!!$fonts ? link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts), "screen", $async) : '')
-            . dom_eol() . (true     ? link_style('https://fonts.googleapis.com/icon?family=Material+Icons',               "screen", $async) : '');
+        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "screen", $async) : '')
+            . dom_eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
     }
     
     function link_styles($async = false, $fonts = false)
@@ -5169,19 +5169,21 @@
 
         if ($fonts === false) $fonts = dom_get("fonts");
 
-        $path_normalize         = dom_path("css/normalize.min.css");
-        $path_sanitize          = dom_path("css/sanitize.min.css");
-        $path_h5bp              = dom_path("css/h5bp/main.css");
-        $path_material          = dom_path("css/material-components-web.min.css");
-        $path_bootstrap         = dom_path("css/bootstrap.min.css");
-        $path_google_fonts      = dom_path("css/google-fonts.css");
-        $path_material_icons    = dom_path("css/material-icons.css");
-        $path_slick             = dom_path("css/slick.css");
-        $path_slick_theme       = dom_path("css/slick-theme.css");
+        $inline_css = dom_get("dom_inline_css", false);
+
+        $path_normalize         = !$inline_css ? false : dom_path("css/normalize.min.css");
+        $path_sanitize          = !$inline_css ? false : dom_path("css/evergreen.min.css");
+        $path_h5bp              = !$inline_css ? false : dom_path("css/h5bp/main.css");
+        $path_material          = !$inline_css ? false : dom_path("css/material-components-web.min.css");
+        $path_bootstrap         = !$inline_css ? false : dom_path("css/bootstrap.min.css");
+        $path_google_fonts      = !$inline_css ? false : dom_path("css/google-fonts.css");
+        $path_material_icons    = !$inline_css ? false : dom_path("css/material-icons.css");
+        $path_slick             = !$inline_css ? false : dom_path("css/slick.css");
+        $path_slick_theme       = !$inline_css ? false : dom_path("css/slick-theme.css");
 
         return                                                                                                                                                                                                                                                                                         (("normalize" == dom_get("normalize")) ? (""
             .               ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
-            .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                        "screen", false     ))         ) : "")
+            .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/evergreen.min.css',                       "screen", false     ))         ) : "")
         //  .   dom_eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
                                                                                                                                                                                                                                                                                                      . (("material"  == dom_get("framework")) ? (""
             .   dom_eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == dom_get("framework")) ? (""
@@ -5189,7 +5191,7 @@
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                              ? (""
-            .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', $fonts),                                                                 "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
+            .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                                     "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
             .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "") . (!!dom_get("support_sliders", false)   ? (""
             .   dom_eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick.css',                               "screen", $async    ))
             .   dom_eol() . ($path_slick_theme    ? link_style($path_slick_theme    , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick-theme.css',                         "screen", $async    ))         ) : "")
@@ -5258,21 +5260,19 @@
                 <?= env("link_color",               dom_get("link_color")                   ) ?> 
                 <?= env("background_color",         dom_get("background_color")             ) ?> 
                 
-                <?= env("header_height",            dom_get("header_height")                ) ?> 
-                <?= env("header_min_height",        dom_get("header_min_height")            ) ?> 
-                <?= env("header_toolbar_height",    dom_get("header_toolbar_height")        ) ?> 
+                <?= env("default_image_ratio_w",    dom_get("default_image_ratio_w", 300)   ) ?> 
+                <?= env("default_image_ratio_h",    dom_get("default_image_ratio_h", 200)   ) ?> 
+                <?= env("default_image_ratio",      "calc(var(--default-image-ratio-w) / ".
+                                                         "var(--default-image-ratio-h))"    ) ?> 
                 
-                <?= env("main_max_width",           "1200px"                                ) ?> 
-                
-                <?= env("dom_gap",                  "10px"                                  ) ?> 
-                
-                <?= env("default_image_width",      dom_get("default_image_width",  300)    ) ?> 
-                <?= env("default_image_height",     dom_get("default_image_height", 200)    ) ?> 
-                <?= env("default_image_ratio",      "calc(var(--default-image-width) / var(--default-image-height))") ?> 
-                
-                <?= env("scrollbar_width",          "17px") ?> 
+                <?= env("header_height",             "256px" ) ?> 
+                <?= env("header_min_height",           "0px" ) ?> 
+                <?= env("header_toolbar_height",      "48px" ) ?>                 
 
-                <?= env("svg_size",                 "24px") ?> 
+                <?= env("main_max_width",           "1200px" ) ?>                 
+                <?= env("dom_gap",                    "10px" ) ?>                 
+                <?= env("scrollbar_width",            "17px" ) ?> 
+                <?= env("svg_size",                   "24px" ) ?> 
 
                 <?php $css = "";
 
@@ -5290,6 +5290,25 @@
                 
                 echo $css; ?> 
             }
+
+            /* Sanitize ++ */
+
+            html {
+                height: 100%;
+                height: -webkit-fill-available;
+                block-size: -webkit-fill-available;
+                block-size: stretch;
+                }
+            body {
+                min-height: 100%;
+                min-height: -webkit-fill-available;
+                min-block-size: -webkit-fill-available;
+                min-block-size: stretch;
+                }
+            nav li:before {
+                content: "\200B";
+                position: absolute;
+                }
 
             /* Font stack */
 
@@ -6295,7 +6314,9 @@
 
     function dom_script_third_parties()
     {
-        $jquery_local_filename = dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
+        $inline_js = dom_get("dom_inline_js", false);
+
+        $jquery_local_filename = !$inline_js ? false : dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
 
         return  ((!dom_AMP() && $jquery_local_filename) ?                script_src($jquery_local_filename) :                 
                                                                          script_src('https://code.jquery.com/jquery-'                   . dom_get("version_jquery")    . (is_localhost() ? '' : '.min').'.js',      false, 'async id="jquery" crossorigin="anonymous"')) // Special case because, for now, relyng on jquery for on_ready and on_loaded core events
@@ -6408,7 +6429,11 @@
         . dom_eol(2) . comment("DOM Body scripts")
         . dom_eol(2) . scripts_body()
         . dom_eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
-        . dom_eol(2) . ($app_js ? dom_script($app_js) : '')
+        
+                                                                    .((!dom_get("dom_htaccess_rewrite_php")) ? (""
+        . dom_eol(2) . ($app_js ? dom_script($app_js) : '')         ) : (""
+        . dom_eol(2) . ($app_js ? script_src($app_js) : '')         ))
+
         . dom_eol(2) . $html_post_scripts
 
         . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
@@ -6589,13 +6614,13 @@
             .'?'    .'showTitle'        .'=0'
             .'&amp;'.'showPrint'        .'=0'
             .'&amp;'.'showCalendars'    .'=0'
-            .'&amp;'.'showTz'            .'=0'
-            .'&amp;'.'height'            .'='.$h.''
-            .'&amp;'.'wkst'                .'=2'
-            .'&amp;'.'bgcolor'            .'=%23FFFFFF'
-            .'&amp;'.'src'                .'='.$id.'%40group.calendar.google.com'
+            .'&amp;'.'showTz'           .'=0'
+            .'&amp;'.'height'           .'='.$h.''
+            .'&amp;'.'wkst'             .'=2'
+            .'&amp;'.'bgcolor'          .'=%23FFFFFF'
+            .'&amp;'.'src'              .'='.$id.'%40group.calendar.google.com'
             .'&amp;'.'color'            .'=%2307bdcb'
-            .'&amp;'.'ctz'                .'=Europe%2FParis';
+            .'&amp;'.'ctz'              .'=Europe%2FParis';
         }
         
         if (dom_AMP()) return a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
@@ -6970,8 +6995,8 @@
         
         $lazy_src = ($lazy_src === false) ? url_img_loading() : $lazy_src;
 
-        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_width",  300);
-        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_height", 200);
+        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_ratio_w",  300);
+        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_ratio_h", 200);
 
         if (!!dom_get("no_js")) $lazy = false;
 
@@ -7053,8 +7078,8 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_width",  300);
-        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_height", 200);
+        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_ratio_w", 300);
+        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_ratio_h", 200);
 
         if (!!dom_get("no_js")) $lazy = false;
 
@@ -7270,8 +7295,10 @@
 
     function url_img_unsplash($id, $w = false, $h = false, $author = false)
     {
-        if ($w === false) $w = get("default_image_width");
-        if ($h === false) $h = get("default_image_height");
+        if ($w === false) $w = get("default_image_ratio_w");
+        if ($h === false) $h = get("default_image_ratio_h");
+
+        if ($w < 100) { $w *= 100; $h *= 100; } // pure ratio to dimensions
 
                         $id     = trim($id);
         if (!!$author)  $author = trim($author);
