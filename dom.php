@@ -287,7 +287,7 @@
 
             // If beyond root then stop here
 
-            foreach (array("dom/dom.php", ".github") as $root_hint_file) // ! TODO WTF?
+            foreach (dom_get("dom_root_hints", array()) as $root_hint_file)
             {
                 if (file_exists("$offset_path/$root_hint_file")) 
                 {
@@ -333,11 +333,10 @@
     #region WIP DEPENDENCIES
     ######################################################################################################################################
     
-    // ! TODO Use more standard paths
-    
-    @dom_include(dom_path("tokens.php"));
-     dom_include(dom_path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
-     dom_include(dom_path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));
+   @dom_include(dom_path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
+
+   @dom_include(dom_path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
+   @dom_include(dom_path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -391,7 +390,7 @@
 
     function dom_init_options()
     {
-        // ! TODO prefix all variables with dom_
+        // TODO prefix all variables with dom_
 
         // Cannot be modified at browser URL level
 
@@ -463,7 +462,8 @@
         
         dom_set("cache_time",                       1*60*60); // 1h
 
-        dom_set("forwarded_flags",                  array("amp","contrast","light","no_js","rss"));
+        dom_set("dom_forwarded_flags",              array("amp","contrast","light","no_js","rss"));
+        dom_set("dom_root_hints",                   array(".git", ".github", ".well-known"));
 
         // Can be modified at browser URL level
 
@@ -3626,21 +3626,8 @@
         return trim(dom_str_replace_all(array("\r\n","\r","\t","\n",'  ','    ','     '), ' ', $html));
     }
 
-    function minify_js($js) // TODO : FIX (URLs are removed as comments)
+    function minify_js($js)
     {
-    //  $js = preg_replace("/((?:\/\*(?:[^*]|(?:\*+[^*\/]))*\*+\/)|(?:\/\/.*))/",   '',                     $js);
-    //  $js =  str_replace(array("\r\n","\r","\t","\n",'  ','    ','     '),        '',                     $js);
-    //  $js = preg_replace(array('(( )+\))','(\)( )+)'),                            ')',                    $js);
-    //  $js = preg_replace(array('/\>[^\S ]+/s','/[^\S ]+\</s','/(\s)+/s'),         array('>','<','\\1'),   $js);
-
-    //  foreach (array(
-    //
-    //      'MULTILINE_COMMENT'     => '\Q/*\E[\s\S]+?\Q*/\E',
-    //      'SINGLELINE_COMMENT'    => '(?:http|ftp)s?://(*SKIP)(*FAIL)|//.+',
-    //      'WHITESPACE'            => '^\s+|\R\s*'
-    //      
-    //      ) as $key => $expr) $js = preg_replace('~'.$expr.'~m', '', $js);
-
         if (false !== stripos($js, "//")) return $js;
         
         $js = dom_str_replace_all("\n  ",   "\n ",  $js);
@@ -4180,91 +4167,6 @@
             </html>
 
         <?php dom_heredoc_flush("raw_html", $force_minify); ?></html><?php return dom_heredoc_stop(null);
-    } 
-
-    function string_service_worker____OLD($beautify = false)
-    {
-        // TODO : Check TOKEN_GOOGLE_ANALYTICS
-        
-        dom_heredoc_start(-3); ?><script><?php dom_heredoc_flush(null); ?>
-    
-            importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");
-
-            if (workbox)
-            {
-                const LOCALHOST = ("localhost" == self.location.host);
-
-                const VERSION = "<?= DOM_VERSION ?>";
-
-                const  cache_prefix = "<?= strtoupper(dom_to_classname(dom_get("canonical"))) ?>";
-                const  cache_suffix = VERSION;
-                
-                const FALLBACK_HTML_URL = "<?= dom_get('canonical') ?>/offline.html";
-                const FALLBACK_IMG_URL  = "<?= dom_get('canonical') ?>/loading.svg";
-                
-                if (LOCALHOST) console.log("DOM: Worbox debugging");
-                workbox.setConfig({debug: LOCALHOST});
-                    
-              /*self.addEventListener("message", (event) => { if (event.data && event.data.type === "SKIP_WAITING")  { workbox.core.skipWaiting();  } });
-                self.addEventListener("message", (event) => { if (event.data && event.data.type === "CLIENTS_CLAIM") { workbox.core.clientsClaim(); } });*/
-
-                self.addEventListener("install", (event) => { event.waitUntil(caches.open(workbox.core.cacheNames.runtime).then((cache) => cache.addAll([
-                
-                  /*FALLBACK_HTML_URL,*/
-                    FALLBACK_IMG_URL
-                
-                ]))); });
-
-                workbox.core.setCacheNameDetails({ prefix: cache_prefix, suffix: cache_suffix, precache: "precache", runtime: "runtime" /*, googleAnalytics: "ga"*/ });
-                workbox.core.clientsClaim();
-
-                self.skipWaiting();
-
-              /*workbox.googleAnalytics.initialize(); // Moved as said in https://github.com/GoogleChrome/workbox/issues/2375 */
-
-                var expiration = new workbox.expiration.ExpirationPlugin({ maxEntries: 1000, maxAgeSeconds: 365 * 24 * 60 * 60, purgeOnQuotaError: true });
-
-              /*workbox.routing.registerRoute(new RegExp(".+\\.js$"),                       new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-js"     + "-" + cache_suffix, plugins: [expiration] }));*/
-                workbox.routing.registerRoute(new RegExp(".+\\.css$"),                      new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-css"    + "-" + cache_suffix, plugins: [expiration] }));
-                workbox.routing.registerRoute(new RegExp("\.(?:png|jpg|jpeg|svg|gif)$"),    new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-images" + "-" + cache_suffix, plugins: [expiration] }));
-                workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.NetworkFirst(         { cacheName: cache_prefix + "-" + "cache-POST"   + "-" + cache_suffix, plugins: [expiration] }), "POST");
-                workbox.routing.registerRoute(new RegExp("[\s\S]*"),                        new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-GET"    + "-" + cache_suffix, plugins: [expiration] }), "GET");
-                workbox.routing.setDefaultHandler(                                          new workbox.strategies.StaleWhileRevalidate( { cacheName: cache_prefix + "-" + "cache-OTHERS" + "-" + cache_suffix, plugins: [expiration] }));
-
-                workbox.routing.setCatchHandler(function(event) 
-                {
-                    if (event && !event.request && event.event) event = event.event;
-
-                    if (event && event.request && event.request.destination)
-                    {
-                        var default_html = '<?= string_loading_html(/* force minify */true) ?>';
-
-                        switch (event.request.destination)
-                        { 
-                            case "style":       break;
-                            case "script":      break;
-                          /*case "document":    return caches.match(FALLBACK_HTML_URL);*/
-                            case "document":    return new Response(default_html, { headers: {"content-type": "text/html"} } );
-                            case "audio":       break;
-                            case "video":       break;
-                            case "manifest":    break;
-                            case "image":       return caches.match(FALLBACK_IMG_URL);
-                            case "font":        break;
-                            case "unknown":     return new Response(default_html, { headers: {"content-type": "text/html"} } );
-                        }
-                    }
-
-                    return Response.error();
-                });
-
-              /*workbox.googleAnalytics.initialize(); // Moved as said in https://github.com/GoogleChrome/workbox/issues/2375 */
-            } 
-            else 
-            {
-                console.log("DOM: Could not load workbox framework!");
-            }
-
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
     function string_service_worker($beautify = false)
@@ -5083,6 +4985,7 @@
                                                                 .   'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
                                                                
             // TODO FIX HREFLANG ALTERNATE
+            // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
                 // Placeholder for 3rd parties who look for a css <link> in order to insert something before
             .   (!AMP() ? (dom_eol(2) . '<link rel="stylesheet" type="text/css" media="screen"/>') : "")
@@ -5416,7 +5319,8 @@
 
             /* Other utilities */    
             
-            .app-install                                    { display: none }
+            .app-install, .app-install.hidden               { display: none }
+            .app-install.visible                            { display: inline-block }
 
             /* Until there is a better method that is not interfering with margin and padding of the element, use anchor dedicated tag insertion */
         
@@ -5694,12 +5598,15 @@
                     console.log("DOM: Before Install Prompt");
                     e.preventDefault();
                     deferredPrompt = e;
-                    $(".app-install").css({"display": "inline-block"}); /* TODO change this hardcoded style by a class */
+
+                    $(".app-install").removeClass("hidden"); 
+                    $(".app-install").addClass("visible");
                 });
                 
                 $(".app-install").on("click", function(e)
                 {
-                    $(".app-install").css({"display": "none"}); 
+                    $(".app-install").removeClass("visible"); 
+                    $(".app-install").addClass("hidden"); 
                     
                     if (deferredPrompt != null)
                     {
@@ -6137,7 +6044,7 @@
 
             dom_on_ready( onUpdateToolbarHeight);
             dom_on_loaded(onUpdateToolbarHeight);
-            dom_on_scroll(onUpdateToolbarHeight); 
+            dom_on_scroll(onUpdateToolbarHeight);
 
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -6585,6 +6492,8 @@
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
 
+        // ! TODO loading=lazy only if not mansonry and not explicitly requested (means turn param defautl into false)
+
         $lazy = !AMP()/* && !dom_get("no_js")*/;
 
         $w = ($w === false) ? "1200" : $w;
@@ -6598,7 +6507,7 @@
             .(!!$title   ? (' title="'.$title  .'"') : '')
             .(!!$classes ? (' class="'.$classes.'"') : '')
             .($lazy ?                        ' loading="lazy" src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
-          //.($lazy ? ' src="about:blank" loading="lazy" data-src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
+
             .dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>')
             .'</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
     }
@@ -6743,7 +6652,7 @@
                 &&  false === stripos($extended_link, "&")
                 &&  false === stripos($extended_link, "#"))
                 {
-                    foreach (dom_get("forwarded_flags") as $forward_flag)
+                    foreach (dom_get("dom_forwarded_flags") as $forward_flag)
                     {
                         if (!!dom_get($forward_flag) && (in_array($forward_flag, array("rss","json","tile","amp"))))
                         {
@@ -6754,7 +6663,7 @@
             }
             else
             {
-                foreach (dom_get("forwarded_flags") as $forward_flag)
+                foreach (dom_get("dom_forwarded_flags") as $forward_flag)
                 {
                     if (get($forward_flag) !== false
                     &&  false === stripos($extended_link,"?$forward_flag") 
@@ -7101,6 +7010,8 @@
         }
         else
         {
+            // ! TODO loading=lazy only if not mansonry and not explicitly requested (means turn param defautl into false)
+    
             if ($lazy)
             {
                 return dom_tag('img',
