@@ -5293,6 +5293,8 @@
             picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
             figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
 
+            img, picture, iframe                            { background-image: url(<?= dom_path("img/loading.svg") ?>); background-repeat: no-repeat; background-position: center; }
+
             /* Grid */
 
             .grid                                           { display: grid; grid-gap: var(--dom-gap); }
@@ -6492,24 +6494,27 @@
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
 
-        // ! TODO loading=lazy only if not mansonry and not explicitly requested (means turn param defautl into false)
-
-        $lazy = !AMP()/* && !dom_get("no_js")*/;
-
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
 
         hook_amp_require("iframe");
 
-        $classes = (!!$lazy) ? ((!$classes) ? "lazy" : "lazy $classes") : $classes;
+        return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
+             (!!$title   ? (' title'            .'="'.$title        .'"') : '').
+             (!!$classes ? (' class'            .'="'.$classes      .'"') : '').
+             (!AMP()     ? (' loading'          .'="'.'lazy'        .'"') : '').
+                            ' src'              .'="'.$url          .'"'.
+                            ' width'            .'="'.$w            .'"'.
+                            ' height'           .'="'.$h            .'"'.
+                            ' layout'           .'="'.'responsive'  .'"'.
+                            ' frameborder'      .'="'.'0'           .'"'.
+                            ' style'            .'="'.'border:0;'   .'"'.
+                            ' allowfullscreen'  .'="'.''            .'"'.
+                            '>'.
 
-        return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')
-            .(!!$title   ? (' title="'.$title  .'"') : '')
-            .(!!$classes ? (' class="'.$classes.'"') : '')
-            .($lazy ?                        ' loading="lazy" src="' : ' src="').$url.'"'.' width="'.$w.'" height="'.$h.'" layout="responsive" frameborder="0" style="border:0;" allowfullscreen="">'
-
-            .dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>')
-            .'</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
+            dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>').
+            
+            '</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
     }
 
     function google_calendar($id, $w = false, $h = false)
@@ -6802,7 +6807,7 @@
     
     // VIDEOS
     
-    function video($path, $attributes = false, $alt = false, $lazy = true)
+    function video($path, $attributes = false, $alt = false, $lazy = DOM_AUTO)
     {
         if (is_array($path)) 
         {
@@ -6852,67 +6857,7 @@
     
     // IMAGES
     
-  /*function picture($path_img, $path_sources = false, $attributes = false, $alt = false, $lazy = true, $lazy_src = false)
-    {
-        if (false === $path_sources) return img($path_img, $attributes, $alt, $lazy, $lazy_src);
-        
-        if (dom_AMP())
-        {
-            $path_sources = is_array($path_sources) ? $path_sources : array($path_sources);
-            $path_source  = $path_sources[0];
-
-            $img = img($path_img, $attributes, $alt, false, false);
-            
-            return source($path_source, $attributes, $alt, false, false, $img);
-        }
-        else
-        {
-            $sources = '';
-            {
-                $path_sources = is_array($path_sources) ? $path_sources : array($path_sources);
-                
-                foreach ($path_sources as $path_source)
-                {
-                    $sources .= source($path_source, $attributes, $alt, $lazy, $lazy_src);
-                }
-            }
-            
-            $img = img($path_img, $attributes, $alt, $lazy, $lazy_src);
-            
-            return dom_tag('picture', $sources . $img);
-        }
-    }
-
-    function source($path, $attributes = false, $alt = false, $lazy = true, $lazy_src = false, $content = '')
-    {
-        $lazy = false; // UNNECESSARY ?
-
-        if (is_array($path))
-        {
-            return wrap_each($path, "", "source", true, $attributes, $alt, $lazy);
-        }
-
-        if ($path === false) return '';
-
-        $info     = explode('?', $path);
-        $info     = $info[0];
-        $info     = pathinfo($info);
-        $ext      = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
-        $codename = urlencode(basename($path, $ext));
-        $alt      = ($alt === false) ? $codename : $alt;
-        $type     = substr($ext,1);
-        
-        $lazy_src = ($lazy_src === false) ? url_img_loading() : $lazy_src;
-
-        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_ratio_w",  300);
-        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_ratio_h", 200);
-
-        if (!!dom_get("no_js")) $lazy = false;
-
-        return ($lazy && !dom_AMP()) ? dom_tag(dom_AMP() ? ('amp-img layout="responsive" width='.$w.' height='.$h.'') : 'source', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), dom_AMP() ? array("srcset" => $lazy_src, "data-srcset" => $path) : array("type" => "image/$type", "srcset" => $lazy_src, "data-srcset" => $path))) . dom_attributes_add_class($attributes, "lazy"),         false, !dom_AMP() && $content == '')
-                                     : dom_tag(dom_AMP() ? ('amp-img layout="responsive" width='.$w.' height='.$h.'') : 'source', $content, dom_attributes(array_merge(dom_AMP() ? array() : array("alt" => $alt), dom_AMP() ? array("srcset"                             => $path) : array("type" => "image/$type", "srcset"                             => $path))) . dom_attributes_add_class($attributes, "immediate"),    false, !dom_AMP() && $content == '');
-    }*/
-    function picture($html, $attributes = false, $alt = false, $lazy = true, $lazy_src = false)
+    function picture($html, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false)
     {
         if (false === stripos($html, "<img")
         &&  false === stripos($html, "<amp-img")) $html = img($html, false, $alt, $lazy, $lazy_src);
@@ -6966,7 +6911,7 @@
         }
     }
     
-    function img($path, $attributes = false, $alt = false, $lazy = true, $lazy_src = false, $content = '')
+    function img($path, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '')
     {
         if (is_array($path)) 
         {
@@ -6990,7 +6935,7 @@
         $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_ratio_w", 300);
         $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_ratio_h", 200);
 
-        if (!!dom_get("no_js")) $lazy = false;
+        if (!!dom_get("no_js") && $lazy === true) $lazy = DOM_AUTO;
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
@@ -7010,30 +6955,11 @@
         }
         else
         {
-            // ! TODO loading=lazy only if not mansonry and not explicitly requested (means turn param defautl into false)
-    
-            if ($lazy)
-            {
-                return dom_tag('img',
-                    $content,
-                  //dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" => $lazy_src, "data-src" => $path)).
-                    dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" => $path)).
-                  //dom_attributes_add_class($attributes, "img lazy loading"),
-                    dom_attributes_add_class($attributes, "img"),
-                    false,
-                    !dom_AMP() && $content == ''
-                    );
-            }
-            else
-            {
-                return dom_tag('img',
-                    $content,
-                    dom_attributes(array("alt" => $alt, "src" => $path)).
-                    dom_attributes_add_class($attributes, "img"),
-                    false,
-                    !dom_AMP() && $content == ''
-                    );
-            }
+                 if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+            else if (true     === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
+            else                         $attributes = dom_attributes(array("alt" => $alt,                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+
+            return dom_tag('img', $content, $attributes, false, $content == '');
         }
     }
     
@@ -7420,59 +7346,59 @@
 
     function card_from_metadata($metadata, $attributes = false)
     {
-    //  CARD INFO FROM METADATA
-    
-        $source   = dom_at($metadata, "TYPE",       "instagram");
-        $lazy     = dom_at($metadata, "LAZY",       false);
-        $userdata = dom_at($metadata, "userdata",   false);
-        
+        // CARD INFO FROM METADATA
+
+        $source   = dom_at($metadata, "TYPE",     "instagram");
+        $lazy     = dom_at($metadata, "LAZY",     DOM_AUTO);
+        $userdata = dom_at($metadata, "userdata", false);
+
         $short_label = extract_start(dom_at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
-        
+
         $data = array();
-        
+
         $data["content"] = dom_has($metadata, "post_embed") ? $metadata["post_embed"] : '';
-        
+
         if (dom_has($metadata, "post_img_url"))
         {
             if (is_array(dom_at($metadata, "post_img_url")))
             {
                 $images = "";
-                
+
                 foreach (dom_at($metadata, "post_img_url") as $post_img_url)
                 {
                     $images .= div(img($post_img_url, false, $short_label, $lazy));
                 }
-                
+
                 $data["content"] = div($images, "slider");
             }
             else
             {
                 if (false === $metadata["post_img_url"]) $metadata["post_img_url"] = dom_at($metadata, "user_img_url");
                 if (false === $metadata["post_img_url"]) $metadata["post_img_url"] = url_img_blank();
-                
+
                      if (false !== stripos($metadata["post_img_url"], ".mp4"))      $data["content"] = video($metadata["post_img_url"], false, $short_label, false);
                 else if (false !== stripos($metadata["post_img_url"], "<iframe"))   $data["content"] = $metadata["post_img_url"];
                 else                                                                $data["content"] = img($metadata["post_img_url"], false, $short_label, $lazy);
             }
         }
-    
+
         $data["content"]        = (dom_has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, DOM_EXTERNAL_LINK)                                  : $data["content"];
         $data["content"]        =  dom_has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], dom_eol(), "div")) : $data["content"];
 
         $data["title_main"]     = dom_at($metadata, "post_title");
         $data["title_img_src"]  = dom_at($metadata, "user_img_url");
         $data["title_link"]     = dom_at($metadata, "user_url");  
-        
+
         if ("" === $data["title_main"]) $data["title_main"] = dom_get("title");
 
         $data["title_sub"]      =  dom_has($metadata, "post_timestamp") ? span_datepublished(date("d/m/y", dom_at($metadata, "post_timestamp")),           dom_at($metadata, "post_timestamp")  ) 
                                 : (dom_has($metadata, "post_date")      ? span_datepublished(              dom_at($metadata, "post_date", ''  ), strtotime(dom_at($metadata, "post_date"))      ) : '');
-        
+
         $data["title_sub"]      = dom_has($metadata, "user_name")       ? cat($data["title_sub"],' ',span_author(span_name($metadata["user_name"]))) : $data["title_sub"];
         $data["title_sub"]      = dom_has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, DOM_EXTERNAL_LINK)                              : $data["title_sub"];
-        
+
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
-        
+
         $data["desc"]           = dom_has($metadata, "post_text") ? div_articlebody((is_callable("add_hastag_links_$source") ? call_user_func("add_hastag_links_$source", dom_at($metadata, "post_text"), $userdata) : '')) : false;
 
         if (false !==                         dom_at($metadata,"post_url",false)
@@ -7558,7 +7484,7 @@
     {
     //  IMG INFO FROM METADATA
     
-        $lazy        = dom_at($metadata, "LAZY", false);        
+        $lazy        = dom_at($metadata, "LAZY", DOM_AUTO);        
         $short_label = extract_start(dom_at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
         
         return img($metadata["post_img_url"], $attributes, $short_label, $lazy);
