@@ -6491,7 +6491,7 @@
         
     }
         
-    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy)
+    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = DOM_AUTO)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
