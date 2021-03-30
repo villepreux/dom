@@ -6491,7 +6491,7 @@
         
     }
         
-    function iframe($url, $title = false, $classes = false, $w = false, $h = false)
+    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
@@ -6500,18 +6500,32 @@
         $h = ($h === false) ?  "675" : $h;
 
         hook_amp_require("iframe");
+        
+        if (AMP()) $lazy = false;
+
+        $src_attributes = ' src="'.$url.'"';
+        if ($lazy === true) $src_attributes = ' data-src="'.$url.'" src="'.url_loading().'"';
+        
+        $lazy_attributes = "";
+
+        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy"';
+        if ($lazy === true)     $lazy_attributes = ' lazy loading';
 
         return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
+
              (!!$title   ? (' title'            .'="'.$title        .'"') : '').
-             (!!$classes ? (' class'            .'="'.$classes      .'"') : '').
-             (!AMP()     ? (' loading'          .'="'.'lazy'        .'"') : '').
-                            ' src'              .'="'.$url          .'"'.
+             (!!$classes ? (' class'            .'="'.$classes      .'"') : '') .
+             
+                            $lazy_attributes.             
+                            $src_attributes.
+
                             ' width'            .'="'.$w            .'"'.
                             ' height'           .'="'.$h            .'"'.
                             ' layout'           .'="'.'responsive'  .'"'.
                             ' frameborder'      .'="'.'0'           .'"'.
                             ' style'            .'="'.'border:0;'   .'"'.
                             ' allowfullscreen'  .'="'.''            .'"'.
+
                             '>'.
 
             dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>').
@@ -6544,12 +6558,12 @@
         return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
     }
         
-    function google_map($embed_url, $w = false, $h = false)
+    function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
     {
-        return iframe($embed_url, "Google Map", "google-map", $w, $h);
+        return iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy);
     }
         
-    function google_doc($id, $w = false, $h = false)
+    function google_doc($id, $w = false, $h = false, $lazy = DOM_AUTO)
     {
         $src = $id;
 
@@ -6558,10 +6572,10 @@
             $src = "https://docs.google.com/document/$id/pub?embedded=true";
         }
 
-        return iframe($src, "Google Doc", "google-doc", $w, $h);
+        return iframe($src, "Google Doc", "google-doc", $w, $h, $lazy);
     }
        
-    function google_video($id, $w = false, $h = false)
+    function google_video($id, $w = false, $h = false, $lazy = DOM_AUTO)
     {
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
@@ -6575,7 +6589,7 @@
         {        
             $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
 
-            return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').' title="Google Video" src="'.$url.'" height="'.$h.'" width="'.$w.'" layout="responsive" scrolling="no" frameborder="0" allowfullscreen=""></'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
+            return div_aspect_ratio(iframe($url, "Google Video", "google-video", $w, $w, $lazy), $w, $h);
         }
     }
         
