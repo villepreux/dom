@@ -465,6 +465,8 @@
         dom_set("dom_forwarded_flags",              array("amp","contrast","light","no_js","rss"));
         dom_set("dom_root_hints",                   array(".git", ".github", ".well-known"));
 
+        dom_set("dom_img_lazy_loading_after",       3);
+
         // Can be modified at browser URL level
 
         dom_set("canonical",                        dom_get("canonical",    dom_url()                   ));
@@ -6955,6 +6957,15 @@
         }
         else
         {
+            $img_nth = dom_get("dom_img_nth", 1);
+            
+            if ($img_nth <= dom_get("dom_img_lazy_loading_after"))
+            {
+                $lazy = false;
+            }
+
+            dom_set("dom_img_nth", $img_nth + 1);
+
                  if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
             else if (true     === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
             else                         $attributes = dom_attributes(array("alt" => $alt,                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
