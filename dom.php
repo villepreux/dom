@@ -455,8 +455,6 @@
         dom_set("version_spectre",                  "x.y.z");
         dom_set("version_popper",                  "1.11.0");
         dom_set("version_jquery",                   "3.6.0"); // Was 3.5.1 / Was 3.2.1
-        dom_set("version_slick",                    "1.6.0");  
-      //dom_set("version_slick",                    "1.5.8"); // TRYING TO FIX 1.6.0 on iPhone
         dom_set("version_prefixfree",               "1.0.7");
         dom_set("version_h5bp",                     "7.1.0");
         
@@ -513,7 +511,6 @@
     function dom_ajax_placeholder   ($ajax_params, $html = "")                          { return div($html, dom_ajax_classes($ajax_params)); }
     
     function dom_ajax_classes       ($ajax_params, $extra = false)                      { return "ajax-container ajax-container-".dom_to_classname($ajax_params).(($extra !== false) ? (" ajax-container-".dom_to_classname($extra)) : ""); }
-  //function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) {                      $(".ajax-container-'.dom_to_classname($ajax_params).'").fadeOut("slow", function() { $(this).replaceWith(content); $(this).fadeIn("slow"); dom_on_ajax_reception(); }); }, '.$period.'); </script>'; }
     function dom_ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? dom_ajax_placeholder($ajax_params) : $placeholder) . '<script>dom_ajax("'.dom_ajax_url($ajax_params).'", function(content) { document.querySelector(".ajax-container-'.dom_to_classname($ajax_params).'").outerHTML = content; dom_on_ajax_reception(); }, '.$period.'); </script>'; }
 
     function dom_ajax_call          ($f)                                                { $args = func_get_args(); return dom_ajax_call_FUNC_ARGS($f, $args); }
@@ -711,8 +708,26 @@
                         if(cb) { cb(); } else { cb = true; } 
                         }, mindelay);
                 }
+
+                fetch(url, { method: 'GET' })
+                    .then(response => response.text())
+                    .then(data => { 
+                        
+                    if (onsuccess) {
+                            if (cb) { onsuccess(data); }
+                            else    { cb = function() { onsuccess(data); }; }
+                            }    
+
+                    
+                    if (period > 0) {
+                        setTimeout(function() {
+                            dom_ajax(url, onsuccess, period, onstart, mindelay);
+                            }, period);
+                        }
+
+                     });
             
-                $.ajax
+              /*$.ajax
                 ({
                     url:    url
                 ,   type:  "GET"
@@ -732,7 +747,7 @@
                                 }, period);
                             }
                         }
-                });
+                });*/
             };
             
             var dom_pop_ajax_call = function()
@@ -740,9 +755,6 @@
                 if ((typeof dom_ajax_pending_calls !== "undefined") && dom_ajax_pending_calls.length > 0)
                 {
                     var ajax_pending_call = dom_ajax_pending_calls.pop();
-
-                    console.log("DOM: DEBUG: AJAX pending call");
-                    console.log(ajax_pending_call);
             
                     <?php if (!!dom_get("debug")) { ?> console.log("DOM: Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?> 
                     dom_process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
@@ -5083,8 +5095,6 @@
         $path_bootstrap         = !$inline_css ? false : dom_path("css/bootstrap.min.css");
         $path_google_fonts      = !$inline_css ? false : dom_path("css/google-fonts.css");
         $path_material_icons    = !$inline_css ? false : dom_path("css/material-icons.css");
-        $path_slick             = !$inline_css ? false : dom_path("css/slick.css");
-        $path_slick_theme       = !$inline_css ? false : dom_path("css/slick-theme.css");
 
         return                                                                                                                                                                                                                                                                                         (("normalize" == dom_get("normalize")) ? (""
             .               ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
@@ -5097,9 +5107,7 @@
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
             .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                              ? (""
             .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                                     "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
-            .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "") . (!!dom_get("support_sliders", false)   ? (""
-            .   dom_eol() . ($path_slick          ? link_style($path_slick          , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick.css',                               "screen", $async    ))
-            .   dom_eol() . ($path_slick_theme    ? link_style($path_slick_theme    , "screen", $async) : link_style('https://cdn.jsdelivr.net/jquery.slick/'                    . dom_get("version_slick")     . '/slick-theme.css',                         "screen", $async    ))         ) : "")
+            .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "")
             ;
     }
     
@@ -5494,7 +5502,7 @@
 
     function back_to_top_link()
     {
-        return dom_eol(2) . a("▲", !get("no_js") ? url_void() : "#top", "cd-top");
+        return dom_eol(2) . a("▲", url_void(), "cd-top");
     }
 
     function dom_script_google_analytics_snippet()
@@ -5603,31 +5611,38 @@
                     e.preventDefault();
                     deferredPrompt = e;
 
-                    $(".app-install").removeClass("hidden"); 
-                    $(".app-install").addClass("visible");
+                    document.querySelectorAll(".app-install").forEach(function (e) { 
+                        e.classList.remove("hidden");
+                        e.classList.add("visible");
+                        });
                 });
                 
-                $(".app-install").on("click", function(e)
-                {
-                    $(".app-install").removeClass("visible"); 
-                    $(".app-install").addClass("hidden"); 
+                document.querySelectorAll(".app-install").forEach(function (e) { 
                     
-                    if (deferredPrompt != null)
+                    e.addEventListener("click", function(e)
                     {
-                        deferredPrompt.prompt();
+                        document.querySelectorAll(".app-install").forEach(function (e) { 
+                            e.classList.remove("visible");
+                            e.classList.add("hidden");
+                            });
                         
-                        deferredPrompt.userChoice.then(function(choiceResult)
+                        if (deferredPrompt != null)
                         {
-                            if (choiceResult.outcome === "accepted") console.log("DOM: User accepted the A2HS prompt");
-                            else                                     console.log("DOM: User dismissed the A2HS prompt");
+                            deferredPrompt.prompt();
                             
-                            deferredPrompt = null;
-                        });
-                    }
-                    else
-                    {
-                        console.log("DOM: Install promt callback not received yet");
-                    }
+                            deferredPrompt.userChoice.then(function(choiceResult)
+                            {
+                                if (choiceResult.outcome === "accepted") console.log("DOM: User accepted the A2HS prompt");
+                                else                                     console.log("DOM: User dismissed the A2HS prompt");
+                                
+                                deferredPrompt = null;
+                            });
+                        }
+                        else
+                        {
+                            console.log("DOM: Install promt callback not received yet");
+                        }
+                    }); 
                 }); 
             }; 
 
@@ -5866,23 +5881,6 @@
             
             console.log("DOM: Register images handlers");
             
-          /*function dom_on_load(e, handler)
-            {
-                if (e.length > 0)
-                {
-                    e.one("load", function() { handler(this);                                 })
-                    .each(        function() { if(this.complete) { $(this).trigger("load"); } });
-                }
-            }
-            
-            function dom_on_each(e, handler)
-            {
-                if (e.length > 0)
-                {
-                    e.each(function() { handler(this); });
-                }
-            }*/
-
             var dom_interaction_observer = null;
                 
             function dom_on_img_error(e)
@@ -5890,30 +5888,30 @@
                 var e = this;
 
                 /* Cleanup any loading state markup */
-                
-                $(e).removeClass("loading"); 
-                $(e).removeClass("reloading"); 
-                $(e).removeClass("loaded"); 
-                $(e).removeClass("failed"); 
 
-                $(e).removeClass("lazy");
-                $(e).removeClass("lazy-observed");
-                $(e).removeClass("lazy-loaded");
+                e.classList.remove("loading"); 
+                e.classList.remove("reloading"); 
+                e.classList.remove("loaded"); 
+                e.classList.remove("failed"); 
+
+                e.classList.remove("lazy");
+                e.classList.remove("lazy-observed");
+                e.classList.remove("lazy-loaded");
 
                 /* Make it a lazy loading image with additionnal 'reloading' tag */
 
-                $(e).attr("data-src", $(e).attr("src"));
-                $(e).attr("src", "<?= url_img_loading() ?>");
+                e.setAttribute("data-src", e.getAttribute("src"));
+                e.setAttribute("src",      "<?= url_img_loading() ?>");
 
-                $(e).addClass("loading");
-                $(e).addClass("reloading");
+                e.classList.add("loading");
+                e.classList.add("reloading");
 
-                $(e).addClass("lazy");
+                e.classList.add("lazy");
                 
                 setTimeout(function () { 
 
-                    $(e).removeClass("lazy");
-                    $(e).addClass("lazy-observed");
+                    e.classList.remove("lazy");
+                    e.classList.add("lazy-observed");
                     
                     dom_interaction_observer.observe(e); 
 
@@ -5925,71 +5923,71 @@
                 for (change of changes) {
                     
                     if (change.isIntersecting)
-                    {
-                        $(change.target).filter("[data-src]").each(function (i, e) {
-                                
-                            $(e).parent().find("source[data-srcset]").each(function(j, src) 
-                            {
-                                var datasrcset = $(src).attr("data-srcset");
+                    {     
+                        if (change.target.hasAttribute("data-src"))
+                        {
+                            change.target.parentElement.querySelectorAll("source[data-srcset]").forEach(function (source) { 
 
-                                $(src).removeAttr("srcset");
-                                $(src).removeAttr("data-srcset");
+                                var datasrcset = source.getAttribute("data-srcset");
 
-                                $(src).removeClass("lazy");
+                                source.removeAttribute("srcset");
+                                source.removeAttribute("data-srcset");
+
+                                source.classList.remove("lazy");
                                 
-                                $(src).attr("srcset", datasrcset);
+                                source.setAttribute("srcset", datasrcset);
                             });
 
-                            var datasrc = $(e).attr("data-src");
+                            var datasrc = change.target.getAttribute("data-src");
 
-                            $(e).removeAttr("src");
-                            $(e).removeAttr("data-src");
-                                                                <?php if (!dom_get("dom_lazy_unload")) { ?>
-                            $(e).removeClass("lazy-observed"); 
-                            $(e).removeClass("lazy");           <?php } ?> 
-                            $(e).removeClass("loading"); 
+                            change.target.removeAttribute("src");
+                            change.target.removeAttribute("data-src");
+                                                                    <?php if (!dom_get("dom_lazy_unload")) { ?>
+                            change.target.classList.remove("lazy-observed"); 
+                            change.target.classList.remove("lazy");            <?php } ?> 
+                            change.target.classList.remove("loading"); 
 
-                            $(e).addClass("lazy-loaded"); 
-                            $(e).addClass("loaded"); 
+                            change.target.classList.add("lazy-loaded"); 
+                            change.target.classList.add("loaded"); 
 
-                            $(e).attr("src", datasrc);
+                            change.target.setAttribute("src", datasrc);
                         
-                        });                                     <?php if (!dom_get("dom_lazy_unload")) { ?>
+                        };                                          <?php if (!dom_get("dom_lazy_unload")) { ?>
                         
-                        observer.unobserve(change.target);      <?php } ?> 
+                        observer.unobserve(change.target);          <?php } ?> 
                     }                                           
                     else
                     {                                                                       <?php if (!!dom_get("dom_lazy_unload")) { ?>
-                        $(change.target).filter(".lazy-loaded").each(function (i, e) {
+                        if (change.target.classList.contains("lazy-loaded")) {
+    
+                            change.target.parentElement.querySelectorAll("source[srcset]").forEach(function (source) {
                                 
-                            $(e).parent().find("source[srcset]").each(function(j, src) 
-                            {
-                                $(src).removeAttr("data-srcset");
-                                $(src).attr("data-srcset", $(src).attr("srcset"));
-                                $(src).removeAttr("srcset");
+                                source.removeAttribute("data-srcset");
+                                source.setAttribute("data-srcset", source.getAttribute("srcset"));
+                                source.removeAttribute("srcset");
 
-                                $(src).addClass("lazy");
+                                source.classList.add("lazy");
                             });
 
-                            $(e).removeAttr("data-src");
-                            $(e).attr("data-src", $(e).attr("src"));
-                            $(e).removeAttr("src");
-                            $(e).attr("src", "<?= url_img_loading() ?>");
+                            change.target.removeAttribute("data-src");
+                            change.target.setAttribute("data-src", change.target.getAttribute("src"));
+                            change.target.removeAttribute("src");
+                            change.target.setAttribute("src", "<?= url_img_loading() ?>");
 
-                            $(e).removeClass("lazy-loaded"); 
+                            change.target.classList.remove("lazy-loaded");
 
-                            $(e).addClass("loading"); 
-                            $(e).removeClass("loaded"); 
+                            change.target.classList.add("loading");
+                            change.target.classList.remove("loaded");
                                                                             
-                        });                                                                 <?php } ?> 
+                        }                                                                   <?php } ?> 
                     }
                 };
             };
                 
-            function dom_observe_lazy_element(i,e)
-            {                
-                $(e).removeClass("lazy");
-                $(e).addClass("lazy-observed");
+            function dom_observe_lazy_element(e,i)
+            {
+                e.classList.remove("lazy");
+                e.classList.add("lazy-observed");
 
                 dom_interaction_observer.observe(e);        
             }
@@ -5999,15 +5997,15 @@
                 console.log("DOM: Scanning images");
 
                 /* Handle images loading errors */
-                $(".img").on("error", dom_on_img_error);
+                document.querySelectorAll(".img").forEach(function (e) { e.addEventListener("error", dom_on_img_error); });
 
                 /* Scan for lazy elements and make them observed elements */
-                $("source.lazy[data-srcset]").each(dom_observe_lazy_element);
-                $(   "img.lazy[data-src]"   ).each(dom_observe_lazy_element);
-                $("iframe.lazy[data-src]"   ).each(dom_observe_lazy_element);
-            };
-            
-            dom_on_loaded(function () {  
+                document.querySelectorAll("source.lazy[data-srcset]" ).forEach(dom_observe_lazy_element);
+                document.querySelectorAll(   "img.lazy[data-src]"    ).forEach(dom_observe_lazy_element);
+                document.querySelectorAll("iframe.lazy[data-src]"    ).forEach(dom_observe_lazy_element);
+            }
+
+            dom_on_loaded(function () {
 
                 /* Create images intersection observer */
                 var options = { rootMargin: '100px 100px 100px 100px' };
@@ -6032,17 +6030,26 @@
         
             function onUpdateToolbarHeight()
             {
-                if ($(".toolbar-row-banner")[0])
+                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
+                var toolbars            = document.querySelectorAll(".toolbar");
+
+                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
+                var toolbar             = toolbars            ? toolbars[0]            : null;
+
+                if (toolbar != null && toolbar_row_banner != null)
                 {
-                    var header_max_height = $(".toolbar-row-banner").css("max-height").replace("px","");
-                    var header_min_height = $(".toolbar-row-banner").css("min-height").replace("px","");
+                    var header_max_height = window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px","");
+                    var header_min_height = window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px","");
           
                     var stuck_height = header_max_height - header_min_height;
+
+                    if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
+                    else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
           
-                    if ($(window).scrollTop() > stuck_height) { $(".toolbar").addClass(   "scrolled"); $(".toolbar").removeClass("top"); }
-                    else                                      { $(".toolbar").removeClass("scrolled"); $(".toolbar").addClass(   "top"); }
-          
-                    $(".toolbar-row-banner").css("height", header_max_height - $(window).scrollTop());
+                    var toolbar_row_banner_height = Math.max(0, header_max_height - window.scrollY);
+
+                    toolbar_row_banner.style.height = toolbar_row_banner_height + "px";
+
                 }
             }
 
@@ -6059,56 +6066,54 @@
             
             /*  BACK TO TOP BUTTON */
             
-            var $back_to_top                    = null;
-            var  back_to_top_offset             =  300;
-            var  back_to_top_offset_opacity     = 1200;
-            var  back_to_top_scroll_duration    =  700;
+            var back_to_top_offset          =  300;
+            var back_to_top_offset_opacity  = 1200;
+            var back_to_top_scroll_duration =  700;
             
             function onUpdateBackToTopButton()
             {
-                ($(window).scrollTop() > back_to_top_offset) ? $back_to_top.addClass("cd-is-visible") : $back_to_top.removeClass("cd-is-visible cd-fade-out");
-            
-                if ($(window).scrollTop() > back_to_top_offset_opacity)
+                var back_to_top = document.querySelector(".cd-top");
+
+                if (window.scrollY > back_to_top_offset) 
                 {
-                    $back_to_top.addClass("cd-fade-out");
+                    back_to_top.classList.add("cd-is-visible")
+                }
+                else
+                {
+                    back_to_top.classList.remove("cd-is-visible");
+                    back_to_top.classList.remove("cd-fade-out");
+                }
+            
+                if (window.scrollY > back_to_top_offset_opacity)
+                {
+                    back_to_top.classList.add("cd-fade-out");
                 }
             }
-            
-            dom_on_ready(function() {
-
-                $back_to_top = $(".cd-top");
-                $back_to_top.on("click", function(event) {
-                    
-                    event.preventDefault();
-                    $("body,html").animate({ scrollTop: 0 }, back_to_top_scroll_duration);
-                
-                    });
-                });
 
             dom_on_scroll(onUpdateBackToTopButton);
         
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
-    function dom_js_slick_slider()
+    function dom_js_sliders()
     {
         dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
                 
-            /* SLICK SLIDERS */
+            /* SLIDERS */
             
-            function updateSlickSlider()
+            function updateSlider()
             {
-                e = $(".slider");
-                if (typeof(e) != 'undefined') e = e.not(".slick-initialized");
-                if (typeof(e) != 'undefined') e = e.slick({"autoplay":true});
             }
             
-            function onInitSliders()
+            function initSliders()
             {
-                setTimeout(function() { setInterval(updateSlickSlider, 500); }, 100);
+                document.querySelectorAll(".slider").forEach(function (e) { 
+
+                    /* TODO */
+                });
             }
 
-            dom_on_loaded(onInitSliders);
+            dom_on_loaded(initSliders);
             
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -6134,8 +6139,15 @@
                         {
                             setInterval(function()
                             {
-                                $(".toolbar-row-banner").css("background-image", "url(" + urls[index_url] + ")");
-                                index_url = (index_url + 1) % urls.length;
+                                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
+                                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
+
+                                if (toolbar_row_banner)
+                                {
+                                    toolbar_row_banner.style.backgroundImage = "url(" + urls[index_url] + ")";
+                                    index_url = (index_url + 1) % urls.length;
+                                }
+
             
                             }, 10*1000);
                         }
@@ -6206,20 +6218,13 @@
 
             /* DOM INTERNAL READY AND LOADED CALLBACK MECHANISM */
 
-          /*window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
+            window.addEventListener("load",               function(event) { dom_on_init_event("loaded"); } );
             if (document.readyState != "loading")                         { dom_on_init_event("ready");  }
-            else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );*/
-
-            document.getElementById('jquery').addEventListener('load', function () {
-                    
-                $(document).ready(   function() { dom_on_init_event("ready");  } );
-                $(window).on("load", function() { dom_on_init_event("loaded"); } );
-            
-                $(window).scroll(function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_scroll_callbacks); } });
-                $(window).resize(function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_resize_callbacks); } });
-
-            });
+            else document.addEventListener("DOMContentLoaded", function() { dom_on_init_event("ready");  } );
         
+            window.addEventListener("scroll", function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_scroll_callbacks); } });
+            window.addEventListener("resize", function() { if (dom_event_ready && dom_event_loaded) { dom_process_callbacks(dom_resize_callbacks); } });
+
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
@@ -6227,14 +6232,13 @@
     {
         $inline_js = dom_get("dom_inline_js", false);
 
-        $jquery_local_filename = !$inline_js ? false : dom_path('js/jquery-'.dom_get("version_jquery").'.min.js');
+        $jquery_local_filename = !$inline_js ? false : dom_path('js/jquery-'.dom_get("version_jquery").(is_localhost() ? '' : '.min').'.js');
 
-        return  ((!dom_AMP() && $jquery_local_filename) ?                script_src($jquery_local_filename) :                 
-                                                                         script_src('https://code.jquery.com/jquery-'                   . dom_get("version_jquery")    . (is_localhost() ? '' : '.min').'.js',      false, 'async id="jquery" crossorigin="anonymous"')) // Special case because, for now, relyng on jquery for on_ready and on_loaded core events
-            .   dom_if(dom_get("support_sliders", false),   dom_eol(2) . script_src('https://cdn.jsdelivr.net/jquery.slick/'            . dom_get("version_slick")     . '/slick.min.js',                           false, "async"))
-            .   dom_if("material"  == dom_get("framework"), dom_eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web.min.js',    false, "async"))
-            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper.min.js',                      false, "async"))
-            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap.min.js',                    false, "async"))
+        return/*((!dom_AMP() && $jquery_local_filename) ?                script_src($jquery_local_filename) :                 
+                                                                         script_src('https://code.jquery.com/jquery-'                   . dom_get("version_jquery")                                     .(is_localhost() ? '' : '.min').'.js', false, 'async id="jquery" crossorigin="anonymous"')) // Special case because, for now, relyng on jquery for on_ready and on_loaded core events
+            . */dom_if("material"  == dom_get("framework"), dom_eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web'.(is_localhost() ? '' : '.min').'.js', false, "async"))
+            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async"))
+            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap'                .(is_localhost() ? '' : '.min').'.js', false, "async"))
             ;
     }
     
@@ -6248,8 +6252,8 @@
                 dom_eol(2).dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_toolbar",            true)) ? (
                 dom_eol(2).dom_script(dom_js_toolbar                 ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
                 dom_eol(2).dom_script(dom_js_back_to_top             ()).   "") : ""). ((!!dom_get("dom_script_images_loading",     true)) ? (
-                dom_eol(2).dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",              false)) ? (
-                dom_eol(2).dom_script(dom_js_slick_slider            ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
+                dom_eol(2).dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",               true)) ? (
+                dom_eol(2).dom_script(dom_js_sliders                 ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
                 dom_eol(2).dom_script(dom_js_toolbar_banner_rotation ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
                 dom_eol(2).dom_script(dom_js_service_worker          ()).   "") : ""). ((!!dom_get("dom_script_pwa_install",        true)) ? (
                 dom_eol(2).dom_script(dom_js_pwa_install             ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
@@ -6504,7 +6508,7 @@
         if (AMP()) $lazy = false;
 
         $src_attributes = ' src="'.$url.'"';
-        if ($lazy === true) $src_attributes = ' data-src="'.$url.'" src="'.url_loading().'"';
+        if ($lazy === true) $src_attributes = ' data-src="'.$url.'" src="'.url_img_loading().'"';
         
         $lazy_attributes = "";
 
