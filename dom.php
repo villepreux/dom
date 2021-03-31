@@ -91,7 +91,7 @@
     {
         function getallheaders()
         {
-            $headers = [];
+            $headers = array();
 
             foreach ($_SERVER as $name => $value)
             {
