@@ -69,7 +69,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.6.8");
+    define("DOM_VERSION",   "0.6.9");
     define("DOM_AUTO",      "__DOM_AUTO__");    // ? migrate to null as auto param ?
 
     #endregion
@@ -327,7 +327,11 @@
     #endregion
     #region HELPERS : PHP FILE INCLUDE
 
-    function dom_include($path) { if (!!$path) @include($path); }
+    function dom_include($path)
+    {
+        if (!!$path) @include($path);
+        return "";
+    }
 
     #endregion
     #region WIP DEPENDENCIES
@@ -1003,7 +1007,7 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function dom_content($urls, $timeout = 7)
+    function dom_content($urls, $timeout = 7, $auto_fix = true)
     {
         if (is_array($urls))
         {
@@ -1046,9 +1050,15 @@
 
             curl_close($curl);
         }
-        else
+
+        if (!$content || $content == "") $content = @file_get_contents($url);
+
+        if ($auto_fix)
         {
-            $content = file_get_contents($url);
+            if (!$content || $content == "") $content = dom_content(dom_url().$url,     $timeout, false);
+          //if (!$content || $content == "") $content = dom_content(dom_path($url),     $timeout, false);
+            if (!$content || $content == "") $content = dom_content(dom_url()."/".$url, $timeout, false);
+          //if (!$content || $content == "") $content = dom_content(dom_path("/".$url), $timeout, false);
         }
 
         if (!$content)
@@ -1059,6 +1069,13 @@
         return $content;
     }
 
+    function dom_main_content($path)
+    {
+        if (false === stripos($path, "?")) $path .= "?";
+        $path .= "&dom_main=1";
+        return dom_content($path);
+    }
+    
     function dom_array_open_url($urls, $content_type = 'json', $timeout = 7)
     {
         $content = dom_content($urls, $timeout);
@@ -1482,6 +1499,20 @@
     {
         global $hook_body;
         return $hook_body;
+    }
+
+    // Images
+
+    $dom_hook_images = array();
+    
+    function dom_hook_img($src)
+    {
+        global $dom_hook_images;
+
+        if (!in_array($src, $dom_hook_images))
+        {
+            $dom_hook_images[] = $src;
+        }
     }
 
     // Links
@@ -3203,7 +3234,7 @@
         ,   "userdata"          => $blogname
         ,   "user_name"         => dom_at($item, "name")
         ,   "user_url"          => dom_at($item, "url")
-        ,   "user_img_url"      => url_tumblr_avatar($blogname,64)
+        ,   "user_img_url"      => url_tumblr_avatar($blogname, 64)
         ,   "post_title"        => dom_at($item, "title")
         ,   "post_text"         => dom_at($item, "description")
         ,   "post_timestamp"    => dom_at($item, "updated")
@@ -3764,12 +3795,17 @@
         }
     }
 
-    dom_init_php();
-    dom_init_options();
-    dom_init_internals();
+    if (!dom_has("dom_main"))
+    {
+        dom_init_php();
+        dom_init_options();
+        dom_init_internals();
+    }
 
     function dom_init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
+        if (dom_has("dom_main")) return;
+
         if ($doctype    === false) { $doctype   = "html";  }
         if ($encoding   === false) { $encoding  = "utf-8"; }
 
@@ -3842,47 +3878,50 @@
         {
             die($doc);
         }
-        else
+
+        if (dom_has("dom_main"))
         {
-            if ("html" == dom_get("doctype", false))
-            {
-                if (false === stripos($doc, "<html") && !dom_has("ajax")) $doc = html($doc);
-            }
-
-            if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), _rss      (true), $doc);
-            if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), _jsonfeed (true), $doc);
-            if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), _tile     (true), $doc);
-            
-            if (false !== stripos($doc, "DOM_HOOK_RSS_0"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), _rss      (false), $doc);
-            if (false !== stripos($doc, "DOM_HOOK_JSONFEED_0" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), _jsonfeed (false), $doc);
-            if (false !== stripos($doc, "DOM_HOOK_TILE_0"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), _tile     (false), $doc);
-        
-            $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), "", $doc);
-            $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), "", $doc);
-            $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), "", $doc);
-        
-            $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), "", $doc);
-            $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), "", $doc);
-            $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), "", $doc);
-
-            $doc .= generate_all(dom_get("beautify"));
-
-            if (dom_get("compression") == "gzip") ob_start("ob_gzhandler");
-
-            echo $doc;
-            
-            cache_stop();
-        
-            if ("html" == dom_get("doctype",false) && !!dom_get("debug"))
-            {
-                echo dom_eol().comment("PHP Version: ".PHP_VERSION_ID);
-                echo dom_eol().comment("DOM Profiling:".PHP_EOL."    ".wrap_each(dom_debug_timings(), PHP_EOL."    ").PHP_EOL);
-            }
-
-            generate_all_postprocess();
-
-            if (dom_get("compression") == "gzip") ob_end_flush();
+            die();
         }
+
+        if ("html" == dom_get("doctype", false))
+        {
+            if (false === stripos($doc, "<html") && !dom_has("ajax")) $doc = html($doc);
+        }
+
+        if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), _rss      (true), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), _jsonfeed (true), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), _tile     (true), $doc);
+        
+        if (false !== stripos($doc, "DOM_HOOK_RSS_0"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), _rss      (false), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_0" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), _jsonfeed (false), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_TILE_0"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), _tile     (false), $doc);
+    
+        $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), "", $doc);
+        $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), "", $doc);
+        $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), "", $doc);
+    
+        $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), "", $doc);
+        $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), "", $doc);
+        $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), "", $doc);
+
+        $doc .= generate_all(dom_get("beautify"));
+
+        if (dom_get("compression") == "gzip" && !dom_has("dom_main")) ob_start("ob_gzhandler");
+
+        echo $doc;
+        
+        cache_stop();
+    
+        if ("html" == dom_get("doctype",false) && !!dom_get("debug"))
+        {
+            echo dom_eol().comment("PHP Version: ".PHP_VERSION_ID);
+            echo dom_eol().comment("DOM Profiling:".PHP_EOL."    ".wrap_each(dom_debug_timings(), PHP_EOL."    ").PHP_EOL);
+        }
+
+        generate_all_postprocess();
+
+        if (dom_get("compression") == "gzip" && !dom_has("dom_main")) ob_end_flush();
     }
 
     // Minimal Retro-compatibility
@@ -3967,6 +4006,26 @@
 
         $shortcuts = array();
 
+        $fallback_icons = parse_icons(dom_get("icons_path")."android-icon", 96);
+
+        if (is_array($fallback_icons))
+        {
+            foreach ($fallback_icons as &$icon)
+            {
+                $icon = array(
+                    "src"   => $icon["path"],
+                    "type"  => $icon["attributes"]["type"],
+                    "sizes" => $icon["attributes"]["sizes"]
+                    );
+            }
+        }
+        else
+        {
+            $fallback_icons = array();
+        }
+
+        // TODO add a way to specify specific shortcuts icons
+
         global $dom_hook_links;
 
         foreach ($dom_hook_links as $link)
@@ -3976,19 +4035,65 @@
 
             if (false === stripos($url, "?")) $url .= "?";
             $url .= "&utm_source=homescreen";
-    
-            $shortcuts[] = array("name" => $title, "url" => $url);
+
+            $shortcut = array("name" => $title, "url" => $url);
+            if (count($fallback_icons) > 0) $shortcut["icons"] = $fallback_icons;
+
+            $shortcuts[] = $shortcut;
+        }
+
+        global $dom_hook_images;
+            
+        $screenshots = false;
+        {
+            if (!$screenshots) $screenshots = dom_get("screenshots");
+            if (!$screenshots) $screenshots = dom_get("support_header_backgrounds");
+            if (!$screenshots) $screenshots = $dom_hook_images;            
+
+            if (!!$screenshots)
+            {
+                if (!is_array($screenshots)) $screenshots = explode(",", $screenshots);
+
+                foreach ($screenshots as $s => &$src)
+                {
+                    $src = array("src" => $src, "sizes" => array(), "type" => false);
+                }
+
+                if (count($screenshots) > 0)
+                {
+                    foreach ($screenshots as $s => &$img)
+                    {
+                        list($w,$h) = $size = @getimagesize($img["src"]);
+                        
+                        if (false === $size
+                        || $w < 320 || $h < 320 || $w > 3840 || $h > 3840
+                        || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
+                        {
+                            unset($screenshots[$s]);
+                        }
+                        else
+                        {
+                            $img["sizes"] = $w."x".$h;
+                            $img["type"]  = $size["mime"];
+                        }
+                    }
+                }
+
+                $screenshots = array_values($screenshots);
+            }
         }
 
         $json = array(
 
             "name"             => dom_get("title"),
             "short_name"       => $short_title,
+            "description"      => dom_get("description"),
             
             "background_color" => dom_get("background_color"),
             "theme_color"      => dom_get("theme_color"),
 
             "shortcuts"        => $shortcuts,
+            "screenshots"      => $screenshots,
            
             "start_url"        => $start_url,
             "display"          => "standalone",
@@ -3997,10 +4102,16 @@
 
                 array( "platform"=> "web", "url"=> dom_get("canonical") ) 
 
-                ),
+                ),                  
            
             "icons"=> $icons
+            
             );
+
+        foreach ($json as $key => $value)
+        {
+            if ($value === false || $value === null) unset($json[$key]);
+        }
 
         return $json;
     }
@@ -4660,12 +4771,23 @@
 
                         $delayed_component = $delayed_component_and_param[0];
                         $param             = $delayed_component_and_param[1];
-                        
-                        $html = str_replace(
-                            dom_placeholder($delayed_component.$index),
-                            call_user_func($delayed_component, $param, $html), 
-                            $html
-                            );
+
+                        if (is_array($param))
+                        {               
+                            $html = str_replace(
+                                dom_placeholder($delayed_component.$index),
+                                call_user_func_array($delayed_component, array_merge($param, array($html))), 
+                                $html
+                                );
+                        }
+                        else
+                        {                        
+                            $html = str_replace(
+                                dom_placeholder($delayed_component.$index),
+                                call_user_func($delayed_component, $param, $html), 
+                                $html
+                                );
+                        }
                     }
                 }
             }
@@ -4677,25 +4799,29 @@
     function html($html = "")
     {
         $profiler = dom_debug_track_timing();
-    /*
+
+        // TODO DO THIS
+
+        /*
+
         $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
         $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
 
              if ($no_head && $no_body)  { $html = head().body($html); }
         else if ($no_head)              { $html = head().     $html;  }
         else if ($no_body)              { $html =        body($html); }
-    */
+        */
         if (dom_has("ajax")) $_POST = array();
 
         if ("html" == dom_get("doctype", "html"))
         {
             if (!dom_has("ajax"))
             {
-            //  Lazy html generation
+                // Lazy html generation
 
                 $html = parse_delayed_components($html);
 
-            //  Clean html
+                // Clean html
 
                 if (!dom_get("minify"))
                 {
@@ -4706,18 +4832,18 @@
                     }
                 }
 
-            //  Return html
-            
+                //  Return html
+
                 $welcome = "Welcome my fellow web developer!".((!dom_get("beautify") && !dom_get("static")) ? " You can ?beautify=1 this source code if needed!" : "");
                 
-                return raw_html('<!doctype html>'.comment($welcome)
+                return raw_html('<!doctype html>'.comment($welcome).
                 
-                . dom_eol()
-                . dom_eol() . '<html'.((dom_AMP())?' amp':'').' class="no-js" lang="'.dom_get("lang","en").'"> '
-                . dom_eol()
-                . dom_eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
-                  dom_eol()
-                . dom_eol() . '</html>');
+                    dom_eol().
+                    dom_eol() . '<html'.((dom_AMP())?' amp':'').' class="no-js" lang="'.dom_get("lang","en").'"> '.
+                    dom_eol().
+                    dom_eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
+                    dom_eol().
+                    dom_eol() . '</html>');
             }
             else
             {
@@ -4860,6 +4986,77 @@
         return link_rel("manifest", $path_manifest, $type, $pan);
     }
 
+    function parse_icons($name = "favicon", $size = false, $media = false, $ext = "png", $type = DOM_AUTO, $alternate = false)
+    {
+        if ($name === false || $name === DOM_AUTO) $name = "favicon";
+        if ($ext  === false || $ext  === DOM_AUTO) $ext  = "png";
+        if ($type === false || $type === DOM_AUTO) $type = false;
+
+        if (is_array($name)) { $icons = array(); foreach ($name as $i => $_) { $icon = parse_icons($_,    $size, $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($size)) { $icons = array(); foreach ($size as $i => $_) { $icon = parse_icons($name, $_,    $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($ext))  { $icons = array(); foreach ($ext  as $i => $_) { $icon = parse_icons($name, $size, $media, $_,   $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($type)) { $icons = array(); foreach ($type as $i => $_) { $icon = parse_icons($name, $size, $media, $ext, $_   , $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+
+        if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
+        if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
+        if ($type === false && false !== stripos($name,"apple"))                                         $type = "apple-touch-icon";
+        if ($type === false)                                                                             $type = "icon";
+
+        if (!!$size)
+        {
+            $size = is_int($size) ? ($size."x".$size) : $size;
+            $size = str_replace("-","x",$size);
+
+            $wh = explode("x", $size);
+
+            $w = (int)$wh[0];
+            $h = (int)$wh[1];
+
+            if (is_array($media))
+            {
+                $media_clean = array();
+
+                if (array_key_exists(0,             $media)) $media_clean["width"]       = $media[0];
+                if (array_key_exists(1,             $media)) $media_clean["height"]      = $media[1];
+                if (array_key_exists(2,             $media)) $media_clean["ratio"]       = $media[2];
+                if (array_key_exists(3,             $media)) $media_clean["orientation"] = $media[3];
+
+                if (array_key_exists("width",       $media)) $media_clean["width"]       = $media["width"];
+                if (array_key_exists("height",      $media)) $media_clean["height"]      = $media["height"];
+                if (array_key_exists("ratio",       $media)) $media_clean["ratio"]       = $media["ratio"];
+                if (array_key_exists("orientation", $media)) $media_clean["orientation"] = $media["orientation"];
+
+                $media = $media_clean;
+
+                if (!array_key_exists("orientation", $media))
+                {
+                    return array_merge(
+                        parse_icons($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate),
+                        parse_icons($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate));
+                }
+            }
+        }
+
+        $info   = pathinfo($name);
+        $dir    = dom_at($info, 'dirname',   false);
+        $ext    = dom_at($info, 'extension', $ext);
+        $name   = dom_at($info, 'filename',  $name);
+        $name   = (!!$dir)  ? "$dir/$name"  : $name;
+        $name   = (!!$size) ? "$name-$size" : $name;
+
+        $attributes = array();
+
+        if (!!$size)                            $attributes["sizes"] = $size;
+        if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext".(($ext=="svg")?"+xml":"");
+        if (!!$media)                           $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
+
+        $path = dom_path($name.".".$ext);
+
+        if (!$path) return null;
+
+        return array(array("type" => $type, "path" => $path, "attributes" => $attributes));
+    }
+
     function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = DOM_AUTO, $alternate = false)
     {
         if ($name === false || $name === DOM_AUTO) $name = "favicon";
@@ -4944,7 +5141,7 @@
             .   dom_eol() . meta(array("title" =>                       dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')))
             .   dom_eol()       
             .   dom_eol() . meta('keywords',                            dom_get("title").((!!dom_get("keywords") && "" != dom_get("keywords")) ? (', '.dom_get("keywords")) : "")    )
-            .   dom_eol()       
+            .   dom_eol()
             .   dom_eol() . meta('format-detection',                    'telephone=no')
             .   dom_eol() . meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
         //  .   dom_eol() . meta('robots',                              'NOODP') // Deprecated
@@ -5086,7 +5283,7 @@
 
         if ($fonts === false) $fonts = dom_get("fonts");
 
-        $inline_css = dom_get("dom_inline_css", false);
+        $inline_css = dom_get("dom_inline_css", true);
 
         $path_normalize         = !$inline_css ? false : dom_path("css/normalize.min.css");
         $path_sanitize          = !$inline_css ? false : dom_path("css/evergreen.min.css");
@@ -5156,6 +5353,26 @@
         return $css;
     }
 
+    function predefined_brands_color_properties() { return delayed_component("_".__FUNCTION__); }
+    function _predefined_brands_color_properties()
+    {
+        $css = "";
+
+        foreach (predefined_svg_brands() as $svg)
+        {
+            $fn_color = "color_$svg";
+            $colors   = $fn_color();
+            $colors   = is_array($colors) ? $colors : array($colors);
+            $class    = "palette-$svg";
+            $var      = "--color-$svg";
+
+            $css .= dom_eol().dom_tab(2);
+            for ($i = 0; $i < count($colors); ++$i) $css .= pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
+        }
+        
+        return $css;
+    }
+
     function include_css_boilerplate()
     {
         if (!!dom_get("no_css")) return '';
@@ -5187,21 +5404,7 @@
                 <?= env("scrollbar_width",            "17px" ) ?> 
                 <?= env("svg_size",                   "24px" ) ?> 
 
-                <?php $css = "";
-
-                foreach (predefined_svg_brands() as $svg)
-                {
-                    $fn_color = "color_$svg";
-                    $colors   = $fn_color();
-                    $colors   = is_array($colors) ? $colors : array($colors);
-                    $class    = "palette-$svg";
-                    $var      = "--color-$svg";
-
-                    $css .= dom_eol().dom_tab(2);
-                    for ($i = 0; $i < count($colors); ++$i) $css .= pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
-                }
-                
-                echo $css; ?> 
+                <?= predefined_brands_color_properties() ?> 
             }
 
             /* Sanitize ++ */
@@ -6027,8 +6230,10 @@
         dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
             /* TOOLBAR */
+
+            var idAnimationFrame = null;
         
-            function onUpdateToolbarHeight()
+            function updateToolbarHeight(animate)
             {
                 var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
                 var toolbars            = document.querySelectorAll(".toolbar");
@@ -6038,23 +6243,42 @@
 
                 if (toolbar != null && toolbar_row_banner != null)
                 {
-                    var header_max_height = window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px","");
-                    var header_min_height = window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px","");
+                    var header_height     = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue(    "height").replace("px",""), 10);
+                    var header_max_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px",""), 10);
+                    var header_min_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px",""), 10);
           
                     var stuck_height = header_max_height - header_min_height;
 
                     if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
                     else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
           
-                    var toolbar_row_banner_height = Math.max(0, header_max_height - window.scrollY);
+                    var target = Math.max(0, header_max_height - window.scrollY);
 
-                    toolbar_row_banner.style.height = toolbar_row_banner_height + "px";
+                    var h = (animate) ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) : target;
 
+                    toolbar_row_banner.style.height = h + "px";
+
+                    if (Math.abs(h - target) > 0.1)
+                    {
+                        idAnimationFrame = window.requestAnimationFrame(onUpdateToolbarHeight);
+                    }
                 }
             }
+        
+            function onUpdateToolbarHeight()
+            {
+                window.cancelAnimationFrame(idAnimationFrame);
+                updateToolbarHeight(true);
+            }
+        
+            function onInitToolbarHeight()
+            {
+                window.cancelAnimationFrame(idAnimationFrame);
+                updateToolbarHeight(false);
+            }
 
-            dom_on_ready( onUpdateToolbarHeight);
-            dom_on_loaded(onUpdateToolbarHeight);
+            dom_on_ready( onInitToolbarHeight);
+            dom_on_loaded(onInitToolbarHeight);
             dom_on_scroll(onUpdateToolbarHeight);
 
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
@@ -6356,7 +6580,7 @@
         ;
 
         if (DOM_AUTO === $dark_theme) $dark_theme = dom_get("dark_theme", false);
-        
+
         return cosmetic(dom_eol(2)).dom_tag(
             'body',
             $body,
@@ -6378,6 +6602,8 @@
         
     function h($h, $html = "", $attributes = false, $anchor = false)
     {
+        $h += dom_get("dom_main", 0);
+        
         hook_headline($h, $html);
 
         return  cosmetic(dom_eol(1)).
@@ -6399,7 +6625,7 @@
     function pre            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('pre',                        $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('ul',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
     function ol             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('ol',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
-    function li             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('li',                         $html,                                                $attributes                                                         );                      }
+    function li             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1).dom_tab()).dom_tag('li',                         $html,                                                $attributes                                                         );                      }
 
     function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('table',                      $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
     function tr             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('tr',                         $html,                                                $attributes                                                         );                      }
@@ -6408,7 +6634,7 @@
 
     function strong         ($html = "", $attributes = false) {                             return                     dom_tag('strong',                     $html,                                                $attributes                                                         );                      }
     function strike         ($html = "", $attributes = false) {                             return                     dom_tag('s',                          $html,                                                $attributes                                                         );                      }
-    function del            ($html = "", $attributes = false) {                             return                     dom_tag('del',                          $html,                                                $attributes                                                         );                      }
+  //function del            ($html = "", $attributes = false) {                             return                     dom_tag('del',                          $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return                     dom_tag('em',                         $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return                     dom_tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('figure',                     $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
@@ -6438,10 +6664,32 @@
 
     function clearfix       () { return div("","clearfix"); }
 
+    function content($html = "", $attributes = false)
+    {
+        if (dom_has("dom_main")) die($html);
+
+        $profiler = dom_debug_track_timing();
+
+        return  clearfix().
+
+                cosmetic(dom_eol(2)).
+
+                dom_tag('main', 
+                    cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),
+                    dom_attributes_add_class(
+                        $attributes,
+                            dom_component_class('main').
+                        ' '.dom_component_class('content').                 (!!dom_get("toolbar") ? (
+                        ' '.dom_component_class('main-below-toolbar'))      : '')
+                        )
+                    ).
+
+                cosmetic(dom_eol(1))
+            ; 
+    }
+        
+
     function dom_main       ($html = "", $attributes = false) { return content($html, $attributes); }
-    function content        ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return clearfix().cosmetic(dom_eol(2)).dom_tag('main',     cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('main')                 .                           ' ' . 
-                                                                                                                                                                                                                                        dom_component_class('content')              . (!!dom_get("toolbar") ? ( ' ' . 
-                                                                                                                                                                                                                                        dom_component_class('main-below-toolbar')   ) : '')) ).cosmetic(dom_eol(1)); }
     function dom_footer     ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return clearfix().cosmetic(dom_eol(2)).dom_tag('footer',   cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
     
     function icon           ($icon, $attributes = false) { return      i($icon,      dom_attributes_add_class($attributes, 'material-icons')); }
@@ -6481,17 +6729,18 @@
         return $class;
     }
 
-    function div_aspect_ratio($html, $w = 1200, $h = 675) // 16:9
+    function div_aspect_ratio($html, $w = 1200, $h = 675, $classname = false) // 16:9
     {
         $class = class_aspect_ratio($w, $h);
 
         if ($class != "")
         {
+            if ($classname !== false) $class .= " $classname";
             $class = ' class="'.$class.'"';
             return '<div'.$class.'>'.$html.'</div>';
         }
 
-        return div($html);
+        return div($html, $classname);
         
     }
         
@@ -6688,7 +6937,7 @@
             }
             else
             {
-                foreach (dom_get("dom_forwarded_flags") as $forward_flag)
+                foreach (dom_get("dom_forwarded_flags", array()) as $forward_flag)
                 {
                     if (get($forward_flag) !== false
                     &&  false === stripos($extended_link,"?$forward_flag") 
@@ -6957,6 +7206,8 @@
 
         if (!!dom_get("no_js") && $lazy === true) $lazy = DOM_AUTO;
 
+        dom_hook_img($path);
+
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
         if (AMP())
@@ -7012,9 +7263,18 @@
 
     // https://materialdesignicons.com/
 
+    $dom_used_colors = array();
+
+    function dom_import_color($color)
+    {
+        global $dom_used_colors;
+        if (!in_array($color, $dom_used_colors)) $dom_used_colors[] = $color;
+    }
+
     function predefined_svg_brands()
     {
-        return array(
+        global $dom_used_colors;
+        return /*array(
             "500px",    
             "flickr",         
             "facebook",       
@@ -7040,10 +7300,11 @@
             "deezer",
             "soundcloud",
             "link"
-        );
+        );*/$dom_used_colors;
     }
-
-    function predefined_svg_brands_css_boilerplate($fn_color_transform = "self")
+    
+    function predefined_svg_brands_css_boilerplate($fn_color_transform = "self") { return delayed_component("_".__FUNCTION__, $fn_color_transform); }
+    function _predefined_svg_brands_css_boilerplate($fn_color_transform = "self")
     {
         $css = "";
 
@@ -7062,7 +7323,8 @@
         return $css;
     }
 
-    function brand_color_properties($fn_color_transform = "self", $pan = 35)
+    function brand_color_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan)); }
+    function _brand_color_properties($fn_color_transform = "self", $pan = 35)
     {   
         $css = "";
 
@@ -7111,32 +7373,31 @@
 
     // !TOOD DEPRECATE FUNCTION SIGNATURE AND REMOVE COLOR PARAM
 
-    function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>'); }
-    function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />'); }
-    function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />'); }
-    function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />'); }
-    function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>'); }
-    function svg_instagram      ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-instagram";       return svg($label === DOM_AUTO ? "Instagram"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />'); }
-    function svg_pinterest      ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-pinterest";       return svg($label === DOM_AUTO ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
-    function svg_tumblr         ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-tumblr";          return svg($label === DOM_AUTO ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
-    function svg_rss            ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-rss";             return svg($label === DOM_AUTO ? "RSS"             : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />'); }
-    function svg_printer        ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-printer";         return svg($label === DOM_AUTO ? "Printer"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />'); }
-    function svg_notifications  ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-printer";         return svg($label === DOM_AUTO ? "Notifications"   : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />'); }
-    function svg_messenger      ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-messenger";       return svg($label === DOM_AUTO ? "Messenger"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />'); }
-    function svg_alert          ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-alert";           return svg($label === DOM_AUTO ? "Alert"           : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />'); }
-    function svg_amp            ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-amp";             return svg($label === DOM_AUTO ? "AMP"             : $label, -22,    -22,     300,     300,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />'); }
-    function svg_loading        ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-loading";         return svg($label === DOM_AUTO ? "Loading"         : $label,   0,      0,      96,      96,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>'); }
-    function svg_darkandlight   ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-darkandlight";    return svg($label === DOM_AUTO ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>'); }
-    function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>'); }
-    function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>'); }
-    function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>'); }
-    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path style="fill:#FF7700;" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>'); } 
-    function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>'); }
-    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>'); }
-    function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />'); }
-    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>'); }
-    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO) { $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>'); }
-
+    function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("flickr");        $class = "palette-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>'); }
+    function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("facebook");      $class = "palette-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />'); }
+    function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("twitter");       $class = "palette-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />'); }
+    function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("linkedin");      $class = "palette-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />'); }
+    function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("github");        $class = "palette-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>'); }
+    function svg_instagram      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("instagram");     $class = "palette-instagram";       return svg($label === DOM_AUTO ? "Instagram"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />'); }
+    function svg_pinterest      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("pinterest");     $class = "palette-pinterest";       return svg($label === DOM_AUTO ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
+    function svg_tumblr         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("tumblr");        $class = "palette-tumblr";          return svg($label === DOM_AUTO ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
+    function svg_rss            ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("rss");           $class = "palette-rss";             return svg($label === DOM_AUTO ? "RSS"             : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />'); }
+    function svg_printer        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Printer"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />'); }
+    function svg_notifications  ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Notifications"   : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />'); }
+    function svg_messenger      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("messenger");     $class = "palette-messenger";       return svg($label === DOM_AUTO ? "Messenger"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />'); }
+    function svg_alert          ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("alert");         $class = "palette-alert";           return svg($label === DOM_AUTO ? "Alert"           : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />'); }
+    function svg_amp            ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("amp");           $class = "palette-amp";             return svg($label === DOM_AUTO ? "AMP"             : $label, -22,    -22,     300,     300,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />'); }
+    function svg_loading        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("loading");       $class = "palette-loading";         return svg($label === DOM_AUTO ? "Loading"         : $label,   0,      0,      96,      96,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>'); }
+    function svg_darkandlight   ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("darkandlight");  $class = "palette-darkandlight";    return svg($label === DOM_AUTO ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>'); }
+    function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("google");        $class = "palette-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>'); }
+    function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("youtube");       $class = "palette-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>'); }
+    function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("numerama");      $class = "palette-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>'); }
+    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("soundcloud");    $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path style="fill:#FF7700;" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>'); } 
+    function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("link");          $class = "palette-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>'); }
+    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("leboncoin");     $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>'); }
+    function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("500px");         $class = "palette-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />'); }
+    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("seloger");       $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>'); }
+    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("deezer");        $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>'); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code),  "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                     "img-pinterest" ); }
@@ -8307,24 +8568,35 @@
         $percent_min = 0;
         $percent_max = 1;
         $percent     = 0;
-        $depth       = 8;
+        $depth       = 8+1;
+
+        $debug_css = "";
 
         while ($depth-- > 0)
         {
-            $r = max(0, min(1, $r0 + (($delta > 0 ? 1 : 0) - $r0) * $percent));
-            $g = max(0, min(1, $g0 + (($delta > 0 ? 1 : 0) - $g0) * $percent));
-            $b = max(0, min(1, $b0 + (($delta > 0 ? 1 : 0) - $b0) * $percent));
+            $r = max(0, min(1, $r0 + (($delta > 0 ? 1.0 : 0.0) - $r0) * $percent));
+            $g = max(0, min(1, $g0 + (($delta > 0 ? 1.0 : 0.0) - $g0) * $percent));
+            $b = max(0, min(1, $b0 + (($delta > 0 ? 1.0 : 0.0) - $b0) * $percent));
             
             $ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r, $g, $b);
             if ($ratio < $contrast_ratio_target) $percent_min = $percent; else $percent_max = $percent;
             $percent = 0.5 * ($percent_min + $percent_max);
+
+            if (!!$debug)
+            {
+                $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                          str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                          str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+
+                $debug_css .= PHP_EOL."/* $rrggbb // R=$ratio/$contrast_ratio_target - $percent% -  */";
+            }
         } 
 
         $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
 
-        return "#".$rrggbb;
+        return "#".$rrggbb.$debug_css;
     }
 
     function dom_correct_lighter(
