@@ -69,7 +69,7 @@
     ######################################################################################################################################
     
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.6.9");
+    define("DOM_VERSION",   "0.7.0");
     define("DOM_AUTO",      "__DOM_AUTO__");    // ? migrate to null as auto param ?
 
     #endregion
@@ -1306,7 +1306,7 @@
         
     function dom_markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = true, $markdown = true)
     {
-        if ($markdown)    $html = Markdown::defaultTransform($text);
+        if ($markdown)    $html = Markdown::defaultTransform($text); 
         if ($smartypants) $html = SmartyPants::defaultTransform($html);
         if ($hard_wrap)   $html = str_replace("\n", "<br>", $html);
 
@@ -1340,6 +1340,7 @@
                     $html = $html_before . $headline . $html_after;
 
                     $pos_end = strlen($html_before . $headline) + strlen($tag_end);
+                    $pos_end = min($pos_end, strlen($html)-1);
                 }
             }
         }
@@ -1521,6 +1522,8 @@
     
     function dom_hook_link($title, $url)
     {
+        if (!is_string($url)) return;
+
         if (strlen($url) >= 1)
         {
             if ($url == ".") return;
@@ -3866,6 +3869,8 @@
             if (array_key_exists($type, $dispositions))     @header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
             if ($attachement_length !== false)              @header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
         }
+
+        @header('Permissions-Policy: interest-cohort=()');
         
         generate_all_preprocess();
 
@@ -4658,7 +4663,7 @@
     //  TODO : https://jsonfeed.org/mappingrssandatom => Only html hooks ? hooks => array => json => json feed
     //  TODO : https://daringfireball.net/feeds/json
     
-        if ("json" == dom_get("doctype", "html"))
+        if ("json" == dom_get("rss", false))
         {
             if ($json === false)
             {
@@ -5239,29 +5244,72 @@
             ;
     }
     
-    function meta($p0, $p1 = false, $pan = 0)                               { return (($p1 === false) ? '<meta'.dom_attributes($p0,$pan).' />' : meta_name($p0,$p1)); }
+    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? '<meta'.dom_attributes($p0,$pan).' />' : meta_name($p0,$p1)); }
                             
-    function meta_charset($charset)                                         { return meta(array("charset"    => $charset)); }
-    function meta_http_equiv($equiv,$content)                               { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
-    function meta_name($name,$content)                                      { return meta(array("name"       => $name,     "content" => $content), false, array(40,80)); }
-    function meta_property($property,$content)                              { return meta(array("property"   => $property, "content" => $content), false, array(40,80)); }
-                        
+    function meta_charset($charset)             { return meta(array("charset"    => $charset)); }
+    function meta_http_equiv($equiv,$content)   { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
+    function meta_name($name,$content)          { return meta(array("name"       => $name,     "content" => $content), false, array(40,80)); }
+    function meta_property($property,$content)  { return meta(array("property"   => $property, "content" => $content), false, array(40,80)); }
+
+    function link_HTML($attributes, $pan = 0)               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes($attributes,$pan), false, true); }
+    function link_rel($rel, $link, $type = false, $pan = 0) { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
+    
     function manifest($filename = "manifest.json") 
     {
-        return link_rel("manifest", $filename) . ((!dom_AMP() && !dom_is_localhost()) ? (dom_eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>') : ""); 
+        return link_rel("manifest", $filename)
+              //. ((!dom_AMP() && !dom_is_localhost()) 
+              //? (dom_eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>') 
+              //: "")
+                ; 
     }
 
-    function link_HTML($attributes, $pan = 0)                               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes($attributes,$pan), false, true); }
-    function link_rel($rel, $link, $type = false, $pan = 0)                 { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
-    function link_style($link, $media = "screen", $async = false)           { if (!!dom_get("no_css"))  return ''; return ((dom_AMP() && !((0 === stripos($link, "http")) || (0 === stripos($link, "//")))) || !!dom_get("include_custom_css")) ? dom_style($link, false, true) : link_rel("stylesheet", $link, ($async && !dom_AMP()) ? array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'") : array("type" => "text/css", "media" => $media)); }
+    function link_style($link, $media = "screen", $async = false)
+    {
+        if (!!dom_get("no_css"))             return '';
+        if (!!dom_get("include_custom_css")) return dom_style($link, false, true);
 
-    function dom_style( $filename_or_code = "",                                                             $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_css($css) : (dom_tag('style',  $css                        )); }
+        $is_external_url = ((0 === stripos($link, "http"))
+                         || (0 === stripos($link, "//"  )));
+
+        if (dom_AMP() && !$is_external_url)  return dom_style($link, false, true);
+
+        if ($async && !dom_AMP())
+        {
+            $method = 2;
+
+            if ($method == 1)
+            {
+                $attributes = array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'");
+                return link_rel("stylesheet", $link, $attributes);
+            }
+            else // https://web.dev/defer-non-critical-css/#optimize
+            {
+                $attributes = array("as" => "style", "onload" => "this.onload=null;this.rel='stylesheet'");
+                return link_rel("preload", $link, $attributes).dom_tag("noscript", link_rel("stylesheet", $link));
+            }
+        }
+        else
+        {
+            $attributes = array("type" => "text/css", "media" => $media);
+            return link_rel("stylesheet", $link, $attributes);
+        }
+    }
+
+    function dom_style( $filename_or_code = "", $force_minify = false, $silent_errors = DOM_AUTO)
+    {
+        if (!$filename_or_code || $filename_or_code == "") return '';
+        $filename = dom_path($filename_or_code);
+        $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline");
+        $css = dom_eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).dom_eol();
+        return dom_AMP() ? hook_amp_css($css) : (dom_tag('style',  $css ));
+    }
+
     function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_js($js)   : (dom_tag('script', $js, array("type" => $type) )); }
     function script_src($src,                   $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                                                                        { return dom_script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function dom_script_ajax_head()                                             { return dom_AMP() ? "" : dom_script(dom_js_ajax_head()); }
-    function dom_script_ajax_body()                                             { return dom_AMP() ? "" : dom_script(dom_js_ajax_body()); }
+    function dom_script_ajax_head() { return dom_AMP() ? "" : dom_script(dom_js_ajax_head()); }
+    function dom_script_ajax_body() { return dom_AMP() ? "" : dom_script(dom_js_ajax_body()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -5353,21 +5401,19 @@
         return $css;
     }
 
-    function predefined_brands_color_properties() { return delayed_component("_".__FUNCTION__); }
-    function _predefined_brands_color_properties()
+    function predefined_brands_color_properties($tab = 2) { return delayed_component("_".__FUNCTION__, $tab); }
+    function _predefined_brands_color_properties($tab = 2)
     {
         $css = "";
 
-        foreach (predefined_svg_brands() as $svg)
+        foreach (dom_brands() as $brand)
         {
-            $fn_color = "color_$svg";
-            $colors   = $fn_color();
+            $colors   = ("color_$brand")();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "palette-$svg";
-            $var      = "--color-$svg";
+            $var      = "--color-$brand";
 
-            $css .= dom_eol().dom_tab(2);
-            for ($i = 0; $i < count($colors); ++$i) $css .= pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
+            $css .= dom_eol().dom_tab($tab);
+            for ($i = 0; $i < count($colors); ++$i) $css .= ($i>0?" ":"").pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
         }
         
         return $css;
@@ -5404,7 +5450,7 @@
                 <?= env("scrollbar_width",            "17px" ) ?> 
                 <?= env("svg_size",                   "24px" ) ?> 
 
-                <?= predefined_brands_color_properties() ?> 
+                <?= predefined_brands_color_properties(1) ?> 
             }
 
             /* Sanitize ++ */
@@ -5432,7 +5478,7 @@
 
             /* Colors */
             
-            body                                            { background-color: var(--background-color); }
+            body                                            { background-color: var(--background-color); color: var(--text-color); }
             a, a:hover, a:visited                           { color: var(--link-color); }
         
             /* Layout */
@@ -5506,7 +5552,7 @@
             picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
             figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
 
-            img, picture, iframe                            { background-image: url(<?= dom_path("img/loading.svg") ?>); background-repeat: no-repeat; background-position: center; }
+            img[src$=".jpg"], picture, iframe               { background-image: url(<?= dom_path("img/loading.svg") ?>); background-repeat: no-repeat; background-position: center; }
 
             /* Grid */
 
@@ -5585,7 +5631,7 @@
             .span-svg-wrapper-aligned                       { position: relative; bottom: -6px; padding-right: 6px; }
             .span-svg-wrapper svg                           { width: var(--svg-size); height: var(--svg-size); }
 
-            <?= predefined_svg_brands_css_boilerplate() ?> 
+            <?= dom_brands_svg_css_boilerplate() ?> 
 
         <?php if (!AMP()) { ?> 
 
@@ -6493,9 +6539,9 @@
     function dom_html_comment_end()  { return " //-->"; }
     function dom_html_comment($text) { return dom_html_comment_bgn().$text.dom_html_comment_end(); }
 
-    function comment($text)         { return (dom_has("rss")) ? "" : dom_html_comment($text); }
+    function comment($text)          { return (dom_has("rss")) ? "" : dom_html_comment($text); }
     
-    function dom_placeholder($text) { return dom_html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
+    function dom_placeholder($text)  { return dom_html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
 
     function dom_tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
     {
@@ -6900,6 +6946,309 @@
 
         return $album;
     }
+
+    function embed_instagram_card($id, $account_codename = false, $account_label = false)
+    {
+        HSTART(); ?><html><?php HERE() ?>
+        
+            <blockquote 
+                class="instagram-media card"
+                data-instgrm-captioned
+                data-instgrm-permalink="https://www.instagram.com/tv/<?= $id ?>/?utm_source=ig_embed&amp;utm_campaign=loading"
+                data-instgrm-version="13" 
+                
+                style="
+                    background:#FFF;
+                    border:0;
+                    border-radius:3px;
+                    box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15);
+                    margin: 1px;
+                    max-width:540px;
+                    min-width:326px;
+                    padding:0;
+                    width:99.375%;
+                    width:-webkit-calc(100% - 2px);
+                    width:calc(100% - 2px);">
+                    
+                <div style="padding:16px;">
+                
+                    <a  href="https://www.instagram.com/tv/<?= $id ?>/?utm_source=ig_embed&amp;utm_campaign=loading"
+                        style="
+                            background:#FFFFFF;
+                            line-height:0;
+                            padding:0 0;
+                            text-align:center;
+                            text-decoration:none;
+                            width:100%;"
+                            
+                        target="_blank">
+                            
+                        <div style="
+                            display: flex;
+                            flex-direction: row;
+                            align-items: center;">
+                            
+                            <div style="
+                                background-color: #F4F4F4;
+                                border-radius: 50%;
+                                flex-grow: 0;
+                                height: 40px;
+                                margin-right: 14px;
+                                width: 40px;"></div>
+                                
+                            <div style="
+                                display: flex;
+                                flex-direction: column;
+                                flex-grow: 1;
+                                justify-content: center;">
+                                
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    border-radius: 4px; flex-grow: 0;
+                                    height: 14px;
+                                    margin-bottom: 6px;
+                                    width: 100px;"></div>
+                                    
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    border-radius: 4px;
+                                    flex-grow: 0;
+                                    height: 14px;
+                                    width: 60px;"></div>
+                                        
+                            </div>
+                            
+                        </div>
+                    
+                        <div style="padding: 19% 0;"></div>
+                        
+                        <div style="
+                            display:block;
+                            height:50px;
+                            margin:0 auto 12px;
+                            width:50px;">
+                                
+                            <svg 
+                                width="50px"
+                                height="50px"
+                                viewBox="0 0 60 60"
+                                version="1.1"
+                                xmlns="https://www.w3.org/2000/svg"
+                                xmlns:xlink="https://www.w3.org/1999/xlink">
+                                
+                                <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g transform="translate(-511.000000, -20.000000)" fill="#000000"><g><path d="M556.869,30.41 C554.814,30.41 553.148,32.076 553.148,34.131 C553.148,36.186 554.814,37.852 556.869,37.852 C558.924,37.852 560.59,36.186 560.59,34.131 C560.59,32.076 558.924,30.41 556.869,30.41 M541,60.657 C535.114,60.657 530.342,55.887 530.342,50 C530.342,44.114 535.114,39.342 541,39.342 C546.887,39.342 551.658,44.114 551.658,50 C551.658,55.887 546.887,60.657 541,60.657 M541,33.886 C532.1,33.886 524.886,41.1 524.886,50 C524.886,58.899 532.1,66.113 541,66.113 C549.9,66.113 557.115,58.899 557.115,50 C557.115,41.1 549.9,33.886 541,33.886 M565.378,62.101 C565.244,65.022 564.756,66.606 564.346,67.663 C563.803,69.06 563.154,70.057 562.106,71.106 C561.058,72.155 560.06,72.803 558.662,73.347 C557.607,73.757 556.021,74.244 553.102,74.378 C549.944,74.521 548.997,74.552 541,74.552 C533.003,74.552 532.056,74.521 528.898,74.378 C525.979,74.244 524.393,73.757 523.338,73.347 C521.94,72.803 520.942,72.155 519.894,71.106 C518.846,70.057 518.197,69.06 517.654,67.663 C517.244,66.606 516.755,65.022 516.623,62.101 C516.479,58.943 516.448,57.996 516.448,50 C516.448,42.003 516.479,41.056 516.623,37.899 C516.755,34.978 517.244,33.391 517.654,32.338 C518.197,30.938 518.846,29.942 519.894,28.894 C520.942,27.846 521.94,27.196 523.338,26.654 C524.393,26.244 525.979,25.756 528.898,25.623 C532.057,25.479 533.004,25.448 541,25.448 C548.997,25.448 549.943,25.479 553.102,25.623 C556.021,25.756 557.607,26.244 558.662,26.654 C560.06,27.196 561.058,27.846 562.106,28.894 C563.154,29.942 563.803,30.938 564.346,32.338 C564.756,33.391 565.244,34.978 565.378,37.899 C565.522,41.056 565.552,42.003 565.552,50 C565.552,57.996 565.522,58.943 565.378,62.101 M570.82,37.631 C570.674,34.438 570.167,32.258 569.425,30.349 C568.659,28.377 567.633,26.702 565.965,25.035 C564.297,23.368 562.623,22.342 560.652,21.575 C558.743,20.834 556.562,20.326 553.369,20.18 C550.169,20.033 549.148,20 541,20 C532.853,20 531.831,20.033 528.631,20.18 C525.438,20.326 523.257,20.834 521.349,21.575 C519.376,22.342 517.703,23.368 516.035,25.035 C514.368,26.702 513.342,28.377 512.574,30.349 C511.834,32.258 511.326,34.438 511.181,37.631 C511.035,40.831 511,41.851 511,50 C511,58.147 511.035,59.17 511.181,62.369 C511.326,65.562 511.834,67.743 512.574,69.651 C513.342,71.625 514.368,73.296 516.035,74.965 C517.703,76.634 519.376,77.658 521.349,78.425 C523.257,79.167 525.438,79.673 528.631,79.82 C531.831,79.965 532.853,80.001 541,80.001 C549.148,80.001 550.169,79.965 553.369,79.82 C556.562,79.673 558.743,79.167 560.652,78.425 C562.623,77.658 564.297,76.634 565.965,74.965 C567.633,73.296 568.659,71.625 569.425,69.651 C570.167,67.743 570.674,65.562 570.82,62.369 C570.966,59.17 571,58.147 571,50 C571,41.851 570.966,40.831 570.82,37.631"></path></g></g></g>
+                                
+                            </svg>
+                                
+                        </div>
+                    
+                        <div style="padding-top: 8px;">
+                        
+                            <div style="
+                                color:#3897f0;
+                                font-family:Arial,sans-serif;
+                                font-size:14px;
+                                font-style:normal;
+                                font-weight:550;
+                                line-height:18px;">
+                                
+                                Voir cette publication sur Instagram
+                                
+                            </div>
+                            
+                        </div>
+                        
+                        <div style="padding: 12.5% 0;"></div>
+                    
+                        <div style="
+                            display: flex;
+                            flex-direction: row;
+                            margin-bottom: 14px;
+                            align-items: center;">
+                            
+                            <div>
+                            
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    border-radius: 50%;
+                                    height: 12.5px;
+                                    width: 12.5px;
+                                    transform: translateX(0px) translateY(7px);"></div>
+                                
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    height: 12.5px;
+                                    transform: rotate(-45deg) translateX(3px) translateY(1px);
+                                    width: 12.5px;
+                                    flex-grow: 0;
+                                    margin-right: 14px;
+                                    margin-left: 2px;"></div>
+                                    
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    border-radius: 50%;
+                                    height: 12.5px;
+                                    width: 12.5px;
+                                    transform: translateX(9px) translateY(-18px);"></div>
+                                
+                            </div>
+                            
+                            <div style="margin-left: 8px;">
+                                
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    border-radius: 50%;
+                                    flex-grow: 0;
+                                    height: 20px;
+                                    width: 20px;"></div>
+                                
+                                <div style="
+                                    width: 0;
+                                    height: 0;
+                                    border-top: 2px solid transparent;
+                                    border-left: 6px solid #f4f4f4;
+                                    border-bottom: 2px solid transparent;
+                                    transform: translateX(16px) translateY(-4px) rotate(30deg)"></div>
+                                
+                            </div>
+                            
+                            <div style="margin-left: auto;">
+                            
+                                <div style="
+                                    width: 0px;
+                                    border-top: 8px solid #F4F4F4;
+                                    border-right: 8px solid transparent;
+                                    transform: translateY(16px);"></div>
+                                
+                                <div style="
+                                    background-color: #F4F4F4;
+                                    flex-grow: 0;
+                                    height: 12px;
+                                    width: 16px;
+                                    transform: translateY(-4px);"></div>
+                                    
+                                <div style="
+                                    width: 0;
+                                    height: 0;
+                                    border-top: 8px solid #F4F4F4;
+                                    border-left: 8px solid transparent;
+                                    transform: translateY(-4px) translateX(8px);"></div>
+                                
+                            </div>
+                            
+                        </div>
+                            
+                        <div style="
+                            display: flex;
+                            flex-direction: column;
+                            flex-grow: 1;
+                            justify-content: center;
+                            margin-bottom: 24px;">
+                            
+                            <div style="
+                                background-color: #F4F4F4;
+                                border-radius: 4px;
+                                flex-grow: 0;
+                                height: 14px;
+                                margin-bottom: 6px;
+                                width: 224px;"></div>
+                            
+                            <div style="
+                                background-color: #F4F4F4;
+                                border-radius: 4px;
+                                flex-grow: 0;
+                                height: 14px;
+                                width: 144px;"></div>
+                            
+                        </div>
+                        
+                    </a>
+                        
+                    <p style="
+                        color:#c9c8cd;
+                        font-family:Arial,sans-serif;
+                        font-size:14px;
+                        line-height:17px;
+                        margin-bottom:0;
+                        margin-top:8px;
+                        overflow:hidden;
+                        padding:8px 0 7px;
+                        text-align:center;
+                        text-overflow:ellipsis;
+                        white-space:nowrap;">
+                            
+                        <a  href="https://www.instagram.com/tv/<?= $id ?>/?utm_source=ig_embed&amp;utm_campaign=loading"
+                            target="_blank"
+                            
+                            style="
+                                color:#c9c8cd;
+                                font-family:Arial,sans-serif;
+                                font-size:14px;
+                                font-style:normal;
+                                font-weight:normal;
+                                line-height:17px;
+                                text-decoration:none;">
+    
+                            Une publication partagée par <?= $account_label ?> (@<?= $account_codename ?>)
+                                
+                        </a>
+                            
+                    </p>
+                        
+                </div>
+    
+            </blockquote>
+            
+            <script async src="//www.instagram.com/embed.js"></script>
+    
+        <?php HERE("raw_html") ?></html><?php return HSTOP();
+    }
+
+    function embed_tiktok_card($id, $account = false, $tags = false, $song_title = false, $song_id = false)
+    {
+        HSTART(); ?><html><?php HERE() ?>
+            
+            <blockquote 
+    
+                class="tiktok-embed card"                                                           <?php if (!!$account) { ?>
+                cite="https://www.tiktok.com/@<?= $account ?>/video/<?= $id ?>"                     <?php } ?>
+                data-video-id="<?= $id ?>"
+                
+                style="
+                    --clip: 0px;
+                    padding: var(--dom-gap);
+                    background-color: #FFF;
+                    width: 340px;
+                    min-height: 340px;">
+    
+                <section>                                                                           <?php if (!!$account) { ?>
+    
+                    <a  target="_blank" 
+                        title="@<?= $account ?>"    
+                        href="https://www.tiktok.com/@<?= $account ?>">@<?= $account ?></a>         <?php } ?>
+                                                                                                    <?php if (is_array($tags)) { ?>
+                    <p> <?php foreach ($tags as $tag) { ?>
+    
+                        <a  title="<?= $tag ?>"
+                            target="_blank"
+                            href="https://www.tiktok.com/tag/<?= $tag ?>">##<?= $tag ?></a>
+                        
+                        <?php } ?>
+                        
+                    </p>                                                                            <?php } ?>
+                                                                                                    <?php if (!!$song_title && !!$song_id) { ?>
+                    <a  target="_blank"
+                        title="<?= $song_title ?>"
+                        href="https://www.tiktok.com/music/<?= $song_id ?>"><?= $song_title ?></a>  <?php } ?>
+    
+                </section>
+                
+            </blockquote>
+            
+            <script async src="https://www.tiktok.com/embed.js"></script>
+            
+        <?php HERE("raw_html") ?></html><?php return HSTOP();
+    }
     
     // Components with BlogPosting microdata
 
@@ -6959,8 +7308,20 @@
         &&  $external_attributes === false
         &&  $target              === false) $url = $html;
 
-        if (($external_attributes === DOM_INTERNAL_LINK || $external_attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $external_attributes; $external_attributes = false; }
-        if ($target === false) { $target = ((0 === stripos($url, "http")) || (0 === stripos($url, "//"))) ? DOM_EXTERNAL_LINK : DOM_INTERNAL_LINK; }
+        if (($external_attributes === DOM_INTERNAL_LINK 
+          || $external_attributes === DOM_EXTERNAL_LINK) && $target === false)
+        {
+            $target = $external_attributes;
+            $external_attributes = false;
+        }
+        
+        if ($target === false)
+        {
+            $target = ((0 === stripos($url, "http"      ))
+                    || (0 === stripos($url, "//"        ))
+                    || (0 === stripos($url, "tel:"      ))
+                    || (0 === stripos($url, "mailto:"   )) ) ? DOM_EXTERNAL_LINK : DOM_INTERNAL_LINK;
+        }
         
         $extended_link = dom_href($url, $target);
 
@@ -7018,15 +7379,17 @@
             return a("", "", array("aria-label" => "$text email", "id" => md5($text)), DOM_EXTERNAL_LINK).dom_script("eval(unescape('".$crypted_script."'))");
         }
     }
+    
+    function char_emoji($c) { return "$c&#xFE0F;"; }
+    function char_text($c)  { return "<code>$c&#xFE0E;</code>"; }
 
-    function char_phone()  { return "☎"; }
-    function char_email()  { return "✉"; }
-    function char_anchor() { return "⚓"; }
-  //function char_unsec()  { return " "; }
+    function char_phone()  { return char_text("☎"); }
+    function char_email()  { return char_text("✉"); }
+    function char_anchor() { return char_text("⚓"); }
     function char_unsec()  { return "&nbsp;"; }
-    function char_amp()    { return "&amp;"; }
+    function char_amp()    { return "&amp;";  }
    
-    function nbsp($count = 1) { return str_repeat(char_unsec(), $count); }
+    function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : str_repeat(char_unsec(), $count_or_text); }
     
     function anchor_name($name, $tolower = DOM_AUTO) { return dom_to_classname($name, $tolower); }
 
@@ -7271,60 +7634,33 @@
         if (!in_array($color, $dom_used_colors)) $dom_used_colors[] = $color;
     }
 
-    function predefined_svg_brands()
+    function dom_brands()
     {
         global $dom_used_colors;
-        return /*array(
-            "500px",    
-            "flickr",         
-            "facebook",       
-            "twitter",        
-            "linkedin",       
-            "instagram",      
-            "pinterest",      
-            "tumblr",         
-            "rss",            
-            "printer",        
-            "notifications",  
-            "messenger",      
-            "alert",          
-            "amp",            
-            "loading",        
-            "darkandlight", 
-            "leboncoin",      
-            "seloger",        
-            "numerama",
-            "google",
-            "youtube",
-            "github",
-            "deezer",
-            "soundcloud",
-            "link"
-        );*/$dom_used_colors;
+        return $dom_used_colors;
     }
     
-    function predefined_svg_brands_css_boilerplate($fn_color_transform = "self") { return delayed_component("_".__FUNCTION__, $fn_color_transform); }
-    function _predefined_svg_brands_css_boilerplate($fn_color_transform = "self")
+    function dom_brands_svg_css_boilerplate($tab = 0) { return delayed_component("_".__FUNCTION__, $tab); }
+    function _dom_brands_svg_css_boilerplate($tab = 0)
     {
         $css = "";
 
-        foreach (predefined_svg_brands() as $svg)
+        foreach (dom_brands() as $brand)
         {
-            $fn_color = "color_$svg";
-            $colors   = $fn_color();
+            $colors   = ("color_$brand")();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "palette-$svg";
-            $var      = "--color-$svg";
+            $class    = "palette-$brand";
+            $var      = "--color-$brand";
     
-            $css .= dom_eol().dom_tab(1);
+            $css .= dom_eol().dom_tab($tab);
             for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { fill: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
         }
 
         return $css;
     }
 
-    function brand_color_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan)); }
-    function _brand_color_properties($fn_color_transform = "self", $pan = 35)
+    function dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan)); }
+    function _dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35)
     {   
         $css = "";
 
@@ -7333,12 +7669,11 @@
                                 : (($color_contrast_target == "aa" ) ? DOM_COLOR_CONTRAST_AA_NORMAL
                                 : (($color_contrast_target == "aaa") ? DOM_COLOR_CONTRAST_AAA_NORMAL : $color_contrast_target)));
 
-        foreach (predefined_svg_brands() as $b => $svg)
+        foreach (dom_brands() as $b => $brand)
         {
-            $fn_color = "color_$svg";
-            $colors   = $fn_color();
+            $colors   = ("color_$brand")();
             $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "palette-$svg";
+            $class    = "palette-$brand";
     
             $css .= dom_eol().dom_tab(1);
             
@@ -7364,7 +7699,7 @@
                     }
                 }
 
-                $css .= pan("--color-".$svg.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
+                $css .= pan("--color-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
             }
         }
         
@@ -8061,22 +8396,26 @@
     
     function header_backgrounds_async()
     {
-        if (dom_get("ajax") != "header-backgrounds") return "";
+        $json = "";
 
-        if (dom_has("support_header_backgrounds") && (false !== dom_get("support_header_backgrounds")))
+        if (dom_get("ajax") == "header-backgrounds"
+        &&  dom_has("support_header_backgrounds")
+        &&  false !== dom_get("support_header_backgrounds"))
         {
+            dom_del("doctype"); // TODO isn't it hacky?
+            dom_init("json");
+
             if (is_string(dom_get("support_header_backgrounds")))
             {
-                foreach (explode(',', dom_get("support_header_backgrounds")) as $i => $url)
-                {
-                    echo (($i>0)?", ":"").'"'.$url.'"';
-                }
+                $json .= json_encode(explode(',', dom_get("support_header_backgrounds")));
             }
-            else foreach (array_instagram_thumbs(dom_get("instagram_user")) as $i => $thumb)
+            else 
             {
-                echo (($i>0)?", ":"").'"'.$thumb["post_img_url"].'"';
+                $json .= json_encode(array_instagram_thumbs(dom_get("instagram_user")));
             }
         }
+
+        return $json;
     }
 
     /**
@@ -8390,6 +8729,15 @@
         return dom_int_rgb_to_hash_rrggbb(255*$r, 255*$g, 255*$b);
     }
 
+    function dom_hash_rrggbb_to_dec_rgb($rrggbb, &$r, &$g, &$b)
+    {
+        $rrggbb = ltrim($rrggbb, "#");
+
+        $r = hexdec(substr($rrggbb, 0, 2)) / 255;
+        $g = hexdec(substr($rrggbb, 2, 2)) / 255;
+        $b = hexdec(substr($rrggbb, 4, 2)) / 255;
+    }
+
     function dom_hash_rrggbb_to_int_rgb($rrggbb)
     {        
         $rrggbb = ltrim($rrggbb, "#");
@@ -8478,7 +8826,7 @@
         $percent_min = 0;
         $percent_max = 1;
         $percent     = 0;
-        $depth       = 8;
+        $depth       = 10;
 
         while ($depth-- > 0)
         {
@@ -8520,9 +8868,9 @@
         $g = $g0 + $x * ($g1 - $g0);
         $b = $b0 + $x * ($b1 - $b0);
 
-        $rrggbb =   str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                    str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                    str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+        $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                  str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
                     
         return "#".$rrggbb;
     }
@@ -8551,6 +8899,8 @@
     {
         $profiler = dom_debug_track_timing();
 
+        $contrast_ratio_target += 0.05; // CHROME DEV TOOL DOES NOT GIVE SAME COMPUTATION RESULT !!
+
         if ($delta == 0) $delta = 1;
 
         $rrggbb      = ltrim($color,      "#"); if (!ctype_xdigit($rrggbb))      return "#".$rrggbb;
@@ -8564,33 +8914,53 @@
         $back_g  = hexdec(substr($back_rrggbb, 2, 2)) / 255;
         $back_b  = hexdec(substr($back_rrggbb, 4, 2)) / 255;
 
+        $best_ratio  = -1;
         $ratio       = 0;
         $percent_min = 0;
         $percent_max = 1;
         $percent     = 0;
-        $depth       = 8+1;
+        $depth       = 10;
 
         $debug_css = "";
 
         while ($depth-- > 0)
         {
-            $r = max(0, min(1, $r0 + (($delta > 0 ? 1.0 : 0.0) - $r0) * $percent));
-            $g = max(0, min(1, $g0 + (($delta > 0 ? 1.0 : 0.0) - $g0) * $percent));
-            $b = max(0, min(1, $b0 + (($delta > 0 ? 1.0 : 0.0) - $b0) * $percent));
+            $r1 = max(0, min(1, $r0 + (($delta > 0 ? 1.0 : 0.0) - $r0) * $percent));
+            $g1 = max(0, min(1, $g0 + (($delta > 0 ? 1.0 : 0.0) - $g0) * $percent));
+            $b1 = max(0, min(1, $b0 + (($delta > 0 ? 1.0 : 0.0) - $b0) * $percent));
+
+            //dom_hash_rrggbb_to_dec_rgb(dom_dec_rgb_to_hash_rrggbb($r1, $g1, $b1), $r1 ,$g1, $b1);
+            $rrggbb1 = dom_dec_rgb_to_hash_rrggbb($r1, $g1, $b1);
             
-            $ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r, $g, $b);
+            //$ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r1, $g1, $b1);
+            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb1);
             if ($ratio < $contrast_ratio_target) $percent_min = $percent; else $percent_max = $percent;
             $percent = 0.5 * ($percent_min + $percent_max);
 
-            if (!!$debug)
+            if (($contrast_ratio_target <= $ratio && $ratio <= $best_ratio)
+            ||  ($best_ratio            <= $ratio && $ratio <  $contrast_ratio_target))
             {
-                $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                          str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                          str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
+                $r = $r1;
+                $g = $g1;
+                $b = $b1;
+                
+                $best_ratio = $ratio;
+                
+                if (!!$debug)
+                {
+                    $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
+                              str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
+                              str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
 
-                $debug_css .= PHP_EOL."/* $rrggbb // R=$ratio/$contrast_ratio_target - $percent% -  */";
+                    //$debug_css .= PHP_EOL."/* # $depth : $rrggbb // R=$ratio/$contrast_ratio_target // $r $g $b // $percent% // $background  */";
+                }
+
+                if ($ratio >= $contrast_ratio_target)
+                {
+                    break;
+                }
             }
-        } 
+        }
 
         $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
                   str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
@@ -8649,11 +9019,11 @@
         
         $ratioA = 0;
         $corrected_colorA = dom_correct_color($color, $background, $contrast_ratio_target, $delta, $ratioA, $debug);
-        if ($ratioA >= $contrast_ratio_target) return $corrected_colorA;
+      //if ($ratioA >= $contrast_ratio_target) return $corrected_colorA;
         
         $ratioB = 0;
         $corrected_colorB = dom_correct_color($color, $background, $contrast_ratio_target, -$delta, $ratioB, $debug);
-        if ($ratioB >= $contrast_ratio_target) return $corrected_colorB;
+      //if ($ratioB >= $contrast_ratio_target) return $corrected_colorB;
 
         return $ratioA >= $ratioB ? $corrected_colorA : $corrected_colorB;
     }
