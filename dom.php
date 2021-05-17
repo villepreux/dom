@@ -5713,6 +5713,23 @@
             
         <?php } ?> 
 
+            /* UTILITIES */
+
+            .colorful-shadow {
+                position: relative;
+                }
+
+            .colorful-shadow::after {
+                content: "";
+                width: 100%;
+                height: 100%;
+                position: absolute;
+                background: inherit;
+                background-position: center center;
+                filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.50)) blur(20px);
+                z-index: -1;
+                }
+
             /* PRINT */
                 
             @media print {
@@ -6777,7 +6794,12 @@
 
     function div_aspect_ratio($html, $w = 1200, $h = 675, $classname = false) // 16:9
     {
-        $class = class_aspect_ratio($w, $h);
+        $class = "";
+
+        if (is_numeric($w) && is_numeric($h))
+        {
+            $class = class_aspect_ratio($w, $h);
+        }
 
         if ($class != "")
         {
@@ -6823,16 +6845,17 @@
                             ' layout'           .'="'.'responsive'  .'"'.
                             ' frameborder'      .'="'.'0'           .'"'.
                             ' style'            .'="'.'border:0;'   .'"'.
+                            ' overflow'         .'="'.'hidden'      .'"'.
                             ' allowfullscreen'  .'="'.''            .'"'.
 
                             '>'.
 
             dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>').
             
-            '</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h);
+            '</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h, "iframe-wrapper");
     }
 
-    function google_calendar($id, $w = false, $h = false)
+    function google_calendar($id, $w = false, $h = false, $background_color = "FFFFFF", $mode = "MONTH" /*WEEK AGENDA*/)
     {
         $src = $id;
 
@@ -6843,12 +6866,13 @@
             .'?'    .'showTitle'        .'=0'
             .'&amp;'.'showPrint'        .'=0'
             .'&amp;'.'showCalendars'    .'=0'
-            .'&amp;'.'showTz'           .'=0'
-            .'&amp;'.'height'           .'='.$h.''
+            .'&amp;'.'showTz'           .'=0'       .(($h !== false) ? (''
+            .'&amp;'.'height'           .'='.$h.''  ) : '').''
             .'&amp;'.'wkst'             .'=2'
-            .'&amp;'.'bgcolor'          .'=%23FFFFFF'
+            .'&amp;'.'bgcolor'          .'=%23'.$background_color
             .'&amp;'.'src'              .'='.$id.'%40group.calendar.google.com'
             .'&amp;'.'color'            .'=%2307bdcb'
+            .'&amp;'.'mode'             .'='.$mode
             .'&amp;'.'ctz'              .'=Europe%2FParis';
         }
         
@@ -6872,6 +6896,23 @@
         }
 
         return iframe($src, "Google Doc", "google-doc", $w, $h, $lazy);
+    }
+        
+    function google_calc($id, $w = false, $h = false, $lazy = DOM_AUTO)
+    {
+        $src = $id;
+
+        if (false === stripos($id, "http"))
+        {
+            $src = "https://docs.google.com/spreadsheets/$id/pubhtml".
+                "?gid".      "=0".
+                "&single".   "=true".
+                "&widget".   "=false".
+                "&chrome".   "=false".
+                "&headers".  "=false";
+        }
+
+        return iframe($src, "Google Spreadsheet", "google-calc", $w, $h, $lazy);
     }
        
     function google_video($id, $w = false, $h = false, $lazy = DOM_AUTO)
@@ -7614,7 +7655,7 @@
     function svg($label, $x0, $x1, $y0, $y1, $align, $svg_body) 
     {
         return dom_tag('span', 
-            '<svg '. 'class="svg" '.
+            '<svg '. 'class="svg colorful-shadow" '.
                       'role="img"'.                     (($label!="" && $label!=false)?(' '.
                 'aria-label="'.$label.'"'.              ''):('')).' '.
                    'viewBox="'."$x0 $x1 $y0 $y1".'">'.
