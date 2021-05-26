@@ -633,7 +633,7 @@
         return "";
     }
 
-    function dom_heredoc_flush($transform = false, $force_minify = false)
+    function dom_heredoc_flush($transform = false, $transform_force_minify = false)
     {
         if (null !== $transform)
         {
@@ -642,7 +642,7 @@
             $heredoc_stack = dom_get("dom_heredoc");
 
             if ($heredoc_stack[count($heredoc_stack)-1]["tab_offset"] != 0) $output = dom_modify_tab($output, $heredoc_stack[count($heredoc_stack)-1]["tab_offset"], $heredoc_stack[count($heredoc_stack)-1]["tab"]);
-            if (!!$transform) $output = $transform($output, $force_minify);
+            if (!!$transform) $output = $transform($output, $transform_force_minify);
         
             $heredoc_stack[count($heredoc_stack)-1]["current_output"] .= $output;
 
@@ -653,9 +653,9 @@
         ob_start();
     }
 
-    function dom_heredoc_stop($transform = false, $force_minify = false)
+    function dom_heredoc_stop($transform = false, $transform_force_minify = false)
     {
-        dom_heredoc_flush($transform, $force_minify);
+        dom_heredoc_flush($transform, $transform_force_minify);
         ob_end_clean();
         
         $heredoc_stack = dom_get("dom_heredoc");
@@ -5805,11 +5805,11 @@
 
         dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
 
-    /*  MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
+        /* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
    
         if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
    
-    /*  Adjust toolbar margin */
+        /* Adjust toolbar margin */
    
         document.querySelector(".mdc-top-app-bar").position = "fixed";
 
