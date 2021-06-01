@@ -1504,9 +1504,10 @@
 
     // Images
 
-    $dom_hook_images = array();
+    $dom_hook_images         = array();
+    $dom_hook_image_preloads = array();
     
-    function dom_hook_img($src)
+    function dom_hook_img($src, $preload)
     {
         global $dom_hook_images;
 
@@ -1514,6 +1515,27 @@
         {
             $dom_hook_images[] = $src;
         }
+
+        if ($preload)
+        {
+            global $dom_hook_image_preloads;
+
+            if (!in_array($src, $dom_hook_image_preloads))
+            {
+                $dom_hook_image_preloads[] = $src;
+            }
+        }
+    }
+
+    function dom_hooked_image_preload($src)
+    {
+        return dom_link_rel_image_preload($src);
+    }
+
+    function _dom_hooked_image_preloads()
+    {
+        global $dom_hook_image_preloads;
+        return wrap_each($dom_hook_image_preloads, dom_eol(), "dom_hooked_image_preload", false);
     }
 
     // Links
@@ -3985,6 +4007,15 @@
         return dom_tag("badge", false, array("value" => "available"), true, true);
     }
 
+    $__dom_cached_getimagesize = array();
+
+    function dom_cached_getimagesize($src)
+    {
+        global $__dom_cached_getimagesize;
+        if (!array_key_exists($src, $__dom_cached_getimagesize)) $__dom_cached_getimagesize[$src] = @getimagesize($src);
+        return $__dom_cached_getimagesize[$src];
+    }
+
     function json_manifest()
     {
         $short_title = dom_get("title");
@@ -4068,7 +4099,7 @@
                 {
                     foreach ($screenshots as $s => &$img)
                     {
-                        list($w,$h) = $size = @getimagesize($img["src"]);
+                        list($w,$h) = $size = dom_cached_getimagesize($img["src"]);
                         
                         if (false === $size
                         || $w < 320 || $h < 320 || $w > 3840 || $h > 3840
@@ -4981,6 +5012,30 @@
         return link_rel("prefetch", $url);
     }
 
+    function dom_link_rel_image_preload($url)
+    {
+        $mime = "image/png";
+        {
+            $size = dom_cached_getimagesize($url);
+
+            if (is_array($size) && array_key_exists("mime", $size))
+            {
+                $mime = $size["mime"];
+            }
+            else
+            {
+                $ext = "png";
+                $pos = stripos($url, "?");
+                if (false !== $pos) $ext = substr($url, 0, $pos);
+                $pos = strripos($url, ".");
+                if (false !== $pos) $ext = substr($url, $pos + 1);
+                $ext = "image/$ext";
+            }
+        }
+
+        return link_rel("preload", $url, array("as" => "image", "type" => $mime));
+    }
+
     function link_rel_manifest($path_manifest = false, $type = false, $pan = 17)
     {
         $profiler = dom_debug_track_timing();
@@ -5240,7 +5295,9 @@
             .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
             .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
             .   dom_eol()
-            .   dom_eol() . delayed_component("_dom_hooked_links")          
+            .   dom_eol() . delayed_component("_dom_hooked_links")
+            .   dom_eol()
+            .   dom_eol() . delayed_component("_dom_hooked_image_preloads")
             ;
     }
     
@@ -6829,7 +6886,7 @@
         
         $lazy_attributes = "";
 
-        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy"';
+        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
         if ($lazy === true)     $lazy_attributes = ' lazy loading';
 
         return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
@@ -7610,7 +7667,17 @@
 
         if (!!dom_get("no_js") && $lazy === true) $lazy = DOM_AUTO;
 
-        dom_hook_img($path);
+        $img_nth = dom_get("dom_img_nth", 1);
+
+        $preload = false;
+            
+        if ($img_nth <= dom_get("dom_img_lazy_loading_after"))
+        {
+            $lazy    = false;
+            $preload = true;
+        }
+
+        dom_hook_img($path, $preload);
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
@@ -7630,13 +7697,6 @@
         }
         else
         {
-            $img_nth = dom_get("dom_img_nth", 1);
-            
-            if ($img_nth <= dom_get("dom_img_lazy_loading_after"))
-            {
-                $lazy = false;
-            }
-
             dom_set("dom_img_nth", $img_nth + 1);
 
                  if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
@@ -7979,7 +8039,7 @@
         return (($media !== false) ? section($media, dom_attributes_add_class($attributes, dom_component_class("card-media"))) : "");
     }
 
-    function card_text($text = false, $cleanup = false)
+    function card_text($text = false, $attributes = false, $cleanup = false)
     {
         if ($text !== false && !!$cleanup)
         {
@@ -7988,7 +8048,7 @@
         
         dom_hook_card_set_context("text", $text);
         
-        return (($text !== false) ? section($text, dom_component_class("card-text")) : "");
+        return (($text !== false) ? section($text, dom_attributes_add_class($attributes, dom_component_class("card-text"))) : "");
     }
 
     function card_actions($button = false)
@@ -8136,7 +8196,7 @@
                 ).
 
             card_media  (dom_at($data,"content")).
-            card_text   (dom_at($data, "desc", true)).
+            card_text   (dom_at($data, "desc", false, true)).
 
             card_actions(false),
             
