@@ -4,6 +4,28 @@
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1"); // get/set can used as a helper
 
+    // TODO ------------------------------------------------------------------------>
+    // TODO : FIX CANONICAL PATH HACK
+
+    if (!!get("static"))
+    {
+        set("canonical", rtrim(str_replace("www.villepreux.net",    "villapirorum.netlify.app", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("villepreux.net",        "villapirorum.netlify.app", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("http://localhost",      "https://",                 get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("http://127.0.0.1",      "https://",                 get("canonical")), "/"));
+    }
+
+    if (is_localhost())
+    {
+        set("canonical", rtrim(str_replace("https://localhost", "http://localhost", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("https://127.0.0.1", "http://127.0.0.1", get("canonical")), "/"));
+    }
+
+    set("canonical", str_replace("///", "//", get("canonical")));
+
+    // TODO
+    // TODO ------------------------------------------------------------------------>
+
     define("TOKEN_FLICKR", "8359186a91acb42a4934c5a2c73195d1");
 
     dom_init();

@@ -93,7 +93,7 @@
         {
             $headers = array();
 
-            foreach ($_SERVER as $name => $value)
+            foreach (dom_get_server_vars() as $name => $value)
             {
                 if (substr($name, 0, 5) == 'HTTP_')
                 {
@@ -109,13 +109,18 @@
     function dom_header_do_not_track                ()  { return 1 == dom_at(dom_server_headers(), 'dnt',      0); }
     function dom_header_global_privacy_control      ()  { return 1 == dom_at(dom_server_headers(), 'sec-gpc',  0); }
 
-    function dom_server_http_accept_language        ($default = "en")                   { return        dom_at(array_merge($_GET, $_SERVER), 'HTTP_ACCEPT_LANGUAGE',             $default);  }
-    function dom_server_server_name                 ($default = "localhost")            { return        dom_at(array_merge($_GET, $_SERVER), 'SERVER_NAME',                      $default);  }
-    function dom_server_server_port                 ($default = "80")                   { return        dom_at(array_merge($_GET, $_SERVER), 'SERVER_PORT',                      $default);  }
-    function dom_server_request_uri                 ($default = "www.villepreux.net")   { return        dom_at(array_merge($_GET, $_SERVER), 'REQUEST_URI',                      $default);  }
-    function dom_server_https                       ($default = "on")                   { return        dom_at(array_merge($_GET, $_SERVER), 'HTTPS', is_localhost() ? "off" :   $default);  }
-    function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(array_merge($_GET, $_SERVER), 'HTTP_HOST',                        $default);  }
-    function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(array_merge($_GET, $_SERVER), 'HTTP_DNT',                         0);         }
+    $__dom_server_vars = array("SERVER","GET");
+
+    function dom_set_server_vars($a, $b = false)    { global $__dom_server_vars; $__dom_server_vars = array(); if ($a !== false) $__dom_server_vars[] = $a; if ($b !== false) $__dom_server_vars[] = $b; }
+    function dom_get_server_vars()                  { global $__dom_server_vars; $vars = array(); foreach ($__dom_server_vars as $name) { if ($name == "GET") $vars = array_merge($vars, $_GET); if ($name == "SERVER") $vars = array_merge($vars, $_SERVER); } return $vars; }
+
+    function dom_server_http_accept_language        ($default = "en")                   { return        dom_at(dom_get_server_vars(), 'HTTP_ACCEPT_LANGUAGE',             $default);  }
+    function dom_server_server_name                 ($default = "localhost")            { return        dom_at(dom_get_server_vars(), 'SERVER_NAME',                      $default);  }
+    function dom_server_server_port                 ($default = "80")                   { return        dom_at(dom_get_server_vars(), 'SERVER_PORT',                      $default);  }
+    function dom_server_request_uri                 ($default = "www.example.com")      { return        dom_at(dom_get_server_vars(), 'REQUEST_URI',                      $default);  }
+    function dom_server_https                       ($default = "on")                   { return        dom_at(dom_get_server_vars(), 'HTTPS', is_localhost() ? "off" :   $default);  }
+    function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(dom_get_server_vars(), 'HTTP_HOST',                        $default);  }
+    function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(dom_get_server_vars(), 'HTTP_DNT',                         0);         }
 
     function dom_do_not_track()
     {
@@ -132,6 +137,25 @@
 
     function dom_is_localhost() { return (false !== stripos(dom_server_http_host(), "localhost"))
                                       || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
+
+    #endregion
+    #region HELPERS : PROFILING
+    ######################################################################################################################################
+    
+    $__dom_console = array();
+
+    function dom_debug_console_lines()
+    {
+        global $__dom_console;
+        return $__dom_console;
+    }
+
+    function dom_debug_console_log($msg = "")
+    {
+        global $__dom_console;
+        $__dom_console[] = $msg;
+        return $__dom_console;
+    }
 
     #endregion
     #region HELPERS : PROFILING
@@ -225,10 +249,13 @@
             dom_debug_track_delta($this->annotation, microtime(true) - $this->t);
         }
     };
+
+    $__dom_profiling_enabled = false;
     
     function dom_debug_track_timing($annotation = false)
     {
-        return new dom_debug_track_delta_scope($annotation);
+        global $__dom_profiling_enabled;
+        return $__dom_profiling_enabled ? new dom_debug_track_delta_scope($annotation) : null;
     }
 
     #endregion
@@ -248,8 +275,8 @@
 
         if (false !== $param_pos)
         {
-            $path0 = substr($path0, 0, $param_pos);
             $param = substr($path0,    $param_pos);
+            $path0 = substr($path0, 0, $param_pos);
         }
 
         $searches = array(array($path0, $depth0, $offset_path0));
@@ -271,6 +298,8 @@
             if (0 === stripos($path, "http"))                             return $path.$param;
 
             // If path exists then directly return it
+
+            if (false !== stripos($path, "batiment")) die("CWD = (".getcwd().")PATH = ($path) EXISTS = (".file_exists($path).")");
 
             if (@file_exists($path))                                return $path.$param;
             if (($max_depth == $depth) && dom_url_exists($path))    return $path.$param;
@@ -327,12 +356,27 @@
     #endregion
     #region HELPERS : PHP FILE INCLUDE
 
-    function dom_include($path)
+    function dom_include($path, $no_display = false)
     {
+        if ($no_display) ob_start();
         if (!!$path) @include($path);
+        if ($no_display) ob_end_clean();
         return "";
     }
 
+    function dom_require($path, $no_display = false)
+    {
+        if ($no_display) ob_start();
+        if (!!$path) @require($path);
+        if ($no_display) ob_end_clean();
+        return "";
+    }
+
+    function dom_compile($path)
+    {
+        return dom_require($path, true);
+    }
+    
     #endregion
     #region WIP DEPENDENCIES
     ######################################################################################################################################
@@ -358,8 +402,8 @@
             {
                 $arg = explode("=", $arg);
 
-                if (count($arg) > 1) dom_set($arg[0], $arg[1]);
-                else                 dom_set($arg[0], true);
+                if (count($arg) > 1) { dom_set($arg[0], $arg[1] ); }
+                else                 { dom_set($arg[0], true    ); }
             }
         }
 
@@ -404,7 +448,8 @@
       //dom_set("url",                               dom_url());                              if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
       //dom_set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")).'"');
 
-        dom_set("normalize",                        "sanitize");
+        dom_set("normalize",                        "sanitize");/*
+        dom_set("reset",                            "evergreen");*/
 
         dom_set("icons_path",                       "img/icons/");
 
@@ -452,8 +497,9 @@
             
         dom_set("carousel",                         true);
             
-        dom_set("version_normalize",                "7.0.0");
-        dom_set("version_sanitize",                "12.0.1");  
+        dom_set("version_normalize",               "11.0.1");
+        dom_set("version_sanitize",                "13.0.0");  
+        dom_set("version_evergreen",               "10.0.0");  
         dom_set("version_material",                "0.38.2"); // latest => SimpleMenu got broken in 0.30.0 => Got fixed in CSS => latest => Broken in 0.39.0 => 0.38.0
         dom_set("version_bootstrap",                "4.1.1");
         dom_set("version_spectre",                  "x.y.z");
@@ -475,7 +521,7 @@
         dom_set("framework",                        dom_get("framework",    "NONE"                      ));
         dom_set("amp",                              dom_get("amp",          false                       ));
         dom_set("cache",                            dom_get("cache",        false                       ));
-        dom_set("minify",                           dom_get("minify",       !dom_get("beautify",false)  )); // Performances first
+        dom_set("minify",                           dom_get("minify",       true                        )); // Performances first
         dom_set("page",                             dom_get("page",         1                           ));
         dom_set("n",                                dom_get("n",            12                          ));
     }
@@ -806,15 +852,21 @@
         $attributes = dom_attributes($attributes);
 
         if ("" === $attributes) return dom_attributes($classname);
+        if ("" === $classname)  return dom_attributes($classname);
             
+        if (false === stripos($attributes, "class="))
+        {
+            $attributes .= " class=\"\"";
+        }
+
         $bgn = stripos($attributes, "class=");      if (false === $bgn) return $attributes;
         $bgn = stripos($attributes, '"', $bgn);     if (false === $bgn) return $attributes;
         $end = stripos($attributes, '"', $bgn + 1); if (false === $bgn) return $attributes;
 
         $classes = substr($attributes, $bgn + 1, $end - $bgn - 1);
 
-        if ($add_first) $classes = "$classname $classes";
-        else            $classes = "$classes $classname";
+        if ($add_first) $classes = $classname.($classes != "" ? " " : "").$classes;
+        else            $classes = $classes  .($classes != "" ? " " : "").$classname;
 
         $attributes = substr($attributes, 0, $bgn + 1) . $classes . substr($attributes, $end);
 
@@ -1042,7 +1094,7 @@
             
             $content = curl_exec($curl);
             
-            if (!!dom_get("debug") && (!$content || $content == "")) 
+            if (!!dom_get("debug") && (!$content || $content == ""))
             {
                 echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
                 echo comment(dom_to_string(curl_getinfo($curl)));
@@ -1051,14 +1103,17 @@
             curl_close($curl);
         }
 
-        if (!$content || $content == "") $content = @file_get_contents($url);
+        if (!$content || $content == "")
+        {
+            $content = @file_get_contents($url);
+        }
 
         if ($auto_fix)
         {
-            if (!$content || $content == "") $content = dom_content(dom_url().$url,     $timeout, false);
-          //if (!$content || $content == "") $content = dom_content(dom_path($url),     $timeout, false);
-            if (!$content || $content == "") $content = dom_content(dom_url()."/".$url, $timeout, false);
-          //if (!$content || $content == "") $content = dom_content(dom_path("/".$url), $timeout, false);
+            if (!$content || $content == "") $content = dom_content(dom_url().    $url,  $timeout, false);
+          //if (!$content || $content == "") $content = dom_content(dom_path(     $url), $timeout, false);
+            if (!$content || $content == "") $content = dom_content(dom_url()."/".$url,  $timeout, false);
+          //if (!$content || $content == "") $content = dom_content(dom_path( "/".$url), $timeout, false);
         }
 
         if (!$content)
@@ -1069,13 +1124,6 @@
         return $content;
     }
 
-    function dom_main_content($path)
-    {
-        if (false === stripos($path, "?")) $path .= "?";
-        $path .= "&dom_main=1";
-        return dom_content($path);
-    }
-    
     function dom_array_open_url($urls, $content_type = 'json', $timeout = 7)
     {
         $content = dom_content($urls, $timeout);
@@ -1119,8 +1167,8 @@
     #region WIP API : UTILITIES : STRINGS MANIPULATION
 
     function dom_dup($html, $n)                             { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
-    function dom_eol($n = 1)                                { if (!!dom_get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dom_dup("\r\n",$n); case 'DAR': return dom_dup("\r",$n); } return dom_dup("\n",$n); }
-    function dom_tab($n = 1)                                { if (!!dom_get("minify",false)) return ' '; return dom_dup(' ', 4*$n); }
+    function dom_eol($n = 1)                                { if ($n == 0) return ""; if (!!dom_get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dom_dup("\r\n",$n); case 'DAR': return dom_dup("\r",$n); } return dom_dup("\n",$n); }
+    function dom_tab($n = 1)                                { if ($n == 0) return ""; if (!!dom_get("minify",false)) return ' '; return dom_dup(' ', 4*$n); }
     function pan($x, $w, $c = " ", $d = 1)                  { if (!!dom_get("minify",false)) return $x;  $x="$x"; while (mb_strlen($x, 'utf-8')<$w) $x=(($d<0)?$c:"").$x.(($d>0)?$c:""); return $x; }
     function precat()                                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
     function precat_FUNC_ARGS($args)                        { return wrap_each(array_reverse($args),''); }
@@ -1167,20 +1215,46 @@
         return (string)$x;
     }
 
-    function dom_to_html($x)
+    function dom_to_html($x, $transform = "self", $k = "", $sibblings = array(), $wrapper = "table")
     {
         if (is_array($x))
         {
-            $rows = "";
-            foreach ($x as $k => $v) $rows .= tr(td($k).td(dom_to_html($v)));
-            return dom_table($rows);
+            if ($wrapper == "grid")
+            {
+                $rows = "";
+                foreach ($x as $k => $v) $rows .= dom_eol().
+                    td($k,                                              array("style" => "display: block;", "class" => "key")).
+                    td(dom_to_html($v, $transform, $k, $x, $wrapper),   array("style" => "display: block;", "class" => "val"));
+                
+                return
+                    dom_table(
+                        dom_tag("tbody", 
+                            tr(
+                                $rows, 
+                                array("style" => "display: grid; grid-template-columns: auto minmax(1px, 1fr); width: 100%;")
+                                ),
+                            array("style" => "display: block")
+                            ),
+                        array("style" => "display: block")
+                        );
+            }
+            else /* table */
+            {
+                $rows = "";
+                foreach ($x as $k => $v) $rows .= tr(td($k).td(dom_to_html($v, $transform, $k, $x, $wrapper)));
+                return dom_table($rows);
+            }
         }
         else if (is_object($x))
         {
             return json_encode($x);
         }
-        
-        return (string)$x;
+
+        return ($transform)(
+            (string)$x, 
+            (string)$k, 
+            $sibblings
+            );
     }
     
     function dom_is_array_filtered($a, $required_values, $unwanted_values = false)
@@ -1486,22 +1560,6 @@
         dom_set("toolbar_$row", true);
     }
 
-    // Body extension
-    
-    $hook_body = "";
-    
-    function hook_body($html)
-    {
-        global $hook_body;
-        $hook_body .= $html;
-    }
-
-    function _body()
-    {
-        global $hook_body;
-        return $hook_body;
-    }
-
     // Images
 
     $dom_hook_images         = array();
@@ -1532,10 +1590,11 @@
         return dom_link_rel_image_preload($src);
     }
 
-    function _dom_hooked_image_preloads()
+    function link_rel_image_preloads() { return delayed_component("_".__FUNCTION__); }
+    function _link_rel_image_preloads()
     {
         global $dom_hook_image_preloads;
-        return wrap_each($dom_hook_image_preloads, dom_eol(), "dom_hooked_image_preload", false);
+        return wrap_each($dom_hook_image_preloads, "", "dom_hooked_image_preload", false);
     }
 
     // Links
@@ -1584,11 +1643,11 @@
         return dom_link_rel_prefetch($link["url"]);
     }
 
-    function _dom_hooked_links()
+    function link_rel_prefetchs() { return delayed_component("_".__FUNCTION__); }
+    function _link_rel_prefetchs()
     {
-      //return "";
         global $dom_hook_links;
-        return wrap_each($dom_hook_links, dom_eol(), "dom_hooked_link_rel_prefetch", false);
+        return wrap_each($dom_hook_links, "", "dom_hooked_link_rel_prefetch", false);
     }
 
     // AM Sidebars
@@ -1616,10 +1675,9 @@
     function hook_amp_js($js)
     {
         hook_amp_require("script");
-        
         global $hook_amp_scripts;
-
         $hook_amp_scripts[] = $js;
+        return "";
     }
 
     function _amp_scripts_head()
@@ -1628,21 +1686,18 @@
         
         if (count($hook_amp_scripts) > 0)
         {
-            return
-                '<meta name="amp-script-src" content="
-                    '.delayed_component("_amp_sha384_hash_local_script").' 
-                    " />';
+            return dom_eol().'<meta name="amp-script-src" content="'.delayed_component("_amp_sha384_hash_local_script", false, 1, 0).' " />';
         }
 
-        return '';
+        return "";
     }
 
     function _amp_sha384_hash_local_script()
     {
-        $keys = "";
+        $keys = array();
         global $hook_amp_scripts;
-        foreach ($hook_amp_scripts as $js) $keys .= dom_eol().hash("sha384",$js);
-        return $keys;
+        foreach ($hook_amp_scripts as $js) $keys[] = hash("sha384",$js);
+        return implode(" ", $keys);
     }
 
     function _amp_scripts_body()
@@ -1655,8 +1710,7 @@
         {
             $uuid = md5($js);
 
-            $html .= cosmetic(dom_eol()).
-
+            $html .= dom_eol().
                 '<amp-script script="dom_amp_scripts_'.$uuid.'" layout="container"></amp-script>'.
                 '<script type="text/plain" target="amp-script" id="dom_amp_scripts_'.$uuid.'">'.
                 $js.
@@ -1680,7 +1734,14 @@
         global $hook_amp_css;
         $hook_amp_css[] = $css;
 
-        return dom_placeholder("AMP_CSS_".(count($hook_amp_css)-1));
+        return dom_placeholder("AMP_CSS_".(count($hook_amp_css)-1)); // They are aggregated
+    }
+
+    function dom_placeholder_replace_amp_css($html)
+    {
+        global $hook_amp_css;
+        foreach ($hook_amp_css as $i => $_) $html = dom_placeholder_replace("AMP_CSS_$i", "", $html);
+        return $html;
     }
 
     function _amp_css($_, $html)
@@ -2405,19 +2466,19 @@
             (
                 "full_name"         => "John Doe"
             ,   "username"          => "Johnny"
-            ,   "profile_picture"   => "https://www.villepreux.net/image.jpg"
+            ,   "profile_picture"   => "https://www.example.com/image.jpg"
             )
         ,   "caption" => array
             (
                 "text" => "Loremp ipsum est!"
             )
         ,   "created_time"  => date("d/m/Y")
-        ,   "link"          => "https://www.villepreux.net"
+        ,   "link"          => "https://www.example.com"
         ,   "images"        => array
             (
                 "low_resolution" => array
                 (
-                    "url" => "https://www.villepreux.net/image.jpg"
+                    "url" => "https://www.example.com/image.jpg"
                 )
             )
 
@@ -3845,7 +3906,7 @@
         if ($doctype    === false) { $doctype   = "html"; }
         if ($encoding   === false) { $encoding  = "utf-8"; }
 
-        $binary_types = array("png");
+        $binary_types = array("png","jpg");
         $binary = in_array($doctype, $binary_types);
 
         dom_set("doctype",  $doctype);
@@ -3858,6 +3919,7 @@
         ,   "rss"       => 'text/xml'
         ,   "tile"      => 'text/xml'
         ,   "png"       => 'image/png'
+        ,   "jpg"       => 'image/jpeg'
         ,   "json"      => 'application/json'
         ,   "html"      => 'text/html'
         ,   "css"       => 'text/css'
@@ -3876,7 +3938,7 @@
         {
             if (!array_key_exists($type, $types))
             {
-                foreach (array("html","xml","png","json","csv","zip") as $t)
+                foreach (array("html","xml","png","jpg","json","csv","zip") as $t)
                 {
                     if (false !== stripos($doctype, "/$t")) $type = $t;
                 }
@@ -3899,6 +3961,24 @@
         if (!$binary) cache_start();
     }
 
+    function dom_placeholder_replace($placeholder, $replaced_by, $in, $container_tag = false, $container_attributes = false)
+    {
+        for ($tab = 9; $tab >= 0; --$tab)
+        {
+            if (false !== stripos($in, dom_tab($tab).dom_placeholder($placeholder)))
+            {
+                $in = str_replace(
+                    dom_tab($tab).dom_placeholder($placeholder), 
+                    $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false), 
+                    $in);
+
+                break;
+            }
+        }
+
+        return $in;
+    }
+
     function dom_output($doc = "")
     {           
         if (!!dom_get("binary"))
@@ -3916,23 +3996,25 @@
             if (false === stripos($doc, "<html") && !dom_has("ajax")) $doc = html($doc);
         }
 
-        if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), _rss      (true), $doc);
-        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), _jsonfeed (true), $doc);
-        if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), _tile     (true), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = dom_placeholder_replace("DOM_HOOK_RSS_1"       , _rss      (true), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = dom_placeholder_replace("DOM_HOOK_JSONFEED_1"  , _jsonfeed (true), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = dom_placeholder_replace("DOM_HOOK_TILE_1"      , _tile     (true), $doc);
         
-        if (false !== stripos($doc, "DOM_HOOK_RSS_0"      )) $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), _rss      (false), $doc);
-        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_0" )) $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), _jsonfeed (false), $doc);
-        if (false !== stripos($doc, "DOM_HOOK_TILE_0"     )) $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), _tile     (false), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_RSS_0"      )) $doc = dom_placeholder_replace("DOM_HOOK_RSS_0"       , _rss      (false), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_JSONFEED_0" )) $doc = dom_placeholder_replace("DOM_HOOK_JSONFEED_0"  , _jsonfeed (false), $doc);
+        if (false !== stripos($doc, "DOM_HOOK_TILE_0"     )) $doc = dom_placeholder_replace("DOM_HOOK_TILE_0"      , _tile     (false), $doc);
     
-        $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_1"       ), "", $doc);
-        $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_1"  ), "", $doc);
-        $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_1"      ), "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_RSS_1"       , "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_JSONFEED_1"  , "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_TILE_1"      , "", $doc);
     
-        $doc = str_replace(dom_placeholder("DOM_HOOK_RSS_0"       ), "", $doc);
-        $doc = str_replace(dom_placeholder("DOM_HOOK_JSONFEED_0"  ), "", $doc);
-        $doc = str_replace(dom_placeholder("DOM_HOOK_TILE_0"      ), "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_RSS_0"       , "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_JSONFEED_0"  , "", $doc);
+        $doc = dom_placeholder_replace("DOM_HOOK_TILE_0"      , "", $doc);
 
-        $doc .= generate_all(dom_get("beautify"));
+        $doc = dom_placeholder_replace_amp_css($doc);
+
+        $doc .= generate_all();
 
         if (dom_get("compression") == "gzip" && !dom_has("dom_main")) ob_start("ob_gzhandler");
 
@@ -3942,8 +4024,9 @@
     
         if ("html" == dom_get("doctype",false) && !!dom_get("debug"))
         {
-            echo dom_eol().comment("PHP Version: ".PHP_VERSION_ID);
-            echo dom_eol().comment("DOM Profiling:".PHP_EOL."    ".wrap_each(dom_debug_timings(), PHP_EOL."    ").PHP_EOL);
+            echo dom_eol().comment("PHP Version: ".  PHP_VERSION_ID);
+            echo dom_eol().comment("DOM Profiling:". PHP_EOL."    ".wrap_each(dom_debug_timings(),       PHP_EOL."    ").PHP_EOL);
+            echo dom_eol().comment("DOM Console:".   PHP_EOL."    ".wrap_each(dom_debug_console_lines(), PHP_EOL."    ").PHP_EOL);
         }
 
         generate_all_postprocess();
@@ -3966,10 +4049,10 @@
     #endregion
     #region WIP DOCUMENTS GENERATION
 
-    function string_ms_browserconfig($beautify = false)
+    function string_ms_browserconfig()
     {
-        $eol = $beautify ? cosmetic(dom_eol())           : "";
-        $tab = $beautify ? cosmetic(dom_eol().dom_tab()) : "";
+        $eol = !get("minify") ? dom_eol()           : "";
+        $tab = !get("minify") ? dom_eol().dom_tab() : "";
 
         $icon_dims = array(array(70,70),array(150,150),array(310,310),array(310,150));
         $pollings  = 5;
@@ -4002,7 +4085,7 @@
             ));
     }
 
-    function string_ms_badge($beautify = false)
+    function string_ms_badge()
     {
         return dom_tag("badge", false, array("value" => "available"), true, true);
     }
@@ -4152,19 +4235,19 @@
         return $json;
     }
 
-    function string_manifest($beautify = false)
+    function string_manifest()
     {
-        return  ($beautify && defined("JSON_PRETTY_PRINT")) 
+        return  (!get("minify") && defined("JSON_PRETTY_PRINT")) 
               ? json_encode(json_manifest(), JSON_PRETTY_PRINT)
               : json_encode(json_manifest());
     }
 
-    function string_robots($beautify = false)
+    function string_robots()
     {
-        return "User-agent: *".PHP_EOL."Disallow:"; // Do not use dom_eol() since having no line break is not an option here
+        return "User-agent: *".PHP_EOL."Disallow:";
     }
 
-    function string_human($beautify = false)
+    function string_human()
     {
         dom_heredoc_start(-3); ?><html><?php dom_heredoc_flush(null); ?>
         
@@ -4210,7 +4293,6 @@
                     <title>Please wait...</title>
                     <meta charset="utf-8" /><meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1" />
                     <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
-                    <meta http-equiv="content-language" content="en" />
                     <meta name="format-detection" content="telephone=no" />
                     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />
                     <meta http-equiv="refresh" content="3">
@@ -4267,6 +4349,8 @@
 
     function string_system_font_stack($quote = '"', $condensed = false)
     {
+        if ($quote === true || $quote === false) { $condensed = $quote; $quote = '"'; }
+
         $fonts = dom_get("font_stack", array(
 
             'Inter', 'Roboto', '-apple-system',
@@ -4316,7 +4400,6 @@
                     <title>Please wait...</title>
                     <meta charset="utf-8" /><meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1" />
                     <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
-                    <meta http-equiv="content-language" content="en" />
                     <meta name="format-detection" content="telephone=no" />
                     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />
                     <meta http-equiv="refresh" content="3">
@@ -4330,7 +4413,7 @@
         <?php dom_heredoc_flush("raw_html", $force_minify); ?></html><?php return dom_heredoc_stop(null);
     }
 
-    function string_service_worker($beautify = false)
+    function string_service_worker()
     {
         dom_heredoc_start(-3); ?><script><?php dom_heredoc_flush(null); ?>
     
@@ -4390,10 +4473,8 @@
         }
     }
 
-    function generate_all($beautify = false)
+    function generate_all()
     {
-        $prev_beautify = false; if ($beautify) { $prev_beautify = dom_get("beautify"); dom_set("beautify", $beautify); }
-
         global $__dom_generated;
 
         foreach ($__dom_generated as $generated)
@@ -4415,14 +4496,12 @@
                     continue;
                 }
 
-                $content = $generated["function"]($beautify);
+                $content = $generated["function"]();
 
                 fwrite($f, utf8_encode($content));
                 fclose($f);
             }
         }
-
-        if ($beautify) { dom_set("beautify", $prev_beautify); }
     }
 
     function generate_all_postprocess()
@@ -4568,7 +4647,7 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!dom_get("no_html")) return ''; if (!!dom_get("minify", false) || $force_minify) { $html    = minify_html   ($html);    } return trim($html ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!dom_get("no_html")) return ''; if (!!dom_get("minify", false) || $force_minify) { $html    = /*minify_html*/   ($html);    } return trim($html ); }
     function raw_js         ($js,   $force_minify = false)  { if (!!dom_get("no_js"))   return ''; if (!!dom_get("minify", false) || $force_minify) { $js      = minify_js     ($js);      } return trim($js   ); }
     function raw_css        ($css,  $force_minify = false)  { if (!!dom_get("no_css"))  return ''; if (!!dom_get("minify", false) || $force_minify) { $css     = minify_css    ($css);     } return trim($css  ); }
 
@@ -4799,6 +4878,8 @@
                     $priorities[(int)$delayed_component_and_param[2]] = true;
                 }
 
+                ksort($priorities);
+
                 foreach ($priorities as $priority => $_)
                 {
                     foreach ($delayed_components as $index => $delayed_component_and_param)
@@ -4808,22 +4889,28 @@
                         $delayed_component = $delayed_component_and_param[0];
                         $param             = $delayed_component_and_param[1];
 
+                        $old_html = $html;
+
                         if (is_array($param))
-                        {               
-                            $html = str_replace(
-                                dom_placeholder($delayed_component.$index),
+                        {       
+                            $html = dom_placeholder_replace(
+                                $delayed_component.$index,
                                 call_user_func_array($delayed_component, array_merge($param, array($html))), 
-                                $html
+                                $html,
+                                "div"
                                 );
                         }
                         else
-                        {                        
-                            $html = str_replace(
-                                dom_placeholder($delayed_component.$index),
+                        {       
+                            $html = dom_placeholder_replace(
+                                $delayed_component.$index,
                                 call_user_func($delayed_component, $param, $html), 
-                                $html
+                                $html,
+                                "div"
                                 );
                         }
+
+                        dom_debug_console_log($delayed_component.$index.": ".($old_html == $html ? "Failed!" : "OK!"));
                     }
                 }
             }
@@ -4859,27 +4946,34 @@
 
                 // Clean html
 
-                if (!dom_get("minify"))
+                /*if (!dom_get("minify"))
                 {
                     while (true)
                     {
                         $pos = stripos($html, dom_eol(3)); if (false === $pos) break;
                         $html = substr_replace($html, dom_eol(2), $pos, strlen(dom_eol(3)));
                     }
-                }
+                }*/
 
                 //  Return html
 
-                $welcome = "Welcome my fellow web developer!".((!dom_get("beautify") && !dom_get("static")) ? " You can ?beautify=1 this source code if needed!" : "");
+                $welcome = "Welcome my fellow web developer!".((dom_get("minify") && !dom_get("static")) ? " You can ?minify=0 this source code if needed!" : "");
                 
-                return raw_html('<!doctype html>'.comment($welcome).
-                
+                return raw_html(
+                        
+                        '<!doctype html>'.
+                        comment($welcome).
+                        '<html'.((dom_AMP())?' amp':'').' class="no-js" lang="'.dom_get("lang","en").'"> '
+                        
+                        ).
+                    
+                    $html.
                     dom_eol().
-                    dom_eol() . '<html'.((dom_AMP())?' amp':'').' class="no-js" lang="'.dom_get("lang","en").'"> '.
-                    dom_eol().
-                    dom_eol()). $html . comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : "")) . raw_html(
-                    dom_eol().
-                    dom_eol() . '</html>');
+                    
+                    raw_html(
+                        '</html>'.
+                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : ""))
+                        );
             }
             else
             {
@@ -4918,21 +5012,22 @@
 
         return title().
 
-            dom_eol(2). comment("DOM Head Metadata").
-            dom_eol(2). metas().
-            dom_eol(2). link_rel_manifest().
-            
-            dom_eol(2). comment("DOM Head styles").
-            dom_eol(2). link_styles($async_css).
-            dom_eol(2). dom_boilerplate_style().
-                                                                                (!$path_css ? "" : (
-            dom_eol(2). comment("DOM Head project-specific main stylesheet").   (!dom_get("dom_htaccess_rewrite_php") ? (
-            dom_eol(2). dom_style($path_css).                                   "") : (
-            dom_eol(2). link_style($path_css).                                  "")).
-                                                                                "")).
-            
-            dom_eol(2). comment("DOM Head scripts").
-            dom_eol(2). scripts_head().
+            dom_eol().comment("DOM Head Metadata").
+            metas().
+
+            dom_eol().
+            link_rel_manifest().
+
+            (AMP() ? "" : (dom_eol().comment("DOM Head styles"))).
+            link_styles($async_css).
+            dom_boilerplate_style().
+                                                                                                (!$path_css ? "" : (
+            (AMP() ? "" : (dom_eol(). comment("DOM Head project-specific main stylesheet"))).  (!dom_get("dom_htaccess_rewrite_php") ? (
+            dom_style($path_css).                                                               "") : (
+            link_style($path_css).                                                              "")).
+                                                                                                "")).
+            (AMP() ? "" : (dom_eol(). comment("DOM Head scripts"))).
+            scripts_head().
             
             "";
     }
@@ -4946,7 +5041,7 @@
             $html = head_boilerplate($async_css);
         }
 
-        $html = css_postprocess($html);        
+        $html = css_postprocess($html);
 
         if (dom_get("support_service_worker", false))
         {
@@ -4959,9 +5054,12 @@
         {
             $amp_scripts =
                 
-                dom_eol(2) . '<style amp-custom>' . delayed_component("_amp_css") . '</style>'.                        
-                dom_eol(2) . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
-                dom_eol(2) . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
+                dom_eol() . comment("DOM AMP Styles").
+                dom_eol() . '<style amp-custom>'.delayed_component("_amp_css").dom_eol().'</style>'.                        
+                dom_eol() . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
+
+                dom_eol() . comment("DOM AMP Scripts").
+                dom_eol() . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
 
                 script_amp_iframe                   ().
                 script_amp_sidebar                  ().
@@ -4975,15 +5073,15 @@
                 "";
         }
 
-        return dom_tag('head', dom_eol(2) . $html . dom_eol(2) . $amp_scripts); 
+        return dom_tag('head', $html.$amp_scripts); 
     }
 
-    function delayed_component($callback, $arg = false, $priority = 1)
+    function delayed_component($callback, $arg = false, $priority = 1, $eol = 1)
     {
         $delayed_components = dom_get("delayed_components", array());
         $index = count($delayed_components);
         dom_set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority))));
-        return dom_placeholder($callback.$index);
+        return dom_placeholder($callback.$index, $eol);
     }
     
     function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false, 2); }
@@ -5123,10 +5221,10 @@
         if ($ext  === false || $ext  === DOM_AUTO) $ext  = "png";
         if ($type === false || $type === DOM_AUTO) $type = false;
 
-        if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
-        if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
-        if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
-        if (is_array($type)) { $html = ""; foreach ($type as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $ext, $_   , $alternate); $html .= (($i > 0 && $html_icon != "") ? dom_eol() : "").$html_icon; } return $html; }
+        if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= /*(($i > 0 && $html_icon != "") ? dom_eol() : "").*/$html_icon; } return $html; }
+        if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= /*(($i > 0 && $html_icon != "") ? dom_eol() : "").*/$html_icon; } return $html; }
+        if (is_array($ext))  { $html = ""; foreach ($ext  as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $_,   $type, $alternate); $html .= /*(($i > 0 && $html_icon != "") ? dom_eol() : "").*/$html_icon; } return $html; }
+        if (is_array($type)) { $html = ""; foreach ($type as $i => $_) { $html_icon = link_rel_icon($name, $size, $media, $ext, $_   , $alternate); $html .= /*(($i > 0 && $html_icon != "") ? dom_eol() : "").*/$html_icon; } return $html; }
 
         if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
         if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
@@ -5161,8 +5259,8 @@
 
                 if (!array_key_exists("orientation", $media))
                 {
-                    return            link_rel_icon($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate)
-                        . dom_eol() . link_rel_icon($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate);
+                    return  link_rel_icon($name, $w."x".$h, array_merge($media, array("orientation" => "portrait")),  $ext, $type, $alternate).
+                            link_rel_icon($name, $h."x".$w, array_merge($media, array("orientation" => "landscape")), $ext, $type, $alternate);
                 }
             }
         }
@@ -5192,87 +5290,103 @@
     {
         $profiler = dom_debug_track_timing();
         
-        return          meta_charset('utf-8')
+        return  meta_charset('utf-8')
+            
             .   dom_eol()
-            .   dom_eol() .                   meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
-            .   dom_eol() . (dom_AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
-            .   dom_eol() .                   meta_http_equiv('content-language',  dom_get("lang","en"))
+            .                     meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
+            .   (dom_AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
+            .                     meta_http_equiv('content-language',  dom_get("lang_target",dom_get("lang","en")))
             .   dom_eol()       
-            .   dom_eol() . meta(array("title" =>                       dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')))
+            .   meta(array("title" => dom_get("title") . ((dom_get("heading") != '') ? (' - '.dom_get("heading")) : '')))
             .   dom_eol()       
-            .   dom_eol() . meta('keywords',                            dom_get("title").((!!dom_get("keywords") && "" != dom_get("keywords")) ? (', '.dom_get("keywords")) : "")    )
+            .   meta('keywords', dom_get("title").((!!dom_get("keywords") && "" != dom_get("keywords")) ? (', '.dom_get("keywords")) : "")    )
+            
             .   dom_eol()
-            .   dom_eol() . meta('format-detection',                    'telephone=no')
-            .   dom_eol() . meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
-        //  .   dom_eol() . meta('robots',                              'NOODP') // Deprecated
-        //  .   dom_eol() . meta('googlebot',                           'NOODP')
-            .   dom_eol() . meta('description',                         dom_get('description', dom_get('title')))
-            .   dom_eol() . meta('author',                              dom_get('author',DOM_AUTHOR))
-            .   dom_eol() . meta('copyright',                           dom_get('author',DOM_AUTHOR).' 2000-'.date('Y'))
-            .   dom_eol() . meta('title',                               dom_get('title'))
-            .   dom_eol() . meta('theme-color',                         dom_get("theme_color"))
+            .   meta('format-detection',                    'telephone=no')
+            .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
+          //.   meta('robots',                              'NOODP') // Deprecated
+          //.   meta('googlebot',                           'NOODP')
+            .   meta('description',                         dom_get("description", dom_get("title")))
+            .   meta('author',                              dom_get("author",DOM_AUTHOR))
+            .   meta('copyright',                           dom_get("author",DOM_AUTHOR).' 2000-'.date('Y'))
+            .   meta('title',                               dom_get("title"))
+            .   meta('theme-color',                         dom_get("theme_color"))
+            
             .   dom_eol()       
-            .   dom_eol() . meta('DC.title',                            dom_get('title'))
-            .   dom_eol() . meta('DC.format',                           'text/html')
-            .   dom_eol() . meta('DC.language',                         dom_get('lang','en'))
+            .   meta('DC.title',                            dom_get("title"))
+            .   meta('DC.format',                           'text/html')
+            .   meta('DC.language',                         dom_get("lang","en"))
+            
             .   dom_eol()       
-            .   dom_eol() . meta('geo.region',                          dom_get('geo_region'))
-            .   dom_eol() . meta('geo.placename',                       dom_get('geo_placename'))
-            .   dom_eol() . meta('geo.position',                        dom_get('geo_position_x').';'. dom_get('geo_position_y'))
-            .   dom_eol() . meta('ICBM',                                dom_get('geo_position_x').', '.dom_get('geo_position_y'))              
+            .   meta('geo.region',                          dom_get("geo_region"))
+            .   meta('geo.placename',                       dom_get("geo_placename"))
+            .   meta('geo.position',                        dom_get("geo_position_x").';'. dom_get("geo_position_y"))
+            .   meta('ICBM',                                dom_get("geo_position_x").', '.dom_get("geo_position_y"))              
+            
             .   dom_eol()       
-            .   dom_eol() . meta('twitter:card',                        'summary')                  . (dom_has('twitter_page') ? (""
-            .   dom_eol() . meta('twitter:site',                        dom_get('twitter_page'))    ) : "")
-            .   dom_eol() . meta('twitter:url',                         dom_get('canonical'))
-            .   dom_eol() . meta('twitter:title',                       dom_get('title'))
-            .   dom_eol() . meta('twitter:description',                 dom_get('description', dom_get('title')))
-            .   dom_eol() . meta('twitter:image',                       dom_path(dom_get('image')))
+            .   meta('twitter:card',                        'summary')                  . (dom_has('twitter_page') ? (""
+            .   meta('twitter:site',                        dom_get("twitter_page"))    ) : "")
+            .   meta('twitter:url',                         dom_get("canonical"))
+            .   meta('twitter:title',                       dom_get("title"))
+            .   meta('twitter:description',                 dom_get("description", dom_get("title")))
+            .   meta('twitter:image',                       dom_path(dom_get("image")))
+            
             .   dom_eol()       
-            .   dom_eol() . meta_property('og:site_name',               dom_get('og_site_name', dom_get('title')))
-            .   dom_eol() . meta_property('og:image',                   dom_path(dom_get('image')))
-            .   dom_eol() . meta_property('og:title',                   dom_get('title'))
-            .   dom_eol() . meta_property('og:description',             dom_get('description'))
-            .   dom_eol() . meta_property('og:url',                     dom_get('canonical'))            
-            .   dom_eol() . meta_property('og:type',                    'website')
+            .   meta_property('og:site_name',               dom_get("og_site_name", dom_get("title")))
+            .   meta_property('og:image',                   dom_path(dom_get("image")))
+            .   meta_property('og:title',                   dom_get("title"))
+            .   meta_property('og:description',             dom_get("description"))
+            .   meta_property('og:url',                     dom_get("canonical"))            
+            .   meta_property('og:type',                    'website')
+            
             .   dom_eol()       
-            .   dom_eol() . meta('application-name',                    dom_get('title'))                               
-            .   dom_eol()                                                                                                   . (dom_has("pinterest_site_verification") ? (""
-            .   dom_eol() . meta('p:domain_verify',                     dom_get("pinterest_site_verification"))     ) : "") . (dom_has("google_site_verification")    ? (""
-            .   dom_eol() . meta('google-site-verification',            dom_get("google_site_verification"))        ) : "")
+            .   meta('application-name',                    dom_get("title"))                                   . ((dom_has("pinterest_site_verification") || dom_has("google_site_verification")) ? (""
+            
+            .   dom_eol()                                                                               ) : "") . (dom_has("pinterest_site_verification") ? (""
+            .   meta('p:domain_verify',                     dom_get("pinterest_site_verification"))     ) : "") . (dom_has("google_site_verification")    ? (""
+            .   meta('google-site-verification',            dom_get("google_site_verification"))        ) : "")
+            
             .   dom_eol()
-            .   dom_eol() . meta('msapplication-TileColor',                dom_get("theme_color"))
-            .   dom_eol() . meta('msapplication-TileImage',                dom_path(dom_get("icons_path").'ms-icon-144x144.png'))
+            .   meta('msapplication-TileColor',             dom_get("theme_color"))
+            .   meta('msapplication-TileImage',             dom_path(dom_get("icons_path").'ms-icon-144x144.png'))
+            
             .   dom_eol()
-            .   (dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ) ? (dom_eol() . meta('msapplication-square70x70logo',     dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ) ? (dom_eol() . meta('msapplication-square150x150logo',   dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ) ? (dom_eol() . meta('msapplication-wide310x150logo',     dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ))) : '')
-            .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (dom_eol() . meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ) ? (meta('msapplication-square70x70logo',     dom_path(dom_get("icons_path").'ms-icon-70x70.png'    ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ) ? (meta('msapplication-square150x150logo',   dom_path(dom_get("icons_path").'ms-icon-150x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ) ? (meta('msapplication-wide310x150logo',     dom_path(dom_get("icons_path").'ms-icon-310x150.png'  ))) : '')
+            .   (dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ) ? (meta('msapplication-square310x310logo',   dom_path(dom_get("icons_path").'ms-icon-310x310.png'  ))) : '')
+            
             .   dom_eol()
-            .   dom_eol() . meta('msapplication-notification',             'frequency=30;'
-                                                                .   'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
-                                                                .   'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
-                                                                .   'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
-                                                                .   'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
-                                                                .   'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
+            .   meta('msapplication-notification',    'frequency=30;'
+                                                    . 'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
+                                                    . 'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
+                                                    . 'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
+                                                    . 'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
+                                                    . 'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
                                                                
             // TODO FIX HREFLANG ALTERNATE
             // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
-                // Placeholder for 3rd parties who look for a css <link> in order to insert something before
-            .   (!AMP() ? (dom_eol(2) . '<link rel="stylesheet" type="text/css" media="screen"/>') : "")
+            .   (!AMP() ? (""
 
-            .   dom_eol()   
-            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?rss",     array("type" => "application/rss+xml", "title" => "RSS"))
-            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?lang=en", array("hreflang" => "en-EN"))
-            .   dom_eol() . link_rel("alternate",   dom_get('canonical')."/?lang=fr", array("hreflang" => "fr-fr"))                              . (dom_AMP() ? '' : (''
-            .   dom_eol() . link_rel("amphtml",     dom_get('canonical')."/?amp=1")                                                              ))
-            .   dom_eol() . link_rel("canonical",   dom_get('canonical'))
-            .   dom_eol()
-            .   dom_eol() . link_rel_icon("img/icon.svg")
-            .   dom_eol()
-            .   dom_eol() . link_rel_icon(dom_get("image"), false, false, false, false, /*alternate*/true)
-            .   dom_eol()
-            .   dom_eol() . link_rel_icon(array(
+            .   dom_eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before")
+            .   dom_eol().'<link rel="stylesheet" type="text/css" media="screen"/>'
+            
+                ) : "")
+
+            .   dom_eol().comment("Alternate URLs")   
+            .   link_rel("alternate",   dom_get("canonical").(!!get("static") ? "/rss" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
+            .   link_rel("alternate",   dom_get("canonical").(!!get("static") ? "/en"  : "/?lang=en" ), array("hreflang" => "en-EN"))
+            .   link_rel("alternate",   dom_get("canonical").(!!get("static") ? "/fr"  : "/?lang=fr" ), array("hreflang" => "fr-fr"))                               ))  . (dom_AMP() ? '' : (''
+            .   link_rel("amphtml",     dom_get("canonical").(!!get("static") ? "/amp" : "/?amp=1"   ))                                                             ))
+            .   link_rel("canonical",   dom_get("canonical"))
+            
+            .   dom_eol().comment("Icons")
+            .   link_rel_icon("img/icon.svg")
+            .   link_rel_icon(dom_get("image"), false, false, false, false, /*alternate*/true)
+
+            .   dom_eol().comment("'Fav' Icons")
+            .   link_rel_icon(array(
             
                     dom_get("icons_path")."favicon",
                     dom_get("icons_path")."android-icon",
@@ -5283,25 +5397,27 @@
                     
                     false, false, false, false, /*alternate*/true)
 
-            .   dom_eol()
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1536x2048" , array( 768, 1024, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "828x1792"  , array( 414,  896, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "750x1334"  , array( 375,  667, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "640x1136"  , array( 320,  568, 2)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
-            .   dom_eol() . link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
-            .   dom_eol()
-            .   dom_eol() . delayed_component("_dom_hooked_links")
-            .   dom_eol()
-            .   dom_eol() . delayed_component("_dom_hooked_image_preloads")
+            .   dom_eol().comment("Apple-splash icons")
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1536x2048" , array( 768, 1024, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "828x1792"  , array( 414,  896, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "750x1334"  , array( 375,  667, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "640x1136"  , array( 320,  568, 2)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
+            .   link_rel_icon(dom_get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
+            
+            .   dom_eol().comment("Prefetched pages")
+            .   link_rel_prefetchs()
+
+            .   dom_eol().comment("Preloaded images")
+            .   link_rel_image_preloads()
             ;
     }
     
-    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? '<meta'.dom_attributes($p0,$pan).' />' : meta_name($p0,$p1)); }
+    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (dom_eol().'<meta'.dom_attributes($p0,$pan).' />') : meta_name($p0,$p1)); }
                             
     function meta_charset($charset)             { return meta(array("charset"    => $charset)); }
     function meta_http_equiv($equiv,$content)   { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
@@ -5361,7 +5477,7 @@
         return dom_AMP() ? hook_amp_css($css) : (dom_tag('style',  $css ));
     }
 
-    function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js  ($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_js($js)   : (dom_tag('script', $js, array("type" => $type) )); }
+    function dom_script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = dom_path($filename_or_code); $profiler = dom_debug_track_timing(!!$filename ? $filename : "inline"); $js  = dom_eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).dom_eol(); return dom_AMP() ? hook_amp_js($js) : (dom_tag('script', $js, array("type" => $type) )); }
     function script_src($src,                   $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!dom_get("no_js")) return ''; return ((!$force && dom_AMP()) ? '' : dom_tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_json_ld($properties)                                                                                                                        { return dom_script((((!dom_get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
@@ -5391,25 +5507,32 @@
         $inline_css = dom_get("dom_inline_css", true);
 
         $path_normalize         = !$inline_css ? false : dom_path("css/normalize.min.css");
-        $path_sanitize          = !$inline_css ? false : dom_path("css/evergreen.min.css");
-        $path_h5bp              = !$inline_css ? false : dom_path("css/h5bp/main.css");
+        $path_sanitize          = !$inline_css ? false : dom_path("css/sanitize.min.css");
+        $path_evergreen         = !$inline_css ? false : dom_path("css/evergreen.min.css");
+      //$path_h5bp              = !$inline_css ? false : dom_path("css/h5bp/main.css");
         $path_material          = !$inline_css ? false : dom_path("css/material-components-web.min.css");
         $path_bootstrap         = !$inline_css ? false : dom_path("css/bootstrap.min.css");
         $path_google_fonts      = !$inline_css ? false : dom_path("css/google-fonts.css");
         $path_material_icons    = !$inline_css ? false : dom_path("css/material-icons.css");
 
-        return                                                                                                                                                                                                                                                                                         (("normalize" == dom_get("normalize")) ? (""
-            .               ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                       "screen", false     ))         ) : "") . (("sanitize"  == dom_get("normalize")) ? (""
-            .   dom_eol() . ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/evergreen.min.css',                       "screen", false     ))         ) : "")
-        //  .   dom_eol() . ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                       "screen", false     ))                 
-                                                                                                                                                                                                                                                                                                     . (("material"  == dom_get("framework")) ? (""
-            .   dom_eol() . ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',    "screen", false     ))         ) : "") . (("bootstrap" == dom_get("framework")) ? (""
-            .   dom_eol() . ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . dom_get("version_bootstrap") . '/css/bootstrap.min.css',                   "screen", false     ))         ) : "") . (("spectre"   == dom_get("framework")) ? (""
-            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
-            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .   dom_eol() .                                                                               link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                             ) : "") . (!!$fonts                              ? (""
-            .   dom_eol() . ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                                     "screen", $async    ))         ) : "") . (("material"  == dom_get("framework")) ? ("" 
-            .   dom_eol() . ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                               "screen", $async    ))         ) : "")
+        return                                                                                                                                                                                                                                                                      (("normalize" == dom_get("normalize")) ? (""
+            .   ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . dom_get("version_normalize") . '/normalize.min.css',                     "screen", false     ))  ) : "").    (("sanitize"  == dom_get("normalize")) ? (""
+            .   ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  :(link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/sanitize.min.css',                      "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/assets.min.css',                        "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/forms.min.css',                         "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/reduce-motion.min.css',                 "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/system-ui.min.css',                     "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/typography.min.css',                    "screen", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_sanitize")  . '/ui-monospace.min.css',                  "screen", false     ))) ) : "").    (("evergreen" == dom_get("reset"    )) ? (""
+            .   ($path_evergreen      ? link_style($path_evergreen      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . dom_get("version_evergreen") . '/evergreen.min.css',                     "screen", false     ))  ) : "")./*  (("h5b"       == dom_get("framework")) ? (""
+            .   ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . dom_get("version_h5bp")      . '/dist/css/main.css',                     "screen", false     ))  ) : "").*/  (("material"  == dom_get("framework")) ? (""
+            .   ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . dom_get("version_material")  . '/dist/material-components-web.min.css',  "screen", false     ))  ) : "").    (("bootstrap" == dom_get("framework")) ? (""
+            .   ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . dom_get("version_bootstrap") . '/css/bootstrap.min.css',                 "screen", false     ))  ) : "").    (("spectre"   == dom_get("framework")) ? (""
+            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
+            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
+            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                    ) : "").    (!!$fonts                              ? (""
+            .   ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                                   "screen", $async    ))  ) : "").    (("material"  == dom_get("framework")) ? ("" 
+            .   ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                             "screen", $async    ))  ) : "")
             ;
     }
     
@@ -5431,41 +5554,15 @@
         return $selectors == "" ? dom_eol() : str_pad(dom_eol().dom_tab(1).$selectors, $pad)."{ ".$styles." }";
     }
 
-    function css_aspect_ratio($e, $w, $h)
-    {
-        return '/* Aspect Ratio wrappers */'.
-            css_line().
-            css_line($e.'::before',         'content: ""; display: block; padding-bottom: calc(100% / ('.$w.' / '.$h.'));').
-            css_line($e.'',                 'position: relative;').
-            css_line($e.' > :first-child',  'position: absolute; top: 0; left: 0; width:  100%; height: 100%;').
-            css_line($e.' > img',           'height: auto;').
-            css_line().
-            css_line();
-    }
-
-    function css_boilerplate_aspect_ratio($e = ".aspect-ratio", $w = 16, $h = 9)
-    {
-        $css = css_aspect_ratio($e, $w, $h);
-
-        foreach (dom_supported_ratios() as $ratio) 
-        {
-            $css .= css_line(
-                $e.'-'.$ratio[0].'-'.$ratio[1].'::before',
-                'padding-bottom: calc(100% / ('.$ratio[0].' / '.$ratio[1].')); '.($ratio[0]<10 ? ' ' : '').($ratio[1]<10 ? ' ' : '').''
-                );
-        }
-
-        return $css;
-    }
-
-    function predefined_brands_color_properties($tab = 2) { return delayed_component("_".__FUNCTION__, $tab); }
+    function predefined_brands_color_properties($tab = 2) { return delayed_component("_".__FUNCTION__, $tab, 3); }
     function _predefined_brands_color_properties($tab = 2)
     {
         $css = "";
 
         foreach (dom_brands() as $brand)
         {
-            $colors   = ("color_$brand")();
+            $fn       = "color_$brand"; // For php 5.6 compatibility
+            $colors   = $fn();
             $colors   = is_array($colors) ? $colors : array($colors);
             $var      = "--color-$brand";
 
@@ -5503,7 +5600,7 @@
                 <?= env("header_toolbar_height",      "48px" ) ?>                 
 
                 <?= env("main_max_width",           "1200px" ) ?>                 
-                <?= env("dom_gap",                    "10px" ) ?>                 
+                <?= env("dom_gap",                    "16px" ) ?>                 
                 <?= env("scrollbar_width",            "17px" ) ?> 
                 <?= env("svg_size",                   "24px" ) ?> 
 
@@ -5523,32 +5620,56 @@
                 min-height: -webkit-fill-available;
                 min-block-size: -webkit-fill-available;
                 min-block-size: stretch;
+                /* Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
+                position: absolute;
+                top: 0;
+                width: 100%;
                 }
             nav li:before {
                 content: "\200B";
                 position: absolute;
                 }
 
-            /* Font stack */
+            /* Typography */
 
             body,h1,h2,h3,h4,h5,h6                          { font-family: <?= string_system_font_stack() ?>; }
+            body                                            { line-height: 1.5; }
+            :is(h1, h2, h3)                                 { line-height: 1.2; }
+            a                                               { text-underline-offset: 0.15em; }
 
             /* Colors */
             
             body                                            { background-color: var(--background-color); color: var(--text-color); }
             a, a:hover, a:visited                           { color: var(--link-color); }
+
+          /*Disable because causes a bug on some pages where nothing can be selected anymore !!*/
+          /*::selection                                     { background-color: var(--accent-color); color: var(--text-on-accent-color); }*/
+
+            /* Colors for forms */
+
+            :root                                           { --forms-accent-color: var(--accent-color); }
+
+            :root                                           { accent-color:     var(--forms-accent-color); }
+            :focus-visible                                  { outline-color:    var(--forms-accent-color); }
+            ::marker                                        { color:            var(--forms-accent-color); }
+
+            :is(::-webkit-calendar-picker-indicator,
+                ::-webkit-clear-button,
+                ::-webkit-inner-spin-button, 
+                ::-webkit-outer-spin-button)                { color: var(--forms-accent-color); }
         
             /* Layout */
             
             html, body                                     { margin: 0px; padding: 0px }
-            body                                           { text-align: center; min-height: 100vh; }
+            body                                           { text-align: center; /*min-height: 100vh;*/ }
             main                                           { text-align: left; padding-top: unset; margin-top: 0px; margin-right: auto; margin-bottom: 0px; margin-left: auto; width: 100%; max-width: var(--main-max-width) }
 
             /* Main content inflate (makes footer sticky) */
+            /* TODO: SET IT AS A CSS COMPONENT */
 
-            body                                           { display: flex; flex-direction: column; min-height: 100vh; } 
-            body>main                                      { flex: 1; }
-
+            body                                            { display: flex; flex-direction: column; min-height: 100vh; } 
+            body>main                                       { flex: 1; }
+            
             /* Toolbar */
 
             .toolbar                                        { width: 100%; z-index: 1; }
@@ -5595,7 +5716,7 @@
             .menu a:hover                                   { background-color: var(--background-color); color: var(--theme-color); }
 
             #<?= DOM_MENU_ID 
-            ?>-open .menu                                { position: absolute; }
+            ?>-open .menu                                   { position: absolute; }
             .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
             .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
             .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
@@ -5606,11 +5727,12 @@
 
             /* Images */
 
-            picture, figure, img, amp-img                   { max-width: 100%; object-fit: cover; vertical-align: top; display: inline-block }
+            video, iframe, img, amp-img                     { width: 100%; max-width: 100%; aspect-ratio: var(--width) / var(--height); object-fit: cover; }
+            video, iframe, img, amp-img, picture, figure    { vertical-align: top; display: inline-block; ; }
             figure                                          { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
 
-            img[src$=".jpg"], picture, iframe               { background-image: url(<?= dom_path("img/loading.svg") ?>); background-repeat: no-repeat; background-position: center; }
-
+            img[src*=".jpg"], picture, iframe               { background-image: url(<?= dom_path("img/loading.svg") ?>); background-repeat: no-repeat; background-position: center; }
+ 
             /* Grid */
 
             .grid                                           { display: grid; grid-gap: var(--dom-gap); }
@@ -5642,33 +5764,13 @@
 
             /* Until there is a better method that is not interfering with margin and padding of the element, use anchor dedicated tag insertion */
         
-            .anchor                                         { visibility: hidden; display: block; height: 1px; position: relative; top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height)) }
-            summary>.anchor                                 { display: inline-block; }
-        /*
-            .headline:target,
-            .card .headline:target {
-            height:          calc(var(--header-toolbar-height) - var(--header-min-height));
-            margin-top: calc(-1 * var(--header-toolbar-height) - var(--header-min-height));
-                }
-        */
-        /*
-            .headline:target,
-            .card .headline:target {
-            margin-top: -154px;
-            padding-top: 154px;
-                }
-        */
-            .clearfix { height: 1% } .clearfix:after        { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
+            .headline                                       { scroll-margin: calc(var(--header-toolbar-height) + var(--header-min-height)) 0 0 0; }
 
-            /* Main images */
-                
-            main figure                                     { display: inline-block; }
-            main figure > picture, main figure > amp-img    { display: inline-block; width: 100%; height: 0px; padding-bottom: calc(100% / var(--default-image-ratio)); overflow: hidden; position: relative; }
-            
-            main figure img                                 { left: 0px; top: 0px; width: 100%; height: 100%;}
-            
-            main amp-img, main img, main picture            { object-fit: cover; }    
-            amp-img.loading, img.loading, picture.loading   { object-fit: none;  }
+            summary>.anchor                                 { display: inline-block; }
+
+            .clearfix                                       { height: 1% }
+            .clearfix:after                                 { content:"."; height:0; line-height:0; display:block; visibility:hidden; clear:both; }
+            .group                                          { display: flow-root; }
 
             /* Scrollbar */
             
@@ -5677,10 +5779,6 @@
             
             body                                            {  scrollbar-color: var(--theme-color)                                                      var(--background-color); }
             body::-webkit-scrollbar-thumb                   { background-color: var(--theme-color); } body::-webkit-scrollbar-track { background-color: var(--background-color); }
-
-            /* Containers aspect ratios */
-
-            <?= css_boilerplate_aspect_ratio() ?> 
 
             /* SVG */
 
@@ -5694,15 +5792,15 @@
 
             /* Toolbar */
 
-        <?php if (dom_get("no_js")) { ?> 
+            <?php if (dom_get("no_js")) { ?> 
             
             .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
 
-        <?php } else { ?> 
+            <?php } else { ?> 
 
             .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation() ?> 
 
-        <?php } ?> 
+            <?php } ?> 
             
             /* Menu open/close mechanism */
 
@@ -5714,7 +5812,7 @@
             
             #<?= DOM_MENU_ID ?>-open        .menu                         { display: none;  max-height:   0vh; }
             #<?= DOM_MENU_ID ?>-open:target .menu                         { display: block; max-height: 100vh; }
-            
+                
         <?php } if (AMP()) { ?> 
 
             /* AMP DEFAULTS */
@@ -5725,9 +5823,10 @@
             amp-sidebar                                     { text-align: left; }
             amp-sidebar .menu                               { position: relative; }
             amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
-
-            
-        <?php } if ("material" == dom_get("framework")) { ?> 
+    
+    <?php } ?>
+    
+        <?php if ("material" == dom_get("framework")) { ?> 
 
             /* MATERIAL DESIGN DEFAULTS */
             
@@ -5814,18 +5913,19 @@
     {   
         $profiler = dom_debug_track_timing(); 
 
-        return           dom_script_ajax_head().
-            dom_eol(2) . dom_script(dom_js_scan_and_print_head()).          ((!!dom_get("dom_script_document_events", true)) ? (
-            dom_eol(2) . dom_script(dom_js_on_document_events_head()).      "") : "").
-                                                                            (!dom_AMP() ? "" : ("".
-            dom_eol(2) . comment("AMP Javascript").
-            dom_eol(2) . delayed_component("_amp_scripts_head")             ))
+        return  dom_script_ajax_head().
+
+                dom_script(dom_js_scan_and_print_head()     ).  ((!!dom_get("dom_script_document_events", true)) ? (
+                dom_script(dom_js_on_document_events_head() ).  "") : "").
+
+                (!dom_AMP() ? "" : (dom_eol().comment("DOM AMP Javascript"))).
+                (!dom_AMP() ? "" : (delayed_component("_amp_scripts_head")))
         ; 
     }
 
     function back_to_top_link()
     {
-        return dom_eol(2) . a("▲", url_void(), "cd-top");
+        return dom_eol().a("▲", url_void(), "cd-top");
     }
 
     function dom_script_google_analytics_snippet()
@@ -6223,8 +6323,11 @@
 
                 /* Make it a lazy loading image with additionnal 'reloading' tag */
 
-                e.setAttribute("data-src", e.getAttribute("src"));
-                e.setAttribute("src",      "<?= url_img_loading() ?>");
+                if (e.getAttribute("src") != "<?= url_img_loading() ?>")
+                {
+                    e.setAttribute("data-src", e.getAttribute("src"));
+                    e.setAttribute("src",      "<?= url_img_loading() ?>");
+                }
 
                 e.classList.add("loading");
                 e.classList.add("reloading");
@@ -6265,10 +6368,11 @@
 
                             change.target.removeAttribute("src");
                             change.target.removeAttribute("data-src");
-                                                                    <?php if (!dom_get("dom_lazy_unload")) { ?>
+                                                                                <?php if (!dom_get("dom_lazy_unload")) { ?>
                             change.target.classList.remove("lazy-observed"); 
                             change.target.classList.remove("lazy");            <?php } ?> 
                             change.target.classList.remove("loading"); 
+                            change.target.classList.remove("reloading"); 
 
                             change.target.classList.add("lazy-loaded"); 
                             change.target.classList.add("loaded"); 
@@ -6576,13 +6680,9 @@
     {
         $inline_js = dom_get("dom_inline_js", false);
 
-        $jquery_local_filename = !$inline_js ? false : dom_path('js/jquery-'.dom_get("version_jquery").(is_localhost() ? '' : '.min').'.js');
-
-        return/*((!dom_AMP() && $jquery_local_filename) ?                script_src($jquery_local_filename) :                 
-                                                                         script_src('https://code.jquery.com/jquery-'                   . dom_get("version_jquery")                                     .(is_localhost() ? '' : '.min').'.js', false, 'async id="jquery" crossorigin="anonymous"')) // Special case because, for now, relyng on jquery for on_ready and on_loaded core events
-            . */dom_if("material"  == dom_get("framework"), dom_eol(2) . script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web'.(is_localhost() ? '' : '.min').'.js', false, "async"))
-            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async"))
-            .   dom_if("bootstrap" == dom_get("framework"), dom_eol(2) . script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap'                .(is_localhost() ? '' : '.min').'.js', false, "async"))
+        return  ("material"  == dom_get("framework") ? (script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web'.(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+            .   ("bootstrap" == dom_get("framework") ? (script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+            .   ("bootstrap" == dom_get("framework") ? (script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap'                .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
             ;
     }
     
@@ -6590,19 +6690,19 @@
     {
         if (dom_has("ajax")) return "";
 
-        return  dom_eol(2).dom_script_third_parties                  ().
-                dom_eol(2).dom_script_ajax_body                      ().
-                dom_eol(2).dom_script_google_analytics               ().               ((!!dom_get("dom_script_document_events",    true)) ? (
-                dom_eol(2).dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_toolbar",            true)) ? (
-                dom_eol(2).dom_script(dom_js_toolbar                 ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
-                dom_eol(2).dom_script(dom_js_back_to_top             ()).   "") : ""). ((!!dom_get("dom_script_images_loading",     true)) ? (
-                dom_eol(2).dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",               true)) ? (
-                dom_eol(2).dom_script(dom_js_sliders                 ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
-                dom_eol(2).dom_script(dom_js_toolbar_banner_rotation ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
-                dom_eol(2).dom_script(dom_js_service_worker          ()).   "") : ""). ((!!dom_get("dom_script_pwa_install",        true)) ? (
-                dom_eol(2).dom_script(dom_js_pwa_install             ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
-                dom_eol(2).dom_script(dom_js_framework_material      ()).   "") : ""). ((!!dom_get("dom_script_scan_and_print",     true)) ? (
-                dom_eol(2).dom_script(dom_js_scan_and_print_body     ()).   "") : "");
+        return  dom_script_third_parties                  ().
+                dom_script_ajax_body                      ().
+                dom_script_google_analytics               ().               ((!!dom_get("dom_script_document_events",    true)) ? (
+                dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_toolbar",            true)) ? (
+                dom_script(dom_js_toolbar                 ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
+                dom_script(dom_js_back_to_top             ()).   "") : ""). ((!!dom_get("dom_script_images_loading",     true)) ? (
+                dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",               true)) ? (
+                dom_script(dom_js_sliders                 ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
+                dom_script(dom_js_toolbar_banner_rotation ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
+                dom_script(dom_js_service_worker          ()).   "") : ""). ((!!dom_get("dom_script_pwa_install",        true)) ? (
+                dom_script(dom_js_pwa_install             ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
+                dom_script(dom_js_framework_material      ()).   "") : ""). ((!!dom_get("dom_script_scan_and_print",     true)) ? (
+                dom_script(dom_js_scan_and_print_body     ()).   "") : "");
     }
     
     #endregion
@@ -6615,14 +6715,132 @@
 
     function comment($text)          { return (dom_has("rss")) ? "" : dom_html_comment($text); }
     
-    function dom_placeholder($text)  { return dom_html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
+    function dom_placeholder($text, $eol = 0)  { return dom_eol($eol).dom_html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
+
+    function cosmetic_indent($html, $tabs = 1, $container_tag = false, $container_attributes = false, $wrapper_eol = true)
+    {
+        if (!get("minify") && $html != "" && in_array($container_tag, array(
+
+            "head",
+            "script",
+            "style",
+            "body",
+            "main",
+            "article",
+            "header",
+            "footer",
+            "section",
+            "div",
+            "picture",
+            "pre",
+            "ul",
+            "ol",
+            "table"
+
+            )))
+        {
+            $dom = array();
+
+            while (true)
+            {
+                $tag_bgn = "<pre>";
+                $tag_end = "</pre>";
+                $pos_bgn = stripos($html, $tag_bgn);
+                $pos_end = stripos($html, $tag_end);
+
+                if (false === $pos_bgn || false === $pos_end)
+                {
+                    $dom[] = array("html", $html);
+                    break;
+                }
+                else
+                {                
+                    $dom[] = array("html", substr($html, 0, $pos_bgn));
+                    $dom[] = array("pre",  substr($html, $pos_bgn, $pos_end + strlen($tag_end) - $pos_bgn));
+                    
+                    $html = substr($html, $pos_end + strlen($tag_end));
+                }
+            }
+
+            $html_reconstructed = "";
+
+            foreach ($dom as $dom_section)
+            {
+                $html = $dom_section[1];
+
+                if ($dom_section[0] == "html")
+                {
+                    $eol = "{{PHP_EOL}}";
+
+                    $html = str_replace(dom_eol(),  $eol, $html);
+                    $html = str_replace(PHP_EOL,    $eol, $html);
+                    $html = str_replace("\r\n",     $eol, $html);
+                    $html = str_replace($eol,       "\n", $html);
+
+                    $html = dom_tab($tabs).str_replace("\n", dom_eol().dom_tab($tabs), trim($html));
+
+                    if ($wrapper_eol) $html = dom_eol().$html.dom_eol();
+                }
+                
+                $html_reconstructed .= $html;
+            }
+
+            $html = $html_reconstructed;
+        }
+
+        return $html;
+    }
 
     function dom_tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
     {
         $space_pos = strpos($tag, ' ');
+
+        $html = cosmetic_indent($html, 1, $tag, $attributes);
         
+        $prefix = "";
+
+        if (!get("minify") && in_array($tag, array(
+            // HTML
+            "head",
+            "title",
+            "meta",
+            "link",
+            "script",
+            "style",
+            "body",
+            "header",
+            "main",
+            "footer",
+            "article",
+            "section",
+            "div",
+            "table",
+            "h1","h2","h3","h4","h5","h6","h7","h8","h9",
+            "p",
+            "pre",
+            "ul",
+            "ol",
+            "li",
+            "tr",
+            "figure",
+            "hr",
+            // AMP
+            "amp-iframe",
+            "amp-sidebar",
+            "amp-form",
+            "amp-youtube",
+            "amp-script",
+            // RSS
+            "channel"
+
+        )))
+        {
+            $prefix = dom_eol();
+        }        
+
         return (false && dom_has('rss') && !$force_display) ? '' : (
-                
+
+                $prefix.                
                 (
                     '<'.$tag.dom_attributes($attributes).
                     (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
@@ -6644,8 +6862,8 @@
             "@context"  => "https://schema.org", 
             "@type"     => "Organization",
 
-            "url"       => dom_get('canonical'),
-            "logo"      => dom_get('canonical').'/'.dom_get("image")
+            "url"       => dom_get("canonical"),
+            "logo"      => dom_get("canonical").'/'.dom_get("image")
         );
         
         $properties_person_same_as = array();
@@ -6660,7 +6878,7 @@
             "@context"  => "https://schema.org", 
             "@type"     => "Person",
             "name"      => dom_get("publisher"),
-            "url"       => dom_get('canonical'),
+            "url"       => dom_get("canonical"),
             "sameAs"    => $properties_person_same_as
         );
         
@@ -6668,40 +6886,39 @@
         
         $body = ''
 
-        . dom_eol(2) . if_browser('lte IE 9', '<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
+        . if_browser('lte IE 9', dom_eol().'<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
         
-    /*  . "<span id='!'></span>" */ // To match url_void() #!
+        . (dom_get("support_metadata_person",       false) ? script_json_ld($properties_person)         : "")
+        . (dom_get("support_metadata_organization", false) ? script_json_ld($properties_organization)   : "")
         
-        . dom_eol(2) . dom_if(dom_get("support_metadata_person",       false), script_json_ld($properties_person))
-        . dom_eol(2) . dom_if(dom_get("support_metadata_organization", false), script_json_ld($properties_organization))
+        . dom_eol()
+        . $html
         
-        . dom_eol(2) . $html
-        . dom_eol(2) . delayed_component("_body")
-        
-        . dom_eol(2) . dom_if(dom_AMP(), comment("DOM AMP sidebars"))
-        . dom_eol(2) . delayed_component("_amp_sidebars")
-        . dom_eol(2) . delayed_component("_amp_scripts_body")
+        . (dom_AMP() ? (dom_eol().comment("DOM AMP sidebars").dom_eol(2))   : "")
+        . (dom_AMP() ? delayed_component("_amp_sidebars")                   : "")
+        . (dom_AMP() ? delayed_component("_amp_scripts_body")               : "")
 
-        . dom_eol(2) . comment("DOM Body boilerplate markup")
-        . dom_eol(2) . back_to_top_link()
+        . dom_eol().comment("DOM Body boilerplate markup")
+        . back_to_top_link()
 
-        . dom_eol(2) . comment("DOM Body scripts")
-        . dom_eol(2) . scripts_body()
-        . dom_eol(2) . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
-        
+        . dom_eol() . comment("DOM Body scripts")
+        . scripts_body()
+
+        . dom_eol() . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
                                                                     .((!dom_get("dom_htaccess_rewrite_php")) ? (""
-        . dom_eol(2) . ($app_js ? dom_script($app_js) : '')         ) : (""
-        . dom_eol(2) . ($app_js ? script_src($app_js) : '')         ))
+        . ($app_js ? dom_script($app_js) : '')         ) : (""
+        . ($app_js ? script_src($app_js) : '')         ))
 
-        . dom_eol(2) . $html_post_scripts
+        . dom_eol() 
+        . $html_post_scripts
 
-        . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), comment("DOM Body AMP service worker"))
-        . dom_eol(2) . dom_if(dom_AMP() && dom_get("support_service_worker", false), '<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>')
+        . ((dom_AMP() && dom_get("support_service_worker", false)) ? (dom_eol().comment("DOM Body AMP service worker")) : "")
+        . ((dom_AMP() && dom_get("support_service_worker", false)) ? (dom_eol().'<amp-install-serviceworker src="'.dom_path('sw.js').'" layout="nodisplay" data-iframe-src="'.dom_path("install-service-worker.html").'"></amp-install-serviceworker>') : "")
         ;
 
         if (DOM_AUTO === $dark_theme) $dark_theme = dom_get("dark_theme", false);
 
-        return cosmetic(dom_eol(2)).dom_tag(
+        return dom_eol().dom_tag(
             'body',
             $body,
             array_merge(array(
@@ -6715,7 +6932,7 @@
     
     function cosmetic($html)
     {
-        return !!dom_get("minify") ? '' : (!!dom_get("beautify", false) ? $html : '');
+        return !!dom_get("minify") ? '' : $html;
     }
     
 //  HTML tags
@@ -6726,61 +6943,63 @@
         
         hook_headline($h, $html);
 
-        return  cosmetic(dom_eol(1)).
-                (($h==get("dom_headline_anchor_level",2) || !!$anchor)?anchor(!!$anchor ? $anchor : $html):'').
-                dom_tag(
-                    'h'.$h,
-                    $html,
-                    is_array($attributes) ? dom_attributes_add_class($attributes, dom_component_class('headline headline'.$h))
-                    : array(
-                        "class" => ("$attributes ".dom_component_class('headline headline'.$h)),
-                        "id"    => anchor_name(!!$anchor ? $anchor : $html)
-                        )
-                    );
+        return dom_tag(
+            'h'.$h,
+            $html,
+            is_array($attributes) 
+                ? dom_attributes_add_class($attributes, dom_component_class('headline headline'.$h))
+                : array(
+                    "class" => (($attributes != "" ? "$attributes " : "").dom_component_class('headline headline'.$h)),
+                    "id"    => anchor_name(!!$anchor ? $anchor : $html)
+                    )
+            );
     }
 
-    function div            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('div',                        $html,                                                $attributes                                                         );                      }
-    function p              ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('p',                          $html,                                                $attributes                                                         );                      }
-    function i              ($html = "", $attributes = false) {                             return                         dom_tag('i',                          $html,                                                $attributes                                                         );                      }
-    function pre            ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('pre',                        $html,                                                $attributes                                                         );                      }
-    function ul             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('ul',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
-    function ol             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('ol',                         $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
-    function li             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1).dom_tab()).dom_tag('li',                         $html,                                                $attributes                                                         );                      }
+    function dom_aside      ($html = "", $attributes = false) {                             return  dom_tag('aside',                      $html,                                                $attributes                                                         );                      }
+    function aside          ($html = "", $attributes = false) {                             return  dom_tag('aside',                      $html,                                                $attributes                                                         );                      }
+    function div            ($html = "", $attributes = false) {                             return  dom_tag('div',                        $html,                                                $attributes                                                         );                      }
+    function p              ($html = "", $attributes = false) {                             return  dom_tag('p',                          $html,                                                $attributes                                                         );                      }
+    function i              ($html = "", $attributes = false) {                             return  dom_tag('i',                          $html,                                                $attributes                                                         );                      }
+    function pre            ($html = "", $attributes = false) {                             return  dom_tag('pre',                        $html,                                                $attributes                                                         );                      }
+    function ul             ($html = "", $attributes = false) {                             return  dom_tag('ul',                         $html,                               $attributes                                                         );                      }
+    function ol             ($html = "", $attributes = false) {                             return  dom_tag('ol',                         $html,                               $attributes                                                         );                      }
+    function li             ($html = "", $attributes = false) {                             return  dom_tag('li',                         $html,                                                $attributes                                                         );                      }
 
-    function dom_table      ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('table',                      $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
-    function tr             ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('tr',                         $html,                                                $attributes                                                         );                      }
-    function td             ($html = "", $attributes = false) {                             return                         dom_tag('td',                         $html,                                                $attributes                                                         );                      }
-    function th             ($html = "", $attributes = false) {                             return                         dom_tag('th',                         $html,                                                $attributes                                                         );                      }
+    function dom_table      ($html = "", $attributes = false) {                             return  dom_tag('table',                      $html,    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
+    function tr             ($html = "", $attributes = false) {                             return  dom_tag('tr',                         $html,                                                $attributes                                                         );                      }
+    function td             ($html = "", $attributes = false) {                             return  dom_tag('td',                         $html,                                                $attributes                                                         );                      }
+    function th             ($html = "", $attributes = false) {                             return  dom_tag('th',                         $html,                                                $attributes                                                         );                      }
 
-    function strong         ($html = "", $attributes = false) {                             return                     dom_tag('strong',                     $html,                                                $attributes                                                         );                      }
-    function strike         ($html = "", $attributes = false) {                             return                     dom_tag('s',                          $html,                                                $attributes                                                         );                      }
-  //function del            ($html = "", $attributes = false) {                             return                     dom_tag('del',                          $html,                                                $attributes                                                         );                      }
-    function em             ($html = "", $attributes = false) {                             return                     dom_tag('em',                         $html,                                                $attributes                                                         );                      }
-    function span           ($html = "", $attributes = false) {                             return                     dom_tag('span',                       $html,                                                $attributes                                                         );                      }
-    function figure         ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('figure',                     $html.cosmetic(dom_eol(1)),                               $attributes                                                         );                      }
-    function figcaption     ($html = "", $attributes = false) {                             return                     dom_tag('figcaption',                 $html,                                                $attributes                                                         );                      }
+    function strong         ($html = "", $attributes = false) {                             return  dom_tag('strong',                     $html,                                                $attributes                                                         );                      }
+    function strike         ($html = "", $attributes = false) {                             return  dom_tag('s',                          $html,                                                $attributes                                                         );                      }
+  //function del            ($html = "", $attributes = false) {                             return  dom_tag('del',                        $html,                                                $attributes                                                         );                      }
+    function em             ($html = "", $attributes = false) {                             return  dom_tag('em',                         $html,                                                $attributes                                                         );                      }
+    function span           ($html = "", $attributes = false) {                             return  dom_tag('span',                       $html,                                                $attributes                                                         );                      }
+    function figure         ($html = "", $attributes = false) {                             return  dom_tag('figure',                     $html,                                                $attributes                                                         );                      }
+    function figcaption     ($html = "", $attributes = false) {                             return  dom_tag('figcaption',                 $html,                                                $attributes                                                         );                      }
 
-    function details        ($html = "", $attributes = false) {                             return                     dom_tag('details',                    $html,                                                $attributes                                                         );                      }
-    function summary        ($html = "", $attributes = false) {                             return                     dom_tag('summary',                    $html,                                                $attributes                                                         );                      }
+    function details        ($html = "", $attributes = false) {                             return  dom_tag('details',                    $html,                                                $attributes                                                         );                      }
+    function summary        ($html = "", $attributes = false) {                             return  dom_tag('summary',                    $html,                                                $attributes                                                         );                      }
 
-    function form           ($html = "", $attributes = false) { hook_amp_require("form");   return                     dom_tag('form',                       $html,                                                $attributes                                                         );                      }
+    function form           ($html = "", $attributes = false) { hook_amp_require("form");   return  dom_tag('form',                       $html,                                                $attributes                                                         );                      }
 
-    function checkbox       ($id, $html = "", $attributes = false) {                        return                     dom_tag('input',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox')),       "id"  => $id, "type" => "checkbox") );     }
-    function checkbox_label ($id, $html = "", $attributes = false) {                        return                     dom_tag('label',                       $html, array("class"    => ("$attributes " . dom_component_class('checkbox-label')), "for" => $id)      );                      }
+    function checkbox       ($id, $html = "", $attributes = false) {                        return  dom_tag('input',                      $html, array("class"    => ("$attributes " . dom_component_class('checkbox')),       "id"  => $id, "type" => "checkbox") );     }
+    function checkbox_label ($id, $html = "", $attributes = false) {                        return  dom_tag('label',                      $html, array("class"    => ("$attributes " . dom_component_class('checkbox-label')), "for" => $id)      );                      }
 
-    function button         ($html = "", $attributes = false) {                             return                     dom_tag('button',                     $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button'))                             );                      }
-    function button_label   ($html = "", $attributes = false) {                             return                     dom_tag('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
+    function button         ($html = "", $attributes = false) {                             return  dom_tag('button',                     $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button'))                             );                      }
+    function button_label   ($html = "", $attributes = false) {                             return  dom_tag('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
 
-    function h1             ($html = "", $attributes = false, $anchor = false) {            return                     h(1,                               $html,                                                $attributes, $anchor                                                );                      }
-    function h2             ($html = "", $attributes = false, $anchor = false) {            return                     h(2,                               $html,                                                $attributes, $anchor                                                );                      }
-    function h3             ($html = "", $attributes = false, $anchor = false) {            return                     h(3,                               $html,                                                $attributes, $anchor                                                );                      }
-    function h4             ($html = "", $attributes = false, $anchor = false) {            return                     h(4,                               $html,                                                $attributes, $anchor                                                );                      }
-    function h5             ($html = "", $attributes = false, $anchor = false) {            return                     h(5,                               $html,                                                $attributes, $anchor                                                );                      }
-    function section        ($html = "", $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('section',                    $html,                     dom_attributes_add_class(  $attributes, 'section')                                             );                      }
-    function dom_header     ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return    cosmetic(dom_eol(1)).dom_tag('header',                     $html.cosmetic(dom_eol(1)),    dom_attributes_add_class(  $attributes, 'header')                                              ).cosmetic(dom_eol(1));     }
+    function h1             ($html = "", $attributes = false, $anchor = false) {            return  h(1,                                  $html,                                                $attributes, $anchor                                                );                      }
+    function h2             ($html = "", $attributes = false, $anchor = false) {            return  h(2,                                  $html,                                                $attributes, $anchor                                                );                      }
+    function h3             ($html = "", $attributes = false, $anchor = false) {            return  h(3,                                  $html,                                                $attributes, $anchor                                                );                      }
+    function h4             ($html = "", $attributes = false, $anchor = false) {            return  h(4,                                  $html,                                                $attributes, $anchor                                                );                      }
+    function h5             ($html = "", $attributes = false, $anchor = false) {            return  h(5,                                  $html,                                                $attributes, $anchor                                                );                      }
+    function section        ($html = "", $attributes = false) {                             return  dom_tag('section',                    $html,                     dom_attributes_add_class(  $attributes, 'section')                                             );                      }
+    function dom_header     ($html = "", $attributes = false) {                             return  dom_tag('header',                     $html,                     dom_attributes_add_class(  $attributes, 'header')                                              );                      }
+    function _header        ($html = "", $attributes = false) {                             return  dom_tag('header',                     $html,                     dom_attributes_add_class(  $attributes, 'header')                                              );                      }
                    
-    function hr             (            $attributes = false) {                             return    cosmetic(dom_eol(1)).dom_tag('hr',                         false,                                                $attributes, false, true                                            );                      }
-    function br             (            $attributes = false) {                             return                     dom_tag('br',                         false,                                                $attributes, false, true                                            );                      }
+    function hr             (            $attributes = false) {                             return  dom_tag('hr',                         false,                                                $attributes, false, true                                            );                      }
+    function br             (            $attributes = false) {                             return  dom_tag('br',                         false,                                                $attributes, false, true                                            );                      }
 
     function clearfix       () { return div("","clearfix"); }
 
@@ -6790,27 +7009,20 @@
 
         $profiler = dom_debug_track_timing();
 
-        return  clearfix().
-
-                cosmetic(dom_eol(2)).
-
-                dom_tag('main', 
+        return  dom_tag("main", 
                     cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),
                     dom_attributes_add_class(
                         $attributes,
-                            dom_component_class('main').
-                        ' '.dom_component_class('content').                 (!!dom_get("toolbar") ? (
-                        ' '.dom_component_class('main-below-toolbar'))      : '')
+                            dom_component_class("main").
+                        ' '.dom_component_class("content").                 (!!dom_get("toolbar") ? (
+                        ' '.dom_component_class("main-below-toolbar"))      : '')
                         )
-                    ).
-
-                cosmetic(dom_eol(1))
-            ; 
+                    ); 
     }
         
 
     function dom_main       ($html = "", $attributes = false) { return content($html, $attributes); }
-    function dom_footer     ($html = "", $attributes = false) { $profiler = dom_debug_track_timing();   return clearfix().cosmetic(dom_eol(2)).dom_tag('footer',   cosmetic(dom_eol(1)).$html.cosmetic(dom_eol(1)),    dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
+    function dom_footer     ($html = "", $attributes = false) { $profiler = dom_debug_track_timing(); return dom_tag('footer', $html, dom_attributes_add_class(   $attributes,    dom_component_class('footer')) ); }
     
     function icon           ($icon, $attributes = false) { return      i($icon,      dom_attributes_add_class($attributes, 'material-icons')); }
     function button_icon    ($icon, $label      = false) { return button(icon($icon, dom_component_class('action-button-icon')), array("class" => dom_component_class("action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
@@ -6848,26 +7060,6 @@
 
         return $class;
     }
-
-    function div_aspect_ratio($html, $w = 1200, $h = 675, $classname = false) // 16:9
-    {
-        $class = "";
-
-        if (is_numeric($w) && is_numeric($h))
-        {
-            $class = class_aspect_ratio($w, $h);
-        }
-
-        if ($class != "")
-        {
-            if ($classname !== false) $class .= " $classname";
-            $class = ' class="'.$class.'"';
-            return '<div'.$class.'>'.$html.'</div>';
-        }
-
-        return div($html, $classname);
-        
-    }
         
     function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = DOM_AUTO)
     {   
@@ -6889,7 +7081,7 @@
         if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
         if ($lazy === true)     $lazy_attributes = ' lazy loading';
 
-        return div_aspect_ratio('<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
+        return '<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
 
              (!!$title   ? (' title'            .'="'.$title        .'"') : '').
              (!!$classes ? (' class'            .'="'.$classes      .'"') : '') .
@@ -6897,19 +7089,19 @@
                             $lazy_attributes.             
                             $src_attributes.
 
-                            ' width'            .'="'.$w            .'"'.
-                            ' height'           .'="'.$h            .'"'.
-                            ' layout'           .'="'.'responsive'  .'"'.
-                            ' frameborder'      .'="'.'0'           .'"'.
-                            ' style'            .'="'.'border:0;'   .'"'.
-                            ' overflow'         .'="'.'hidden'      .'"'.
-                            ' allowfullscreen'  .'="'.''            .'"'.
+                            ' width'            .'="'.$w                                        .'"'.
+                            ' height'           .'="'.$h                                        .'"'.
+                            ' layout'           .'="'.'responsive'                              .'"'.
+                            ' frameborder'      .'="'.'0'                                       .'"'.
+                            ' style'            .'="'."border: 0; --width: $w; --height: $h"    .'"'.
+                            ' overflow'         .'="'.'hidden'                                  .'"'.
+                            ' allowfullscreen'  .'="'.''                                        .'"'.
 
                             '>'.
 
-            dom_if(dom_AMP(), '<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>').
+            (dom_AMP() ? ('<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>') : "").
             
-            '</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>', $w, $h, "iframe-wrapper");
+            '</'.(dom_AMP() ? 'amp-iframe' : 'iframe').'>';
     }
 
     function google_calendar($id, $w = false, $h = false, $background_color = "FFFFFF", $mode = "MONTH" /*WEEK AGENDA*/)
@@ -6986,7 +7178,7 @@
         {        
             $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
 
-            return div_aspect_ratio(iframe($url, "Google Video", "google-video", $w, $w, $lazy), $w, $h);
+            return iframe($url, "Google Video", "google-video", $w, $w, $lazy);
         }
     }
         
@@ -7032,7 +7224,7 @@
         {
             $photo_url = dom_at(dom_at($photo_result, 1), 0);
             
-            $images .= call_user_func($img_wrapper, img($photo_url, false, "Photo"), $photo_url, $i);
+            $images .= call_user_func($img_wrapper, img($photo_url, false, false, false, "Photo"), $photo_url, $i);
         }
 
         $album = call_user_func($wrapper, $images);
@@ -7350,7 +7542,7 @@
     
     // Components with BlogPosting microdata
 
-    function article            ($html = "", $attributes = false) { return cosmetic(dom_eol(1)).dom_tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ dom_attributes_add_class($attributes, "article")); }
+    function article            ($html = "", $attributes = false) { return dom_tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ dom_attributes_add_class($attributes, "article")); }
     
     function span_author        ($html)             { return span ($html/*, array("itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person" )*/); }
     function span_name          ($html)             { return span ($html/*, array("itemprop" => "name"                                                                 )*/); }
@@ -7371,7 +7563,8 @@
             {
                 if (false === stripos($extended_link, "?")
                 &&  false === stripos($extended_link, "&")
-                &&  false === stripos($extended_link, "#"))
+                &&  false === stripos($extended_link, "#")
+                &&  false === stripos($extended_link, "."))
                 {
                     foreach (dom_get("dom_forwarded_flags") as $forward_flag)
                     {
@@ -7423,10 +7616,13 @@
         
         $extended_link = dom_href($url, $target);
 
-        $internal_attributes = array("href" => (($url === false) ? url_void() : $extended_link), "target" => $target);
+        $internal_attributes = array();
 
-        if ($target == DOM_EXTERNAL_LINK)           $internal_attributes["rel"]         = "noopener noreferrer";
-        if ($target == DOM_EXTERNAL_LINK && !AMP()) $internal_attributes["crossorigin"] = "anonymous";
+                                                    $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
+                                                    $internal_attributes["target"]              = $target;
+        if ($target == DOM_EXTERNAL_LINK)           $internal_attributes["rel"]                 = "noopener noreferrer";
+        if ($target == DOM_EXTERNAL_LINK && !AMP()) $internal_attributes["crossorigin"]         = "anonymous";
+        if (!!get("turbo") && !!get("turbo_links")) $internal_attributes["data-turbo-action"]   = "replace";
 
         $attributes = "";
         
@@ -7456,7 +7652,7 @@
         {
             dom_hook_link($html, $url);
         }
-
+        
         return dom_tag('a', $html, $attributes);
     }
 
@@ -7511,8 +7707,8 @@
     
     // GRID
 
-    function grid ($html, $classes = false) { return div($html, dom_component_class("grid")     . (($classes === false) ? "" : (" " . (is_array($classes) ? implode(" ", $classes) : $classes)))); }
-    function row  ($html, $classes = false) { return div($html, dom_component_class("grid-row") . (($classes === false) ? "" : (" " . (is_array($classes) ? implode(" ", $classes) : $classes)))); }
+    function grid ($html, $attributes = false) { return div($html, dom_attributes_add_class($attributes, dom_component_class("grid")     )); }
+    function row  ($html, $attributes = false) { return div($html, dom_attributes_add_class($attributes, dom_component_class("grid-row") )); }
 
     function cell($html, $s = 4, $m = 4, $l = 4, $classes = false)
     {
@@ -7590,7 +7786,7 @@
     function picture($html, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false)
     {
         if (false === stripos($html, "<img")
-        &&  false === stripos($html, "<amp-img")) $html = img($html, false, $alt, $lazy, $lazy_src);
+        &&  false === stripos($html, "<amp-img")) $html = img($html, false, false, false, $alt, $lazy, $lazy_src);
 
         if (AMP())
         {
@@ -7610,7 +7806,7 @@
 
             if ($prefered_src !== false)
             {
-                return img($prefered_src, $attributes, $alt, false, false, $html);
+                return img($prefered_src, false, false, $attributes, $alt, false, false, $html);
             }
             else
             {
@@ -7640,15 +7836,21 @@
             return dom_tag("source", "", array("type" => "image/$type", "srcset" => $path), false, true);
         }
     }
+
+    /**
+     * Aspect ratio attribute shortcut
+     */
+    function AR($w, $h)
+    {
+        return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
+    }
     
-    function img($path, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '')
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '')
     {
         if (is_array($path)) 
         {
-            return wrap_each($path, "", "img", true, $attributes, $alt, $lazy);
+            return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy);
         }
-
-        if ($path === false) return '';
 
         $path     = dom_path($path);
         $info     = explode('?', $path);
@@ -7662,8 +7864,8 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        $w = (is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"]  : dom_get("default_image_ratio_w", 300);
-        $h = (is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"] : dom_get("default_image_ratio_h", 200);
+        $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : dom_get("default_image_ratio_w", 300);
+        $h = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$h ? $h : dom_get("default_image_ratio_h", 200);
 
         if (!!dom_get("no_js") && $lazy === true) $lazy = DOM_AUTO;
 
@@ -7681,6 +7883,8 @@
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
+        dom_set("dom_img_nth", $img_nth + 1);
+
         if (AMP())
         {
             return dom_tag('amp-img'.               ($content =='' ? (
@@ -7697,31 +7901,34 @@
         }
         else
         {
-            dom_set("dom_img_nth", $img_nth + 1);
-
-                 if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
-            else if (true     === $lazy) $attributes = dom_attributes(array("alt" => $alt, "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
-            else                         $attributes = dom_attributes(array("alt" => $alt,                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+                 if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+            else if (true     === $lazy) $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
+            else                         $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
 
             return dom_tag('img', $content, $attributes, false, $content == '');
         }
     }
     
+    function img_domain_favicon($url, $attributes = false, $alt = false)
+    {
+        return img(url_img_domain_favicon($url), false, false, $attributes, $alt);
+    }
+
     function img_svg($path, $attributes = false)
     {
-        return img($path, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
+        return img($path, false, false, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
     }
 
     function svg($label, $x0, $x1, $y0, $y1, $align, $svg_body) 
     {
         return dom_tag('span', 
-            '<svg '. 'class="svg colorful-shadow" '.
+            '<svg '. 'class="svg '.strtolower($label).' colorful-shadow" '.
                       'role="img"'.                     (($label!="" && $label!=false)?(' '.
                 'aria-label="'.$label.'"'.              ''):('')).' '.
                    'viewBox="'."$x0 $x1 $y0 $y1".'">'.
                 $svg_body.
             '</svg>', 
-            array('class' => ('span-svg-wrapper'.($align ? ' span-svg-wrapper-aligned' : '')))
+            array('class' => ('span-svg-wrapper '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : '')))
             );
     }
 
@@ -7741,26 +7948,28 @@
         return $dom_used_colors;
     }
     
-    function dom_brands_svg_css_boilerplate($tab = 0) { return delayed_component("_".__FUNCTION__, $tab); }
+    function dom_brands_svg_css_boilerplate($tab = 0) { return delayed_component("_".__FUNCTION__, $tab, 3); }
     function _dom_brands_svg_css_boilerplate($tab = 0)
     {
         $css = "";
 
         foreach (dom_brands() as $brand)
         {
-            $colors   = ("color_$brand")();
+            $fn       = "color_$brand"; // For php 5.6 compatibility
+            $colors   = $fn();
             $colors   = is_array($colors) ? $colors : array($colors);
             $class    = "palette-$brand";
             $var      = "--color-$brand";
     
-            $css .= dom_eol().dom_tab($tab);
-            for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { fill: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
+            $css .= dom_eol();
+            $css .= dom_tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { ".   "fill: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
+            $css .= dom_tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg.$brand".     (($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 16 : 0)." { "."--color: var(".$var.(($i > 0) ? ("-".($i+1)) : "")."); } ";
         }
 
         return $css;
     }
 
-    function dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan)); }
+    function dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan), 3); }
     function _dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35)
     {   
         $css = "";
@@ -7772,7 +7981,8 @@
 
         foreach (dom_brands() as $b => $brand)
         {
-            $colors   = ("color_$brand")();
+            $fn       = "color_$brand"; // For php 5.6 compatibility
+            $colors   = $fn();
             $colors   = is_array($colors) ? $colors : array($colors);
             $class    = "palette-$brand";
     
@@ -7828,19 +8038,19 @@
     function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("google");        $class = "palette-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>'); }
     function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("youtube");       $class = "palette-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>'); }
     function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("numerama");      $class = "palette-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>'); }
-    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("soundcloud");    $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path style="fill:#FF7700;" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>'); } 
+    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("soundcloud");    $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path class="'.$class.'" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>'); } 
     function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("link");          $class = "palette-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>'); }
-    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("leboncoin");     $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>'); }
+    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("leboncoin");     $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>'); }
     function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("500px");         $class = "palette-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />'); }
-    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("seloger");       $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" class="'.$class.'" stroke="none"><path d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>'); }
-    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("deezer");        $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>'); }
+    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("seloger");       $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>'); }
+    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("deezer");        $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>'); }
 
-    function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code),  "img-instagram" ); }
-    function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                     "img-pinterest" ); }
-    function img_facebook       ($username   = false, $size_code = false)   { return img(url_img_facebook   ($username),                "img-facebook"  ); }
-    function img_tumblr         ($blogname   = false, $size_code = false)   { return img(url_img_tumblr     ($blogname),                "img-tumblr"    ); }
+    function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code), false, false, "img-instagram" ); }
+    function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                    false, false, "img-pinterest" ); }
+    function img_facebook       ($username   = false, $size_code = false)   { return img(url_img_facebook   ($username),               false, false, "img-facebook"  ); }
+    function img_tumblr         ($blogname   = false, $size_code = false)   { return img(url_img_tumblr     ($blogname),               false, false, "img-tumblr"    ); }
     
-    function img_loading        ($attributes = false, $size_code = false)   { return img(url_img_loading(), $attributes); }    
+    function img_loading        ($attributes = false, $size_code = false)   { return img(url_img_loading(), false, false, $attributes); }    
 //  function img_loading        ($attributes = false, $size_code = false)   { return svg_loading(); }    
 
     // IMAGES URLs
@@ -7851,12 +8061,11 @@
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
-    function url_unsplash()                         { return "https://unsplash.com";                            }
-    function url_unsplash_author($id)               { return "https://unsplash.com/@".$id;                      }
-    function url_unsplash_img($id,$w,$h)            { return "https://source.unsplash.com/".$id."/".$w."x".$h;  }
-    function url_unsplash_img_random($search,$w,$h) { return "https://source.unsplash.com/".$w."x".$h."/?$search";  }
+    function unsplash_url()                         { return "https://unsplash.com";                            }
+    function unsplash_url_author($id)               { return "https://unsplash.com/@".$id;                      }
+    function unsplash_url_img_random($search,$w,$h) { return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search"))); }
 
-    function url_img_unsplash($id, $w = false, $h = false, $author = false)
+    function unsplash_url_img($id, $w = false, $h = false, $author = false)
     {
         if ($w === false) $w = get("default_image_ratio_w");
         if ($h === false) $h = get("default_image_ratio_h");
@@ -7869,9 +8078,10 @@
         $copyright  = array($id, $author);
         $copyrights = get("unsplash_copyrights", array());
 
-        if (!in_array($copyright, $copyrights)) set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
+        if (!in_array($copyright, $copyrights))
+            set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
 
-        return url_unsplash_img($id,$w,$h);
+        return "https://source.unsplash.com/".$id."/".$w."x".$h;
     }
 
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
@@ -7941,8 +8151,8 @@
             else                       { if ($photo_index === (int)$photo_key) break; }
         }
         
-    //  $data   = json_flickr("photos.getInfo", array("photo_id" => $photo_id), $username, $token);
-    //  $url    = dom_at(dom_at(dom_at(dom_at($data,"photo"),"urls"),"url"),"_content");        
+      //$data   = json_flickr("photos.getInfo", array("photo_id" => $photo_id), $username, $token);
+      //$url    = dom_at(dom_at(dom_at(dom_at($data,"photo"),"urls"),"url"),"_content");        
         $url    = "https://farm".$photo_farm.".staticflickr.com/".$photo_server."/".$photo_id    ."_".$photo_secret."_".$photo_size.".jpg";
                 //"https://farm"."3"        .".staticflickr.com/"."2936"       ."/"."13992107912"."_"."a2c5d9fe3b" ."_"."k"        .".jpg"
         
@@ -7952,6 +8162,11 @@
     function url_img_pinterest ($pin      = false) { return dom_at(dom_at(dom_at(dom_at(                            json_pinterest_pin ( $pin),                                                                        "data"),"image"),"original"),"url",                                  url_img_blank()); }
     function url_img_facebook  ($username = false) { return dom_at(dom_at(                                          json_facebook      (($username === false) ? dom_get("facebook_page") : $username, "cover", false), "cover"),"source",                                                   url_img_blank()); }
     function url_img_tumblr    ($blogname = false) { return dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(dom_at(json_tumblr_blog   (($blogname === false) ? dom_get("tumblr_blog")   : $blogname, "posts"),        "response"),"posts"),0),"trail"),0),"blog"),"theme"),"header_image", url_img_blank()); }
+
+    function url_img_domain_favicon($url)
+    {
+        return "https://icons.duckduckgo.com/ip3/$url.ico";
+    }
 
     // CARDS
 
@@ -8007,7 +8222,7 @@
 
     #endregion
 
-    function card_title($title = false)
+    function card_title($title = false, $attributes = false)
     {
         $title_main         =       dom_at($title, "title",           dom_at($title, 0, $title)           );
         $title_sub          =       dom_at($title, "subtitle",        dom_at($title, 1, false)            );
@@ -8023,15 +8238,15 @@
         $title = "";
         
         if ($title_icon !== false && false === stripos($title_icon, "<img")
-                                  && false === stripos($title_icon, "<amp-img")) $title  = img(            $title_icon, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                  dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
-        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($title_level, $title_main, array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+                                  && false === stripos($title_icon, "<amp-img")) $title  = img($title_icon, false, false, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
+        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($title_level, $title_main,   array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
         if ($title_main !== false && false !== stripos($title_main, "<h"))       $title .=                 $title_main;
-        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,  array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,    array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
 
         dom_hook_card_set_context("title", $title_main);
 
-        return (($title !== "") ? dom_header($title, dom_component_class("card-title")) : "");
+        return (($title !== "") ? dom_header($title, dom_attributes_add_class($attributes, dom_component_class("card-title"))) : "");
     }
 
     function card_media($media = false, $attributes = false)
@@ -8051,10 +8266,11 @@
         return (($text !== false) ? section($text, dom_attributes_add_class($attributes, dom_component_class("card-text"))) : "");
     }
 
-    function card_actions($button = false)
+    function card_actions($button = false, $attributes = false, $attributes_button = false)
     {
-             if ($button !== false) $button = button($button, dom_component_class('card-action-button'));
-        return (($button !== false)        ? section($button, dom_component_class("card-actions")) : "");
+        if ($button === false) return "";
+        if (false === stripos($button, "button")) $button = button($button, dom_attributes_add_class($attributes_button, dom_component_class('card-action-button')));
+        return section($button, dom_attributes_add_class($attributes, dom_component_class("card-actions")));
     }
   
     function card($html, $attributes = false, $horizontal = false)
@@ -8067,7 +8283,14 @@
     
         dom_hook_card_flush_context();
         
-        return article($html, dom_attributes_add_class($attributes, dom_component_class("card").($horizontal ? dom_component_class("card-horizontal") : ''))).cosmetic(dom_eol());
+        return article(
+            $html, 
+            dom_attributes_add_class(
+                $attributes,
+                dom_component_class("card").
+                ($horizontal ? (" ".dom_component_class("card-horizontal")) : '')
+                )
+            );
     }
 
     function card_from_metadata($metadata, $attributes = false)
@@ -8092,7 +8315,7 @@
 
                 foreach (dom_at($metadata, "post_img_url") as $post_img_url)
                 {
-                    $images .= div(img($post_img_url, false, $short_label, $lazy));
+                    $images .= div(img($post_img_url, false, false, false, $short_label, $lazy));
                 }
 
                 $data["content"] = div($images, "slider");
@@ -8104,7 +8327,7 @@
 
                      if (false !== stripos($metadata["post_img_url"], ".mp4"))      $data["content"] = video($metadata["post_img_url"], false, $short_label, false);
                 else if (false !== stripos($metadata["post_img_url"], "<iframe"))   $data["content"] = $metadata["post_img_url"];
-                else                                                                $data["content"] = img($metadata["post_img_url"], false, $short_label, $lazy);
+                else                                                                $data["content"] = img($metadata["post_img_url"], false, false, false, $short_label, $lazy);
             }
         }
 
@@ -8156,7 +8379,7 @@
                 "@context"      => "https://schema.org", 
                 "@type"         => "BlogPosting",
 
-                "url"           => dom_get('canonical')/* . '#'.$anchor_name*/,
+                "url"           => dom_get("canonical")/* . '#'.$anchor_name*/,
                 "description"   => dom_get("title", "")     . " $source post",
                 "datePublished" => $date_yyymmdd,
                 "dateCreated"   => $date_yyymmdd,
@@ -8194,16 +8417,14 @@
                     
                     )
                 ).
-
-            card_media  (dom_at($data,"content")).
-            card_text   (dom_at($data, "desc", false, true)).
-
-            card_actions(false),
+            dom_eol().card_media  (dom_at($data,"content")).
+            dom_eol().card_text   (dom_at($data, "desc", false, true)).
+            dom_eol().card_actions(false),
             
             $attributes
             ).
 
-            dom_if($properties !== false && dom_get("jsonld",true), script_json_ld($properties));
+            (($properties !== false && dom_get("jsonld",true)) ? script_json_ld($properties) : "");
     }
 
     function img_from_metadata($metadata, $attributes = false)
@@ -8213,7 +8434,7 @@
         $lazy        = dom_at($metadata, "LAZY", DOM_AUTO);        
         $short_label = extract_start(dom_at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
         
-        return img($metadata["post_img_url"], $attributes, $short_label, $lazy);
+        return img($metadata["post_img_url"], false, false, $attributes, $short_label, $lazy);
     }
 
     function card_      ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self")                          { return wrap_each(array_card   ($source, $type, $ids, $filter, $tags_in, $tags_out, $source), dom_eol(2), $container);                 }        
@@ -8310,7 +8531,7 @@
             {
                 if ($menu_entry == array() || $menu_entry == "")
                 {
-                    $menu_lis .= cosmetic(dom_eol()) . li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
+                    $menu_lis .= li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
                 }
                 else
                 {    
@@ -8322,7 +8543,7 @@
                     $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
                     $attributes = false;
                     
-                    $menu_lis .= dom_eol().li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
                 }
             }
         }
@@ -8336,7 +8557,6 @@
         if (dom_AMP() && !!$sidebar)
         {
             hook_amp_sidebar(
-                cosmetic(dom_eol(1)).
                 dom_tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
                 );
 
@@ -8346,13 +8566,12 @@
         return $html;
     }
 
-    function menu_switch() { return dom_if(dom_get("framework") == "material",  a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
-                                .   dom_if(dom_get("framework") == "bootstrap", a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                .   dom_if(dom_get("framework") == "spectre",   a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) 
-                                .   dom_if(dom_get("framework") == "NONE",      a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                               . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
-                                                                                                                                     , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                )))
-                            //  .   dom_if(dom_get("framework") == "NONE",   checkbox("menu-button", "", "menu-switch-symbol menu-toggle-content" ,    array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  )).checkbox_label("menu-button", "☰"))
+    function menu_switch() { return (dom_get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
+                                .   (dom_get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (dom_get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (dom_get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
+                                                                          . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
+                                                                                                                                     , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
                                                             ; 
     }
 
@@ -8437,8 +8656,12 @@
     {
         hook_title($html);
 
-        if (false === stripos($html,"<h1"))  $html =  h1($html);
-        if (false === stripos($html,"<a"))   $html =   a($html,'.');
+        if ($html !== false && $html != "")
+        {
+            if (false === stripos($html,"<a"))   $html =   a($html,'.');
+            if (false === stripos($html,"<h1"))  $html =  h1($html);
+        }
+
         if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
         
         return toolbar_section(($html === false) ? '' : $html, dom_component_class("toolbar-cell-center"));
@@ -8474,13 +8697,21 @@
             hook_amp_require("animation");
             hook_amp_require("position-observer");
 
-            $amp_anim     = '<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
-                          . '<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
+            $amp_anim     = dom_eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
+                          . dom_eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
 
-            $amp_observer = '<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
+            $amp_observer = dom_eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
         }
 
-        return $amp_anim . comment("PRE TOOLBAR").dom_header($html . $amp_observer, dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container")));
+        return  
+
+            $amp_anim.
+            comment("PRE Toolbar").
+            dom_header(
+                $html.
+                $amp_observer, 
+                dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container"))
+                );
     }
     
     #endregion
@@ -8635,18 +8866,18 @@
         return dom_rss_item($rss);
     }
  
-    function dom_rss_channel        ($html = "")                        { return cosmetic(dom_eol()).   dom_tag('channel',                      $html,  false,         true); }
-    function dom_rss_image          ($html = "")                        { return                        dom_tag('image',                        $html,  false,         true); }
-    function dom_rss_url            ($html = "")                        { return                        dom_tag('url',                          $html,  false,         true); }
-    function dom_rss_item           ($html = "")                        { return                        dom_tag('item',                         $html,  false,         true); }
-    function dom_rss_link           ($html = "")                        { return                        dom_tag('link',                         $html,  false,         true); }
-    function dom_rss_title          ($html = "")                        { return                        dom_tag('title',       dom_rss_sanitize($html), false,         true); }
-    function dom_rss_description    ($html = "", $attributes = false)   { return                        dom_tag('description', dom_rss_sanitize($html), $attributes,   true); }
+    function dom_rss_channel        ($html = "")                        { return dom_tag('channel',                      $html,  false,         true); }
+    function dom_rss_image          ($html = "")                        { return dom_tag('image',                        $html,  false,         true); }
+    function dom_rss_url            ($html = "")                        { return dom_tag('url',                          $html,  false,         true); }
+    function dom_rss_item           ($html = "")                        { return dom_tag('item',                         $html,  false,         true); }
+    function dom_rss_link           ($html = "")                        { return dom_tag('link',                         $html,  false,         true); }
+    function dom_rss_title          ($html = "")                        { return dom_tag('title',       dom_rss_sanitize($html), false,         true); }
+    function dom_rss_description    ($html = "", $attributes = false)   { return dom_tag('description', dom_rss_sanitize($html), $attributes,   true); }
 
-    function dom_rss_lastbuilddate  ($date = false)                     { return                        dom_tag('lastBuildDate', (false === $date) ? (!!dom_get("dom_rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
-    function dom_rss_pubDate        ($date = false)                     { return                        dom_tag('pubDate',       (false === $date) ? (!!dom_get("dom_rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
+    function dom_rss_lastbuilddate  ($date = false)                     { return dom_tag('lastBuildDate', (false === $date) ? (!!dom_get("dom_rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
+    function dom_rss_pubDate        ($date = false)                     { return dom_tag('pubDate',       (false === $date) ? (!!dom_get("dom_rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
 
-    function dom_rss_copyright      ($author = false)                   { return                        dom_tag('copyright', "Copyright " . ((false === $author) ? dom_get("author", DOM_AUTHOR) : $author), false, true); }
+    function dom_rss_copyright      ($author = false)                   { return dom_tag('copyright', "Copyright " . ((false === $author) ? dom_get("author", DOM_AUTHOR) : $author), false, true); }
     
     #endregion
     #region WIP API : DOM : TILE
@@ -8697,6 +8928,40 @@
         return $rrggbb;
     }
 
+    function dom_dec_rgb_to_hsl($var_R, $var_G, $var_B)
+    {
+        $var_Min = min($var_R, $var_G, $var_B);
+        $var_Max = max($var_R, $var_G, $var_B);
+        $del_Max = $var_Max - $var_Min;
+
+        $H = 0;
+        $S = 0;
+        $L = ($var_Max + $var_Min)/2;
+
+        if ($del_Max != 0)
+        {
+            $S = $del_Max / ( 1 - abs($var_Max + $var_Min - 1) );
+
+            $del_R = ( ( ( $var_Max - $var_R ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+            $del_G = ( ( ( $var_Max - $var_G ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+            $del_B = ( ( ( $var_Max - $var_B ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
+
+            if      ($var_R == $var_Max) $H =             $del_B - $del_G;
+            else if ($var_G == $var_Max) $H = ( 1 / 3 ) + $del_R - $del_B;
+            else if ($var_B == $var_Max) $H = ( 2 / 3 ) + $del_G - $del_R;
+
+            if ($H<0) $H++;
+            if ($H>1) $H--;
+        }
+
+        return array('H' => ($H*360), 'S' => $S, 'L' => $L);
+    }
+
+    function dom_int_rgb_to_hsl($var_R, $var_G, $var_B)
+    {
+        return dom_dec_rgb_to_hsl($var_R / 255.0, $var_G / 255.0, $var_B / 255.0);
+    }
+
     function dom_hex_to_hsl($color)
     {
         $color = dom_valid_hex($color);
@@ -8709,38 +8974,10 @@
         $var_G = ($G / 255);
         $var_B = ($B / 255);
 
-        $var_Min = min($var_R, $var_G, $var_B);
-        $var_Max = max($var_R, $var_G, $var_B);
-        $del_Max = $var_Max - $var_Min;
-
-        $L = ($var_Max + $var_Min)/2;
-
-        if ($del_Max == 0)
-        {
-            $H = 0;
-            $S = 0;
-        }
-        else
-        {
-            if ( $L < 0.5 ) $S = $del_Max / ( $var_Max + $var_Min );
-            else            $S = $del_Max / ( 2 - $var_Max - $var_Min );
-
-            $del_R = ( ( ( $var_Max - $var_R ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
-            $del_G = ( ( ( $var_Max - $var_G ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
-            $del_B = ( ( ( $var_Max - $var_B ) / 6 ) + ( $del_Max / 2 ) ) / $del_Max;
-
-            if      ($var_R == $var_Max) $H = $del_B - $del_G;
-            else if ($var_G == $var_Max) $H = ( 1 / 3 ) + $del_R - $del_B;
-            else if ($var_B == $var_Max) $H = ( 2 / 3 ) + $del_G - $del_R;
-
-            if ($H<0) $H++;
-            if ($H>1) $H--;
-        }
-
-        return array('H' => ($H*360), 'S' => $S, 'L' => $L);
+        return dom_dec_rgb_to_hsl($var_R, $var_G, $var_B);
     }
     
-    function dom_hue_to_rgb($v1, $v2, $vH)
+    function dom_hue_to_dec($v1, $v2, $vH)
     {
         if( $vH < 0 ) $vH += 1;
         if( $vH > 1 ) $vH -= 1;
@@ -8766,28 +9003,18 @@
         $S = $hsl['S'];
         $L = $hsl['L'];
 
-        if ($S == 0 )
-        {
-            $r = $L * 255;
-            $g = $L * 255;
-            $b = $L * 255;
-        }
-        else
-        {
-            if ($L < 0.5)
-            {
-               $var_2 = $L*(1+$S);
-            }
-            else
-            {
-                $var_2 = ($L+$S) - ($S*$L);
-            }
+        $r = $L * 255;
+        $g = $L * 255;
+        $b = $L * 255;
 
+        if ($S != 0 )
+        {
+            $var_2 = ($L < 0.5) ? ($L*(1+$S)) : (($L+$S) - ($S*$L));
             $var_1 = 2 * $L - $var_2;
 
-            $r = round(255 * dom_hue_to_rgb($var_1, $var_2, $H + (1/3) ));
-            $g = round(255 * dom_hue_to_rgb($var_1, $var_2, $H         ));
-            $b = round(255 * dom_hue_to_rgb($var_1, $var_2, $H - (1/3) ));
+            $r = round(255 * dom_hue_to_dec($var_1, $var_2, $H + (1/3) ));
+            $g = round(255 * dom_hue_to_dec($var_1, $var_2, $H         ));
+            $b = round(255 * dom_hue_to_dec($var_1, $var_2, $H - (1/3) ));
         }
 
         $r = dechex($r);
@@ -8804,6 +9031,30 @@
     function dom_rotate($color, $rotate = 180)
     {
         $hsl = dom_hex_to_hsl($color);
+        
+        $hsl['H'] += $rotate;
+
+        while ($hsl['H'] > 360) $hsl['H'] -= 360;
+        while ($hsl['H'] < 0)   $hsl['H'] += 360;
+
+        return dom_hsl_to_hex($hsl);
+    }
+
+    function dom_rotate_from_dec_rgb($r, $g, $b, $rotate = 180)
+    {
+        $hsl = dom_dec_rgb_to_hsl($r, $g, $b);
+        
+        $hsl['H'] += $rotate;
+
+        while ($hsl['H'] > 360) $hsl['H'] -= 360;
+        while ($hsl['H'] < 0)   $hsl['H'] += 360;
+
+        return dom_hsl_to_hex($hsl);
+    }
+
+    function dom_rotate_from_int_rgb($r, $g, $b, $rotate = 180)
+    {
+        $hsl = dom_int_rgb_to_hsl($r, $g, $b);
         
         $hsl['H'] += $rotate;
 
@@ -8830,23 +9081,32 @@
         return dom_int_rgb_to_hash_rrggbb(255*$r, 255*$g, 255*$b);
     }
 
-    function dom_hash_rrggbb_to_dec_rgb($rrggbb, &$r, &$g, &$b)
+    function dom_hash_rrggbb_to_int_rgb($rrggbb, &$r, &$g, &$b)
     {
         $rrggbb = ltrim($rrggbb, "#");
 
-        $r = hexdec(substr($rrggbb, 0, 2)) / 255;
-        $g = hexdec(substr($rrggbb, 2, 2)) / 255;
-        $b = hexdec(substr($rrggbb, 4, 2)) / 255;
+        $r = hexdec(substr($rrggbb, 0, 2));
+        $g = hexdec(substr($rrggbb, 2, 2));
+        $b = hexdec(substr($rrggbb, 4, 2));
     }
 
-    function dom_hash_rrggbb_to_int_rgb($rrggbb)
+    function dom_hash_rrggbb_to_dec_rgb($rrggbb, &$r, &$g, &$b)
+    {
+        dom_hash_rrggbb_to_int_rgb($rrggbb, $r, $g, $b);
+
+        $r /= 255.0;
+        $g /= 255.0;
+        $b /= 255.0;
+    }
+
+    /*function dom_hash_rrggbb_to_int_rgb($rrggbb)
     {        
         $rrggbb = ltrim($rrggbb, "#");
 
         return "rgb(".hexdec(substr($rrggbb, 0, 2)).",".
                       hexdec(substr($rrggbb, 2, 2)).",".
                       hexdec(substr($rrggbb, 4, 2)).")";
-    }
+    }*/
 
     // (c) https://github.com/gdkraus/wcag2-color-contrast
 
@@ -8862,6 +9122,11 @@
         if ($b <= 0.03928) { $b = $b / 12.92; } else { $b = pow((($b + 0.055) / 1.055), 2.4); }
 
         return 0.2126 * $r + 0.7152 * $g + 0.0722 * $b;
+    }
+
+    function dom_calculate_luminosity_int_rgb($r,$g,$b) {
+
+        return dom_calculate_luminosity_dec_rgb($r / 255.0, $g / 255.0, $b / 255.0);
     }
 
     function dom_calculate_luminosity_hex_rgb($r,$g,$b) {
@@ -8909,6 +9174,11 @@
         $l2 = dom_calculate_luminosity_dec_rgb($color2_r, $color2_g, $color2_b);
 
         return ($l1 > $l2) ? (($l1 + 0.05) / ($l2 + 0.05)) : (($l2 + 0.05) / ($l1 + 0.05));
+    }
+
+    function dom_calculate_luminosity_ratio_int_rgb($color1_r, $color1_g, $color1_b, $color2_r, $color2_g, $color2_b) {
+
+        return dom_calculate_luminosity_ratio_dec_rgb($color1_r / 255.0, $color1_g / 255.0, $color1_b / 255.0, $color2_r / 255.0, $color2_g / 255.0, $color2_b / 255.0);
     }
 
     function dom_color_modify_lightness($color, $factor, $debug = false)
@@ -8978,7 +9248,7 @@
 
     // Try a color correction function
 
-    define("DOM_COLOR_CONTRAST_LINk_FROM_TEXT", 3.0);
+    define("DOM_COLOR_CONTRAST_LINK_FROM_TEXT", 3.0);
     define("DOM_COLOR_CONTRAST_AA_MEDIUMBOLD",  3.0);
     define("DOM_COLOR_CONTRAST_AA_LARGE",       3.0);
     define("DOM_COLOR_CONTRAST_AA_NORMAL",      4.5);
@@ -9000,22 +9270,20 @@
     {
         $profiler = dom_debug_track_timing();
 
-        $contrast_ratio_target += 0.05; // CHROME DEV TOOL DOES NOT GIVE SAME COMPUTATION RESULT !!
-
         if ($delta == 0) $delta = 1;
 
-        $rrggbb      = ltrim($color,      "#"); if (!ctype_xdigit($rrggbb))      return "#".$rrggbb;
-        $back_rrggbb = ltrim($background, "#"); if (!ctype_xdigit($back_rrggbb)) return "#".$rrggbb;
+        $rrggbb      = ltrim($color,      "#"); if (!ctype_xdigit($rrggbb))      return "#$rrggbb";
+        $back_rrggbb = ltrim($background, "#"); if (!ctype_xdigit($back_rrggbb)) return "#$rrggbb";
 
-        $r = $r0 = hexdec(substr($rrggbb,      0, 2)) / 255;
-        $g = $g0 = hexdec(substr($rrggbb,      2, 2)) / 255;
-        $b = $b0 = hexdec(substr($rrggbb,      4, 2)) / 255;
+        $contrast_ratio_target += 0.05; // CHROME DEV TOOL DOES NOT GIVE SAME COMPUTATION RESULT !!
 
-        $back_r  = hexdec(substr($back_rrggbb, 0, 2)) / 255;
-        $back_g  = hexdec(substr($back_rrggbb, 2, 2)) / 255;
-        $back_b  = hexdec(substr($back_rrggbb, 4, 2)) / 255;
+        $ratio = dom_calculate_luminosity_ratio($background, $rrggbb);
+        if ($ratio >= $contrast_ratio_target) return "#$rrggbb";
 
-        $best_ratio  = -1;
+        $r0 = hexdec(substr($rrggbb, 0, 2)) / 255.0;
+        $g0 = hexdec(substr($rrggbb, 2, 2)) / 255.0;
+        $b0 = hexdec(substr($rrggbb, 4, 2)) / 255.0;
+
         $ratio       = 0;
         $percent_min = 0;
         $percent_max = 1;
@@ -9026,48 +9294,25 @@
 
         while ($depth-- > 0)
         {
-            $r1 = max(0, min(1, $r0 + (($delta > 0 ? 1.0 : 0.0) - $r0) * $percent));
-            $g1 = max(0, min(1, $g0 + (($delta > 0 ? 1.0 : 0.0) - $g0) * $percent));
-            $b1 = max(0, min(1, $b0 + (($delta > 0 ? 1.0 : 0.0) - $b0) * $percent));
+            $r2 = $g2 = $b2 = ($delta > 0 ? 1.0 : 0.0);
 
-            //dom_hash_rrggbb_to_dec_rgb(dom_dec_rgb_to_hash_rrggbb($r1, $g1, $b1), $r1 ,$g1, $b1);
-            $rrggbb1 = dom_dec_rgb_to_hash_rrggbb($r1, $g1, $b1);
-            
-            //$ratio = dom_calculate_luminosity_ratio_dec_rgb($back_r, $back_g, $back_b, $r1, $g1, $b1);
-            $ratio = dom_calculate_luminosity_ratio($background, $rrggbb1);
+            $r1 = max(0, min(1, $r0 + ($r2 - $r0) * $percent));
+            $g1 = max(0, min(1, $g0 + ($g2 - $g0) * $percent));
+            $b1 = max(0, min(1, $b0 + ($b2 - $b0) * $percent));
+
+            $rrggbb = dom_dec_rgb_to_hash_rrggbb($r1, $g1, $b1);
+            $ratio  = dom_calculate_luminosity_ratio($background, $rrggbb);
+
+            if (!!$debug || !!get("debugcsscolors") || !!get("debug"))
+            {
+                $debug_css .= PHP_EOL."/* $delta # $depth // $percent% : $rrggbb // R=$ratio/$contrast_ratio_target // $background  */";
+            }
+
             if ($ratio < $contrast_ratio_target) $percent_min = $percent; else $percent_max = $percent;
             $percent = 0.5 * ($percent_min + $percent_max);
-
-            if (($contrast_ratio_target <= $ratio && $ratio <= $best_ratio)
-            ||  ($best_ratio            <= $ratio && $ratio <  $contrast_ratio_target))
-            {
-                $r = $r1;
-                $g = $g1;
-                $b = $b1;
-                
-                $best_ratio = $ratio;
-                
-                if (!!$debug)
-                {
-                    $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                              str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                              str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
-
-                    //$debug_css .= PHP_EOL."/* # $depth : $rrggbb // R=$ratio/$contrast_ratio_target // $r $g $b // $percent% // $background  */";
-                }
-
-                if ($ratio >= $contrast_ratio_target)
-                {
-                    break;
-                }
-            }
         }
 
-        $rrggbb = str_pad(dechex(255*$r),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex(255*$g),2,"0",STR_PAD_LEFT).
-                  str_pad(dechex(255*$b),2,"0",STR_PAD_LEFT);
-
-        return "#".$rrggbb.$debug_css;
+        return $rrggbb.$debug_css;
     }
 
     function dom_correct_lighter(
@@ -9075,9 +9320,9 @@
         $color,
         $background             = "#FFFFFF",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        &$ratio                 = null,
         $debug                  = false)
     {
-        $ratio = false;
         return dom_correct_color($color, $background, $contrast_ratio_target, 1, $ratio, $debug);
     }
 
@@ -9086,9 +9331,9 @@
         $color,
         $background             = "#FFFFFF",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        &$ratio                 = null,
         $debug                  = false)
     {
-        $ratio = false;
         return dom_correct_color($color, $background, $contrast_ratio_target, -1, $ratio, $debug);
     }
 
@@ -9097,6 +9342,7 @@
         $color,
         $background             = "#FFFFFF",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
+        &$ratio                 = null,
         $debug                  = false)
     {
         $profiler = dom_debug_track_timing();
@@ -9126,6 +9372,8 @@
         $corrected_colorB = dom_correct_color($color, $background, $contrast_ratio_target, -$delta, $ratioB, $debug);
       //if ($ratioB >= $contrast_ratio_target) return $corrected_colorB;
 
+        $ratio = max($ratioA,$ratioB);
+
         return $ratioA >= $ratioB ? $corrected_colorA : $corrected_colorB;
     }
 
@@ -9140,7 +9388,91 @@
 
     #endregion
 
+    function dom_phpinfo($headline_offset = 0, $display_vars = false, $display_extensions = true) {    
+
+        ob_start();
+        phpinfo();
+        $phpinfo = ob_get_contents();
+        ob_end_clean();
+    
+        $phpinfo_style = substr($phpinfo, strpos($phpinfo, "<style"), stripos($phpinfo, "</style>") - strpos($phpinfo, "<style") + strlen("</style>"));
+    
+        $phpinfo = substr($phpinfo,    strpos($phpinfo, "<body>") + strlen("<body>"));
+        $phpinfo = substr($phpinfo, 0, strpos($phpinfo, "</body>"));
+    
+        if (!$display_vars)
+        {
+            $tag_bgn = "<h2>PHP Variables";
+            $tag_end = "<h1>";
+            $pos_bgn = stripos($phpinfo, $tag_bgn);             if (false !== $pos_bgn) {
+            $pos_end = stripos($phpinfo, $tag_end, $pos_bgn);   if (false !== $pos_end) {
+            $phpinfo = substr($phpinfo, 0, $pos_bgn).substr($phpinfo, $pos_end); }}
+        }
+    
+        if ($display_extensions)
+        {
+            $tag = "<h1>PHP Credits";
+            $pos = stripos($phpinfo, $tag);
+            
+            if (false !== $pos) {
+                $extensions = table(dom_tag("tbody", 
+                    tr(th("Extension").th("enabled"), "h").
+                    wrap_each(get_loaded_extensions(), "", function($e) { return tr(td("$e","e").td("enabled","v")); })
+                    ));
+                $phpinfo = substr($phpinfo, 0, $pos).$extensions.substr($phpinfo, $pos); 
+                }
+        }
+    
+        // Rewrite headline levels
+    
+        for ($h=(9-$headline_offset); $h>0; --$h) $phpinfo = dom_str_replace_all(array("<h$h", "</h$h>"), array("<h".($h+$headline_offset), "</h".($h+$headline_offset).">"), $phpinfo);
+        
+        // Add syles
+    
+        return /*$phpinfo_style.*/style((function () { HSTART() ?><style><?php HERE() ?>
+                
+                .phpinfo                        { word-break: break-all; }
+                .phpinfo pre                    { margin: 0; font-family: monospace }
+                .phpinfo a:link                 { text-decoration: initial; color: initial; text-decoration: initial; background-color: initial; }
+                .phpinfo a:hover                { text-decoration: underline }
+                .phpinfo table                  { table-layout: initial; border-collapse: collapse; border: 0; width: auto; width: -webkit-fill-available; box-shadow: none }
+                .phpinfo th, .phpinfo td        { font-size: 75%; border: 1px solid #666; vertical-align: baseline; padding: 4px 5px; overflow: hidden; text-overflow: ellipsis; }
+                .phpinfo td, .phpinfo td *      { font-size: 75%; text-align: left; }
+                .phpinfo td:not(.e,.v,.p,.h)    { background-color: unset !important; }
+                .phpinfo h1                     { font-size: 150% }
+                .phpinfo h2                     { font-size: 125% }
+                .phpinfo .p                     { text-align: left }
+                .phpinfo .e                     { background-color: rgba(0,0,0,0.2); width: auto; font-weight: bold }
+                .phpinfo .h                     { background-color: rgba(0,0,0,0.1); font-weight: bold }
+                .phpinfo .v                     { background-color: rgba(0,0,0,0.1); max-width: 300px; overflow-x: auto; word-wrap: break-word }
+                .phpinfo img                    { display: none }
+                .phpinfo hr                     { width: 100%; border: 0; height: 1px }
+                .phpinfo br                     { display: none }
+                .phpinfo img[alt='PHP Logo']    { display: none }
+    
+            <?php HERE("raw_css") ?></style><?php return HSTOP(); })()).
+            
+            div($phpinfo, "phpinfo");
+    }
+  
     ######################################################################################################################################
     #endregion
+    #region Fake face images
 
+    $__img_fakeface_index = 0;
+
+    function img_fakeface($gender = "female" /* male|female */, $age_min = 18, $age_max = 66, $type = "face" /* face|thumb */, $rand = DOM_AUTO)
+    {
+        global $__img_fakeface_index;
+        ++$__img_fakeface_index;
+
+        $rand = ($rand != DOM_AUTO ? $rand : md5("$__img_fakeface_index".microtime().rand(0, PHP_INT_MAX-1))).".jpg";
+        $size = $type == "thumb" ? 350 : 731;
+        $url  = "https://fakeface.rest/$type/view/$rand?gender=$gender&minimum_age=$age_min&maximum_age=$age_max";
+
+        return img($url, $size, $size, false, "Fake AI generated face");
+    }
+      
+    ######################################################################################################################################
+    #endregion
 ?>

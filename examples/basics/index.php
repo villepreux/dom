@@ -5,8 +5,30 @@
     set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
 
     set("unsplash_photo_id",    "ThIY-N_LLfY");
-    set("url_banner_img",       url_img_unsplash(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
-    set("url_card_img",         url_img_unsplash(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
+    set("url_banner_img",       unsplash_url_img(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
+    set("url_card_img",         unsplash_url_img(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
+
+    // TODO ------------------------------------------------------------------------>
+    // TODO : FIX CANONICAL PATH HACK
+
+    if (!!get("static"))
+    {
+        set("canonical", rtrim(str_replace("www.villepreux.net",    "villapirorum.netlify.app", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("villepreux.net",        "villapirorum.netlify.app", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("http://localhost",      "https://",                 get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("http://127.0.0.1",      "https://",                 get("canonical")), "/"));
+    }
+
+    if (is_localhost())
+    {
+        set("canonical", rtrim(str_replace("https://localhost", "http://localhost", get("canonical")), "/"));
+        set("canonical", rtrim(str_replace("https://127.0.0.1", "http://127.0.0.1", get("canonical")), "/"));
+    }
+
+    set("canonical", str_replace("///", "//", get("canonical")));
+
+    // TODO
+    // TODO ------------------------------------------------------------------------>
 
     dom_init();
 

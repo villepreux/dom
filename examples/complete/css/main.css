@@ -49,8 +49,8 @@ $unsplash_author   = get($unsplash, 1, false);
 $unsplash_position = get($unsplash, 2, "center");
 $unsplash_filter   = get($unsplash, 3, "unset");
 
-$default_banner_img_normal = url_img_unsplash($unsplash_id,  900, 600);
-$default_banner_img_large  = url_img_unsplash($unsplash_id, 1200, 800);
+$default_banner_img_normal = unsplash_url_img($unsplash_id,  900, 600);
+$default_banner_img_large  = unsplash_url_img($unsplash_id, 1200, 800);
 
 ?>
 
