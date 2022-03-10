@@ -438,11 +438,9 @@
 
     function dom_init_options()
     {
-        // TODO prefix all variables with dom_
-
         // Cannot be modified at browser URL level
 
-      //dom_set("title",                             "Blog"); // Will be deducted from document headlines
+      //dom_set("title",                             "Blog"); // Will be deducted/overriden from document headlines, if any
         dom_set("keywords",                          "");
 
       //dom_set("url",                               dom_url());                              if (dom_path("DTD/xhtml-target.dtd", dom_path("xhtml-target.dtd")))
@@ -453,15 +451,16 @@
 
         dom_set("icons_path",                       "img/icons/");
 
-        dom_set("background_color",                 "#FFFFFF");
-        dom_set("theme_color",                      "#00b0da");
+        dom_set("theme_color",                      "#aa5500"); // Default to an AA (light) contrasted theme
+        dom_set("accent_color",                     "#0055bb");
+        dom_set("background_color",                 "#eeeeee");
         dom_set("text_color",                       "#000000");
-        dom_set("link_color",                       "#0000FF");
+        dom_set("link_color",                       dom_get("theme_color"));
         
         dom_set("default_image_ratio_w",            "300");
         dom_set("default_image_ratio_h",            "200");
 
-      //dom_set("scrollbar_width",                  "17px"); // It's a css env var
+        dom_set("default_scrollbar_width",          "17px"); // It's a css env var
 
         dom_set("image",                            "image.jpg");
         dom_set("geo_region",                       "FR-75");
@@ -915,17 +914,6 @@
             ,   'headline8'                 => 'mdc-typography--headline18'
             ,   'headline9'                 => 'mdc-typography--headline20'
             
-            ,   'toolbar'                   => 'mdc-top-app-bar mdc-top-app-bar--dense mdc-top-app-bar--fixed mdc-top-app-bar--waterfall mdc-top-app-bar--flexible mdc-top-app-bar--flexible-default-behavior mdc-top-app-bar--fixed-lastrow-only'
-            ,   'toolbar-row'               => 'mdc-top-app-bar__row row'
-            ,   'toolbar-cell'              => 'mdc-top-app-bar__section'
-            ,   'toolbar-cell-right'        => 'mdc-top-app-bar__section--align-end'
-            ,   'toolbar-cell-left'         => 'mdc-top-app-bar__section--align-start'
-            ,   'toolbar-cell-center'       => 'mdc-top-app-bar__section--align-middle'
-            ,   'toolbar-cell-shrink'       => 'mdc-top-app-bar__section--shrink-to-fit'
-            
-            ,   'toolbar-title'             => 'mdc-top-app-bar__title'
-
-            ,   'main-below-toolbar'        => 'mdc-top-app-bar--dense-'
             ,   'footer'                    => 'mdc-theme--primary'
             ,   'grid'                      => 'mdc-layout-grid max-width'
             ,   'grid-row'                  => 'mdc-layout-grid__inner'
@@ -938,14 +926,6 @@
             ,   'progressbar-secondary-bar' => 'mdc-linear-progress__bar mdc-linear-progress__secondary-bar'   
             ,   'progressbar-bar-inner'     => 'mdc-linear-progress__bar-inner'
             
-            ,   'toolbar-icon'              => 'material-icons mdc-top-app-bar__icon'
-
-            ,   'menu-toggle'               => 'mdc-menu-anchor'
-            ,   'menu'                      => 'mdc-menu'
-            ,   'menu-list'                 => 'mdc-menu__items mdc-list sidebar'
-            ,   'menu-list-item'            => 'mdc-list-item'
-            ,   'menu-list-item-separator'  => 'mdc-list-divider'
-            
             ,   'list'                      => 'mdc-list'
             ,   'list-item'                 => 'mdc-list-item'
             ,   'list-item-separator'       => 'mdc-list-divider'
@@ -957,9 +937,7 @@
         (
             "classes" => array
             (
-                'menu-list'             => 'dropdown-menu sidebar'
-            ,   'list-item-separator'   => 'dropdown-divider'
-            ,   'toolbar'               => 'navbar sticky-top'        
+                'list-item-separator'   => 'dropdown-divider'     
             )
         )
         
@@ -968,9 +946,6 @@
             "classes" => array
             (
                 'button'                    => 'btn'
-            
-            ,   'toolbar-row'               => 'navbar'
-            ,   'toolbar-cell'              => 'navbar-section'
                     
             ,   'card-title'                => 'card-header'
             ,   'card-title-icon'           => ''
@@ -985,6 +960,32 @@
         )
     );
     
+    function dom_init_extend_frameworks_table($component_frameworks_table)
+    {
+        global $__dom_frameworks;
+
+        foreach ($component_frameworks_table as $framework_name => $framework)
+        {
+            if (!array_key_exists($framework_name, $__dom_frameworks))
+            {
+                $__dom_frameworks[$framework_name] = array();
+            }
+
+            foreach ($framework as $category => $properties)
+            {
+                if (!array_key_exists($category, $__dom_frameworks[$framework_name]))
+                {
+                    $__dom_frameworks[$framework_name][$category] = array();
+                }
+
+                foreach ($properties as $classname => $framework_classnames)
+                {
+                    $__dom_frameworks[$framework_name][$category][$classname] = $framework_classnames;
+                }
+            }
+        }
+    }
+
     function dom_component_class($classname) 
     {
         global $__dom_frameworks;
@@ -1425,20 +1426,33 @@
     #endregion
     #region WIP LOREM IPSUM
 
-    function lorem_ipsum($nb_paragraphs = 5, $tag = "p")
+    function lorem_ipsum($nb_paragraphs = 5, $tag = "p", $flavor = "lorem")
     {
         $html = "";
 
-        if ($nb_paragraphs === 0.25) $html .= dom_tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa.");
-    //  if ($nb_paragraphs === 0.25) $html .= dom_tag($tag, "Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. Donec vehicula vulputate enim, vitae vulputate sapien auctor et. Ut imperdiet non augue quis suscipit.");
-        if ($nb_paragraphs === 0.5)  $html .= dom_tag($tag, "Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
+        if ($flavor == "cat" || $flavor == "kitty")
+        {
+                 if ($nb_paragraphs < 0.5) $html .= dom_tag($tag, "Cat ipsum dolor sit amet, human is behind a closed door, emergency! abandoned! meeooowwww!!!. Do doodoo in the litter-box, clickityclack on the piano, be frumpygrumpy chase ball of string.");
+            else if ($nb_paragraphs < 1.0) $html .= dom_tag($tag, "Sitting in a box. Kitty ipsum dolor sit amet, shed everywhere shed everywhere stretching attack your ankles chase the red dot, hairball run catnip eat the grass sniff soft kitty warm kitty little ball of furr poop in a handbag look delicious and drink the soapy mopping up water then puke giant foamy fur-balls tickle my belly at your own peril i will pester for food when you're in the kitchen.");
 
-        if ($nb_paragraphs >= 1) $html .= dom_tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa. Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. Donec vehicula vulputate enim, vitae vulputate sapien auctor et. Ut imperdiet non augue quis suscipit. Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
-        if ($nb_paragraphs >= 2) $html .= dom_tag($tag, "Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
-        if ($nb_paragraphs >= 3) $html .= dom_tag($tag, "Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
-        if ($nb_paragraphs >= 4) $html .= dom_tag($tag, "Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
-        if ($nb_paragraphs >= 5) $html .= dom_tag($tag, "Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
-        
+            if ($nb_paragraphs >= 1) $html .= dom_tag($tag, "Cat ipsum dolor sit amet, human is behind a closed door, emergency! abandoned! meeooowwww!!!. Do doodoo in the litter-box, clickityclack on the piano, be frumpygrumpy chase ball of string. Relentlessly pursues moth spit up on light gray carpet instead of adjacent linoleum and chew iPad power cord, stare at imaginary bug yet kitten is playing with dead mouse and destroy house in 5 seconds and have a lot of grump in yourself because you can't forget to be grumpy and not be like king grumpy cat. Purr purr purr until owner pets why owner not pet me hiss scratch meow kitty pounce, trip, faceplant you didn't see that no you didn't definitely didn't lick, lick, lick, and preen away the embarrassment poop on floor and watch human clean up walk on keyboard. ");
+            if ($nb_paragraphs >= 2) $html .= dom_tag($tag, "Plan steps for world domination run outside as soon as door open. Immediately regret falling into bathtub claw drapes. Prow?? ew dog you drink from the toilet, yum yum warm milk hotter pls, ouch too hot cat playing a fiddle in hey diddle diddle?, waffles but eat my own ears and destroy dog and ignore the squirrels, you'll never catch them anyway hiss and stare at nothing then run suddenly away. Spread kitty litter all over house love me! so jump up to edge of bath, fall in then scramble in a mad panic to get out or instead of drinking water from the cat bowl, make sure to steal water from the toilet chase laser. I rule on my back you rub my tummy i bite you hard scratch so owner bleeds where is it? i saw that bird i need to bring it home to mommy squirrel! sniff other cat's butt and hang jaw half open thereafter.");
+            if ($nb_paragraphs >= 3) $html .= dom_tag($tag, "Sitting in a box. Kitty ipsum dolor sit amet, shed everywhere shed everywhere stretching attack your ankles chase the red dot, hairball run catnip eat the grass sniff soft kitty warm kitty little ball of furr poop in a handbag look delicious and drink the soapy mopping up water then puke giant foamy fur-balls tickle my belly at your own peril i will pester for food when you're in the kitchen even if it's salad . Kitty. Scratch me there, elevator butt crash against wall but walk away like nothing happened purr purr purr until owner pets why owner not pet me hiss scratch meow. Sit in box grass smells good but asdflkjaertvlkjasntvkjn (sits on keyboard) drool. Chase dog then run away enslave the hooman so try to jump onto window and fall while scratching at wall.");
+            if ($nb_paragraphs >= 4) $html .= dom_tag($tag, "Cat gets stuck in tree firefighters try to get cat down firefighters get stuck in tree cat eats firefighters' slippers murder hooman toes chase mice, and really likes hummus. Poop in litter box, scratch the walls lick face hiss at owner, pee a lot, and meow repeatedly scratch at fence purrrrrr eat muffins and poutine until owner comes back so poop on floor and watch human clean up under the bed, yet bite off human's toes yet behind the couch. Curl up and sleep on the freshly laundered towels cat cat moo moo lick ears lick paws but sleep nap prance along on top of the garden fence, annoy the neighbor's dog and make it bark that box? i can fit in that box yet cat snacks stuff and things. Vommit food and eat it again groom yourself 4 hours - checked, have your beauty sleep 18 hours - checked...");
+            if ($nb_paragraphs >= 5) $html .= dom_tag($tag, "Cat jumps and falls onto the couch purrs and wakes up in a new dimension filled with kitty litter meow meow yummy there is a bunch of cats hanging around eating catnip catch mouse and gave it as a present chase imaginary bugs, or eat a rug and furry furry hairs everywhere oh no human coming lie on counter don't get off counter making bread on the bathrobe for hack, yet cough furball into food bowl then scratch owner for a new one. Avoid the new toy and just play with the box it came in. Sleep on keyboard eat my own ears. Meoooow leave hair everywhere, but bury the poop bury it deep or present belly, scratch hand when stroked. Pretend not to be evil cuddle no cuddle cuddle love scratch scratch, asdflkjaertvlkjasntvkjn (sits on keyboard) have my breakfast spaghetti yarn for hiss at vacuum cleaner, where is it?");
+        }
+        else
+        {
+                 if ($nb_paragraphs < 0.5) $html .= dom_tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa.");
+            else if ($nb_paragraphs < 1.0) $html .= dom_tag($tag, "Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
+
+            if ($nb_paragraphs >= 1) $html .= dom_tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa. Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. Donec vehicula vulputate enim, vitae vulputate sapien auctor et. Ut imperdiet non augue quis suscipit. Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
+            if ($nb_paragraphs >= 2) $html .= dom_tag($tag, "Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
+            if ($nb_paragraphs >= 3) $html .= dom_tag($tag, "Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
+            if ($nb_paragraphs >= 4) $html .= dom_tag($tag, "Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
+            if ($nb_paragraphs >= 5) $html .= dom_tag($tag, "Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
+        }
+
         return $html;
     }
 
@@ -1509,7 +1523,7 @@
             $html = substr($html, $bgn+1, $end-$bgn-1);
         }
         
-        return $html;
+        return strip_tags($html);
     }
 
     function hook_title($title)
@@ -1554,12 +1568,6 @@
         }        
     }
     
-    function hook_toolbar($row)
-    {
-        dom_set("toolbar",      true);
-        dom_set("toolbar_$row", true);
-    }
-
     // Images
 
     $dom_hook_images         = array();
@@ -1646,8 +1654,13 @@
     function link_rel_prefetchs() { return delayed_component("_".__FUNCTION__); }
     function _link_rel_prefetchs()
     {
-        global $dom_hook_links;
-        return wrap_each($dom_hook_links, "", "dom_hooked_link_rel_prefetch", false);
+        if (!!dom_get("auto_prefetch"))
+        {
+            global $dom_hook_links;
+            return wrap_each($dom_hook_links, "", "dom_hooked_link_rel_prefetch", false);
+        }
+        
+        return "";
     }
 
     // AM Sidebars
@@ -5537,17 +5550,6 @@
     }
     
     define("IMPORTANT", !!dom_AMP() ? '' : ' !important');
-    
-    function include_css_main_toolbar_adaptation() { return delayed_component("_".__FUNCTION__); }
-
-    function _include_css_main_toolbar_adaptation()
-    {
-        if (!!dom_get("toolbar_banner") && !!dom_get("toolbar_nav")) return ".main { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
-        if (!!dom_get("toolbar_banner"))                             return ".main { margin-top: calc(var(--header-height)); }";
-        if (!!dom_get("toolbar_nav"))                                return ".main { margin-top: calc(var(--header-toolbar-height)); }";
-
-        return "";
-    }
 
     function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
     {
@@ -5601,7 +5603,7 @@
 
                 <?= env("main_max_width",           "1200px" ) ?>                 
                 <?= env("dom_gap",                    "16px" ) ?>                 
-                <?= env("scrollbar_width",            "17px" ) ?> 
+                <?= env("scrollbar_width",          dom_get("default_scrollbar_width", "17px") ) ?> 
                 <?= env("svg_size",                   "24px" ) ?> 
 
                 <?= predefined_brands_color_properties(1) ?> 
@@ -5629,12 +5631,33 @@
                 content: "\200B";
                 position: absolute;
                 }
+            
+            /********** WIP ************/
+            
+            
+            
+            
+            
+            /* Tables */
+            
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            th, td {
+                padding: 0.25rem;
+                text-align: left;
+                border: 1px solid;
+            }
+            
+            
+            
+            /* MY OWN REMEDY */
+            
 
             /* Typography */
 
             body,h1,h2,h3,h4,h5,h6                          { font-family: <?= string_system_font_stack() ?>; }
-            body                                            { line-height: 1.5; }
-            :is(h1, h2, h3)                                 { line-height: 1.2; }
             a                                               { text-underline-offset: 0.15em; }
 
             /* Colors */
@@ -5670,57 +5693,6 @@
             body                                            { display: flex; flex-direction: column; min-height: 100vh; } 
             body>main                                       { flex: 1; }
             
-            /* Toolbar */
-
-            .toolbar                                        { width: 100%; z-index: 1; }
-            
-            .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
-
-            .toolbar-row                                    {    background-color: var(--theme-color);      color: var(--background-color); }
-            .toolbar-row a                                  { /* background-color: var(--theme-color); */   color: var(--background-color); }
-            .toolbar-row-banner                             {    background-color: var(--theme-color); /*   color: default; */           }
-            
-            .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
-            .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
-
-            .toolbar-row-nav                                { padding-right: var(--dom-gap); margin-right: var(--dom-gap); }
-            .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
-            .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left;  }
-            .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; align-items: center; }
-
-            .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
-            .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-            .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; vertical-align: middle; }
-            .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--dom-gap); }
-
-            .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
-            .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
-
-            .menu-toggle                                    { width: var(--header-toolbar-height); }
-            .menu-toggle a,       .toolbar-title a,
-            .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
-            .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
-
-            /* Menu open/close button layout */
-
-            .menu-switch-symbol, .menu-close-symbol         { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
-
-            /* Menu open/close mechanism */
-
-            .menu-close-symbol                              { display: none; }
-
-            /* Menu list */
-
-            .menu                                           { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
-            .menu a:hover                                   { background-color: var(--background-color); color: var(--theme-color); }
-
-            #<?= DOM_MENU_ID 
-            ?>-open .menu                                   { position: absolute; }
-            .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
-            .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-            .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
-
             /* Footer */
 
             body>.footer                                    { background-color: var(--theme-color); color: var(--background-color); }
@@ -5762,7 +5734,7 @@
             .app-install, .app-install.hidden               { display: none }
             .app-install.visible                            { display: inline-block }
 
-            /* Until there is a better method that is not interfering with margin and padding of the element, use anchor dedicated tag insertion */
+            /* Headline as an anchor */
         
             .headline                                       { scroll-margin: calc(var(--header-toolbar-height) + var(--header-min-height)) 0 0 0; }
 
@@ -5788,44 +5760,6 @@
 
             <?= dom_brands_svg_css_boilerplate() ?> 
 
-        <?php if (!AMP()) { ?> 
-
-            /* Toolbar */
-
-            <?php if (dom_get("no_js")) { ?> 
-            
-            .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
-
-            <?php } else { ?> 
-
-            .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation() ?> 
-
-            <?php } ?> 
-            
-            /* Menu open/close mechanism */
-
-            #<?= DOM_MENU_ID ?>-open        .menu-switch-symbol           { display: inline-block;  }
-            #<?= DOM_MENU_ID ?>-open:target .menu-switch-symbol           { display: none; }
-            
-            #<?= DOM_MENU_ID ?>-open        .menu-close-symbol            { display: none;  }
-            #<?= DOM_MENU_ID ?>-open:target .menu-close-symbol            { display: inline-block; }
-            
-            #<?= DOM_MENU_ID ?>-open        .menu                         { display: none;  max-height:   0vh; }
-            #<?= DOM_MENU_ID ?>-open:target .menu                         { display: block; max-height: 100vh; }
-                
-        <?php } if (AMP()) { ?> 
-
-            /* AMP DEFAULTS */
-            
-            .menu                                           { display: block } /* AMP DYNAMIC MENU SUPPORTED */
-                                            
-            amp-sidebar                                     { background-color: var(--background-color); }
-            amp-sidebar                                     { text-align: left; }
-            amp-sidebar .menu                               { position: relative; }
-            amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
-    
-    <?php } ?>
-    
         <?php if ("material" == dom_get("framework")) { ?> 
 
             /* MATERIAL DESIGN DEFAULTS */
@@ -5837,27 +5771,9 @@
                 --mdc-theme-background: var(--background-color);
             }
             
-            .toolbar .row .cell         { overflow: visible }
-                
-            #<?= DOM_MENU_ID ?>-open        .menu     { display: block; max-height: 100vh; }
-            #<?= DOM_MENU_ID ?>-open:target .menu     { display: block; max-height: 100vh; }
-            
-            .menu                       { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
-
-            .mdc-top-app-bar--dense 
-            .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
-            .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> } 
-            .mdc-top-app-bar__section   { flex: 0 1 auto; }
-            .mdc-top-app-bar--dense 
-            .mdc-top-app-bar__title     { padding-left: 0px; }
-            .mdc-menu--open             { margin-top: var(--header-toolbar-height); }
-            
         <?php } if ("bootstrap" == dom_get("framework")) { ?> 
 
             /* BOOTSTRAP DEFAULTS */
-            
-            .menu   { display: block } /* BOOTSTRAP LIB DYNAMIC MENU SUPPORTED */
-            .navbar { padding: 0px }
             
         <?php } if ("spectre" == dom_get("framework")) { ?> 
 
@@ -5890,12 +5806,6 @@
                 
             @media print {
 
-                .toolbar-row-banner                   { display: none }
-                .toolbar-row-nav                      { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
-                .toolbar-row-nav .toolbar-cell-left   { display: none }
-                .toolbar-row-nav .toolbar-cell-right  { display: none }
-                .toolbar-row-nav .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
-                
                 .main { margin-top:  0px }
                 
                 body>.footer, iframe, .cd-top { display: none; height: 0px; }
@@ -6232,67 +6142,6 @@
    
         if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
    
-        /* Adjust toolbar margin */
-   
-        document.querySelector(".mdc-top-app-bar").position = "fixed";
-
-        (function()
-        {
-            var pollId = 0;
-   
-            pollId = setInterval(function()
-            {
-                var e = document.querySelector(".mdc-top-app-bar");
-   
-                if (e != null)
-                { 
-                    var pos = getComputedStyle(e).position;
-   
-                    if (pos === "fixed" || pos === "relative")
-                    {
-                        material_init();
-                        clearInterval(pollId);
-                    }
-                }
-   
-            }, 250);
-   
-            function material_init()
-            {
-                var e = document.querySelector(".mdc-top-app-bar");
-   
-                if (e != null && typeof mdc !== "undefined")
-                { 
-                    var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);
-                    toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");
-                }
-            }
-   
-        })();
-   
-        /*  Menu */
-   
-        var menuEl = document.querySelector(".mdc-menu");
-   
-        if (menuEl != null && typeof mdc !== "undefined")
-        {  
-            var menuToggle = document.querySelector(".menu-toggle");
-            var menu       = new mdc.menu.MDCMenu(menuEl);
-    
-            menuToggle.addEventListener("click", function() 
-            { 
-                menu.open = !menu.open; 
-            });
-    
-            menuEl.addEventListener("MDCMenu:selected", function(evt) 
-            {
-                const detail = evt.detail;
-    
-                detail.item.textContent;
-                detail.index;
-            });
-        }  
-
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
@@ -6435,7 +6284,8 @@
             dom_on_loaded(function () {
 
                 /* Create images intersection observer */
-                var options = { rootMargin: '100px 100px 100px 100px' };
+                /*var options = { rootMargin: '100px 100px 100px 100px' };*/
+                var options = { rootMargin: '0px 0px 0px 0px' };
                 dom_interaction_observer = new IntersectionObserver(dom_img_observer_callback, options);
 
                 /* First images lookup (Needs to be deffered in order to work) */
@@ -6445,65 +6295,6 @@
                 dom_on_ajax(dom_scan_images);
             
                 });
-
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
-    }
-
-    function dom_js_toolbar()
-    {
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
-
-            /* TOOLBAR */
-
-            var idAnimationFrame = null;
-        
-            function updateToolbarHeight(animate)
-            {
-                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
-                var toolbars            = document.querySelectorAll(".toolbar");
-
-                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
-                var toolbar             = toolbars            ? toolbars[0]            : null;
-
-                if (toolbar != null && toolbar_row_banner != null)
-                {
-                    var header_height     = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue(    "height").replace("px",""), 10);
-                    var header_max_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px",""), 10);
-                    var header_min_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px",""), 10);
-          
-                    var stuck_height = header_max_height - header_min_height;
-
-                    if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
-                    else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
-          
-                    var target = Math.max(0, header_max_height - window.scrollY);
-
-                    var h = (animate) ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) : target;
-
-                    toolbar_row_banner.style.height = h + "px";
-
-                    if (Math.abs(h - target) > 0.1)
-                    {
-                        idAnimationFrame = window.requestAnimationFrame(onUpdateToolbarHeight);
-                    }
-                }
-            }
-        
-            function onUpdateToolbarHeight()
-            {
-                window.cancelAnimationFrame(idAnimationFrame);
-                updateToolbarHeight(true);
-            }
-        
-            function onInitToolbarHeight()
-            {
-                window.cancelAnimationFrame(idAnimationFrame);
-                updateToolbarHeight(false);
-            }
-
-            dom_on_ready( onInitToolbarHeight);
-            dom_on_loaded(onInitToolbarHeight);
-            dom_on_scroll(onUpdateToolbarHeight);
 
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
@@ -6563,54 +6354,6 @@
 
             dom_on_loaded(initSliders);
             
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
-    }
-
-    function dom_js_toolbar_banner_rotation()
-    {
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
-            
-            /* TOOLBAR BANNER IMAGE ROTATION */
-            
-            function onInitRotatingHeaders()
-            {
-                var rotate_backgrounds = function(content)
-                {
-                    if (content != "")
-                    {
-                        var index_url = 0;
-                        var urls = content.split(",");
-            
-                      /*console.log("DOM: DEBUG: Header backgrounds: ", urls);*/
-
-                        if (urls && !(typeof urls === "undefined") && urls.length > 0)
-                        {
-                            setInterval(function()
-                            {
-                                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
-                                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
-
-                                if (toolbar_row_banner)
-                                {
-                                    toolbar_row_banner.style.backgroundImage = "url(" + urls[index_url] + ")";
-                                    index_url = (index_url + 1) % urls.length;
-                                }
-
-            
-                            }, 10*1000);
-                        }
-                    }
-                };
-                
-                <?php if (has("noajax") && is_string(get("support_header_backgrounds"))) { ?>
-                rotate_backgrounds("<?= get("support_header_backgrounds") ?>"); 
-                <?php } else { ?> 
-                dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);
-                <?php } ?> 
-            }
-
-            dom_on_loaded(onInitRotatingHeaders);
-        
         <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
     }
 
@@ -6693,16 +6436,15 @@
         return  dom_script_third_parties                  ().
                 dom_script_ajax_body                      ().
                 dom_script_google_analytics               ().               ((!!dom_get("dom_script_document_events",    true)) ? (
-                dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_toolbar",            true)) ? (
-                dom_script(dom_js_toolbar                 ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
+                dom_script(dom_js_on_document_events      ()).   "") : ""). ((!!dom_get("dom_script_back_to_top",        true)) ? (
                 dom_script(dom_js_back_to_top             ()).   "") : ""). ((!!dom_get("dom_script_images_loading",     true)) ? (
                 dom_script(dom_js_images_loading          ()).   "") : ""). ((!!dom_get("support_sliders",               true)) ? (
-                dom_script(dom_js_sliders                 ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
-                dom_script(dom_js_toolbar_banner_rotation ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
+                dom_script(dom_js_sliders                 ()).   "") : ""). ((!!dom_get("support_service_worker",       false)) ? (
                 dom_script(dom_js_service_worker          ()).   "") : ""). ((!!dom_get("dom_script_pwa_install",        true)) ? (
                 dom_script(dom_js_pwa_install             ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
                 dom_script(dom_js_framework_material      ()).   "") : ""). ((!!dom_get("dom_script_scan_and_print",     true)) ? (
-                dom_script(dom_js_scan_and_print_body     ()).   "") : "");
+                dom_script(dom_js_scan_and_print_body     ()).   "") : "")
+                ;
     }
     
     #endregion
@@ -6902,7 +6644,8 @@
         . back_to_top_link()
 
         . dom_eol() . comment("DOM Body scripts")
-        . scripts_body()
+        . scripts_body()            . (function_exists("scripts_body_toolbar") ? (""
+        . scripts_body_toolbar()    ) : "")
 
         . dom_eol() . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
                                                                     .((!dom_get("dom_htaccess_rewrite_php")) ? (""
@@ -7014,8 +6757,7 @@
                     dom_attributes_add_class(
                         $attributes,
                             dom_component_class("main").
-                        ' '.dom_component_class("content").                 (!!dom_get("toolbar") ? (
-                        ' '.dom_component_class("main-below-toolbar"))      : '')
+                        ' '.dom_component_class("content")
                         )
                     ); 
     }
@@ -7078,15 +6820,15 @@
         
         $lazy_attributes = "";
 
-        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
-        if ($lazy === true)     $lazy_attributes = ' lazy loading';
+      if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
+      if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
 
         return '<'.(dom_AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
 
              (!!$title   ? (' title'            .'="'.$title        .'"') : '').
              (!!$classes ? (' class'            .'="'.$classes      .'"') : '') .
              
-                            $lazy_attributes.             
+                            $lazy_attributes.
                             $src_attributes.
 
                             ' width'            .'="'.$w                                        .'"'.
@@ -8061,9 +7803,18 @@
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? dom_get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
-    function unsplash_url()                         { return "https://unsplash.com";                            }
-    function unsplash_url_author($id)               { return "https://unsplash.com/@".$id;                      }
-    function unsplash_url_img_random($search,$w,$h) { return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search"))); }
+    function unsplash_url()             { return "https://unsplash.com";        }
+    function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
+    
+    function unsplash_url_img_random($search,$w,$h,$random = DOM_AUTO) {
+
+             if ($random === DOM_AUTO)  $random = ",".rand(1111,9999);
+        else if ($random === true)      $random = ",".rand(1111,9999);
+        else if ($random === false)     $random = "";
+        else                            $random = ",$random";
+
+        return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search"))).$random; 
+    }
 
     function unsplash_url_img($id, $w = false, $h = false, $author = false)
     {
@@ -8240,9 +7991,9 @@
         if ($title_icon !== false && false === stripos($title_icon, "<img")
                                   && false === stripos($title_icon, "<amp-img")) $title  = img($title_icon, false, false, array("class" => dom_component_class('card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
         if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    dom_component_class('card-title-link'), DOM_EXTERNAL_LINK);
-        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($title_level, $title_main,   array("class" => dom_component_class('card-title-main'), "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"/*,  "itemprop" => "headline name"*/));
+        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($title_level, $title_main,   array("class" => dom_component_class('card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
         if ($title_main !== false && false !== stripos($title_main, "<h"))       $title .=                 $title_main;
-        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,    array("class" => dom_component_class('card-title-sub'),  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"));
+        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,    array("class" => dom_component_class('card-title-sub')/*,  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*/));
 
         dom_hook_card_set_context("title", $title_main);
 
@@ -8462,258 +8213,7 @@
         .   figcaption($caption)
         );
     }
-    
-    // ICONS
-    
-    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false)
-    {
-        $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
         
-        if (($attributes === DOM_INTERNAL_LINK || $attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
-        if ($target === false) { $target = DOM_INTERNAL_LINK; }
-        
-        return array($icon, $label, $link, $id, $target, $attributes);
-    }
-
-    function dom_icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
-    {
-        $icon       = dom_get($icon_entry, "icon",          dom_get($icon_entry, 0, ""));
-        $label      = dom_get($icon_entry, "label",         dom_get($icon_entry, 1, ""));
-        $link       = dom_get($icon_entry, "link",          dom_get($icon_entry, 2, false));
-        $id         = dom_get($icon_entry, "id",            dom_get($icon_entry, 3, false));
-        $target     = dom_get($icon_entry, "target",        dom_get($icon_entry, 4, $default_target));
-        $attributes = dom_get($icon_entry, "attributes",    dom_get($icon_entry, 5, false));
-
-        if (false === $attributes) $attributes = array();
-        
-        if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
-        if (!in_array("alt",        $attributes) && !dom_AMP()      ) $attributes["alt"         ] = $label;
-        if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
-
-        return a($icon, $link, $attributes, $target);
-    }
-
-    function icon_entries($icon_entries, $default_target = DOM_INTERNAL_LINK)
-    {
-        if (is_array($icon_entries))
-        {
-            return wrap_each($icon_entries, dom_eol(), "dom_icon_entry_to_link", false);
-        }
-        else if (is_string($icon_entries))
-        {
-            return $icon_entries;
-        }
-
-        return "";
-    }
-    
-    // MENU
-    
-    function menu_entry($text = "", $link = false)
-    {
-        return ($link === false) ? $text : array($text, $link);
-    }
-
-    $__dom_ul_menu_index = -1;
-
-    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
-    {
-        global $__dom_ul_menu_index;
-        ++$__dom_ul_menu_index;
-
-        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__dom_ul_menu_index);
-
-        $menu_lis = "";
-        {
-            if (!is_array($menu_entries)) $menu_entries = array($menu_entries);
-
-            if (false != $menu_entries) foreach ($menu_entries as $menu_entry)
-            {
-                if ($menu_entry == array() || $menu_entry == "")
-                {
-                    $menu_lis .= li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
-                }
-                else
-                {    
-                //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
-                    if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
-                            
-                    $item       = dom_get($menu_entry, "item",   dom_get($menu_entry, 0, ""));
-                    $link       = dom_get($menu_entry, "link",   dom_get($menu_entry, 1, false));
-                    $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
-                    $attributes = false;
-                    
-                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
-                }
-            }
-        }
-
-        $html = "";
-
-             if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')/*." ".dom_component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
-        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu"                                                                            )); }
-
-        if (dom_AMP() && !!$sidebar)
-        {
-            hook_amp_sidebar(
-                dom_tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
-                );
-
-            //$html = span("","placeholder-amp-sidebar");
-        }
-
-        return $html;
-    }
-
-    function menu_switch() { return (dom_get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
-                                .   (dom_get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (dom_get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (dom_get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                          . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
-                                                                                                                                     , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
-                                                            ; 
-    }
-
-    // TOOLBAR
-
-    function toolbar_row    ($html,  $attributes = false) {                      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
-    function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
-
-    function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
-    {
-        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), dom_component_class("toolbar-cell-left"   ));
-        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), dom_component_class("toolbar-cell-center" ));
-        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), dom_component_class("toolbar-cell-right"  ));
-
-        if ($section1 === false) $section1 = "";
-        if ($section2 === false) $section2 = "";
-        if ($section3 === false) $section3 = "";
-
-        if (stripos($section1, "<section") === false) $section1 = toolbar_section($section1);
-        if (stripos($section2, "<section") === false) $section2 = toolbar_section($section2);
-        if (stripos($section3, "<section") === false) $section3 = toolbar_section($section3);
-
-        return $section1.$section2.$section3;
-    }
-
-    function toolbar_banner($icon_entries = false, $section2 = false, $section3 = false)
-    {
-        hook_toolbar("banner");
-
-        return toolbar_row(
-            toolbar_banner_sections_builder(
-                $icon_entries,
-                $section2,
-                $section3
-                ),
-            "toolbar-row-banner"
-            );
-    }
-
-    function menu_entries($html, $sidebar = DOM_AUTO)
-    {
-        if (false === stripos($html, "menu-list") 
-        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
-
-        return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
-    }
-    
-    function menu_toggle($html, $sidebar = DOM_AUTO)
-    {
-        if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
-        if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
-
-        return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
-    }
-
-    function toolbar_nav_toolbar($html = false)
-    {
-        if (false === $html) $html = ul_menu_auto();
-
-        return toolbar_section(($html === false) ? '' : $html,  array(
-            
-            "role" => "navigation",
-            "class" => (dom_component_class("toolbar-cell-right") . ' ' . 
-                        dom_component_class("toolbar-cell-right-shrink"))));
-    }
-   
-    function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(dom_get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
-
-    function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
-
-    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = DOM_AUTO)
-    {
-        if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
-        if (false === $html)                                            $html = menu_toggle_auto($sidebar);
-        
-        return toolbar_section(($html === false) ? '' : $html,  dom_component_class("toolbar-cell-left") . ($menu_entries_shrink_to_fit ? (' '.
-                                                                dom_component_class("toolbar-cell-right-shrink")    ) : ""));
-    }
-
-    function toolbar_nav_title($html, $attributes = false)
-    {
-        hook_title($html);
-
-        if ($html !== false && $html != "")
-        {
-            if (false === stripos($html,"<a"))   $html =   a($html,'.');
-            if (false === stripos($html,"<h1"))  $html =  h1($html);
-        }
-
-        if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
-        
-        return toolbar_section(($html === false) ? '' : $html, dom_component_class("toolbar-cell-center"));
-    }
-
-    function toolbar_nav($html, $attributes = false)
-    {
-        hook_toolbar("nav");
-
-        if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
-        
-        $menu_id_amp = DOM_MENU_ID."-static";
-        
-        $html_amp = $html;
-        $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
-        $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
-
-                       $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"         ));
-        if (dom_AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"  ));
-
-        return $html;
-    }
-
-    function toolbar($html, $attributes = false)
-    {
-        if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
-        
-        $amp_observer = "";
-        $amp_anim     = "";
-        
-        if (dom_AMP())
-        {            
-            hook_amp_require("animation");
-            hook_amp_require("position-observer");
-
-            $amp_anim     = dom_eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
-                          . dom_eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
-
-            $amp_observer = dom_eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
-        }
-
-        return  
-
-            $amp_anim.
-            comment("PRE Toolbar").
-            dom_header(
-                $html.
-                $amp_observer, 
-                dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container"))
-                );
-    }
-    
     #endregion
     #region WIP API : DOM : HTML COMPONENTS : ASYNC
     ######################################################################################################################################

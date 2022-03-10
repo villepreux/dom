@@ -1,6 +1,7 @@
 <?php
 
     require_once(dirname(__FILE__)."/../../dom.php"); 
+    require_once(dirname(__FILE__)."/../../dom_toolbar.php"); 
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1"); // get/set can used as a helper
 
