@@ -7711,8 +7711,7 @@
         return $css;
     }
 
-    function dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35) { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan), 3); }
-    function _dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35)
+    function dom_brand_color_css_property($brand, $fn_color_transform = "self", $pan = 35, $prefix = "")
     {   
         $css = "";
 
@@ -7721,39 +7720,56 @@
                                 : (($color_contrast_target == "aa" ) ? DOM_COLOR_CONTRAST_AA_NORMAL
                                 : (($color_contrast_target == "aaa") ? DOM_COLOR_CONTRAST_AAA_NORMAL : $color_contrast_target)));
 
+        $fn       = "color_$brand"; // For php 5.6 compatibility
+        $colors   = $fn();
+        $colors   = is_array($colors) ? $colors : array($colors);
+        $class    = "palette-$brand";
+
+        for ($i = 0; $i < count($colors); ++$i)
+        {
+            $color = $colors[$i];
+
+            if (function_exists($fn_color_transform))
+            {   
+                $color = $fn_color_transform($color);
+            }
+            else
+            {
+                $background_color = get($fn_color_transform, $fn_color_transform);
+
+                $ratio = 1.0;
+                $debug = false;
+
+                if (false !== stripos($background_color, "#")
+                &&  false !== stripos($color, "#"))
+                {
+                    $color = dom_correct_auto(
+                        $color,
+                        $background_color,
+                        $color_contrast_target,
+                        $ratio,
+                        $debug
+                        );
+                }
+            }
+
+            $basename = ($prefix != "") ? "$prefix-color" : "color";
+
+            $css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
+        }
+        
+        return $css;
+    }
+
+    function dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35, $prefix = "") { return delayed_component("_".__FUNCTION__, array($fn_color_transform, $pan, $prefix), 3); }
+    function _dom_brand_color_css_properties($fn_color_transform = "self", $pan = 35, $prefix = "")
+    {   
+        $css = "";
+
         foreach (dom_brands() as $b => $brand)
         {
-            $fn       = "color_$brand"; // For php 5.6 compatibility
-            $colors   = $fn();
-            $colors   = is_array($colors) ? $colors : array($colors);
-            $class    = "palette-$brand";
-    
             $css .= dom_eol().dom_tab(1);
-            
-            for ($i = 0; $i < count($colors); ++$i)
-            {
-                $color = $colors[$i];
-
-                if (function_exists($fn_color_transform))
-                {   
-                    $color = $fn_color_transform($color);
-                }
-                else
-                {
-                    $background_color = get($fn_color_transform, $fn_color_transform);
-
-                    if (false !== stripos($background_color, "#"))
-                    {
-                        $color = dom_correct_auto(
-                            $color,
-                            $background_color,
-                            $color_contrast_target
-                            );
-                    }
-                }
-
-                $css .= pan("--color-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." ".$color.";";
-            }
+            $css .= dom_brand_color_css_property($brand, $fn_color_transform, $pan, $prefix);
         }
         
         return $css;
@@ -7813,7 +7829,7 @@
         else if ($random === false)     $random = "";
         else                            $random = ",$random";
 
-        return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search"))).$random; 
+        return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search")))."$random.jpg";
     }
 
     function unsplash_url_img($id, $w = false, $h = false, $author = false)
@@ -7832,7 +7848,7 @@
         if (!in_array($copyright, $copyrights))
             set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
 
-        return "https://source.unsplash.com/".$id."/".$w."x".$h;
+        return "https://source.unsplash.com/".$id."/".$w."x".$h."?.jpg";
     }
 
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
@@ -8818,7 +8834,7 @@
     function dom_correct_lighter(
 
         $color,
-        $background             = "#FFFFFF",
+        $background             = "#ffffff",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         &$ratio                 = null,
         $debug                  = false)
@@ -8829,7 +8845,7 @@
     function dom_correct_darker(
 
         $color,
-        $background             = "#FFFFFF",
+        $background             = "#ffffff",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         &$ratio                 = null,
         $debug                  = false)
@@ -8840,7 +8856,7 @@
     function dom_correct_auto(
 
         $color,
-        $background             = "#FFFFFF",
+        $background             = "#ffffff",
         $contrast_ratio_target  = DOM_COLOR_CONTRAST_DEFAULT,
         &$ratio                 = null,
         $debug                  = false)

@@ -307,6 +307,7 @@
                     var target = Math.max(0, header_max_height - window.scrollY);
 
                     var h = (animate) ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) : target;
+                    h = parseInt(Math.max(0, h), 0); /* So it's properly snapped */
 
                     toolbar_row_banner.style.height = h + "px";
 
