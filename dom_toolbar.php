@@ -1,14 +1,16 @@
 <?php
 
-    require_once(dirname(__FILE__)."/dom.php");
+    namespace dom;
 
-    $__dom_frameworks_toolbar = array(
+    require_once(dirname(__FILE__)."/dom8.php");
+
+    $__frameworks_toolbar = array(
 
         'material' => array
         (
             'classes' => array
             (
-                'toolbar'                   => 'mdc-top-app-bar mdc-top-app-bar--dense mdc-top-app-bar--fixed mdc-top-app-bar--waterfall mdc-top-app-bar--flexible mdc-top-app-bar--flexible-default-behavior mdc-top-app-bar--fixed-lastrow-only'
+                  'toolbar'                   => 'mdc-top-app-bar mdc-top-app-bar--dense mdc-top-app-bar--fixed mdc-top-app-bar--waterfall mdc-top-app-bar--flexible mdc-top-app-bar--flexible-default-behavior mdc-top-app-bar--fixed-lastrow-only'
                 , 'toolbar-row'               => 'mdc-top-app-bar__row row'
                 , 'toolbar-cell'              => 'mdc-top-app-bar__section'
                 , 'toolbar-cell-right'        => 'mdc-top-app-bar__section--align-end'
@@ -49,165 +51,203 @@
         )
     );
 
-    dom_init_extend_frameworks_table($__dom_frameworks_toolbar);
+    init_extend_frameworks_table($__frameworks_toolbar);
 
     function hook_toolbar($row)
     {
-        dom_set("toolbar",      true);
-        dom_set("toolbar_$row", true);
+        set("toolbar",      true);
+        set("toolbar_$row", true);
     }
         
-    function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
-
-    function _include_css_main_toolbar_adaptation($main_selector)
+    function css_vars_color_scheme_light_brands_toolbar($current_selector = ":root")
     {
-        if (!!dom_get("toolbar_banner") && !!dom_get("toolbar_nav")) return "$main_selector { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
-        if (!!dom_get("toolbar_banner"))                             return "$main_selector { margin-top: calc(var(--header-height)); }";
-        if (!!dom_get("toolbar_nav"))                                return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
+        heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
 
-        return "";
+            } .toolbar-row, .toolbar-row * {
+
+            <?= brand_color_css_property("darkandlight", "#dddddd", 35, "light") ?> 
+
+            } <?= $current_selector ?> {
+
+        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
 
-    function include_css_boilerplate_toolbar()
+    function css_vars_color_scheme_dark_brands_toolbar($current_selector = ":root")
     {
-        if (!!dom_get("no_css")) return '';
+        heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
+    
+            } .toolbar-row, .toolbar-row * {
 
-        dom_heredoc_start(-3); ?><style><?php dom_heredoc_flush(null); ?>
+            <?= brand_color_css_property("darkandlight", "#222222", 35, "dark") ?> 
 
+            } <?= $current_selector ?> {
+
+        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
+    }
+
+    function css_toolbar_layout()
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+    
+            /* Toolbar */
+    
+            :root {
+    
+                --header-height:          0px;
+                --header-min-height:      0px;
+                --header-toolbar-height:  calc(2 * var(--line-height), 1rem);
+                --scroll-margin:          calc(var(--gap) + var(--header-toolbar-height, 0) + var(--header-min-height, 0));
+            }
+    
             .toolbar                                        { width: 100%; z-index: 1; }
             
-            .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
-
-            .toolbar-row                                    {    background-color: var(--theme-color);      color: var(--background-color); }
-            .toolbar-row a                                  { /* background-color: var(--theme-color); */   color: var(--background-color); }
-            .toolbar-row-banner                             {    background-color: var(--theme-color); /*   color: default; */           }
-            
+            .toolbar-row                                    { width: 100%; margin-left: 0px !important; margin-right: 0px !important; display: flex; overflow: hidden; }
             .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
             .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
-            .toolbar-row-nav                                { padding-right: var(--dom-gap); margin-right: var(--dom-gap); }
-            .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
-            .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left;  }
-            .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; align-items: center; }
+            .toolbar-row, 
+            .toolbar-row *                                  { margin: 0; }
 
-            .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
-            .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-            .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; vertical-align: middle; }
-            .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--dom-gap); }
+            /* QUICK DIRTY TMP HACK */
+            .toolbar-row-banner .toolbar-cell-left          { display: flex; gap: var(--gap); justify-content: end; }
 
-            .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
+            .toolbar-row-nav, 
+            .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
+
+            .toolbar-row-nav, 
+            .toolbar-row-nav :is(section, div, ul, img)     { display: flex; flex-shrink: 0; align-items: center; gap: var(--gap); }
+            .toolbar-row-nav .toolbar-cell-left .menu-list  { flex-direction: column; align-items: stretch; }
+
+            .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
+            
+            .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(0.5 * calc(100% - var(--max-text-width))),              50%); }
+
+            .toolbar-row-nav .toolbar-cell-center,
+            .toolbar-row-nav .toolbar-cell-center *         { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;  }
+
+            .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
+            .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(                                    var(--gap),  calc(0.5 * calc(100% - var(--max-text-width)) + var(--gap)), 50%); }
+
             .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
 
-            .menu-toggle                                    { width: var(--header-toolbar-height); }
+            .toolbar .nav-link                              { font-size: 1.5em; } 
+
+            .menu-toggle                                    { width: var(--header-toolbar-height); flex-direction: column; }
             .menu-toggle a,       .toolbar-title a,
             .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
-            .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
-
-            /* Menu open/close button layout */
-
-            .menu-switch-symbol, .menu-close-symbol         { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
 
             /* Menu open/close mechanism */
-
-            .menu-close-symbol                              { display: none; }
-
+    
+            .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
+            a.menu-switch-link.close                        { display: none }
+    
             /* Menu list */
-
-            .menu                                           { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
-            .menu a:hover                                   { background-color: var(--background-color); color: var(--theme-color); }
-
+                
             #<?= DOM_MENU_ID 
-            ?>-open .menu                                   { position: absolute; }
+            ?>-open .menu                                   { position: absolute; left: var(--gap); transform: translateY(var(--header-toolbar-height)); }
             .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
-            .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
-            .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
-
+            .menu ul                                        { padding: 0; gap: 0; list-style-type: none; align-items: stretch: flex-direction: column; }
+            .menu li                                        { padding: 0; }
+            .menu li a                                      { padding: calc(0.5 * var(--gap)) var(--gap); }
+    
         <?php if (!AMP()) { ?> 
-
+    
             /* Toolbar */
-
-            <?php if (dom_get("no_js")) { ?> 
+    
+            <?php if (get("no_js")) { ?> 
             
             .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
-
+    
             <?php } else { ?> 
-
-            .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation(".main") ?> 
-
+    
+            .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation("body>main") ?> 
+    
             <?php } ?> 
             
             /* Menu open/close mechanism */
-
-            #<?= DOM_MENU_ID ?>-open        .menu-switch-symbol           { display: inline-block;  }
-            #<?= DOM_MENU_ID ?>-open:target .menu-switch-symbol           { display: none; }
+    
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block;  }
+            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.open   { display: none; }
             
-            #<?= DOM_MENU_ID ?>-open        .menu-close-symbol            { display: none;  }
-            #<?= DOM_MENU_ID ?>-open:target .menu-close-symbol            { display: inline-block; }
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none;  }
+            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.close  { display: inline-block; }
             
-            #<?= DOM_MENU_ID ?>-open        .menu                         { display: none;  max-height:   0vh; }
-            #<?= DOM_MENU_ID ?>-open:target .menu                         { display: block; max-height: 100vh; }
+            #<?= DOM_MENU_ID ?>-open        .menu                     { display: none;  max-height:   0vh; }
+            #<?= DOM_MENU_ID ?>-open:target .menu                     { display: block; max-height: 100vh; }
                 
         <?php } if (AMP()) { ?> 
-
+    
             /* AMP DEFAULTS */
             
             .menu                                           { display: block } /* AMP DYNAMIC MENU SUPPORTED */
                                             
-            amp-sidebar                                     { background-color: var(--background-color); }
             amp-sidebar                                     { text-align: left; }
             amp-sidebar .menu                               { position: relative; }
             amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
-
-    <?php } ?>
-
-        <?php if ("material" == dom_get("framework")) { ?> 
-            
-            .toolbar .row .cell         { overflow: visible }
-                
-            #<?= DOM_MENU_ID ?>-open        .menu     { display: block; max-height: 100vh; }
-            #<?= DOM_MENU_ID ?>-open:target .menu     { display: block; max-height: 100vh; }
-            
-            .menu                       { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
-
-            .mdc-top-app-bar--dense 
-            .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
-            .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> } 
-            .mdc-top-app-bar__section   { flex: 0 1 auto; }
-            .mdc-top-app-bar--dense 
-            .mdc-top-app-bar__title     { padding-left: 0px; }
-            .mdc-menu--open             { margin-top: var(--header-toolbar-height); }
-            
-        <?php } if ("bootstrap" == dom_get("framework")) { ?> 
-
-            /* BOOTSTRAP DEFAULTS */
-            
-            .menu   { display: block } /* BOOTSTRAP LIB DYNAMIC MENU SUPPORTED */
-            .navbar { padding: 0px }
-            
-        <?php } if ("spectre" == dom_get("framework")) { ?> 
-
-        <?php } ?> 
-
+    
+        <?php } ?>
+        
             /* PRINT */
                 
             @media print {
-
+    
                 .toolbar-row-banner                   { display: none }
-                .toolbar-row-nav                      { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
+                .toolbar-row-nav                      { align-items: flex-start; justify-content: flex-end; }
                 .toolbar-row-nav .toolbar-cell-left   { display: none }
                 .toolbar-row-nav .toolbar-cell-right  { display: none }
-                .toolbar-row-nav .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
-            }    
-
-        <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);
+                .toolbar-row-nav .toolbar-cell-center { padding-right: var(--scrollbar-width); }
+            }
+    
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer("base-components", heredoc_stop(null));
     }
 
-    function dom_js_toolbar_framework_material()
+    function css_toolbar_colors()
     {
-        if ("material" != dom_get("framework")) return "";
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+    
+            /* Colors: toolbar & menu */
 
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+            .toolbar-row                            { background-color: var(--theme-color, #000); --color: var(--text-on-theme-color, #000); color: var(--color); }
+
+            .toolbar-cell-left   :is(a, a:visited)  { color: var(--text-on-theme-color,         #eee); }
+            .toolbar-cell-center :is(a, a:visited)  { color: var(--text-on-theme-color,         #eee); }
+            .toolbar-cell-right  :is(a, a:visited)  { color: var(--text-on-accent-color,        #eee); }
+
+            .toolbar-cell-left   :is(a:hover)       { color: var(--text-on-theme-color-accent,  #fff); }
+            .toolbar-cell-center :is(a:hover)       { color: var(--text-on-theme-color-accent,  #fff); }
+            .toolbar-cell-right  :is(a:hover)       { color: var(--text-on-accent-color-accent, #fff); }
+
+            .toolbar-cell .menu                     { color: var(--text-darker-color,           #ddd); background-color: var(--background-lighter-color,    #222); box-shadow: 0px 0px 2px 2px #00000022; }
+            .toolbar-cell .menu :is(a, a:visited)   { color: var(--link-color,                  #eee); }
+            .toolbar-cell .menu a:hover             { color: var(--link-hover-color,            #fff); background-color: var(--background-darker-color,     #000);;}
+     
+            <?php if (AMP()) { ?> 
+            amp-sidebar                             { background-color: var(--background-color, #111); color: var(--text-color, #eee); }
+            <?php } ?> 
+
+            /* Menu list */
+
+            .menu                                           { box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
+        
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer("base-components", heredoc_stop(null));
+    }
+    
+    function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
+
+    function _include_css_main_toolbar_adaptation($main_selector)
+    {
+        if (!!get("toolbar_banner") && !!get("toolbar_nav")) return "$main_selector { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
+        if (!!get("toolbar_banner"))                         return "$main_selector { margin-top: calc(var(--header-height)); }";
+        if (!!get("toolbar_nav"))                            return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
+
+        return "";
+    }
+
+    function js_toolbar_framework_material()
+    {
+        if ("material" != get("framework")) return "";
+
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
         /* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
 
@@ -274,12 +314,12 @@
             });
         }  
 
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function dom_js_toolbar()
+    function js_toolbar()
     {
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
             /* TOOLBAR */
 
@@ -330,16 +370,61 @@
                 updateToolbarHeight(false);
             }
 
-            dom_on_ready( onInitToolbarHeight);
-            dom_on_loaded(onInitToolbarHeight);
-            dom_on_scroll(onUpdateToolbarHeight);
+            console.log("DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG ");
+            dom.on_ready( onInitToolbarHeight);
+            dom.on_loaded(onInitToolbarHeight);
+            dom.on_scroll(onUpdateToolbarHeight);
 
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function dom_js_toolbar_banner_rotation()
+    function js_toolbar_menu()
     {
-        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            /* TOOLBAR MENU */
+
+            document.querySelectorAll('#menu-open .menu-switch-link.open').forEach(function (e) { e.addEventListener('click', function(ev) {
+        
+                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "none";
+                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "block";
+
+                document.querySelector("#menu-open .menu"                   ).style.display   = "block";
+                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "100vh";
+
+                ev.preventDefault();
+                
+                }); });
+
+            document.querySelectorAll('#menu-open .menu-switch-link.close').forEach(function (e) { e.addEventListener('click', function(ev) {
+        
+                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "block";
+                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "none";
+
+                document.querySelector("#menu-open .menu"                   ).style.display   = "none";
+                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "initial";
+
+                ev.preventDefault();
+
+                }); });
+
+            document.querySelectorAll('#menu-open .menu-list a').forEach(function (e) { e.addEventListener('click', function(ev) {
+
+                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "block";
+                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "none";
+                document.querySelector("#menu-open .menu"                   ).style.display   = "none";
+                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "initial";
+
+              /*ev.preventDefault();*/ /* Menu links keep being recorded in navigation history */
+
+                }); });
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
+    function js_toolbar_banner_rotation()
+    {
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
             
             /* TOOLBAR BANNER IMAGE ROTATION */
             
@@ -363,7 +448,7 @@
 
                                 if (toolbar_row_banner)
                                 {
-                                    toolbar_row_banner.style.backgroundImage = "url(" + urls[index_url] + ")";
+                                    toolbar_row_banner.style.backgroundImage = "var(--linear-gradient), url(" + urls[index_url] + ")";
                                     index_url = (index_url + 1) % urls.length;
                                 }
 
@@ -376,23 +461,24 @@
                 <?php if (has("noajax") && is_string(get("support_header_backgrounds"))) { ?>
                 rotate_backgrounds("<?= get("support_header_backgrounds") ?>"); 
                 <?php } else { ?> 
-                dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);
+                ajax("?ajax=header-backgrounds", rotate_backgrounds);
                 <?php } ?> 
             }
 
-            dom_on_loaded(onInitRotatingHeaders);
+            on_loaded(onInitRotatingHeaders);
         
-        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
     function scripts_body_toolbar()
     {
-        if (dom_has("ajax")) return "";
+        if (has("ajax")) return "";
 
-        return                                                                    ((!!dom_get("dom_script_toolbar",            true)) ? (
-                dom_script(dom_js_toolbar                       ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
-                dom_script(dom_js_toolbar_banner_rotation       ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
-                dom_script(dom_js_toolbar_framework_material    ()).   "") : "");
+        return                                                            ((!!get("script_toolbar",              true)) ? (
+                script(js_toolbar                       ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
+                script(js_toolbar_banner_rotation       ()).   "") : ""). ((!!get("script_toolbar_menu",         true)) ? (
+                script(js_toolbar_menu                  ()).   "") : ""). ((!!get("script_framework_material",   true)) ? (
+                script(js_toolbar_framework_material    ()).   "") : "");
     }
 
     // ICONS
@@ -407,19 +493,19 @@
         return array($icon, $label, $link, $id, $target, $attributes);
     }
 
-    function dom_icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
+    function icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
     {
-        $icon       = dom_get($icon_entry, "icon",          dom_get($icon_entry, 0, ""));
-        $label      = dom_get($icon_entry, "label",         dom_get($icon_entry, 1, ""));
-        $link       = dom_get($icon_entry, "link",          dom_get($icon_entry, 2, false));
-        $id         = dom_get($icon_entry, "id",            dom_get($icon_entry, 3, false));
-        $target     = dom_get($icon_entry, "target",        dom_get($icon_entry, 4, $default_target));
-        $attributes = dom_get($icon_entry, "attributes",    dom_get($icon_entry, 5, false));
+        $icon       = get($icon_entry, "icon",          get($icon_entry, 0, ""));
+        $label      = get($icon_entry, "label",         get($icon_entry, 1, ""));
+        $link       = get($icon_entry, "link",          get($icon_entry, 2, false));
+        $id         = get($icon_entry, "id",            get($icon_entry, 3, false));
+        $target     = get($icon_entry, "target",        get($icon_entry, 4, $default_target));
+        $attributes = get($icon_entry, "attributes",    get($icon_entry, 5, false));
 
         if (false === $attributes) $attributes = array();
         
         if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
-        if (!in_array("alt",        $attributes) && !dom_AMP()      ) $attributes["alt"         ] = $label;
+        if (!in_array("alt",        $attributes) && !AMP()      ) $attributes["alt"         ] = $label;
         if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
 
         return a($icon, $link, $attributes, $target);
@@ -429,7 +515,7 @@
     {
         if (is_array($icon_entries))
         {
-            return wrap_each($icon_entries, dom_eol(), "dom_icon_entry_to_link", false);
+            return wrap_each($icon_entries, eol(), "icon_entry_to_link", false);
         }
         else if (is_string($icon_entries))
         {
@@ -446,14 +532,14 @@
         return ($link === false) ? $text : array($text, $link);
     }
 
-    $__dom_ul_menu_index = -1;
+    $__ul_menu_index = -1;
 
     function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
     {
-        global $__dom_ul_menu_index;
-        ++$__dom_ul_menu_index;
+        global $__ul_menu_index;
+        ++$__ul_menu_index;
 
-        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__dom_ul_menu_index);
+        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__ul_menu_index);
 
         $menu_lis = "";
         {
@@ -463,33 +549,35 @@
             {
                 if ($menu_entry == array() || $menu_entry == "")
                 {
-                    $menu_lis .= li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
+                    $menu_lis .= li("", array("class" => component_class("li", "list-item-separator"), "role" => "separator"));
                 }
                 else
                 {    
                 //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
                     if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
                             
-                    $item       = dom_get($menu_entry, "item",   dom_get($menu_entry, 0, ""));
-                    $link       = dom_get($menu_entry, "link",   dom_get($menu_entry, 1, false));
-                    $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
+                    $item       = get($menu_entry, "item",   get($menu_entry, 0, ""));
+                    $link       = get($menu_entry, "link",   get($menu_entry, 1, false));
+                    $target     = get($menu_entry, "target", get($menu_entry, 2, $default_target));
                     $attributes = false;
                     
-                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => component_class("li", "list-item"), "role" => "menuitem", "tabindex" => "0"));
                 }
             }
         }
 
         $html = "";
 
-                if (dom_AMP())                             { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list')/*." ".dom_component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
-        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                            { $html =  ul($menu_lis, array("class" => dom_component_class('menu-list'),                                     "role" => "menu"                                                                            )); }
+        // TODO role = group ou role = list ???
 
-        if (dom_AMP() && !!$sidebar)
+             if (AMP())                             { $html =  ul($menu_lis, array("role" => "group", "class" => component_class("ul",  'menu-list')/*." ".component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else if (get("framework") == "bootstrap")   { $html = div($menu_lis, array("role" => "group", "class" => component_class("div", 'menu-list'),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
+        else                                        { $html =  ul($menu_lis, array("role" => "group", "class" => component_class("ul",  'menu-list'),                                 "role" => "menu"                                                                            )); }
+
+        if (AMP() && !!$sidebar)
         {
             hook_amp_sidebar(
-                dom_tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
+                tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
                 );
 
             //$html = span("","placeholder-amp-sidebar");
@@ -498,10 +586,10 @@
         return $html;
     }
 
-    function menu_switch() { return (dom_get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
-                                .   (dom_get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (dom_get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (dom_get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
+    function menu_switch() { return (get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
+                                .   (get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
                                                                             . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
                                                                                                                                         , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
                                                             ; 
@@ -509,14 +597,37 @@
 
     // TOOLBAR
 
-    function toolbar_row    ($html,  $attributes = false) {                      return div     (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-row") ." ".dom_component_class("row"))   ); }
-    function toolbar_section($html,  $attributes = false) {                      return section (   $html,  dom_attributes_add_class($attributes, dom_component_class("toolbar-cell")." ".dom_component_class("cell"))  ); }
+    function toolbar_row($html, $attributes = false)
+    {
+        return div(
+                $html,
+                attributes_add_class(
+                    $attributes,
+                    component_class("div", "toolbar-row")." ".
+                    component_class("div", "row")
+                    )
+                );
+    }
+
+    function toolbar_section($html, $attributes = false)
+    {
+        return section(
+                $html,
+                attributes_add(
+                    $attributes,                        
+                    attributes(
+                        component_class("section", "toolbar-cell"),
+                        component_class("section", "cell")
+                        )
+                    )
+                );
+    }
 
     function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
     {
-        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), dom_component_class("toolbar-cell-left"   ));
-        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), dom_component_class("toolbar-cell-center" ));
-        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), dom_component_class("toolbar-cell-right"  ));
+        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
+        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), component_class("section", "toolbar-cell-center" ));
+        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), component_class("section", "toolbar-cell-right"  ));
 
         if ($section1 === false) $section1 = "";
         if ($section2 === false) $section2 = "";
@@ -539,7 +650,7 @@
                 $section2,
                 $section3
                 ),
-            "toolbar-row-banner"
+            array("class" => "toolbar-row-banner", "role" => "banner")
             );
     }
 
@@ -548,7 +659,7 @@
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
 
-        return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
+        return (get("framework") != "bootstrap" ? div($html, "menu-entries " . component_class("div", "menu")) : $html);
     }
 
     function menu_toggle($html, $sidebar = DOM_AUTO)
@@ -556,7 +667,7 @@
         if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
         if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
 
-        return div($html, array("id" => "menu-open", "class" => dom_component_class("menu-toggle")));
+        return div($html, array("role" => "switch", "aria-checked" => "false", "id" => "menu-open", "hidden" => "hidden", "class" => component_class("div", "menu-toggle")));
     }
 
     function toolbar_nav_toolbar($html = false)
@@ -566,12 +677,12 @@
         return toolbar_section(($html === false) ? '' : $html,  array(
             
             "role" => "navigation",
-            "class" => (dom_component_class("toolbar-cell-right") . ' ' . 
-                        dom_component_class("toolbar-cell-right-shrink"))));
+            "class" => (component_class("section", "toolbar-cell-right") . ' ' . 
+                        component_class("section", "toolbar-cell-right-shrink"))));
     }
 
     function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(dom_get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
+    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
 
     function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
@@ -580,8 +691,18 @@
         if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
         if (false === $html)                                            $html = menu_toggle_auto($sidebar);
         
-        return toolbar_section(($html === false) ? '' : $html,  dom_component_class("toolbar-cell-left") . ($menu_entries_shrink_to_fit ? (' '.
-                                                                dom_component_class("toolbar-cell-right-shrink")    ) : ""));
+        return toolbar_section(
+
+            ($html === false) ? '' : $html,
+
+            attributes(
+                attr("role", "menu"),
+                attr("class",
+                    component_class("section", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
+                    component_class("section", "toolbar-cell-right-shrink")    ) : "")
+                    )
+                )
+            );
     }
 
     function toolbar_nav_title($html, $attributes = false)
@@ -596,7 +717,7 @@
 
         if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
         
-        return toolbar_section(($html === false) ? '' : $html, dom_component_class("toolbar-cell-center"));
+        return toolbar_section(($html === false) ? '' : $html, attributes(attr("role", "menuitem"), component_class("section", "toolbar-cell-center")));
     }
 
     function toolbar_nav($html, $attributes = false)
@@ -611,8 +732,8 @@
         $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
         $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
 
-                        $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "class" => "toolbar-row-nav"         ));
-        if (dom_AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "class" => "toolbar-row-nav static"  ));
+                   $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "role" => "menubar", "class" => "toolbar-row-nav"         ));
+        if (AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "role" => "menubar", "class" => "toolbar-row-nav static"  ));
 
         return $html;
     }
@@ -624,25 +745,25 @@
         $amp_observer = "";
         $amp_anim     = "";
         
-        if (dom_AMP())
+        if (AMP())
         {            
             hook_amp_require("animation");
             hook_amp_require("position-observer");
 
-            $amp_anim     = dom_eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
-                            . dom_eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
+            $amp_anim     = eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
+                          . eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
 
-            $amp_observer = dom_eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
+            $amp_observer = eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
         }
 
         return  
 
             $amp_anim.
             comment("PRE Toolbar").
-            dom_header(
+            header(
                 $html.
                 $amp_observer, 
-                dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container"))
+                attributes_add_class($attributes, component_class("header", "toolbar toolbar-container"))
                 );
     }
 

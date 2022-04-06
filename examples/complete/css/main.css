@@ -1,4 +1,11 @@
-<?php require_once dirname(__FILE__)."/../../../dom.php"; ?>
+<?php 
+
+require_once dirname(__FILE__)."/../../../dom_html.php"; 
+require_once dirname(__FILE__)."/../../../dom_toolbar.php"; 
+
+use function dom\{set,get,env,env_add};
+
+?>
 /**
  *****************************************************************************
  * COLORS SCHEMES 
@@ -6,51 +13,14 @@
 
 <?php
 
-set("theme_color",              "#ff0039"/*"#E62200"*//*"#E32629"*//*"#B01719"*//*"#FF3333"*/);
-set("background_color",         "#1E1E1E"/*"#1E1E1E"*/);
-set("background_color_light",   "#EEEEEE");
-set("text_color",               "#DDDDDD");
-set("text_color_light",         "#444444");
-set("link_color",               "#ff3333");
-
-if (!function_exists("set_missing_theme_colors")) // TODO DEBUG WHY DOUBLE INCLUDE IF RSS HERE
-{
-    function set_missing_theme_colors()
-    {
-        foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
-        foreach (array("dark", "light", "print") as $theme) set($var."_".$theme, get($var."_".$theme, get($var)));
-        
-        foreach (array("theme_color", "background_color", "text_color", "link_color") as $var)
-        foreach (array("dark", "light", "print") as $theme) set($var, get($var, get($var."_dark")));
-    }
-}
-
-set_missing_theme_colors();
-
-set("text_color_dark",              dom_correct_lighter(get("text_color_dark"),         get("background_color_dark")      ));
-set("text_color_light",             dom_correct_darker( get("text_color_light"),        get("background_color_light")     ));
-set("text_color_print",             dom_correct_lighter(get("text_color_print"),        get("background_color_print")     ));
-  
-set("background_color_dark",        dom_correct_darker( get("background_color_dark" ),  get("text_color_dark" )           ));
-set("background_color_light",       dom_correct_lighter(get("background_color_light"),  get("text_color_light")           ));
-set("background_color_print",       dom_correct_lighter(get("background_color_print"),  get("text_color_print")           ));
-  
-set("text_on_theme_color_dark",     dom_correct_lighter(get("text_color_dark"),         get("theme_color_dark" )          ));
-set("text_on_theme_color_light",    dom_correct_lighter(get("text_color_light"),        get("theme_color_light")          ));
-set("text_on_theme_color_print",    dom_correct_lighter(get("text_color_print"),        get("theme_color_print")          ));
-
-set("theme_color_dark",             dom_correct_auto(get("theme_color_dark"),          get("text_on_theme_color_dark")    ));
-set("theme_color_light",            dom_correct_auto(get("theme_color_light"),         get("text_on_theme_color_light")   ));
-set("theme_color_print",            dom_correct_auto(get("theme_color_print"),         get("text_on_theme_color_print")   ));
-
 $unsplash          = explode(',',get("unsplash", "VmnOaiN2P90,0"));
 $unsplash_id       = get($unsplash, 0, "VmnOaiN2P90");
 $unsplash_author   = get($unsplash, 1, false);
 $unsplash_position = get($unsplash, 2, "center");
 $unsplash_filter   = get($unsplash, 3, "unset");
 
-$default_banner_img_normal = unsplash_url_img($unsplash_id,  900, 600);
-$default_banner_img_large  = unsplash_url_img($unsplash_id, 1200, 800);
+$default_banner_img_normal = dom\unsplash_url_img($unsplash_id,  900, 600);
+$default_banner_img_large  = dom\unsplash_url_img($unsplash_id, 1200, 800);
 
 ?>
 
@@ -58,11 +28,15 @@ $default_banner_img_large  = unsplash_url_img($unsplash_id, 1200, 800);
 
  :root {
 
-    <?= env("background_color",         get("background_color_dark")) ?> 
-    <?= env("theme_color",              get("theme_color_dark")) ?> 
+    --light-theme-color: #408;
+    --light-accent-color: #03c;
+    --light-link-color: #73f;
+    --light-link-color-accent: #f0f;
 
-    --text-color:                       #DDDDDD;
-    --text-on-theme-color:              var(--text-color);
+    --dark-theme-color: #1ce;
+    --dark-accent-color: #f7d;
+    --dark-link-color: #28c;
+    --dark-link-color-accent: #00f;
 
     --toolbar-first-row-stroke-color:   rgba(255, 255, 255, 0.10);
     --toolbar-first-row-shadow-color:   rgba(  0,   0,   0, 0.48);
@@ -70,88 +44,8 @@ $default_banner_img_large  = unsplash_url_img($unsplash_id, 1200, 800);
     --scrollbar-background-color:       #141414;
     --scrollbar-thumb-color:            var(--theme-color);
 
-    --h1-color:                         var(--text-color);
-    --h2-color:                         var(--theme-color);
-    --h3-color:                         #FFFFFF;
-    --h4-color:                         var(--text-color);
-    --h5-color:                         #CCCCCC;
-    --h6-color:                         #BBBBBB;
     --caption-color:                    #FFFFFF;
-
-    --menu-background-color:            #444444;
-    --menu-text-color:                  var(--text-color);
-    --menu-hover-background-color:      #222222;
-    --menu-hover-text-color:            #FFFFFF;
-
-    --footer-background-color:          #1a1a1a;
-    --footer-text-color:                <?=                dom_correct_lighter("#1a1a1a", "#1a1a1a")                  ?>;
-    --footer-link-color:                <?= dom_color_lerp(dom_correct_lighter("#1a1a1a", "#1a1a1a"), "#FFFFFF", 0.5) ?>;
-    --footer-hover-link-color:          #FFFFFF;
-
-    --card-title-color:                 #FFFFFF;
-    --card-border-color:                #444444;
-    --card-background-color:            <?= dom_color_modify_lightness(get("background_color_dark"), 0.8) ?>;
-
 }
-
-/* LIGHT */
-
-<?php foreach (array(array("@media (prefers-color-scheme: light) { :root {", "} }"), array('[data-theme="light"] {', "}")) as $condition) { ?><?= $condition[0] ?>
-
-    <?= env("background_color",         get("background_color_light")) ?> 
-    <?= env("theme_color",              get("theme_color_light")) ?> 
-
-    --text-color:                       #444444;
-    --text-on-theme-color:              #DDDDDD;
-
-    --toolbar-first-row-stroke-color:   rgba(255, 255, 255, 0.10);
-    --toolbar-first-row-shadow-color:   rgba(  0,   0,   0, 0.48);
-
-    --scrollbar-background-color:       #525252;
-    --scrollbar-thumb-color:            var(--theme-color);
-
-    --h1-color:                         #DDDDDD;
-    --h2-color:                         var(--theme-color);
-    --h3-color:                         <?= dom_correct_darker("#000000", get("background_color_light")) ?>;
-    --h4-color:                         <?= dom_correct_darker("#111111", get("background_color_light")) ?>;
-    --h5-color:                         <?= dom_correct_darker("#222222", get("background_color_light")) ?>;
-    --h6-color:                         <?= dom_correct_darker("#333333", get("background_color_light")) ?>;
-    --caption-color:                    <?= dom_correct_darker("#CCCCCC", get("background_color_light")) ?>;
-
-    --menu-background-color:            #444444;
-    --menu-text-color:                  #DDDDDD;
-    --menu-hover-background-color:      #222222;
-    --menu-hover-text-color:            #FFFFFF;
-
-    --footer-background-color:          #DDDDDD;
-    --footer-text-color:                <?=                dom_correct_darker("#DDDDDD", "#DDDDDD")                  ?>;
-    --footer-link-color:                <?= dom_color_lerp(dom_correct_darker("#DDDDDD", "#DDDDDD"), "#000000", 0.5) ?>;
-    --footer-hover-link-color:          #000000;
-
-    --card-title-color:                 #000000;
-    --card-border-color:                #AAAAAA;
-    --card-background-color:            <?= dom_color_modify_lightness(get("background_color_light"), 1.05) ?>;
-
-<?= $condition[1] ?><?php } ?>
-
-/* PRINT */
-
-@media print { :root {
-
-    <?= env("background_color", get("background_color_print")) ?> 
-    <?= env("theme_color",      get("theme_color_print")) ?> 
-
-    --h1-color:             #EEEEEE;
-    --h2-color:             var(--theme-color);
-    --h3-color:             #000000;
-            
-    --text-color:           #000000;
-    --caption-color:        #000000;
-    
-    --card-title-color:     #000000;
-    --card-border-color:    #AAAAAA;
-    
-} }
 
 /**
  *****************************************************************************
@@ -164,16 +58,24 @@ $default_banner_img_large  = unsplash_url_img($unsplash_id, 1200, 800);
 {
     /* DOM variables */
 
+    <?= env("header_height",           "256px") ?>
     <?= env("header_toolbar_height",    "64px") ?>
     <?= env("header_min_height",        "64px") ?>
     <?= env("main_max_width",          "960px") ?>
-    <?= env("dom_gap",                  "12px") ?>
+    <?= env("gap",                      "12px") ?>
 
     /* For use in screen media computations */
 
-    <?= env("breakpoint_medium",        env_add(array("main_max_width", "scrollbar_width", "dom_gap", "dom_gap"))) ?>
+    <?= env("breakpoint_medium",        env_add(array("main_max_width", "scrollbar_width", "gap", "gap"))) ?>
     <?= env("breakpoint_small",         "800px") ?>
 }
+
+/**
+ *****************************************************************************
+ * RESET SOME DOM BASE
+ *****************************************************************************/
+
+header, article, aside { background-color: unset; }
 
 /**
  *****************************************************************************
@@ -190,21 +92,16 @@ body { overflow-x: hidden }
 
 @media screen and (max-width: <?= env("breakpoint_medium") ?>) { 
     
-    main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } 
+    main { padding-left: var(--gap); padding-right: var(--gap); } 
 }
 
-main { padding-bottom: var(--dom-gap); }
+main { padding-bottom: var(--gap); }
 
-h2 { padding-top: var(--dom-gap); }
+h2 { padding-top: var(--gap); }
 
 /* Background */
 
 .main::after { background-image: url(img/logo.png); background-repeat: no-repeat; opacity: 0.1; content: ""; top: 100px; left: -100px; bottom: 0; right: 0; position: fixed; z-index: -1; }
-
-/* Scrollbar */
-
-body {                           scrollbar-color: var(--scrollbar-thumb-color)                                                      var(--scrollbar-background-color); }
-body::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); } body::-webkit-scrollbar-track { background-color: var(--scrollbar-background-color); }
 
 /**
  *****************************************************************************
@@ -213,15 +110,7 @@ body::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); 
 
 /* Typography */
 
-h1 		        { color: var(--h1-color); }
-h2 		        { color: var(--h2-color);  <?= dom_css_gradient() ?> }
-h3 		        { color: var(--h3-color); }
-h4 		        { color: var(--h4-color); }
-h5 		        { color: var(--h5-color); }
-h6 		        { color: var(--h6-color); }
-                    
-main            { color: var(--text-color);    }
-main figcaption { color: var(--caption-color); }
+h2 		        { <?= dom\css_gradient() ?> }
 
 h5              { font-size: 1em; }
 h6              { font-size: 1em; }
@@ -231,21 +120,13 @@ h2 		        { text-transform: uppercase;  }
 h3 		        { text-transform: capitalize; }
 h4 		        { text-transform: capitalize; }
 
-/* Links */
-
-a, a:visited    { color: var(--theme-color); }
-a:hover         { color: var(--theme-color); }
-
 a, a:visited    { text-decoration: none; }
 a:hover         { text-decoration: underline; }
 
 /* Toolbar */
 
 .toolbar a, 
-.toolbar a:visited  { color: var(--text-on-theme-color) }
-.toolbar a:hover    { color: white;    }
-.toolbar a.current  { border-bottom-color: white; }
-.toolbar-row-banner { color: var(--text-on-theme-color);  }
+.toolbar a.current  { border-bottom-color: currentColor; }
 
 .toolbar-title      { overflow: hidden; text-overflow: ellipsis; }
 
@@ -258,12 +139,12 @@ a:hover         { text-decoration: underline; }
 body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
 
 .toolbar .row:nth-child(2) { text-transform: uppercase; }
-.toolbar-cell-right        { padding-right: var(--dom-gap); }
+.toolbar-cell-right        { padding-right: var(--gap); }
 
 /* Toolbar switch between toolbar links & burger menu */
 
                                                                   section[role=navigation] { margin-right: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); }
-@media screen and (max-width: <?= env("breakpoint_medium") ?>) { .toolbar-title { padding-left: var(--dom-gap);  } }
+@media screen and (max-width: <?= env("breakpoint_medium") ?>) { .toolbar-title { padding-left: var(--gap);  } }
 @media screen and (max-width: <?= env("breakpoint_medium") ?>) {  section[role=navigation] { margin-right: 0px; } }
 @media screen and (min-width: <?= env("breakpoint_small")  ?>) { .menu-toggle { display: none } .toolbar .row:nth-child(2) .cell:nth-child(1)  { min-width: 0px; } }
 @media screen and (max-width: <?= env("breakpoint_small")  ?>) { .toolbar-title { padding-left: 0px;  } }
@@ -271,37 +152,24 @@ body>.footer { stroke: var(--toolbar-first-row-stroke-color); }
 
 /* Toolbar menu */
 
-a.menu-switch-link          { color: var(--text-on-theme-color); }
-a.menu-switch-link:hover    { color: var(--text-on-theme-color); }
-
-.menu 			            { background-color: var(--menu-background-color);       }
-.menu a			            {            color: var(--menu-text-color);             }
-.menu li:hover	            { background-color: var(--menu-hover-background-color); }
-.menu a:hover	            {            color: var(--menu-hover-text-color);       }
-/*
-.menu li                    { min-width: 128px }*/
 .menu a                     { text-transform: capitalize; }
+
+.toolbar-cell-right li      { padding-inline: var(--gap); }
 
 /* Footer */
 
-body>.footer            { color: var(--footer-text-color); background-color: var(--footer-background-color); }
-body>.footer a,
-body>.footer a:visited  { color: var(--footer-link-color); }
-body>.footer a:hover    { color: var(--footer-hover-link-color); }
-
-body>.footer a          { padding: var(--dom-gap); }
+body>.footer a          { padding: var(--gap); }
 body>.footer a:hover    { text-decoration: underline; }
-
 
 /* Cards */
 
 .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-.card                           { border: 1px solid var(--card-border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
+.card                           { border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
 .card img                       { width: 100%; margin-left: 0px; max-width: 100% }
 .card-text,
-.card-title                     { padding: var(--dom-gap); }
-.card-title-sub .svg-wrapper    { margin-right: var(--dom-gap); }
-.card .headline                 { font-size: 1em; margin: 0px; color: var(--card-title-color); }
+.card-title                     { padding: var(--gap); }
+.card-title-sub .svg-wrapper    { margin-right: var(--gap); }
+.card .headline                 { font-size: 1em; margin: 0px; }
 .card-title-main,       
 .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
@@ -310,7 +178,7 @@ body>.footer a:hover    { text-decoration: underline; }
 @media screen and (max-width: <?= env("breakpoint_small")  ?>) {
 
     main>article img, main>article video, main>article iframe,
-    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--dom-gap)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
+    main>article .aspect-ratio > :first-child { margin-left: calc(-1 * var(--gap)); width: calc(100vw - 0 * var(--scrollbar-width)); max-width: calc(100vw - 0 * var(--scrollbar-width)); }
 
     }
 

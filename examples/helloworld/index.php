@@ -1,6 +1,8 @@
 <?php
 
-require_once(dirname(__FILE__)."/../../dom.php"); 
+require_once(dirname(__FILE__)."/../../dom_html.php"); 
+
+use function dom\{set,get,unsplash_url_img,is_localhost,init,output,HSTART,HSTOP,HERE,css_gradient,html,rss,jsonfeed,tile,head,body,style,env_add,toolbar,main,article,anchor,h1,h2,lorem_ipsum,p,grid,card,card_title,card_media,card_text,img,hr,a,footer,svg_rss,svg_facebook,pre};
 
     // TODO ------------------------------------------------------------------------>
     // TODO : FIX CANONICAL PATH HACK
@@ -24,24 +26,24 @@ require_once(dirname(__FILE__)."/../../dom.php");
     // TODO
     // TODO ------------------------------------------------------------------------>
 
-dom_init();
+init();
 
-dom_output(
+output(
 
     head().
-    body(
+    body(main(
 
         h1("Hello World!").
 
         p("This is a Hello World example").
         
-        content(anchor("here").pre((function(){HSTART(-3)?><script><?=HERE()?>
+        main(anchor("here").pre((function(){HSTART(-3)?><script><?=HERE()?>
 
             include("dom.php");
-            dom_init();
-            dom_output(head().body(
+            init();
+            output(head().body(main(
                 h1("Hello World!").
-                p("This is a Hello World example")));
+                p("This is a Hello World example"))));
 
             <?=HERE("raw")?></script><?php return HSTOP();})())).
 
@@ -52,7 +54,7 @@ dom_output(
             pre  { text-align: left; color: grey; white-space: pre-wrap; font-size: min(20px, max(8px, 3.7vw)); }
 
             <?=HERE("raw_css")?></style><?php return HSTOP();})())
-        )
+        ))
     );
 
 ?>

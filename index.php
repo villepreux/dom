@@ -1,6 +1,8 @@
 <?php
 
-require_once dirname(__FILE__)."/dom.php";
+require_once dirname(__FILE__)."/dom_html.php";
+
+use function dom\{set,get,is_localhost,init,output,markdown,path,include_file,head,body,main,style};
 
 set("generate", false);
 
@@ -26,6 +28,16 @@ set("generate", false);
     // TODO
     // TODO ------------------------------------------------------------------------>
 
-dom_init();
+init();
 
-dom_output(head().body(content(dom_markdown(dom_include_file(dom_path("README.md"))))));
+output(
+    head().
+    body(
+        style("img[alt=\"Build\"] { width: 105px; height: 20px; }").
+        main(
+            markdown(
+                str_replace("https://github.com/villepreux/dom/tree/master/examples", "examples", include_file(path("README.md")))
+                )
+            )
+        )
+    );

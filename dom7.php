@@ -1,5 +1,6 @@
 <?php
 
+
     #region DOM PUBLIC API
     ######################################################################################################################################
     
@@ -40,6 +41,12 @@
     if (!function_exists("eol"))                        { function eol($n = 1)                                                                                                                  { return dom_eol($n); } }
 
     #endregion
+    #region IMPORTS
+    ######################################################################################################################################
+
+    if (!function_exists("import_color"))               { function import_color($color)                                                                                                         { return dom_import_color($color); } }
+
+    ######################################################################################################################################
     #region HTML MARKUP & COMPONENTS
     ######################################################################################################################################
 
@@ -57,12 +64,9 @@
     ######################################################################################################################################
     #endregion DOM PUBLIC API
 
-    ######################################################################################################################################
-    ######################################################################################################################################
-    ######################################################################################################################################
-    ######################################################################################################################################
 
-    #region PRIVATE API
+
+    #region DOM-SPECIFIC API
     ######################################################################################################################################
     
     #region CONSTANTS
@@ -114,13 +118,13 @@
     function dom_set_server_vars($a, $b = false)    { global $__dom_server_vars; $__dom_server_vars = array(); if ($a !== false) $__dom_server_vars[] = $a; if ($b !== false) $__dom_server_vars[] = $b; }
     function dom_get_server_vars()                  { global $__dom_server_vars; $vars = array(); foreach ($__dom_server_vars as $name) { if ($name == "GET") $vars = array_merge($vars, $_GET); if ($name == "SERVER") $vars = array_merge($vars, $_SERVER); } return $vars; }
 
-    function dom_server_http_accept_language        ($default = "en")                   { return        dom_at(dom_get_server_vars(), 'HTTP_ACCEPT_LANGUAGE',             $default);  }
-    function dom_server_server_name                 ($default = "localhost")            { return        dom_at(dom_get_server_vars(), 'SERVER_NAME',                      $default);  }
-    function dom_server_server_port                 ($default = "80")                   { return        dom_at(dom_get_server_vars(), 'SERVER_PORT',                      $default);  }
-    function dom_server_request_uri                 ($default = "www.example.com")      { return        dom_at(dom_get_server_vars(), 'REQUEST_URI',                      $default);  }
-    function dom_server_https                       ($default = "on")                   { return        dom_at(dom_get_server_vars(), 'HTTPS', is_localhost() ? "off" :   $default);  }
-    function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(dom_get_server_vars(), 'HTTP_HOST',                        $default);  }
-    function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(dom_get_server_vars(), 'HTTP_DNT',                         0);         }
+    function dom_server_http_accept_language        ($default = "en")                   { return        dom_at(dom_get_server_vars(), 'HTTP_ACCEPT_LANGUAGE',               $default);  }
+    function dom_server_server_name                 ($default = "localhost")            { return        dom_at(dom_get_server_vars(), 'SERVER_NAME',                        $default);  }
+    function dom_server_server_port                 ($default = "80")                   { return        dom_at(dom_get_server_vars(), 'SERVER_PORT',                        $default);  }
+    function dom_server_request_uri                 ($default = "www.example.com")      { return        dom_at(dom_get_server_vars(), 'REQUEST_URI',                        $default);  }
+    function dom_server_https                       ($default = "on")                   { return        dom_at(dom_get_server_vars(), 'HTTPS', dom_is_localhost() ? "off" : $default);  }
+    function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(dom_get_server_vars(), 'HTTP_HOST',                          $default);  }
+    function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(dom_get_server_vars(), 'HTTP_DNT',                           0);         }
 
     function dom_do_not_track()
     {
@@ -824,7 +828,7 @@
     #region HELPERS : DOM COMPONENTS: TAG ATTRIBUTES
     ######################################################################################################################################
 
-    function dom_attributes($attributes, $pan = 0)
+    function dom_attributes_as_string($attributes, $pan = 0)
     {
         if (false === $attributes) return "";
         if (""    === $attributes) return "";
@@ -834,8 +838,8 @@
         {
             $html = '';
             
-            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { $html .= pan(' ' . $key . '=' . '"' . $value . '"', $pan[$i], ' ', 1); ++$i; } }
-            else                {         foreach ($attributes as $key => $value) { $html .= pan(' ' . $key . '=' . '"' . $value . '"', $pan,     ' ', 1);       } }
+            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode(" ", $value); } $html .= pan(' ' . $key . '=' . '"' . $value . '"', $pan[$i], ' ', 1); ++$i; } }
+            else                {         foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode(" ", $value); } $html .= pan(' ' . $key . '=' . '"' . $value . '"', $pan,     ' ', 1);       } }
             
             return $html;
         }
@@ -845,13 +849,92 @@
         
         return $attributes;
     }
+
+    function to_attributes($attributes)
+    {   
+        if (false === $attributes)
+        {
+            return array();
+        }
+
+        if (is_array($attributes)) 
+        {
+            return $attributes;
+        }
+
+        if (false === stripos($attributes, "="))
+        {
+            return array("class" => trim($attributes));
+        }
+
+        return at(json_decode(json_encode(simplexml_load_string($attributes, null, LIBXML_NOCDATA )), true), "@attributes", array());
+    }
+    
+    function attribute($name, $values = "DOM_AUTO_CLASS")
+    {
+        return ($values === "DOM_AUTO_CLASS") ? to_attributes($name) : array($name => $values);
+    }
+    
+    function attr($name, $values = "DOM_AUTO_CLASS")
+    {
+        return attribute($name, $values);
+    }
+
+    function attributes_add($attributes1, $attributes2, $value = null)
+    {
+        $attributes1 = to_attributes($attributes1);
+        $attributes2 = to_attributes($attributes2);
+
+        $attributes = array();
+
+        foreach ($attributes1 as $name1 => $values1)
+        {
+            if (!is_array($values1)) $values1 = explode(" ", $values1);
+
+            foreach ($attributes2 as $name2 => $values2)
+            {
+                if ($name2 == $name1)
+                {
+                    if (!is_array($values2)) $values2 = explode(" ", $values2);        
+                    $values1 = array_values(array_merge($values1, $values2));
+                }
+            }
+            
+            $attributes[$name1] = $values1;
+        }
+
+        $names1 = array_keys($attributes1);
+
+        foreach ($attributes2 as $name2 => $values2)
+        {
+            if (!in_array($name2, $names1))
+            {
+                if (!is_array($values2)) $values2 = explode(" ", $values2); 
+                $attributes[$name2] = $values2;
+            }
+        }
+
+        return $attributes;
+    }
+
+    function attributes()
+    {
+        $attributes = array();
+        
+        foreach (func_get_args() as $attribute)
+        {
+            $attributes = attributes_add($attributes, $attribute);
+        }
+
+        return $attributes;
+    }
     
     function dom_attributes_add_class($attributes, $classname, $add_first = false)
     {
-        $attributes = dom_attributes($attributes);
+        $attributes = dom_attributes_as_string($attributes);
 
-        if ("" === $attributes) return dom_attributes($classname);
-        if ("" === $classname)  return dom_attributes($classname);
+        if ("" === $attributes) return dom_attributes_as_string($classname);
+        if ("" === $classname)  return dom_attributes_as_string($classname);
             
         if (false === stripos($attributes, "class="))
         {
@@ -1251,7 +1334,7 @@
             return json_encode($x);
         }
 
-        return ($transform)(
+        return $transform(
             (string)$x, 
             (string)$k, 
             $sibblings
@@ -4131,7 +4214,7 @@
             }
         }
 
-        $start_url = ((is_localhost() ? dom_get("canonical") : "")."/");
+        $start_url = ((dom_is_localhost() ? dom_get("canonical") : "")."/");
 
         if (false === stripos($start_url, "?")) $start_url .= "?";
         $start_url .= "&utm_source=homescreen";
@@ -4638,7 +4721,7 @@
     {
         if ($silent_errors === DOM_AUTO)
         {
-            $silent_errors = is_localhost() ? false : true;
+            $silent_errors = dom_is_localhost() ? false : true;
         }
 
         ob_start();
@@ -5430,14 +5513,14 @@
             ;
     }
     
-    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (dom_eol().'<meta'.dom_attributes($p0,$pan).' />') : meta_name($p0,$p1)); }
+    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (dom_eol().'<meta'.dom_attributes_as_string($p0,$pan).' />') : meta_name($p0,$p1)); }
                             
     function meta_charset($charset)             { return meta(array("charset"    => $charset)); }
     function meta_http_equiv($equiv,$content)   { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
     function meta_name($name,$content)          { return meta(array("name"       => $name,     "content" => $content), false, array(40,80)); }
     function meta_property($property,$content)  { return meta(array("property"   => $property, "content" => $content), false, array(40,80)); }
 
-    function link_HTML($attributes, $pan = 0)               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes($attributes,$pan), false, true); }
+    function link_HTML($attributes, $pan = 0)               { if (!!dom_get("no_html"))  return ''; return dom_tag('link', '', dom_attributes_as_string($attributes,$pan), false, true); }
     function link_rel($rel, $link, $type = false, $pan = 0) { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
     
     function manifest($filename = "manifest.json") 
@@ -5449,7 +5532,7 @@
                 ; 
     }
 
-    function link_style($link, $media = "screen", $async = false)
+    function link_style($link, $media = "screen", $async = false, $attributes = false)
     {
         if (!!dom_get("no_css"))             return '';
         if (!!dom_get("include_custom_css")) return dom_style($link, false, true);
@@ -5465,20 +5548,25 @@
 
             if ($method == 1)
             {
-                $attributes = array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'");
+                $attributes = attributes_add($attributes, array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'"));
                 return link_rel("stylesheet", $link, $attributes);
             }
             else // https://web.dev/defer-non-critical-css/#optimize
             {
-                $attributes = array("as" => "style", "onload" => "this.onload=null;this.rel='stylesheet'");
+                $attributes = attributes_add($attributes, array("as" => "style", "onload" => "this.onload=null;this.rel='stylesheet'"));
                 return link_rel("preload", $link, $attributes).dom_tag("noscript", link_rel("stylesheet", $link));
             }
         }
         else
         {
-            $attributes = array("type" => "text/css", "media" => $media);
+            $attributes = attributes_add($attributes, array("type" => "text/css", "media" => $media));
             return link_rel("stylesheet", $link, $attributes);
         }
+    }
+
+    function css_layer($layer, $css)
+    {
+        return "@layer $layer {".eol(2).$css.eol()."}";
     }
 
     function dom_style( $filename_or_code = "", $force_minify = false, $silent_errors = DOM_AUTO)
@@ -5599,10 +5687,13 @@
                 
                 <?= env("header_height",             "256px" ) ?> 
                 <?= env("header_min_height",           "0px" ) ?> 
-                <?= env("header_toolbar_height",      "48px" ) ?>                 
+                <?= env("header_toolbar_height",      "48px" ) ?> 
 
-                <?= env("main_max_width",           "1200px" ) ?>                 
-                <?= env("dom_gap",                    "16px" ) ?>                 
+                <?= env("main_max_width",           "1200px" ) ?> 
+                <?= env("max_text_width",           "1200px" ) ?> 
+
+                <?= env("dom_gap",                    "16px" ) ?> 
+                <?= env("gap",                        "16px" ) ?> 
                 <?= env("scrollbar_width",          dom_get("default_scrollbar_width", "17px") ) ?> 
                 <?= env("svg_size",                   "24px" ) ?> 
 
@@ -6423,9 +6514,9 @@
     {
         $inline_js = dom_get("dom_inline_js", false);
 
-        return  ("material"  == dom_get("framework") ? (script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web'.(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
-            .   ("bootstrap" == dom_get("framework") ? (script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
-            .   ("bootstrap" == dom_get("framework") ? (script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap'                .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+        return  ("material"  == dom_get("framework") ? (script_src('https://unpkg.com/material-components-web@'        . dom_get("version_material")  . '/dist/material-components-web'.(dom_is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+            .   ("bootstrap" == dom_get("framework") ? (script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . dom_get("version_popper")    . '/umd/popper'                  .(dom_is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+            .   ("bootstrap" == dom_get("framework") ? (script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . dom_get("version_bootstrap") . '/js/bootstrap'                .(dom_is_localhost() ? '' : '.min').'.js', false, "async")) : "")
             ;
     }
     
@@ -6584,7 +6675,7 @@
 
                 $prefix.                
                 (
-                    '<'.$tag.dom_attributes($attributes).
+                    '<'.$tag.dom_attributes_as_string($attributes).
                     (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
                 ) . 
                 (
@@ -6704,10 +6795,14 @@
     function p              ($html = "", $attributes = false) {                             return  dom_tag('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return  dom_tag('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return  dom_tag('pre',                        $html,                                                $attributes                                                         );                      }
-    function ul             ($html = "", $attributes = false) {                             return  dom_tag('ul',                         $html,                               $attributes                                                         );                      }
-    function ol             ($html = "", $attributes = false) {                             return  dom_tag('ol',                         $html,                               $attributes                                                         );                      }
+    function ul             ($html = "", $attributes = false) {                             return  dom_tag('ul',                         $html,                                                $attributes                                                         );                      }
+    function ol             ($html = "", $attributes = false) {                             return  dom_tag('ol',                         $html,                                                $attributes                                                         );                      }
     function li             ($html = "", $attributes = false) {                             return  dom_tag('li',                         $html,                                                $attributes                                                         );                      }
-
+    
+    function dlist          ($html = "", $attributes = false) {                             return  dom_tag('dl',                         $html,                                                $attributes                                                         );                      }
+    function dterm          ($html = "", $attributes = false) {                             return  dom_tag('dt',                         $html,                                                $attributes                                                         );                      }
+    function ddef           ($html = "", $attributes = false) {                             return  dom_tag('dd',                         $html,                                                $attributes                                                         );                      }
+    
     function dom_table      ($html = "", $attributes = false) {                             return  dom_tag('table',                      $html,    dom_attributes_add_class(  $attributes, dom_component_class('table'))                              );                      }
     function tr             ($html = "", $attributes = false) {                             return  dom_tag('tr',                         $html,                                                $attributes                                                         );                      }
     function td             ($html = "", $attributes = false) {                             return  dom_tag('td',                         $html,                                                $attributes                                                         );                      }
@@ -6731,6 +6826,12 @@
 
     function button         ($html = "", $attributes = false) {                             return  dom_tag('button',                     $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button'))                             );                      }
     function button_label   ($html = "", $attributes = false) {                             return  dom_tag('span',                       $html,                     dom_attributes_add_class(  $attributes, dom_component_class('button-label'))                       );                      }
+    
+    function input          ($html = "", $type = "", $id = "", $attributes = false) {       return  dom_tag('input',                      "",                                   attributes_add( $attributes, attributes(attr("type",    $type),
+                                                                                                                                                                                                                        attr("value",   $html),
+                                                                                                                                                                                                                        attr("id",      $id))), false, true                 );                      }
+
+    function label          ($html = "", $for  = "", $attributes = false) {                 return  dom_tag('label',                      $html,                            attributes_add( $attributes, attributes(attr("for", $for))) );                      }
 
     function h1             ($html = "", $attributes = false, $anchor = false) {            return  h(1,                                  $html,                                                $attributes, $anchor                                                );                      }
     function h2             ($html = "", $attributes = false, $anchor = false) {            return  h(2,                                  $html,                                                $attributes, $anchor                                                );                      }
@@ -7382,11 +7483,11 @@
                 }
             }
 
-            $attributes = dom_attributes($internal_attributes);
+            $attributes = dom_attributes_as_string($internal_attributes);
         }
         else
         {
-            $attributes =   dom_attributes($internal_attributes).
+            $attributes =   dom_attributes_as_string($internal_attributes).
                             dom_attributes_add_class($external_attributes, "a");
         }
 
@@ -7513,8 +7614,8 @@
         return tag
         (
             "video",
-            dom_tag("source", '', dom_attributes(array("src" => $path, "type" => ("video/".str_replace(".","",$ext)))), false, true),
-            dom_attributes(
+            dom_tag("source", '', dom_attributes_as_string(array("src" => $path, "type" => ("video/".str_replace(".","",$ext)))), false, true),
+            dom_attributes_as_string(
                 array_merge(
                     dom_AMP() ? array() : array("alt" => $alt), 
                     array("width" => "100%", "controls" => "no")
@@ -7635,7 +7736,7 @@
                 ' width'.   '='.$w.
                 ' height'.  '='.$h,
                 $content,
-                dom_attributes(array("src" => $path)).
+                dom_attributes_as_string(array("src" => $path)).
                 dom_attributes_add_class($attributes, "img"),
                 false,
                 false
@@ -7643,9 +7744,9 @@
         }
         else
         {
-                 if (DOM_AUTO === $lazy) $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
-            else if (true     === $lazy) $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
-            else                         $attributes = dom_attributes(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+                 if (DOM_AUTO === $lazy) $attributes = dom_attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
+            else if (true     === $lazy) $attributes = dom_attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).dom_attributes_add_class($attributes, "img lazy loading");
+            else                         $attributes = dom_attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "src" =>                          $path )).dom_attributes_add_class($attributes, "img");
 
             return dom_tag('img', $content, $attributes, false, $content == '');
         }
@@ -7661,17 +7762,20 @@
         return img($path, false, false, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
     }
 
-    function svg($label, $x0, $x1, $y0, $y1, $align, $svg_body) 
+    function svg($label, $x0, $x1, $y0, $y1, $align, $svg_body, $add_wrapper = true) 
     {
-        return dom_tag('span', 
+        $html =
             '<svg '. 'class="svg '.strtolower($label).' colorful-shadow" '.
                       'role="img"'.                     (($label!="" && $label!=false)?(' '.
                 'aria-label="'.$label.'"'.              ''):('')).' '.
                    'viewBox="'."$x0 $x1 $y0 $y1".'">'.
                 $svg_body.
-            '</svg>', 
-            array('class' => ('span-svg-wrapper '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : '')))
-            );
+            '</svg>';
+
+        if ($add_wrapper)
+            $html = dom_tag('span', $html, array('class' => ('span-svg-wrapper icon '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : ''))));
+
+        return $html;
     }
 
     // https://materialdesignicons.com/
@@ -7777,31 +7881,31 @@
 
     // !TOOD DEPRECATE FUNCTION SIGNATURE AND REMOVE COLOR PARAM
 
-    function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("flickr");        $class = "palette-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>'); }
-    function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("facebook");      $class = "palette-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />'); }
-    function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("twitter");       $class = "palette-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />'); }
-    function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("linkedin");      $class = "palette-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />'); }
-    function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("github");        $class = "palette-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>'); }
-    function svg_instagram      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("instagram");     $class = "palette-instagram";       return svg($label === DOM_AUTO ? "Instagram"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />'); }
-    function svg_pinterest      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("pinterest");     $class = "palette-pinterest";       return svg($label === DOM_AUTO ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
-    function svg_tumblr         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("tumblr");        $class = "palette-tumblr";          return svg($label === DOM_AUTO ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />'); }
-    function svg_rss            ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("rss");           $class = "palette-rss";             return svg($label === DOM_AUTO ? "RSS"             : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />'); }
-    function svg_printer        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Printer"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />'); }
-    function svg_notifications  ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Notifications"   : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />'); }
-    function svg_messenger      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("messenger");     $class = "palette-messenger";       return svg($label === DOM_AUTO ? "Messenger"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />'); }
-    function svg_alert          ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("alert");         $class = "palette-alert";           return svg($label === DOM_AUTO ? "Alert"           : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />'); }
-    function svg_amp            ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("amp");           $class = "palette-amp";             return svg($label === DOM_AUTO ? "AMP"             : $label, -22,    -22,     300,     300,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />'); }
-    function svg_loading        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("loading");       $class = "palette-loading";         return svg($label === DOM_AUTO ? "Loading"         : $label,   0,      0,      96,      96,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>'); }
-    function svg_darkandlight   ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("darkandlight");  $class = "palette-darkandlight";    return svg($label === DOM_AUTO ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>'); }
-    function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("google");        $class = "palette-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>'); }
-    function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("youtube");       $class = "palette-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>'); }
-    function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("numerama");      $class = "palette-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>'); }
-    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("soundcloud");    $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path class="'.$class.'" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>'); } 
-    function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("link");          $class = "palette-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>'); }
-    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("leboncoin");     $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>'); }
-    function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("500px");         $class = "palette-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />'); }
-    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("seloger");       $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>'); }
-    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO) { dom_import_color("deezer");        $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>'); }
+    function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("flickr");        $class = "palette-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("facebook");      $class = "palette-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("twitter");       $class = "palette-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("linkedin");      $class = "palette-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("github");        $class = "palette-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_instagram      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("instagram");     $class = "palette-instagram";       return svg($label === DOM_AUTO ? "Instagram"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_pinterest      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("pinterest");     $class = "palette-pinterest";       return svg($label === DOM_AUTO ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_tumblr         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("tumblr");        $class = "palette-tumblr";          return svg($label === DOM_AUTO ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_rss            ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("rss");           $class = "palette-rss";             return svg($label === DOM_AUTO ? "RSS"             : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_printer        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Printer"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_notifications  ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("printer");       $class = "palette-printer";         return svg($label === DOM_AUTO ? "Notifications"   : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_messenger      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("messenger");     $class = "palette-messenger";       return svg($label === DOM_AUTO ? "Messenger"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_alert          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("alert");         $class = "palette-alert";           return svg($label === DOM_AUTO ? "Alert"           : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_amp            ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("amp");           $class = "palette-amp";             return svg($label === DOM_AUTO ? "AMP"             : $label, -22,    -22,     300,     300,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_loading        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("loading");       $class = "palette-loading";         return svg($label === DOM_AUTO ? "Loading"         : $label,   0,      0,      96,      96,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_darkandlight   ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("darkandlight");  $class = "palette-darkandlight";    return svg($label === DOM_AUTO ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("google");        $class = "palette-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("youtube");       $class = "palette-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("numerama");      $class = "palette-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("soundcloud");    $class = "palette-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path class="'.$class.'" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); } 
+    function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("link");          $class = "palette-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("leboncoin");     $class = "palette-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("500px");         $class = "palette-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("seloger");       $class = "palette-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { dom_import_color("deezer");        $class = "palette-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code), false, false, "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                    false, false, "img-pinterest" ); }
@@ -7824,10 +7928,10 @@
     
     function unsplash_url_img_random($search,$w,$h,$random = DOM_AUTO) {
 
-             if ($random === DOM_AUTO)  $random = ",".rand(1111,9999);
-        else if ($random === true)      $random = ",".rand(1111,9999);
-        else if ($random === false)     $random = "";
-        else                            $random = ",$random";
+             if ($random === DOM_AUTO)  $random = "&".rand(1111,9999);
+        else if ($random === true)      $random = "&".rand(1111,9999);
+        else if ($random === false)     $random = "&";
+        else                            $random = "&$random";
 
         return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search")))."$random.jpg";
     }
@@ -8904,6 +9008,32 @@
 
     #endregion
 
+    function dom_php_info_css()
+    {
+        HSTART(-2) ?><style><?php HERE() ?>
+                
+            .phpinfo                        { word-break: break-all; }
+            .phpinfo pre                    { margin: 0; font-family: monospace }
+            .phpinfo a:link                 { text-decoration: initial; color: initial; text-decoration: initial; background-color: initial; }
+            .phpinfo a:hover                { text-decoration: underline }
+            .phpinfo table                  { table-layout: initial; border-collapse: collapse; border: 0; width: auto; width: -webkit-fill-available; box-shadow: none }
+            .phpinfo th, .phpinfo td        { font-size: 75%; border: 1px solid #666; vertical-align: baseline; padding: 4px 5px; overflow: hidden; text-overflow: ellipsis; }
+            .phpinfo td, .phpinfo td *      { font-size: 75%; text-align: left; }
+            .phpinfo td:not(.e,.v,.p,.h)    { background-color: unset !important; }
+            .phpinfo h1                     { font-size: 150% }
+            .phpinfo h2                     { font-size: 125% }
+            .phpinfo .p                     { text-align: left }
+            .phpinfo .e                     { background-color: rgba(0,0,0,0.2); width: auto; font-weight: bold }
+            .phpinfo .h                     { background-color: rgba(0,0,0,0.1); font-weight: bold }
+            .phpinfo .v                     { background-color: rgba(0,0,0,0.1); max-width: 300px; overflow-x: auto; word-wrap: break-word }
+            .phpinfo img                    { display: none }
+            .phpinfo hr                     { width: 100%; border: 0; height: 1px }
+            .phpinfo br                     { display: none }
+            .phpinfo img[alt='PHP Logo']    { display: none }
+
+        <?php HERE("raw_css") ?></style><?php return HSTOP();
+    }
+
     function dom_phpinfo($headline_offset = 0, $display_vars = false, $display_extensions = true) {    
 
         ob_start();
@@ -8945,28 +9075,7 @@
         
         // Add syles
     
-        return /*$phpinfo_style.*/style((function () { HSTART() ?><style><?php HERE() ?>
-                
-                .phpinfo                        { word-break: break-all; }
-                .phpinfo pre                    { margin: 0; font-family: monospace }
-                .phpinfo a:link                 { text-decoration: initial; color: initial; text-decoration: initial; background-color: initial; }
-                .phpinfo a:hover                { text-decoration: underline }
-                .phpinfo table                  { table-layout: initial; border-collapse: collapse; border: 0; width: auto; width: -webkit-fill-available; box-shadow: none }
-                .phpinfo th, .phpinfo td        { font-size: 75%; border: 1px solid #666; vertical-align: baseline; padding: 4px 5px; overflow: hidden; text-overflow: ellipsis; }
-                .phpinfo td, .phpinfo td *      { font-size: 75%; text-align: left; }
-                .phpinfo td:not(.e,.v,.p,.h)    { background-color: unset !important; }
-                .phpinfo h1                     { font-size: 150% }
-                .phpinfo h2                     { font-size: 125% }
-                .phpinfo .p                     { text-align: left }
-                .phpinfo .e                     { background-color: rgba(0,0,0,0.2); width: auto; font-weight: bold }
-                .phpinfo .h                     { background-color: rgba(0,0,0,0.1); font-weight: bold }
-                .phpinfo .v                     { background-color: rgba(0,0,0,0.1); max-width: 300px; overflow-x: auto; word-wrap: break-word }
-                .phpinfo img                    { display: none }
-                .phpinfo hr                     { width: 100%; border: 0; height: 1px }
-                .phpinfo br                     { display: none }
-                .phpinfo img[alt='PHP Logo']    { display: none }
-    
-            <?php HERE("raw_css") ?></style><?php return HSTOP(); })()).
+        return /*$phpinfo_style.*/style(dom_php_info_css()).
             
             div($phpinfo, "phpinfo");
     }
@@ -8991,4 +9100,712 @@
       
     ######################################################################################################################################
     #endregion
+
+
+
+
+
+    ######################################################################################################################################
+    #region TOOLBAR
+
+    $__dom_frameworks_toolbar = array(
+
+        'material' => array
+        (
+            'classes' => array
+            (
+                  'toolbar'                   => 'mdc-top-app-bar mdc-top-app-bar--dense mdc-top-app-bar--fixed mdc-top-app-bar--waterfall mdc-top-app-bar--flexible mdc-top-app-bar--flexible-default-behavior mdc-top-app-bar--fixed-lastrow-only'
+                , 'toolbar-row'               => 'mdc-top-app-bar__row row'
+                , 'toolbar-cell'              => 'mdc-top-app-bar__section'
+                , 'toolbar-cell-right'        => 'mdc-top-app-bar__section--align-end'
+                , 'toolbar-cell-left'         => 'mdc-top-app-bar__section--align-start'
+                , 'toolbar-cell-center'       => 'mdc-top-app-bar__section--align-middle'
+                , 'toolbar-cell-shrink'       => 'mdc-top-app-bar__section--shrink-to-fit'
+            
+                , 'toolbar-title'             => 'mdc-top-app-bar__title'
+
+                , 'toolbar-icon'              => 'material-icons mdc-top-app-bar__icon'
+
+                , 'menu-toggle'               => 'mdc-menu-anchor'
+                , 'menu'                      => 'mdc-menu'
+                , 'menu-list'                 => 'mdc-menu__items mdc-list sidebar'
+                , 'menu-list-item'            => 'mdc-list-item'
+                , 'menu-list-item-separator'  => 'mdc-list-divider'
+                
+            )
+        )
+        
+        ,"bootstrap" => array
+        (
+            "classes" => array
+            (
+                'menu-list'             => 'dropdown-menu sidebar'
+                , 'toolbar'               => 'navbar sticky-top'        
+            )
+        )
+        
+        ,"spectre" => array
+        (
+            "classes" => array
+            (
+                'toolbar-row'               => 'navbar'
+                , 'toolbar-cell'              => 'navbar-section'
+
+            )
+        )
+    );
+
+    dom_init_extend_frameworks_table($__dom_frameworks_toolbar);
+
+    function hook_toolbar($row)
+    {
+        dom_set("toolbar",      true);
+        dom_set("toolbar_$row", true);
+    }
+        
+    function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
+
+    function _include_css_main_toolbar_adaptation($main_selector)
+    {
+        if (!!dom_get("toolbar_banner") && !!dom_get("toolbar_nav")) return "$main_selector { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
+        if (!!dom_get("toolbar_banner"))                             return "$main_selector { margin-top: calc(var(--header-height)); }";
+        if (!!dom_get("toolbar_nav"))                                return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
+
+        return "";
+    }
+
+    function include_css_boilerplate_toolbar()
+    {
+        if (!!dom_get("no_css")) return '';
+
+        dom_heredoc_start(-3); ?><style><?php dom_heredoc_flush(null); ?>
+
+            .toolbar                                        { width: 100%; z-index: 1; }
+            
+            .toolbar-row                                    { width: 100%; margin-left: 0px; margin-right: 0px; display: flex; }
+
+            .toolbar-row                                    {    background-color: var(--theme-color);      color: var(--background-color); }
+            .toolbar-row a                                  { /* background-color: var(--theme-color); */   color: var(--background-color); }
+            .toolbar-row-banner                             {    background-color: var(--theme-color); /*   color: default; */           }
+            
+            .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
+            .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
+
+            .toolbar-row-nav                                { padding-right: var(--dom-gap); margin-right: var(--dom-gap); }
+            .toolbar-row-nav .cell:nth-child(1)             { width: calc(100vw / 2 - var(--scrollbar-width) / 2 - var(--main-max-width) / 2); min-width: var(--header-toolbar-height); }
+            .toolbar-row-nav .cell:nth-child(2)             { flex: 0 1 auto; text-align: left;  }
+            .toolbar-row-nav .cell:nth-child(3)             { flex: 1 0 auto; text-align: right; align-items: center; }
+
+            .toolbar-row-nav .cell:nth-child(3) a           { padding-left: var(--dom-gap); }
+            .toolbar-row-nav .cell:nth-child(3) ul          { display: inline-block; list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
+            .toolbar-row-nav .cell:nth-child(3) li          { display: inline-block; vertical-align: middle; }
+            .toolbar-row-nav .cell:nth-child(3) li a        { display: inline-block; width: 100%; padding: var(--dom-gap); }
+
+            .toolbar .nav-link                              { padding-top: 0px; padding-right: 0px; padding-bottom: 0px; padding-left: 0px; font-size: 1.5em; } 
+            .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
+
+            .menu-toggle                                    { width: var(--header-toolbar-height); }
+            .menu-toggle a,       .toolbar-title a,
+            .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
+            .toolbar-title .headline1                       { margin-top: 0px; margin-bottom: 0px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
+
+            /* Menu open/close button layout */
+
+            .menu-switch-symbol, .menu-close-symbol         { height: var(--header-toolbar-height); line-height: var(--header-toolbar-height); }
+
+            /* Menu open/close mechanism */
+
+            .menu-close-symbol                              { display: none; }
+
+            /* Menu list */
+
+            .menu                                           { background-color: var(--theme-color); color: var(--background-color); box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
+            .menu a:hover                                   { background-color: var(--background-color); color: var(--theme-color); }
+
+            #<?= DOM_MENU_ID 
+            ?>-open .menu                                   { position: absolute; }
+            .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
+            .menu ul                                        { list-style-type: none; padding-inline-start: 0px; padding-inline-end: 0px; margin-block-end: 0px; margin-block-start: 0px; }
+            .menu li a                                      { display: inline-block; width: 100%; padding: var(--dom-gap); }
+
+        <?php if (!AMP()) { ?> 
+
+            /* Toolbar */
+
+            <?php if (dom_get("no_js")) { ?> 
+            
+            .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
+
+            <?php } else { ?> 
+
+            .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation(".main") ?> 
+
+            <?php } ?> 
+            
+            /* Menu open/close mechanism */
+
+            #<?= DOM_MENU_ID ?>-open        .menu-switch-symbol           { display: inline-block;  }
+            #<?= DOM_MENU_ID ?>-open:target .menu-switch-symbol           { display: none; }
+            
+            #<?= DOM_MENU_ID ?>-open        .menu-close-symbol            { display: none;  }
+            #<?= DOM_MENU_ID ?>-open:target .menu-close-symbol            { display: inline-block; }
+            
+            #<?= DOM_MENU_ID ?>-open        .menu                         { display: none;  max-height:   0vh; }
+            #<?= DOM_MENU_ID ?>-open:target .menu                         { display: block; max-height: 100vh; }
+                
+        <?php } if (AMP()) { ?> 
+
+            /* AMP DEFAULTS */
+            
+            .menu                                           { display: block } /* AMP DYNAMIC MENU SUPPORTED */
+                                            
+            amp-sidebar                                     { background-color: var(--background-color); }
+            amp-sidebar                                     { text-align: left; }
+            amp-sidebar .menu                               { position: relative; }
+            amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
+
+    <?php } ?>
+
+        <?php if ("material" == dom_get("framework")) { ?> 
+            
+            .toolbar .row .cell         { overflow: visible }
+                
+            #<?= DOM_MENU_ID ?>-open        .menu     { display: block; max-height: 100vh; }
+            #<?= DOM_MENU_ID ?>-open:target .menu     { display: block; max-height: 100vh; }
+            
+            .menu                       { display: block } /* MATERIAL DESIGN LIB DYNAMIC MENU SUPPORTED */
+
+            .mdc-top-app-bar--dense 
+            .mdc-top-app-bar__row       { height: var(--header-toolbar-height); /*align-items: center;*/ }
+            .mdc-top-app-bar            { <?php if (dom_AMP()) { ?> position: inherit; <?php } ?> } 
+            .mdc-top-app-bar__section   { flex: 0 1 auto; }
+            .mdc-top-app-bar--dense 
+            .mdc-top-app-bar__title     { padding-left: 0px; }
+            .mdc-menu--open             { margin-top: var(--header-toolbar-height); }
+            
+        <?php } if ("bootstrap" == dom_get("framework")) { ?> 
+
+            /* BOOTSTRAP DEFAULTS */
+            
+            .menu   { display: block } /* BOOTSTRAP LIB DYNAMIC MENU SUPPORTED */
+            .navbar { padding: 0px }
+            
+        <?php } if ("spectre" == dom_get("framework")) { ?> 
+
+        <?php } ?> 
+
+            /* PRINT */
+                
+            @media print {
+
+                .toolbar-row-banner                   { display: none }
+                .toolbar-row-nav                      { background-color: transparent; align-items: flex-start; justify-content: flex-end; }
+                .toolbar-row-nav .toolbar-cell-left   { display: none }
+                .toolbar-row-nav .toolbar-cell-right  { display: none }
+                .toolbar-row-nav .toolbar-cell-center { background-color: transparent;  padding-right: var(--scrollbar-width); }
+            }    
+
+        <?php dom_heredoc_flush("raw_css"); ?></style><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_js_toolbar_framework_material()
+    {
+        if ("material" != dom_get("framework")) return "";
+
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+
+        /* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
+
+        if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
+
+        /* Adjust toolbar margin */
+
+        document.querySelector(".mdc-top-app-bar").position = "fixed";
+
+        (function()
+        {
+            var pollId = 0;
+
+            pollId = setInterval(function()
+            {
+                var e = document.querySelector(".mdc-top-app-bar");
+
+                if (e != null)
+                { 
+                    var pos = getComputedStyle(e).position;
+
+                    if (pos === "fixed" || pos === "relative")
+                    {
+                        material_init();
+                        clearInterval(pollId);
+                    }
+                }
+
+            }, 250);
+
+            function material_init()
+            {
+                var e = document.querySelector(".mdc-top-app-bar");
+
+                if (e != null && typeof mdc !== "undefined")
+                { 
+                    var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);
+                    toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");
+                }
+            }
+
+        })();
+
+        /*  Menu */
+
+        var menuEl = document.querySelector(".mdc-menu");
+
+        if (menuEl != null && typeof mdc !== "undefined")
+        {  
+            var menuToggle = document.querySelector(".menu-toggle");
+            var menu       = new mdc.menu.MDCMenu(menuEl);
+
+            menuToggle.addEventListener("click", function() 
+            { 
+                menu.open = !menu.open; 
+            });
+
+            menuEl.addEventListener("MDCMenu:selected", function(evt) 
+            {
+                const detail = evt.detail;
+
+                detail.item.textContent;
+                detail.index;
+            });
+        }  
+
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_js_toolbar()
+    {
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+
+            /* TOOLBAR */
+
+            var idAnimationFrame = null;
+        
+            function updateToolbarHeight(animate)
+            {
+                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
+                var toolbars            = document.querySelectorAll(".toolbar");
+
+                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
+                var toolbar             = toolbars            ? toolbars[0]            : null;
+
+                if (toolbar != null && toolbar_row_banner != null)
+                {
+                    var header_height     = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue(    "height").replace("px",""), 10);
+                    var header_max_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px",""), 10);
+                    var header_min_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px",""), 10);
+        
+                    var stuck_height = header_max_height - header_min_height;
+
+                    if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
+                    else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
+        
+                    var target = Math.max(0, header_max_height - window.scrollY);
+
+                    var h = (animate) ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) : target;
+                    h = parseInt(Math.max(0, h), 0); /* So it's properly snapped */
+
+                    toolbar_row_banner.style.height = h + "px";
+
+                    if (Math.abs(h - target) > 0.1)
+                    {
+                        idAnimationFrame = window.requestAnimationFrame(onUpdateToolbarHeight);
+                    }
+                }
+            }
+        
+            function onUpdateToolbarHeight()
+            {
+                window.cancelAnimationFrame(idAnimationFrame);
+                updateToolbarHeight(true);
+            }
+        
+            function onInitToolbarHeight()
+            {
+                window.cancelAnimationFrame(idAnimationFrame);
+                updateToolbarHeight(false);
+            }
+
+            dom_on_ready( onInitToolbarHeight);
+            dom_on_loaded(onInitToolbarHeight);
+            dom_on_scroll(onUpdateToolbarHeight);
+
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function dom_js_toolbar_banner_rotation()
+    {
+        dom_heredoc_start(-2); ?><script><?php dom_heredoc_flush(null); ?>
+            
+            /* TOOLBAR BANNER IMAGE ROTATION */
+            
+            function onInitRotatingHeaders()
+            {
+                var rotate_backgrounds = function(content)
+                {
+                    if (content != "")
+                    {
+                        var index_url = 0;
+                        var urls = content.split(",");
+            
+                    /*console.log("DOM: DEBUG: Header backgrounds: ", urls);*/
+
+                        if (urls && !(typeof urls === "undefined") && urls.length > 0)
+                        {
+                            setInterval(function()
+                            {
+                                var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
+                                var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
+
+                                if (toolbar_row_banner)
+                                {
+                                    toolbar_row_banner.style.backgroundImage = "url(" + urls[index_url] + ")";
+                                    index_url = (index_url + 1) % urls.length;
+                                }
+
+            
+                            }, 10*1000);
+                        }
+                    }
+                };
+                
+                <?php if (has("noajax") && is_string(get("support_header_backgrounds"))) { ?>
+                rotate_backgrounds("<?= get("support_header_backgrounds") ?>"); 
+                <?php } else { ?> 
+                dom_ajax("?ajax=header-backgrounds", rotate_backgrounds);
+                <?php } ?> 
+            }
+
+            dom_on_loaded(onInitRotatingHeaders);
+        
+        <?php dom_heredoc_flush("raw_js"); ?></script><?php return dom_heredoc_stop(null);
+    }
+
+    function scripts_body_toolbar()
+    {
+        if (dom_has("ajax")) return "";
+
+        return                                                                    ((!!dom_get("dom_script_toolbar",            true)) ? (
+                dom_script(dom_js_toolbar                       ()).   "") : ""). ((!!dom_get("support_header_backgrounds",   false)) ? (
+                dom_script(dom_js_toolbar_banner_rotation       ()).   "") : ""). ((!!dom_get("dom_script_framework_material", true)) ? (
+                dom_script(dom_js_toolbar_framework_material    ()).   "") : "");
+    }
+
+    // ICONS
+    
+    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false)
+    {
+        $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
+        
+        if (($attributes === DOM_INTERNAL_LINK || $attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
+        if ($target === false) { $target = DOM_INTERNAL_LINK; }
+        
+        return array($icon, $label, $link, $id, $target, $attributes);
+    }
+
+    function dom_icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
+    {
+        $icon       = dom_get($icon_entry, "icon",          dom_get($icon_entry, 0, ""));
+        $label      = dom_get($icon_entry, "label",         dom_get($icon_entry, 1, ""));
+        $link       = dom_get($icon_entry, "link",          dom_get($icon_entry, 2, false));
+        $id         = dom_get($icon_entry, "id",            dom_get($icon_entry, 3, false));
+        $target     = dom_get($icon_entry, "target",        dom_get($icon_entry, 4, $default_target));
+        $attributes = dom_get($icon_entry, "attributes",    dom_get($icon_entry, 5, false));
+
+        if (false === $attributes) $attributes = array();
+        
+        if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
+        if (!in_array("alt",        $attributes) && !dom_AMP()      ) $attributes["alt"         ] = $label;
+        if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
+
+        return a($icon, $link, $attributes, $target);
+    }
+
+    function icon_entries($icon_entries, $default_target = DOM_INTERNAL_LINK)
+    {
+        if (is_array($icon_entries))
+        {
+            return wrap_each($icon_entries, dom_eol(), "dom_icon_entry_to_link", false);
+        }
+        else if (is_string($icon_entries))
+        {
+            return $icon_entries;
+        }
+
+        return "";
+    }
+    
+    // MENU
+
+    function menu_entry($text = "", $link = false)
+    {
+        return ($link === false) ? $text : array($text, $link);
+    }
+
+    $__dom_ul_menu_index = -1;
+
+    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
+    {
+        global $__dom_ul_menu_index;
+        ++$__dom_ul_menu_index;
+
+        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__dom_ul_menu_index);
+
+        $menu_lis = "";
+        {
+            if (!is_array($menu_entries)) $menu_entries = array($menu_entries);
+
+            if (false != $menu_entries) foreach ($menu_entries as $menu_entry)
+            {
+                if ($menu_entry == array() || $menu_entry == "")
+                {
+                    $menu_lis .= li("", array("class" => dom_component_class("list-item-separator"), "role" => "separator"));
+                }
+                else
+                {    
+                //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
+                    if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
+                            
+                    $item       = dom_get($menu_entry, "item",   dom_get($menu_entry, 0, ""));
+                    $link       = dom_get($menu_entry, "link",   dom_get($menu_entry, 1, false));
+                    $target     = dom_get($menu_entry, "target", dom_get($menu_entry, 2, $default_target));
+                    $attributes = false;
+                    
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => dom_component_class("list-item"), "role" => "menuitem", "tabindex" => "0"));
+                }
+            }
+        }
+
+        $html = "";
+
+             if (dom_AMP())                             { $html =  ul($menu_lis, array("role" => "group", "class" => dom_component_class('menu-list')/*." ".dom_component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
+        else if (dom_get("framework") == "bootstrap")   { $html = div($menu_lis, array("role" => "group", "class" => dom_component_class('menu-list'),                                     "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
+        else                                            { $html =  ul($menu_lis, array("role" => "group", "class" => dom_component_class('menu-list'),                                     "role" => "menu"                                                                            )); }
+
+        if (dom_AMP() && !!$sidebar)
+        {
+            hook_amp_sidebar(
+                dom_tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
+                );
+
+            //$html = span("","placeholder-amp-sidebar");
+        }
+
+        return $html;
+    }
+
+    function menu_switch() { return (dom_get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
+                                .   (dom_get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (dom_get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (dom_get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
+                                                                            . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
+                                                                                                                                        , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
+                                                            ; 
+    }
+
+    // TOOLBAR
+
+    function toolbar_row($html, $attributes = false)
+    {
+        return div(
+                $html,
+                dom_attributes_add_class(
+                    $attributes,
+                    dom_component_class("toolbar-row")." ".
+                    dom_component_class("row")
+                    )
+                );
+    }
+
+    function toolbar_section($html, $attributes = false)
+    {
+        return section(
+                $html,
+                attributes_add(
+                    $attributes,                        
+                    attributes(
+                        dom_component_class("toolbar-cell"),
+                        dom_component_class("cell")
+                        )
+                    )
+                );
+    }
+
+    function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
+    {
+        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), dom_component_class("toolbar-cell-left"   ));
+        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), dom_component_class("toolbar-cell-center" ));
+        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), dom_component_class("toolbar-cell-right"  ));
+
+        if ($section1 === false) $section1 = "";
+        if ($section2 === false) $section2 = "";
+        if ($section3 === false) $section3 = "";
+
+        if (stripos($section1, "<section") === false) $section1 = toolbar_section($section1);
+        if (stripos($section2, "<section") === false) $section2 = toolbar_section($section2);
+        if (stripos($section3, "<section") === false) $section3 = toolbar_section($section3);
+
+        return $section1.$section2.$section3;
+    }
+
+    function toolbar_banner($icon_entries = false, $section2 = false, $section3 = false)
+    {
+        hook_toolbar("banner");
+
+        return toolbar_row(
+            toolbar_banner_sections_builder(
+                $icon_entries,
+                $section2,
+                $section3
+                ),
+            array("class" => "toolbar-row-banner", "role" => "banner")
+            );
+    }
+
+    function menu_entries($html, $sidebar = DOM_AUTO)
+    {
+        if (false === stripos($html, "menu-list") 
+        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
+
+        return (dom_get("framework") != "bootstrap" ? div($html, "menu-entries " . dom_component_class("menu")) : $html);
+    }
+
+    function menu_toggle($html, $sidebar = DOM_AUTO)
+    {
+        if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
+        if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
+
+        return div($html, array("role" => "switch", "aria-checked" => "false", "id" => "menu-open", "hidden" => true, "class" => dom_component_class("menu-toggle")));
+    }
+
+    function toolbar_nav_toolbar($html = false)
+    {
+        if (false === $html) $html = ul_menu_auto();
+
+        return toolbar_section(($html === false) ? '' : $html,  array(
+            
+            "role" => "navigation",
+            "class" => (dom_component_class("toolbar-cell-right") . ' ' . 
+                        dom_component_class("toolbar-cell-right-shrink"))));
+    }
+
+    function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
+    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(dom_get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
+
+    function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
+
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = DOM_AUTO)
+    {
+        if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
+        if (false === $html)                                            $html = menu_toggle_auto($sidebar);
+        
+        return toolbar_section(
+
+            ($html === false) ? '' : $html,
+
+            attributes(
+                attr("role", "menu"),
+                attr("class",
+                    dom_component_class("toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
+                    dom_component_class("toolbar-cell-right-shrink")    ) : "")
+                    )
+                )
+            );
+    }
+
+    function toolbar_nav_title($html, $attributes = false)
+    {
+        hook_title($html);
+
+        if ($html !== false && $html != "")
+        {
+            if (false === stripos($html,"<a"))   $html =   a($html,'.');
+            if (false === stripos($html,"<h1"))  $html =  h1($html);
+        }
+
+        if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
+        
+        return toolbar_section(($html === false) ? '' : $html, attributes(attr("role", "menuitem"), dom_component_class("toolbar-cell-center")));
+    }
+
+    function toolbar_nav($html, $attributes = false)
+    {
+        hook_toolbar("nav");
+
+        if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
+        
+        $menu_id_amp = DOM_MENU_ID."-static";
+        
+        $html_amp = $html;
+        $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
+        $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
+
+                       $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "role" => "menubar", "class" => "toolbar-row-nav"         ));
+        if (dom_AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "role" => "menubar", "class" => "toolbar-row-nav static"  ));
+
+        return $html;
+    }
+
+    function toolbar($html, $attributes = false)
+    {
+        if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
+        
+        $amp_observer = "";
+        $amp_anim     = "";
+        
+        if (dom_AMP())
+        {            
+            hook_amp_require("animation");
+            hook_amp_require("position-observer");
+
+            $amp_anim     = dom_eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
+                            . dom_eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
+
+            $amp_observer = dom_eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
+        }
+
+        return  
+
+            $amp_anim.
+            comment("PRE Toolbar").
+            dom_header(
+                $html.
+                $amp_observer, 
+                dom_attributes_add_class($attributes, dom_component_class("toolbar toolbar-container"))
+                );
+    }
+
+    ######################################################################################################################################
+    #endregion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ?>

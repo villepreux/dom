@@ -1,0 +1,38 @@
+<?php 
+
+    require_once(dirname(__FILE__)."/../../../dom_html.php"); 
+    use function dom\{get,css_gradient};
+
+?>
+
+:root {
+
+    --light-theme-color: #806;
+    --light-accent-color: #03c;
+    --light-link-color: #858;
+    --light-link-color-accent: #f0f;
+
+    --dark-theme-color: #f7d;
+    --dark-accent-color: #2be;
+    --dark-link-color: #979;
+    --dark-link-color-accent: #f0f;
+
+    --header-height:            128px;
+    --header-min-height:         64px;
+    --header-toolbar-height:     64px;
+}
+
+.toolbar-row-banner { 
+    background: center/cover url(<?= get("url_banner_img") ?>); 
+    background-color: var(--theme-color);
+    background-blend-mode: hard-light;
+}
+
+h2      { <?= css_gradient() ?> }
+
+header, article { background-color: unset }
+
+aside   { border-color: var(--accent-color) }
+
+.grid   { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)) }
+.card   { box-shadow: 0px 0px 4px 2px #00000022; border-radius: 6px; } 
