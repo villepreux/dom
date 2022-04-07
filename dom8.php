@@ -6496,8 +6496,6 @@
     {
         $light = !!get("light", get("light_default", false));
 
-      //die("has.light=".(has("light")?"true":"false")." has.light_default=".(has("light_default")?"true":"false")." light_default=".(get("light_default", false)?"true":"false")." light=".(get("light", false)?"true":"false")." get.light=".($light?"true":"false")." scheme=$scheme var=$var default=$default get.theme_color=".get("theme_color", $default)." get.$var=".get($var, get("theme_color", $default)));
-
         return (($light && $scheme == "light") || (!$light && $scheme == "dark")) 
             ? get($var, get("theme_color", $default)) 
             : $default
@@ -6699,11 +6697,9 @@
 
             /* Allow customization of default colors, via custom properties */
 
-            /* Provide good, AA contrasted in all situations, defaults */
+            /* Provide good, AAA contrasted in all situations, defaults */
             
-            <?php $light = !!get("light", get("light_default", false)); ?>
-
-            <?= css_root(css_vars_color_scheme($light ? "light" : "dark", 1)) ?> 
+            <?= css_root(css_vars_color_scheme("light")) ?> 
 
             /* Handling of dark theme variation */
             
