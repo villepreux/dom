@@ -95,7 +95,7 @@
     
                 --header-height:          0px;
                 --header-min-height:      0px;
-                --header-toolbar-height:  calc(2 * var(--line-height), 1rem);
+                --header-toolbar-height:  calc(2 * var(--line-height, 1rem));
                 --scroll-margin:          calc(var(--gap) + var(--header-toolbar-height, 0) + var(--header-min-height, 0));
             }
     
@@ -148,7 +148,7 @@
             .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
             .menu ul                                        { padding: 0; gap: 0; list-style-type: none; align-items: stretch: flex-direction: column; }
             .menu li                                        { padding: 0; }
-            .menu li a                                      { padding: calc(0.5 * var(--gap)) var(--gap); }
+            .menu li > *                                    { padding: calc(0.5 * var(--gap)) var(--gap); }
     
         <?php if (!AMP()) { ?> 
     
