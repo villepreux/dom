@@ -7131,7 +7131,7 @@
     
             /* UTILITY CLASSES */
     
-            /* Should it be part of this base (dom framework independant) css ? */
+            /* Should it be part of this base (dom framework independent) css ? */
         
             a[href^="//"]:after, a[href^="http"]:after, a.external:after {
 
