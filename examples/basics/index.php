@@ -1,13 +1,16 @@
 <?php
 
-    require_once(dirname(__FILE__)."/../../dom.php"); 
-    require_once(dirname(__FILE__)."/../../dom_toolbar.php"); 
+    require_once(dirname(__FILE__)."/../../dom_html.php"); 
+    require_once(dirname(__FILE__)."/../../dom_toolbar.php");
 
-    set("theme_color", "#FF590D"); // There are lot of configurable defaults/options
+    use function dom\{set,get,unsplash_url_img,is_localhost,init,output,header,css_gradient,html,rss,jsonfeed,tile,head,body,style,env_add,toolbar,main,article,anchor,h1,h2,lorem_ipsum,p,grid,card,card_title,card_media,card_text,img,hr,a,footer,svg_rss,svg_facebook,aside};
 
-    set("unsplash_photo_id",    "ThIY-N_LLfY");
-    set("url_banner_img",       unsplash_url_img(get("unsplash_photo_id"), 1200, 800, "gabrielgm")); // get/set can used as a helper
-    set("url_card_img",         unsplash_url_img(get("unsplash_photo_id"),  300, 200, "gabrielgm")); // get/set can used as a helper
+    set("theme_color", "#770000"); // There are lot of configurable defaults/options
+
+    set("unsplash_photo_id",    "Baz9Oss6Hj8"/*"ThIY-N_LLfY"*/);
+    set("unsplash_photo_author","tylerhendy"/*"gabrielgm"*/);
+    set("url_banner_img",       unsplash_url_img(get("unsplash_photo_id"), 1200, 800, get("unsplash_photo_author"))); // get/set can used as a helper
+    set("url_card_img",         unsplash_url_img(get("unsplash_photo_id"),  300, 200, get("unsplash_photo_author"))); // get/set can used as a helper
 
     // TODO ------------------------------------------------------------------------>
     // TODO : FIX CANONICAL PATH HACK
@@ -31,9 +34,9 @@
     // TODO
     // TODO ------------------------------------------------------------------------>
 
-    dom_init();
+    init();
 
-    dom_output(
+    output(
 
         html( // HTML document
 
@@ -41,43 +44,20 @@
 
             body(
 
-                style("
-
-                    :root                           { --header-min-height: 64px }
-
-                    .toolbar-row-banner             { background: center/cover url(".get("url_banner_img")."); }
-
-                    .headline2                      { ".dom_css_gradient()." }
-
-                    .grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-
-                    .card                           { border: 1px solid #DDD; border-radius: 6px; box-shadow: 2px 2px 6px 2px #DDD; }
-                    .card img                       { width: 100% }
-                    .card-text,
-                    .card-title                     { padding:      var(--dom-gap); }
-                    .card .headline                 { font-size: 1em; margin: 0px;  }                    
-                    .card-title-main,       
-                    .card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-                    .footer                         { background-color: dimgray }
-                    .footer a                       { padding: var(--dom-gap);  }
-
-                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "dom_gap", "dom_gap").") { main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } }
-
-                    "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet
-
                 toolbar("Hello World!").
 
-                content( // My main content section
+                main( // My main content section
 
                     article( // Some random content
-                        anchor("here").h2("First Headline").
-                        lorem_ipsum()
+                        h2("First Headline").
+                        lorem_ipsum(3).
+                        aside(p(lorem_ipsum(1))).
+                        lorem_ipsum(1)
                         ).
 
                     article(
 
-                        dom_header(
+                        header(
                             h2("Cards section").
                             p(date("d/m/Y")." - Cards section")
                             ).
@@ -88,31 +68,31 @@
                                 card_title("We love cards").
                                 card_media(img(get("url_card_img"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("url_card_img"))).
                                 card_text(
-                                    "Feel free to use whatever web framework css machinery to render your cards"
+                                    p("Feel free to use whatever web framework css machinery to render your cards")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("url_card_img"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("url_card_img"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 )
                             )
@@ -126,7 +106,7 @@
                     hr().
 
                     p(  "Image courtesy of unsplash.com. ".
-                        "Photo ".a("https://unsplash.com/photos/".get("unsplash_photo_id"), "© Gabriel Garcia Marengo").".")
+                        "Photo ".a("© ".get("unsplash_photo_author"), "https://unsplash.com/photos/".get("unsplash_photo_id")).".")
                 ).
 
                 footer(

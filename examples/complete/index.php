@@ -1,7 +1,9 @@
 <?php
 
-    require_once(dirname(__FILE__)."/../../dom.php"); 
+    require_once(dirname(__FILE__)."/../../dom_html.php"); 
     require_once(dirname(__FILE__)."/../../dom_toolbar.php"); 
+
+    use function dom\{set,get,unsplash_url_img,is_localhost,init,output,css_gradient,html,rss,jsonfeed,tile,head,body,header,footer,style,env_add,toolbar,main,article,anchor,h1,h2,h3,lorem_ipsum,p,grid,card,card_title,card_media,card_text,img,hr,a,svg_rss,svg_facebook,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,toolbar_nav_title,toolbar_nav_toolbar,svg_darkandlight,url_void,cards_async,script};
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1"); // get/set can used as a helper
 
@@ -29,9 +31,9 @@
 
     define("TOKEN_FLICKR", "8359186a91acb42a4934c5a2c73195d1");
 
-    dom_init();
+    init();
 
-    dom_output(
+    output(
 	
         html( // HTML document
 
@@ -41,7 +43,7 @@
 
                 style("
 
-                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "dom_gap", "dom_gap").") { main { padding-left: var(--dom-gap); padding-right: var(--dom-gap); } }
+                    @media screen and (max-width: ".env_add("main_max_width", "scrollbar_width", "gap", "gap").") { main { padding-left: var(--gap); padding-right: var(--gap); } }
 
                     "). // Some inline CSS for a shorter example, but of course could be defined in a separated stylesheet,
                         // which is needed in order to work well as an AMP page
@@ -56,7 +58,7 @@
                         )
                     ).
 
-                content( // My main content section
+                main( // My main content section
 
                     article( // Some random content
                         h2("First Headline").
@@ -65,7 +67,7 @@
 
                     article(
 
-                        dom_header(
+                        header(
                             h2("Cards section").
                             p(date("d/m/Y")." - Cards section")
                             ).
@@ -117,7 +119,7 @@
                         ).
 
                     article( // Some more random content
-                        h2("3rd Headline").
+                        h2("Third Headline").
                         lorem_ipsum()
                         ).
 
@@ -136,45 +138,50 @@
                 
             script('
 
-                $(function() {
+            console.log("test");
 
-                    $(".darkandlight").click(function() {
+                dom.on_ready(function() {
+
+                    document.querySelector(".darkandlight").addEventListener("click", function() {
                         /* TODO SOMETHING MORE ROBUST */
-                        /* document.documentElement.setAttribute("data-theme", ($("main").css("color") == "rgb(221, 221, 221)") ? "light" : "dark"); */
-                        });
+                        document.documentElement.setAttribute("data-colorscheme", (window.getComputedStyle(document.querySelector("main")).getPropertyValue("color") == "rgb(242, 242, 242)") ? "light" : "dark");
+                        });       
 
                     function update_current_link_from_scroll() {
                         
-                        let scroll = window.scrollY;
+                        var current_link = null;
+                        
+                        document.querySelectorAll(".toolbar-row-nav .toolbar-cell-right a").forEach(function(e) {
 
-                        var $current_link = null;
-                        var $toolbar      = $(".toolbar-cell-right a");
+                            if (e.hash != "" && e.hash != "#!") {
+                                
+                                if (current_link == null) current_link = e;
 
-                        $toolbar.each(function() {
+                                var x = document.querySelector(e.hash);
 
-                            if (this.hash != "" && this.hash != "#!")
-                            {
-                                var section = null;
-                                try { section = $(this.hash).parent().nextAll("section")[0]; } catch (e) { section = null; }
+                                if (x) {
 
-                                if (section) {
+                                    var scrollMargin = 16 + parseInt(window.getComputedStyle(x).getPropertyValue("scroll-margin-top").replace("px",""));
+                                    
+                                    if (window.scrollY >= (x.getBoundingClientRect().top + window.pageYOffset - scrollMargin)
+                                    ||  window.scrollY >= (document.body.offsetHeight    - window.innerHeight - scrollMargin) ) 
+                                    
+                                        current_link = e;
 
-                                    if ($current_link == null) $current_link = $(this);
-
-                                    if ($(this.hash).offset().top <= scroll + 10 && scroll <= ($(section).offset().top + $(section).height()))
-                                    {
-                                        $current_link = $(this);
                                     }
                                 }
-                            }
-                        });
+                            });
                         
-                        if ($current_link != null)
-                        {
-                            $toolbar.removeClass("current");
-                            $current_link.addClass("current");
+                        if (current_link != null) {
+
+                            document.querySelectorAll(".toolbar-row-nav .toolbar-cell-right a").forEach(function(e) {
+                                e.classList.remove("current");
+                                });
+                            
+                            current_link.classList.add("current");
+                            
+                            }
                         }
-                    }
 
                     update_current_link_from_scroll();				
                     window.addEventListener("scroll", update_current_link_from_scroll);
