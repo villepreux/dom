@@ -59,8 +59,9 @@
     function server_server_name                 ($default = "localhost")            { return        at(get_server_vars(), 'SERVER_NAME',                        $default);  }
     function server_server_port                 ($default = "80")                   { return        at(get_server_vars(), 'SERVER_PORT',                        $default);  }
     function server_request_uri                 ($default = "www.example.com")      { return        at(get_server_vars(), 'REQUEST_URI',                        $default);  }
-    function server_https                       ($default = "on")                   { return        at(get_server_vars(), 'HTTPS', is_localhost() ? "off" : $default);  }
+    function server_https                       ($default = "on")                   { return        at(get_server_vars(), 'HTTPS',     is_localhost() ? "off" : $default);  }
     function server_http_host                   ($default = "127.0.0.1")            { return        at(get_server_vars(), 'HTTP_HOST',                          $default);  }
+    function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
 
     function do_not_track()
@@ -76,8 +77,10 @@
     #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
 
-    function is_localhost() { return (false !== stripos(server_http_host(), "localhost"))
-                                      || (false !== stripos(server_http_host(), "127.0.0.1")); }
+    function is_localhost() { return (false !== stripos(server_http_host(),   "localhost"))
+                                  || (false !== stripos(server_http_host(),   "127.0.0.1"))
+                                  || (false !== stripos(server_remote_addr(), "::1"      ))
+                                  || (false !== stripos(server_remote_addr(), "127.0.0.1")); }
 
     #endregion
     #region HELPERS : PROFILING
@@ -683,6 +686,11 @@
 
             function ajax(url, onsuccess, period, onstart, mindelay)
             {
+                if (typeof ajax_url_query_hook != "undefined")
+                {
+                    url = ajax_url_query_hook(url);
+                }
+
                 ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
             };
 
@@ -891,7 +899,7 @@
         $attributes = attributes_as_string($attributes);
 
         if ("" === $attributes) return attributes_as_string($classname);
-        if ("" === $classname)  return attributes_as_string($classname);
+        if ("" === $classname)  return attributes_as_string($attributes);
             
         if (false === stripos($attributes, "class="))
         {
@@ -7078,8 +7086,8 @@
     
             /* Text limited width & heroes full width */
     
-                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="banner"], [role="menubar"])) {
+                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"]) >
+            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"])) {
     
                 margin-inline: var(--gap);
             }
@@ -7242,11 +7250,12 @@
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
         }
 
-        return script(
+        return  script_src("https://www.googletagmanager.com/gtag/js?id=".TOKEN_GOOGLE_ANALYTICS, false, 'async').
+                script(
 
             eol(1) . '/*  Google analytics */ '.
 
-            eol(2) . tab() . 'window.ga=function() { ga.q.push(arguments) };'.
+            eol(2) . tab() . /*'window.ga=function() { ga.q.push(arguments) };'.
 
                 ' ga.q=[];'.
                 ' ga.l=+new Date;'.
@@ -7254,7 +7263,13 @@
                 ' ga("create",'. ' "'.TOKEN_GOOGLE_ANALYTICS.'",'. ' "auto"'.   ');'.
                 ' ga("set",'.    ' "anonymizeIp",'.                ' true'.     ');'.
                 ' ga("set",'.    ' "transport",'.                  ' "beacon"'. ');'.
-                ' ga("send",'.   ' "pageview"'.                                 ');'.
+                ' ga("send",'.   ' "pageview"'.                                 ');'.*/
+
+                ' window.dataLayer = window.dataLayer || [];'.
+                ' function gtag(){dataLayer.push(arguments);}'.
+                ' gtag(\'js\', new Date());'.
+                ' '.
+                ' gtag(\'config\', \''.TOKEN_GOOGLE_ANALYTICS.'\');'.
 
             eol(1)
             );
@@ -8119,7 +8134,9 @@
     function dterm          ($html = "", $attributes = false) {                             return  tag('dt',                         $html,                                                $attributes                                                         );                      }
     function ddef           ($html = "", $attributes = false) {                             return  tag('dd',                         $html,                                                $attributes                                                         );                      }
     
-    function table          ($html = "", $attributes = false) {                             return  tag('table',                      $html,                         attributes_add_class(  $attributes, component_class('table'))                              );                      }
+    function table          ($html = "", $attributes = false) {                             return  tag('table',                      $html,                                attributes_add( $attributes, attributes(attr("class", component_class('table'))))   );                      }
+    function thead          ($html = "", $attributes = false) {                             return  tag('thead',                      $html,                                                $attributes                                                         );                      }
+    function tbody          ($html = "", $attributes = false) {                             return  tag('tbody',                      $html,                                                $attributes                                                         );                      }
     function tr             ($html = "", $attributes = false) {                             return  tag('tr',                         $html,                                                $attributes                                                         );                      }
     function td             ($html = "", $attributes = false) {                             return  tag('td',                         $html,                                                $attributes                                                         );                      }
     function th             ($html = "", $attributes = false) {                             return  tag('th',                         $html,                                                $attributes                                                         );                      }
@@ -8141,7 +8158,7 @@
 
     function form           ($html = "", $attributes = false) { hook_amp_require("form");   return  tag('form',                       $html,                                                $attributes                                                         );                      }
 
-    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),       attr("id" , $id), attr("type", "checkbox") ) ));  }
+    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),        attr("id" , $id), attr("type", "checkbox") ) ));  }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')), attr("for", $id)                           ) ));  }
 
     function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes_add_class(  $attributes, component_class('button'))                             );                      }

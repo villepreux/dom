@@ -124,6 +124,7 @@
     function dom_server_request_uri                 ($default = "www.example.com")      { return        dom_at(dom_get_server_vars(), 'REQUEST_URI',                        $default);  }
     function dom_server_https                       ($default = "on")                   { return        dom_at(dom_get_server_vars(), 'HTTPS', dom_is_localhost() ? "off" : $default);  }
     function dom_server_http_host                   ($default = "127.0.0.1")            { return        dom_at(dom_get_server_vars(), 'HTTP_HOST',                          $default);  }
+    function dom_server_remote_addr                 ($default = "127.0.0.1")            { return        dom_at(dom_get_server_vars(), 'REMOTE_ADDR',   dom_server_http_host($default)); }
     function dom_server_http_do_not_track           ()                                  { return   1 == dom_at(dom_get_server_vars(), 'HTTP_DNT',                           0);         }
 
     function dom_do_not_track()
@@ -139,8 +140,10 @@
     #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
 
-    function dom_is_localhost() { return (false !== stripos(dom_server_http_host(), "localhost"))
-                                      || (false !== stripos(dom_server_http_host(), "127.0.0.1")); }
+    function dom_is_localhost() { return (false !== stripos(dom_server_http_host(),   "localhost"))
+                                      || (false !== stripos(dom_server_http_host(),   "127.0.0.1"))
+                                      || (false !== stripos(dom_server_remote_addr(), "::1"      ))
+                                      || (false !== stripos(dom_server_remote_addr(), "127.0.0.1")); }
 
     #endregion
     #region HELPERS : PROFILING
