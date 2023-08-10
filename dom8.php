@@ -59,8 +59,9 @@
     function server_server_name                 ($default = "localhost")            { return        at(get_server_vars(), 'SERVER_NAME',                        $default);  }
     function server_server_port                 ($default = "80")                   { return        at(get_server_vars(), 'SERVER_PORT',                        $default);  }
     function server_request_uri                 ($default = "www.example.com")      { return        at(get_server_vars(), 'REQUEST_URI',                        $default);  }
-    function server_https                       ($default = "on")                   { return        at(get_server_vars(), 'HTTPS', is_localhost() ? "off" : $default);  }
+    function server_https                       ($default = "on")                   { return        at(get_server_vars(), 'HTTPS',     is_localhost() ? "off" : $default);  }
     function server_http_host                   ($default = "127.0.0.1")            { return        at(get_server_vars(), 'HTTP_HOST',                          $default);  }
+    function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
 
     function do_not_track()
@@ -76,8 +77,10 @@
     #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
 
-    function is_localhost() { return (false !== stripos(server_http_host(), "localhost"))
-                                      || (false !== stripos(server_http_host(), "127.0.0.1")); }
+    function is_localhost() { return (false !== stripos(server_http_host(),   "localhost"))
+                                  || (false !== stripos(server_http_host(),   "127.0.0.1"))
+                                  || (false !== stripos(server_remote_addr(), "::1"      ))
+                                  || (false !== stripos(server_remote_addr(), "127.0.0.1")); }
 
     #endregion
     #region HELPERS : PROFILING
@@ -683,6 +686,11 @@
 
             function ajax(url, onsuccess, period, onstart, mindelay)
             {
+                if (typeof ajax_url_query_hook != "undefined")
+                {
+                    url = ajax_url_query_hook(url);
+                }
+
                 ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
             };
 
@@ -891,7 +899,7 @@
         $attributes = attributes_as_string($attributes);
 
         if ("" === $attributes) return attributes_as_string($classname);
-        if ("" === $classname)  return attributes_as_string($classname);
+        if ("" === $classname)  return attributes_as_string($attributes);
             
         if (false === stripos($attributes, "class="))
         {
@@ -4164,6 +4172,7 @@
 
     function cached_getimagesize($src)
     {
+        if (!is_string($src)) return 0;
         global $__cached_getimagesize;
         if (!array_key_exists($src, $__cached_getimagesize)) $__cached_getimagesize[$src] = @getimagesize($src);
         return $__cached_getimagesize[$src];
@@ -4652,6 +4661,7 @@
     // https://paulund.co.uk/social-media-colours
 
     function color_facebook         () { return '#3B5998'; }
+    function color_discord          () { return '#5865F2'; }
     function color_twitter          () { return '#00ACED'; }
     function color_linkedin         () { return '#0077B5'; }
     function color_google           () { return array('#DB4437', '#F4B400', '#0F9D58', '#4285F4'); } function color_googlenews() { return color_google(); }
@@ -6496,8 +6506,6 @@
     {
         $light = !!get("light", get("light_default", false));
 
-      //die("has.light=".(has("light")?"true":"false")." has.light_default=".(has("light_default")?"true":"false")." light_default=".(get("light_default", false)?"true":"false")." light=".(get("light", false)?"true":"false")." get.light=".($light?"true":"false")." scheme=$scheme var=$var default=$default get.theme_color=".get("theme_color", $default)." get.$var=".get($var, get("theme_color", $default)));
-
         return (($light && $scheme == "light") || (!$light && $scheme == "dark")) 
             ? get($var, get("theme_color", $default)) 
             : $default
@@ -6699,11 +6707,9 @@
 
             /* Allow customization of default colors, via custom properties */
 
-            /* Provide good, AA contrasted in all situations, defaults */
+            /* Provide good, AAA contrasted in all situations, defaults */
             
-            <?php $light = !!get("light", get("light_default", false)); ?>
-
-            <?= css_root(css_vars_color_scheme($light ? "light" : "dark", 1)) ?> 
+            <?= css_root(css_vars_color_scheme("light")) ?> 
 
             /* Handling of dark theme variation */
             
@@ -6775,17 +6781,18 @@
             /* "Cards" */
             /* TODO: TOO opinionated? Too often to be unset? */
 
-            article, 
-            blockquote,
-            aside           {   background-color: var(--background-lighter-color);
-                                           color: var(--text-color);
-                                    border-color: var(--border-color); }
+            article, blockquote,aside   { background-color: var(--background-lighter-color);
+                                                     color: var(--text-color);
+                                              border-color: var(--border-color); }
+
+            .card                       { background-color: var(--background-lighter-color); color: var(--text-color); }
+            .card-title                 { background-color: var(--background-darker-color);  color: var(--text-color); }
 
             article blockquote,
-            article aside   {   background-color: var(--background-color); }
+            article aside               { background-color: var(--background-color);        }
 
-            .card       { background-color: var(--background-lighter-color); color: var(--text-color); }
-            .card-title { background-color: var(--background-darker-color);  color: var(--text-color); }
+            article .card               { background-color: var(--background-color);        }
+            article .card .card-title   { background-color: var(--background-darker-color); }
 
             /* Headlines */
          
@@ -7079,8 +7086,8 @@
     
             /* Text limited width & heroes full width */
     
-                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="banner"], [role="menubar"])) {
+                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"]) >
+            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"])) {
     
                 margin-inline: var(--gap);
             }
@@ -7243,11 +7250,12 @@
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
         }
 
-        return script(
+        return  script_src("https://www.googletagmanager.com/gtag/js?id=".TOKEN_GOOGLE_ANALYTICS, false, 'async').
+                script(
 
             eol(1) . '/*  Google analytics */ '.
 
-            eol(2) . tab() . 'window.ga=function() { ga.q.push(arguments) };'.
+            eol(2) . tab() . /*'window.ga=function() { ga.q.push(arguments) };'.
 
                 ' ga.q=[];'.
                 ' ga.l=+new Date;'.
@@ -7255,7 +7263,13 @@
                 ' ga("create",'. ' "'.TOKEN_GOOGLE_ANALYTICS.'",'. ' "auto"'.   ');'.
                 ' ga("set",'.    ' "anonymizeIp",'.                ' true'.     ');'.
                 ' ga("set",'.    ' "transport",'.                  ' "beacon"'. ');'.
-                ' ga("send",'.   ' "pageview"'.                                 ');'.
+                ' ga("send",'.   ' "pageview"'.                                 ');'.*/
+
+                ' window.dataLayer = window.dataLayer || [];'.
+                ' function gtag(){dataLayer.push(arguments);}'.
+                ' gtag(\'js\', new Date());'.
+                ' '.
+                ' gtag(\'config\', \''.TOKEN_GOOGLE_ANALYTICS.'\');'.
 
             eol(1)
             );
@@ -8107,6 +8121,7 @@
     }
 
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
+    function nav            ($html = "", $attributes = false) {                             return  tag('nav',                        $html,                                                $attributes                                                         );                      }
     function div            ($html = "", $attributes = false) {                             return  tag('div',                        $html,                                                $attributes                                                         );                      }
     function p              ($html = "", $attributes = false) {                             return  tag('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
@@ -8119,7 +8134,9 @@
     function dterm          ($html = "", $attributes = false) {                             return  tag('dt',                         $html,                                                $attributes                                                         );                      }
     function ddef           ($html = "", $attributes = false) {                             return  tag('dd',                         $html,                                                $attributes                                                         );                      }
     
-    function table          ($html = "", $attributes = false) {                             return  tag('table',                      $html,                         attributes_add_class(  $attributes, component_class('table'))                              );                      }
+    function table          ($html = "", $attributes = false) {                             return  tag('table',                      $html,                                attributes_add( $attributes, attributes(attr("class", component_class('table'))))   );                      }
+    function thead          ($html = "", $attributes = false) {                             return  tag('thead',                      $html,                                                $attributes                                                         );                      }
+    function tbody          ($html = "", $attributes = false) {                             return  tag('tbody',                      $html,                                                $attributes                                                         );                      }
     function tr             ($html = "", $attributes = false) {                             return  tag('tr',                         $html,                                                $attributes                                                         );                      }
     function td             ($html = "", $attributes = false) {                             return  tag('td',                         $html,                                                $attributes                                                         );                      }
     function th             ($html = "", $attributes = false) {                             return  tag('th',                         $html,                                                $attributes                                                         );                      }
@@ -8141,7 +8158,7 @@
 
     function form           ($html = "", $attributes = false) { hook_amp_require("form");   return  tag('form',                       $html,                                                $attributes                                                         );                      }
 
-    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),       attr("id" , $id), attr("type", "checkbox") ) ));  }
+    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),        attr("id" , $id), attr("type", "checkbox") ) ));  }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')), attr("for", $id)                           ) ));  }
 
     function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes_add_class(  $attributes, component_class('button'))                             );                      }
@@ -8158,9 +8175,9 @@
     function h3             ($html = "", $attributes = false, $anchor = false) {            return  h(3,                              $html,                                            $attributes, $anchor                                                );                      }
     function h4             ($html = "", $attributes = false, $anchor = false) {            return  h(4,                              $html,                                            $attributes, $anchor                                                );                      }
     function h5             ($html = "", $attributes = false, $anchor = false) {            return  h(5,                              $html,                                            $attributes, $anchor                                                );                      }
-    function section        ($html = "", $attributes = false) {                             return  tag('section',                    $html,                                            $attributes                                                         );                      }
-    function header         ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes                                                         );                      }
-    function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes                                                         );                      }
+    function section        ($html = "", $attributes = false) {                             return  tag('section',                    $html,                                            $attributes,                                                        );                      }
+    function header         ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
+    function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
                    
     function hr             (            $attributes = false) {                             return  tag('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return  tag('br',                         false,                                                $attributes, false, true                                            );                      }
@@ -9219,6 +9236,7 @@
 
     function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("flickr");        $class = "brand-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("facebook");      $class = "brand-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_discord        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("discord");       $class = "brand-discord";         return svg($label === DOM_AUTO ? "Discord"         : $label,   0,      0,      71,      55,      $align == DOM_AUTO ? false : !!$align, '<g clip-path="url(#clip0)"><path class="'.$class.'" d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/></g><defs><clipPath id="clip0"><rect width="71" height="55" fill="white"/></clipPath>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("twitter");       $class = "brand-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("linkedin");      $class = "brand-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("github");        $class = "brand-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
