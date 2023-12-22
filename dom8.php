@@ -107,7 +107,7 @@
     
     $__profiling = array();
 
-    function debug_timings($totals_only = true)
+    function debug_timings($totals_only = false)
     {
         global $__profiling;
 
@@ -121,7 +121,8 @@
         {
             foreach ($__profiling as $profiling)
             {
-                $report[] = str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(".$profiling["tag"].")") : "");
+                $report[] = str_pad(number_format($profiling["t"],  2), 6, " ", STR_PAD_LEFT) . ": " . 
+                            str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(".$profiling["tag"].")") : "");
             }
         }
 
@@ -154,7 +155,7 @@
         return $functions;
     }
 
-    function debug_track_delta($tag = false, $dt = false)
+    function debug_track_delta($tag = false, $dt = false, $t = null)
     {
         $functions_callstack = debug_functions_callstack();
         array_shift($functions_callstack); // debug_track_delta
@@ -174,14 +175,19 @@
             "tag"       => $tag,
             "callstack" => $functions_callstack_string,
             "function"  => $functions_callstack[0],
-            "t"         => null
+            "t"         => $t
             );
 
         return "";
     }
 
+    $__dom_t0 = microtime(true);
+
     class debug_track_delta_scope
     {
+        public $t = 0;
+        public $annotation = "";
+
         function __construct($annotation = false)
         {
             $this->t = microtime(true);
@@ -190,12 +196,19 @@
 
         function __destruct()
         {
-            debug_track_delta($this->annotation, microtime(true) - $this->t);
+            global $__dom_t0;
+            debug_track_delta($this->annotation, microtime(true) - $this->t, $this->t - $__dom_t0);
         }
     };
 
     $__profiling_enabled = false;
     
+    function debug_enable_profiling($enable = true)
+    {
+        global $__profiling_enabled;
+        $__profiling_enabled  = $enable;
+    }
+
     function debug_track_timing($annotation = false)
     {
         global $__profiling_enabled;
@@ -458,20 +471,20 @@
         
         set("cache_time",                       1*60*60); // 1h
 
-        set("forwarded_flags",              array("amp","contrast","light","no_js","rss"));
-        set("root_hints",                   array(".git", ".github", ".well-known"));
+        set("forwarded_flags",                  array("amp","contrast","light","no_js","rss"));
+        set("root_hints",                       array(".git", ".github", ".well-known"));
 
-        set("img_lazy_loading_after",       3);
+        set("img_lazy_loading_after",           3);
 
         // Can be modified at browser URL level
 
-        set("canonical",                        get("canonical",    url()                   ));
-        set("framework",                        get("framework",    "NONE"                      ));
-        set("amp",                              get("amp",          false                       ));
-        set("cache",                            get("cache",        false                       ));
-        set("minify",                           get("minify",       true                        )); // Performances first
-        set("page",                             get("page",         1                           ));
-        set("n",                                get("n",            12                          ));
+        set("canonical",                        get("canonical",    url()   ));
+        set("framework",                        get("framework",    "NONE"  ));
+        set("amp",                              get("amp",          false   ));
+        set("cache",                            get("cache",        false   ));
+        set("minify",                           get("minify",       true    )); // Performances first
+        set("page",                             get("page",         1       ));
+        set("n",                                get("n",            12      ));
     }
 
     #endregion
@@ -4496,7 +4509,8 @@
     {
         heredoc_start(-3); ?><script><?php heredoc_flush(null); ?> 
     
-            importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");
+          /*importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");*/
+            importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js");
 
             if (workbox)
             {   
@@ -4625,15 +4639,17 @@
     function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? get("pinterest_user")     : $username; 
                                                                                   $board    = ($board    === false) ? get("pinterest_board")    : $board;      return "https://www.pinterest.com/$username/$board/";                      }
     function url_instagram_user             ($username = false)                 { $username = ($username === false) ? get("instagram_user")     : $username;   return "https://www.instagram.com/$username/";                             }
-    function url_instagram_post             ($short_code)                       {                                                                                  return "https://instagram.com/p/$short_code/";                             }
+    function url_instagram_post             ($short_code)                       {                                                                              return "https://instagram.com/p/$short_code/";                             }
     function url_flickr_user                ($username = false)                 { $username = ($username === false) ? get("flickr_user")        : $username;   return "https://www.flickr.com/photos/$username/";                         }
     function url_500px_user                 ($username = false)                 { $username = ($username === false) ? get("500px_user")         : $username;   return "https://www.500px.com/$username/";                                 }
+    function url_pixelfed_user              ($username = false)                 { $username = ($username === false) ? get("pixelfed_user")      : $username;   return "https://pixelfed.social/$username/";                               }
+    function url_mastodon_user              ($username = false)                 { $username = ($username === false) ? get("mastodon_user")      : $username;   return "https://mastodon.social/@$username/";                              }
     function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? get("flickr_page")        : $page;       return "https://www.flickr.com/photos/$page/";                             }
-    function url_pinterest_pin              ($pin)                              {                                                                                  return "https://www.pinterest.com/pin/$pin/";                              }    
+    function url_pinterest_pin              ($pin)                              {                                                                              return "https://www.pinterest.com/pin/$pin/";                              }    
     function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page";                                   }
     function url_twitter_page               ($page     = false)                 { $page     = ($page     === false) ? get("twitter_page")       : $page;       return "https://twitter.com/$page";                                        }
     function url_linkedin_page              ($page     = false)                 { $page     = ($page     === false) ? get("linkedin_page")      : $page;       return "https://www.linkedin.com/in/$page";                                }
-    function url_github_repository          ($username = false, $repo = false)  { $username = ($username === false) ? get("github_user")     : $username; 
+    function url_github_repository          ($username = false, $repo = false)  { $username = ($username === false) ? get("github_user")        : $username; 
                                                                                   $repo     = ($repo     === false) ? get("github_repository")  : $repo;       return "https://github.com/$username/$repo#readme";                        }
     function url_facebook_page_about        ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page/about";                             }
     function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
@@ -4673,6 +4689,8 @@
     function color_instagram        () { return '#517FA4'; }
     function color_pinterest        () { return '#CB2027'; }
     function color_500px            () { return '#222222'; }
+    function color_pixelfed         () { return array('#EB0256','#FF257E','#A63FDB','#FFB000','#FF7725','#FF5C34','#9EE85D','#0ED061','#17C934','#03FF6E','#00FFF0','#21EFE3','#2598FF','#0087FF'); }
+    function color_mastodon         () { return '#6364FF'; }
     function color_flickr           () { return array('#FF0084','#0063DC'); }
     function color_tumblr           () { return '#32506D'; }
     function color_foursquare       () { return '#0072B1'; }
@@ -5671,7 +5689,8 @@
             $var      = "--color-$brand";
 
             $css .= eol().tab($tab);
-                                                    $css .=               pan($var.                               ":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
+
+                 $i = 0;                            $css .=               pan($var.                               ":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
             for ($i = 0; $i < count($colors); ++$i) $css .= ($i>0?" ":"").pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
         }
         
@@ -7341,7 +7360,7 @@
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
         
             /* PWA (PROGRESSIVE WEB APP) INSTALL */
-                
+  
             function onInitPWA()
             {
                 let deferredPrompt = null;
@@ -7454,7 +7473,7 @@
                                 }
                             })
 
-                        <?php if (has("push_public_key")) { ?>
+                            <?php if (has("push_public_key")) { ?>
 
                             .then(function()
                             {
@@ -7467,10 +7486,10 @@
                                 return pushSubscription;
                             })
 
-                        <?php } ?>
+                            <?php } ?>
 
                             ;
-                            
+
                             if (registration.sync)
                             {  
                                 return registration.sync.register("myFirstSync");
@@ -8384,26 +8403,40 @@
         return false;
     }
     
-    function google_photo_album($url, $wrapper = "div", $img_wrapper = "self", $link_to_google = true, $randomize = false)
+    function google_photo_album($url, $wrapper = "div", $img_wrapper = "self", $link_to_google = true, $randomize = false, $img_precompute_size = true)
     {
-        $results = json_google_photo_album_from_content($url);
+        $photo_urls = array();
+        {
+            if (is_array($url))
+            {
+                $photo_urls = $url;
+            }
+            else
+            {
+                $results = json_google_photo_album_from_content($url);
+                $photos  = at($results, 1, array());
 
-        $photos  = at($results, 1, array());
+                foreach ($photos as $i => $photo_result)
+                {
+                    $photo_urls[] = at(at($photo_result, 1), 0);
+                }    
+            }
+        }
 
         if ($randomize)
         {
-            shuffle($photos);
+            shuffle($photo_urls);
         }
-        
+
         $images = "";
         
-        foreach ($photos as $i => $photo_result)
+        foreach ($photo_urls as $i => $photo_url)
         {
-            $photo_url = at(at($photo_result, 1), 0);
-
             if (!is_callable($img_wrapper)) $img_wrapper = "dom\\$img_wrapper";
             
-            $images .= call_user_func($img_wrapper, img($photo_url, false, false, false, "Photo"), $photo_url, $i);
+            list($w, $h) = cached_getimagesize($photo_url);
+
+            $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", DOM_AUTO, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
         }
 
         if (!is_callable($wrapper)) $wrapper = "dom\\$wrapper";
@@ -8814,7 +8847,7 @@
         {
             foreach ($external_attributes as $type => $attribute)
             {
-                if (in_array($type, $internal_attributes))
+                if (array_key_exists($type, $internal_attributes))
                 {
                     $internal_attributes[$type] .= " ".$attribute;
                 }
@@ -8858,12 +8891,13 @@
         }
     }
     
-    function char_emoji($c) { return "$c&#xFE0F;"; }
-    function char_text($c)  { return "<code>$c&#xFE0E;</code>"; }
+    function char_emoji($c) { return '<span class="emoji">'.  "$c&#xFE0F;" .'</span>'; }
+    function char_text($c)  { return '<samp class="symbol">'. "$c&#xFE0E;" .'</samp>'; }
 
     function char_phone()  { return char_text("☎"); }
     function char_email()  { return char_text("✉"); }
     function char_anchor() { return char_text("⚓"); }
+    
     function char_unsec()  { return "&nbsp;"; }
     function char_amp()    { return "&amp;";  }
    
@@ -9029,11 +9063,16 @@
         return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
     }
     
-    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '')
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
     {
         if (is_array($path)) 
         {
             return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy);
+        }
+
+        if (DOM_AUTO === $precompute_size)
+        {
+            $precompute_size = get("img_precompute_size");
         }
 
         $path     = path($path);
@@ -9048,8 +9087,11 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : get("default_image_ratio_w", 300);
-        $h = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$h ? $h : get("default_image_ratio_h", 200);
+        list($w0, $h0) = $precompute_size ? cached_getimagesize($path) : array(0,0);
+        if ($w0 == 0 || $h0 == 0) list($w0, $h0) = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
+                        
+        $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : $w0;
+        $h = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$h ? $h : $h0;
 
         if (!!get("no_js") && $lazy === true) $lazy = DOM_AUTO;
 
@@ -9075,7 +9117,8 @@
                 ' fallback'.                        '') : '').
                 ' layout'.  '='.'"responsive"'.
                 ' width'.   '='.$w.
-                ' height'.  '='.$h,
+                ' height'.  '='.$h.
+                ' style'.   '='.'"--width: '.$w.'; --height: '.$h.'"',
                 $content,
                 attributes_as_string(array("src" => $path)).
                 attributes_add_class($attributes, "img"),
@@ -9153,8 +9196,14 @@
             $css .= eol().tab($tab)."svg.$brand {"; 
                                                         $css .= eol()."--fill-color".        ": var($var); ";
                 for ($i = 0; $i < count($colors); ++$i) $css .= eol()."--fill-color-".($i+1).": var($var".(($i > 0) ? ("-".($i+1)) : "")."); ";
+            
             $css .= eol()."}"; 
-            $css .= eol().tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class".(($i > 0) ? ("-".($i+1)) : ""), $i == 0 ? 47 : 0)." { fill: var(--color, var(--fill-color".(($i > 0) ? ("-".($i+1)) : "").")); } ";
+
+            $css .= eol().tab($tab); if (count($colors) > 0) $css .= pan("svg path.$class", 47)." { fill:".       " var(--color, var(--fill-color)); } ";
+            $css .= eol().tab($tab); if (count($colors) > 0) $css .= pan("svg stop.$class", 47)." { stop-color:". "              var(--fill-color);  } "; // Fallback currently not working on stop-color
+
+            $css .= eol().tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg path.$class"."-".($i+1), $i == 0 ? 47 : 0)." { fill:".       " var(--color, var(--fill-color"."-".($i+1).")); } ";
+            $css .= eol().tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg stop.$class"."-".($i+1), $i == 0 ? 47 : 0)." { stop-color:". "              var(--fill-color"."-".($i+1).");  } "; // Fallback currently not working on stop-color
         }
 
         return $css;
@@ -9212,7 +9261,8 @@
 
             $basename = ($prefix != "") ? "$prefix-color" : "color";
 
-            $css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." var(--color, ".$color.");";
+          //$css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." var(--color, ".$color.");";
+            $css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." $color;";
         }
         
         return $css;
@@ -9258,7 +9308,10 @@
     function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("link");          $class = "brand-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("leboncoin");     $class = "brand-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("500px");         $class = "brand-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_pixelfed       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === DOM_AUTO ? "PixelFed"        : $label,   0,      0,      50,       50,     $align == DOM_AUTO ? false : !!$align, '<metadata id="metadata106"><rdf:RDF><cc:Work rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs class="'.$class.'" id="defs56"><linearGradient id="g1" y2="0.60117739" x2="0" y1="0.55806792" x1="1"><stop id="stop2" offset="0" class="'.$class.'-6" /><stop id="stop4" offset="1" class="'.$class.'" /></linearGradient><linearGradient id="g2" y2="0" x2="0.30560157" y1="1.1191301" x1="0.5"><stop id="stop7" offset="0" class="'.$class.'-4" /><stop id="stop9" offset="1" class="'.$class.'-5" /></linearGradient><filter x="-0.266" y="-0.189" width="1.5319999" height="1.472" filterUnits="objectBoundingBox" id="filter-18-3"><feOffset id="feOffset12" dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1" /><feGaussianBlur id="feGaussianBlur14" stdDeviation="1.5" in="shadowOffsetOuter1" result="shadowBlurOuter1" /><feColorMatrix id="feColorMatrix16" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.298686594 0" type="matrix" in="shadowBlurOuter1" /></filter><linearGradient xlink:href="#g4" id="g3" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" /><linearGradient x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" id="g4" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop20" class="'.$class.'-12" offset="0%" /><stop id="stop22" class="'.$class.'-13" offset="100%" /></linearGradient><linearGradient x1="32.778084" y1="31.292349" x2="-5.737164" y2="34.564075" id="g5" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop25" class="'.$class.'-3" offset="0%" /><stop id="stop27" class="'.$class.'-2" offset="100%" /></linearGradient><linearGradient xlink:href="#g1" id="g6" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" /><linearGradient xlink:href="#g1" id="g7" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" gradientTransform="matrix(0.73238181,-0.44005875,0.60279359,1.0032156,-5.4387332,4.178016)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g8" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g10" id="g9" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441984,1.1703848)" x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" /><linearGradient x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" id="g10" gradientTransform="scale(0.85441984,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop34" class="'.$class.'-7" offset="0%" /><stop id="stop36" class="'.$class.'-8" offset="100%" /></linearGradient><linearGradient x1="40.01442" y1="3.0503507" x2="21.610674" y2="22.693472" id="g11" gradientTransform="matrix(0.8028135,0.67363955,-0.61334952,0.73096044,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop39" class="'.$class.'-9" offset="0" /><stop id="stop41" class="'.$class.'-10" offset="1" /></linearGradient><linearGradient x1="31.906258" y1="22.861416" x2="56.143276" y2="28.198187" id="g12" gradientTransform="matrix(0.67306192,0.5647652,-0.7315899,0.87187364,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop44" class="'.$class.'-11" offset="0" /><stop id="stop46" class="'.$class.'-14" offset="1" /></linearGradient><linearGradient x1="18.604218" y1="60.088772" x2="29.551889" y2="34.263325" id="g13" gradientTransform="matrix(0.93316856,0.78302028,-0.52767025,0.62885203,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop49" class="'.$class.'-3" offset="0" /><stop id="stop51" class="'.$class.'-2" offset="1" /></linearGradient><linearGradient xlink:href="#g1" id="g14" x1="30.973358" y1="27.509178" x2="1.1089396" y2="28.796618" gradientTransform="matrix(0.64006516,0.53707767,-0.76930493,0.9168206,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g15" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" /></defs><path id="path58" d="M 24.844501,25.208859 C 20.77843,19.646166 13.002814,18.371306 7.4771766,22.36138 1.9515387,26.351453 0.76832601,34.0955 4.8343958,39.658194 l 0.3076235,0.420851 C -1.4888222,31.406438 -1.8150576,19.240724 4.7952638,10.325752 l 0.1176971,-0.1564 c 4.095389,-5.4421 11.8771861,-6.487086 17.3811281,-2.33404 5.503943,4.153045 6.6458,11.931447 2.550412,17.373547 z" style="fill:url(#g14)" /><path id="path60" d="m 24.844501,25.208859 c -6.472999,2.189353 -9.877881,9.222288 -7.605018,15.708503 2.272862,6.486214 9.362782,9.969509 15.835779,7.780157 L 33.50409,48.552478 C 25.454263,51.432746 16.076124,50.047472 8.9909709,44.102332 7.5339337,42.879734 6.2499668,41.528152 5.1420193,40.079045 L 4.8343958,39.658194 C 0.76832601,34.0955 1.9515387,26.351453 7.4771766,22.36138 13.002814,18.371306 20.77843,19.646166 24.844501,25.208859 Z" style="fill:url(#g13)" /><path id="path62" d="m 24.844501,25.208859 c 0.04163,6.84562 5.636761,12.42884 12.497071,12.470471 6.860311,0.04163 12.387942,-5.47409 12.346311,-12.319709 l -9.53e-4,-0.156747 c 0.07327,5.679151 -1.798009,11.388946 -5.714387,16.056296 -2.883411,3.436311 -6.515801,5.879029 -10.468453,7.293308 l -0.428828,0.145041 C 26.602265,50.886871 19.512345,47.403576 17.239483,40.917362 14.96662,34.431147 18.371502,27.398212 24.844501,25.208859 Z" style="fill:url(#g12)" /><path id="path64" d="M 24.844501,25.208859 C 31.381909,27.363866 38.367988,23.843413 40.448347,17.345706 42.528706,10.848 38.915553,3.83359 32.378144,1.678584 L 31.842952,1.502162 c 3.149862,0.958982 6.167442,2.558035 8.855077,4.813224 5.838829,4.899353 8.898368,11.870026 8.988901,18.887488 l 9.53e-4,0.156747 c 0.04163,6.845619 -5.486,12.361341 -12.346311,12.319709 -6.86031,-0.04163 -12.45544,-5.624851 -12.497071,-12.470471 z" style="fill:url(#g11)" /><path id="path66" style="fill:url(#g15)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><g id="g72" style="opacity:0.54425222;fill:none" transform="matrix(-0.37460713,0.92718385,-0.92718518,-0.37460659,68.842244,2.122857)"><path id="path68" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="fill:url(#g9)" /><path id="path70" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49988679" /></g><path id="path74" style="opacity:0.1;fill:url(#g8)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><path id="path76" style="opacity:0.18013395;fill:url(#g7)" d="M 4.8244748,10.490984 4.946318,10.330719 C 9.112291,4.851089 16.920883,3.718459 22.387296,7.80092 27.853707,11.883381 28.907921,19.634987 24.741947,25.114618 24.177499,24.278959 23.527245,23.535182 22.810409,22.8869 24.7942,19.528843 24.933782,15.24584 22.803609,11.700712 19.69445,6.526212 12.927139,4.883207 7.6883949,8.030957 6.5691013,8.703496 5.6101449,9.540315 4.8244318,10.490984 Z" /><g id="g82" style="opacity:0.18013395;fill:none" transform="matrix(0.85716853,-0.51503807,0.51503881,0.8571673,-5.2722905,4.334214)"><path id="path78" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="fill:url(#g6)" /><path id="path80" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="mix-blend-mode:multiply;fill:#000000;fill-opacity:0.77284307" /></g><g id="g88" style="opacity:0.5841518;fill:none" transform="matrix(-0.22495138,-0.97437006,0.97437146,-0.22495105,-15.913458,55.421439)"><path id="path84" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="fill:url(#g5)" /><path id="path86" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.50308539" /></g><g id="g94" style="opacity:0.56222097;fill:none" transform="matrix(-0.99863096,-0.05233596,0.05233603,-0.99862953,57.15441,72.548735)"><path id="path90" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="fill:url(#g3)" /><path id="path92" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="mix-blend-mode:overlay;fill:#000000" /></g><path id="path96" d="m 32.186954,1.615568 0.191202,0.06303 c 6.537408,2.155006 10.150561,9.169416 8.070202,15.667122 -2.080359,6.497706 -9.066438,10.01816 -15.603846,7.863153 0.606364,-0.805759 1.097919,-1.662736 1.477505,-2.551578 3.820968,0.782433 7.916076,-0.48 10.574561,-3.648255 C 40.776928,14.384625 40.127202,7.451106 35.445374,3.522591 34.445068,2.683237 33.341634,2.048968 32.186954,1.61557 Z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49617866" /><path id="path98" d="m 24.100846,55.523071 h 4.544831 c 4.281413,0 7.752184,-3.36365 7.752184,-7.512922 0,-4.149273 -3.470771,-7.512923 -7.752184,-7.512923 h -6.55954 c -2.470046,0 -4.472413,1.940568 -4.472413,4.334379 v 16.869977 z" style="fill:#000000;filter:url(#filter-18-3)" transform="matrix(1.0000014,0,0,1,-1.2150017,-25)" /><path id="path100" d="m 22.885879,30.523071 h 4.544837 c 4.281419,0 7.752195,-3.36365 7.752195,-7.512922 0,-4.149273 -3.470776,-7.512923 -7.752195,-7.512923 h -6.559549 c -2.47005,0 -4.47242,1.940568 -4.47242,4.334379 v 16.869977 z" style="fill:#ffffff" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_mastodon       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("mastodon");      $class = "brand-mastodon";        return svg($label === DOM_AUTO ? "Mastodon"        : $label,   0,      0,      32,       32,     $align == DOM_AUTO ? false : !!$align, '<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path class="'.$class.'" d="M 15.9375 4.03125 C 12.917 4.0435 9.9179219 4.4269844 8.3574219 5.1464844 C 8.3574219 5.1464844 5 6.6748594 5 11.880859 C 5 18.077859 4.9955 25.860234 10.5625 27.365234 C 12.6945 27.938234 14.527953 28.061562 16.001953 27.976562 C 18.676953 27.825562 20 27.005859 20 27.005859 L 19.910156 25.029297 C 19.910156 25.029297 18.176297 25.640313 16.029297 25.570312 C 13.902297 25.495313 11.6615 25.335688 11.3125 22.679688 C 11.2805 22.432688 11.264625 22.182594 11.265625 21.933594 C 15.772625 23.052594 19.615828 22.420969 20.673828 22.292969 C 23.627828 21.933969 26.199344 20.081672 26.527344 18.388672 C 27.041344 15.720672 26.998047 11.880859 26.998047 11.880859 C 26.998047 6.6748594 23.646484 5.1464844 23.646484 5.1464844 C 22.000984 4.3779844 18.958 4.019 15.9375 4.03125 z M 12.705078 8.0019531 C 13.739953 8.0297031 14.762578 8.4927031 15.392578 9.4707031 L 16.001953 10.505859 L 16.609375 9.4707031 C 17.874375 7.5037031 20.709594 7.6264375 22.058594 9.1484375 C 23.302594 10.596438 23.025391 11.531 23.025391 18 L 23.025391 18.001953 L 20.578125 18.001953 L 20.578125 12.373047 C 20.578125 9.7380469 17.21875 9.6362812 17.21875 12.738281 L 17.21875 16 L 14.787109 16 L 14.787109 12.738281 C 14.787109 9.6362812 11.429688 9.7360938 11.429688 12.371094 L 11.429688 18 L 8.9765625 18 C 8.9765625 11.526 8.7043594 10.585438 9.9433594 9.1484375 C 10.622859 8.3824375 11.670203 7.9742031 12.705078 8.0019531 z"></path></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("seloger");       $class = "brand-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+
     function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("deezer");        $class = "brand-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_spotify        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("spotify");       $class = "brand-spotify";         return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill="<?= $color ?>" d="m83.996 0.277c-46.249 0-83.743 37.493-83.743 83.742 0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l0.001-0.004zm38.404 120.78c-1.5 2.46-4.72 3.24-7.18 1.73-19.662-12.01-44.414-14.73-73.564-8.07-2.809 0.64-5.609-1.12-6.249-3.93-0.643-2.81 1.11-5.61 3.926-6.25 31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-0.903-8.148-4.35-1.04-3.453 0.907-7.093 4.354-8.143 30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-0.001zm0.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219-1.254-4.14 1.08-8.513 5.221-9.771 29.581-8.98 78.756-7.245 109.83 11.202 3.73 2.209 4.95 7.016 2.74 10.733-2.2 3.722-7.02 4.949-10.73 2.739z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
 
