@@ -7099,7 +7099,10 @@
                 width:          fit-content;
             }
 
-            pre { white-space: pre-wrap; } /* Otherwise overflow everywhere */
+            pre { 
+                white-space: pre-wrap; /* Otherwise overflow everywhere */
+                font-size: clamp(.5em, 2.6vw, 1em);
+            }
         
             /* Layout */
             

@@ -1,6 +1,6 @@
 <?php 
 
-    include "dom.php"; // Include framework and then import needed functions
+    include __DIR__."/../dom.php"; // Include framework and then import needed functions
     use function dom\{unsplash_url_img};
 ?>
 
