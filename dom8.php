@@ -7106,7 +7106,7 @@
             /* Text limited width & heroes full width */
     
                   :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"])) {
+            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"], a, span)) {
     
                 margin-inline: var(--gap);
             }
