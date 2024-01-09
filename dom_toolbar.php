@@ -130,13 +130,13 @@
 
             .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
             
-            .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(0.5 * calc(100% - var(--max-text-width))),              50%); }
+            .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)); }
 
             .toolbar-row-nav .toolbar-cell-center,
             .toolbar-row-nav .toolbar-cell-center *         { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;  }
 
             .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
-            .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(                                    var(--gap),  calc(0.5 * calc(100% - var(--max-text-width)) + var(--gap)), 50%); }
+            .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(var(--gap),  calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width)) + var(--gap)), calc(var(--right-text-margin-ratio) * 100%)); }
 
             .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
 

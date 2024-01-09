@@ -1,14 +1,11 @@
 <?php 
 
-    require_once(__DIR__."/../../../dom_html.php"); 
-    use function dom\{get,css_gradient,unsplash_url_img};
-
+    include "dom.php"; // Include framework and then import needed functions
+    use function dom\{unsplash_url_img};
 ?>
 
 /* Theme colors */
-
 :root {
-
     --light-theme-color:        #806;
     --light-accent-color:       #03c;
     --light-link-color:         #858;
@@ -21,14 +18,11 @@
 }
 
 /* Toolbar */
-
 :root {
-
-    --header-height:            128px;
-    --header-min-height:         64px;
-    --header-toolbar-height:     64px;
+    --header-height:         128px;
+    --header-min-height:      64px;
+    --header-toolbar-height:  64px;
 }
-
 .toolbar-row-banner { 
     background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); 
     background-color: var(--theme-color);
@@ -36,36 +30,41 @@
 }
 
 /* Page look */
-
-h2              { <?= css_gradient() ?> }
 header, article { background-color: unset }
 aside           { border-color: var(--accent-color) }
 pre             { font-size: .8em; }
 
 /* Cards layout */
-
 .grid { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)) }
 
 /* Cards look */
+.card {     
+    background-color:   var(--background-lighter-color);
+    border:             1px solid var(--background-lighter-color);
+    border-radius:      .5em; 
+    box-shadow:         0px 0px 4px 2px var(--background-color); 
+} 
+.card-title h1 {
+    color: var(--text-lighter-color);
+    font-size: 1.17rem;
+}
 
-article .card { box-shadow: 0px 0px 4px 2px var(--background-lighter-color); border-radius: .5em; background-color: var(--background-lighter-color) } 
+/* Code look */
+pre {
+    border:         1px dashed var(--border-color);
+    padding:        var( --gap);
+    font-size:      .6em;
+    line-height:    1.3em;
+}
 
 /* On large screens, put aside on the side */
-
-@media screen and (min-width: 1300px) { /* Unfortunatly we cannot compute that min-width value dynamically */
-    
-    :is(main, header, footer) > * {
-
-        margin-inline:  clamp(var(--gap), calc(0.3 * calc(100% - var(--max-text-width))), 30%) 
-                        clamp(var(--gap), calc(0.7 * calc(100% - var(--max-text-width))), 70%);
+@media screen and (min-width: 1300px) {
+    :root {
+        --left-text-margin-ratio: 0.3 
     }
-
     aside {
-
-        position:   fixed;
-        bottom:     var(--gap);
-        right:      var(--gap);
-
-        width: calc(0.7 * calc(100vw - var(--max-text-width)) - 2 * var(--gap));
+        position: absolute;
+        right:    var(--gap);
+        width:    calc(var(--right-text-margin-ratio) * calc(100vw - var(--max-text-width)) - 2 * var(--gap));
     }
 }
