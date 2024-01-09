@@ -1,21 +1,28 @@
 <?php 
 
-    require_once(dirname(__FILE__)."/../../../dom_html.php"); 
-    use function dom\{get,css_gradient};
+    require_once(__DIR__."/../../../dom_html.php"); 
+    use function dom\{get,css_gradient,unsplash_url_img};
 
 ?>
 
+/* Theme colors */
+
 :root {
 
-    --light-theme-color: #806;
-    --light-accent-color: #03c;
-    --light-link-color: #858;
-    --light-link-color-accent: #f0f;
+    --light-theme-color:        #806;
+    --light-accent-color:       #03c;
+    --light-link-color:         #858;
+    --light-link-color-accent:  #f0f;
 
-    --dark-theme-color: #f7d;
-    --dark-accent-color: #2be;
-    --dark-link-color: #979;
-    --dark-link-color-accent: #f0f;
+    --dark-theme-color:         #f7d;
+    --dark-accent-color:        #2be;
+    --dark-link-color:          #979;
+    --dark-link-color-accent:   #f0f;
+}
+
+/* Toolbar */
+
+:root {
 
     --header-height:            128px;
     --header-min-height:         64px;
@@ -23,16 +30,42 @@
 }
 
 .toolbar-row-banner { 
-    background: center/cover url(<?= get("url_banner_img") ?>); 
+    background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); 
     background-color: var(--theme-color);
     background-blend-mode: hard-light;
 }
 
-h2      { <?= css_gradient() ?> }
+/* Page look */
 
+h2              { <?= css_gradient() ?> }
 header, article { background-color: unset }
+aside           { border-color: var(--accent-color) }
+pre             { font-size: .8em; }
 
-aside   { border-color: var(--accent-color) }
+/* Cards layout */
 
-.grid   { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)) }
-.card   { box-shadow: 0px 0px 4px 2px #00000022; border-radius: 6px; } 
+.grid { grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)) }
+
+/* Cards look */
+
+article .card { box-shadow: 0px 0px 4px 2px var(--background-lighter-color); border-radius: .5em; background-color: var(--background-lighter-color) } 
+
+/* On large screens, put aside on the side */
+
+@media screen and (min-width: 1300px) { /* Unfortunatly we cannot compute that min-width value dynamically */
+    
+    :is(main, header, footer) > * {
+
+        margin-inline:  clamp(var(--gap), calc(0.3 * calc(100% - var(--max-text-width))), 30%) 
+                        clamp(var(--gap), calc(0.7 * calc(100% - var(--max-text-width))), 70%);
+    }
+
+    aside {
+
+        position:   fixed;
+        bottom:     var(--gap);
+        right:      var(--gap);
+
+        width: calc(0.7 * calc(100vw - var(--max-text-width)) - 2 * var(--gap));
+    }
+}

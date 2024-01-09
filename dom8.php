@@ -434,7 +434,8 @@
         
       //set("fonts",                            "Roboto:300,400,500");
             
-        set("twitter_page",                     "me");
+        set("twitter_user",                     "me");
+        set("twitter_page",                     get("twitter_user", "me"));
         set("linkedin_page",                    "me");
         set("facebook_page",                    "me");
         set("tumblr_blog",                      "blog");
@@ -480,6 +481,7 @@
 
         set("canonical",                        get("canonical",    url()   ));
         set("framework",                        get("framework",    "NONE"  ));
+        set("generate",                         get("generate",     false   ));
         set("amp",                              get("amp",          false   ));
         set("cache",                            get("cache",        false   ));
         set("minify",                           get("minify",       true    )); // Performances first
@@ -845,7 +847,18 @@
             return array("class" => trim($attributes));
         }
 
-        return at(json_decode(json_encode(simplexml_load_string($attributes, null, LIBXML_NOCDATA )), true), "@attributes", array());
+        $xml = @simplexml_load_string($attributes, null, LIBXML_NOCDATA);
+
+        if (!!$xml)
+        {
+            return at(@json_decode(@json_encode($xml), true), "@attributes", array());
+        }
+
+        list($key, $val) = explode("=", $attributes);
+        $val = trim(trim($val, '"'), "'");
+        $attributes = array($key => $val);
+
+        return $attributes;
     }
     
     function attribute($name, $values = "DOM_AUTO_CLASS")
@@ -1162,7 +1175,7 @@
             curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
             
             $content = curl_exec($curl);
-            
+
             if (!!get("debug") && (!$content || $content == ""))
             {
                 echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
@@ -1174,7 +1187,7 @@
 
         if (!$content || $content == "")
         {
-            $content = @file_get_contents($url);
+            $content = @file_get_contents($url);            
         }
 
         if ($auto_fix)
@@ -3834,9 +3847,9 @@
     $__card_headline = 2;
     function get_card_headline() { global $__card_headline; return $__card_headline; }
     
-    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                    return  array_imgs_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("img", 'img-thumb'))      : $attributes); }
-    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return        card_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                     $attributes); }
-    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card-thumb')) : $attributes); }
+    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                    return  array_imgs_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("img", 'img-thumb'))           : $attributes); }
+    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return        card_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                          $attributes); }
+    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card card-thumb')) : $attributes); }
     
     #endregion
     #region WIP HELPERS : DEBUG
@@ -3878,6 +3891,12 @@
         $css =  str_replace('  ',                                                   ' ', $css);
 
         return $css;
+    }
+
+    function minify_php($php)
+    {
+        // No minification because of heredoc syntax that can be present in php code
+        return $php;
     }
 
     #endregion
@@ -4193,6 +4212,9 @@
 
     function json_manifest()
     {
+        $shortcuts_count_max   = 10;
+        $screenshots_count_max =  5;
+
         $short_title = get("title");
         $pos = stripos($short_title, " ");
         if (false !== $pos) $short_title = substr($short_title, 0, $pos);
@@ -4201,12 +4223,14 @@
         $icons = array();
 
         foreach (array(36 => 0.75, 48 => 1.0, 72 => 1.5, 96 => 2.0, 144 => 3.0, 192 => 4.0, 512 => 4.0) as $w => $density)
-        {            
+        {
             $filename = path(get("icons_path")."android-icon-$w"."x"."$w.png");
 
             if ($filename)
             {
-                $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
+              //$icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
+                $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "any");
+                $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable");
             }
         }
 
@@ -4253,6 +4277,8 @@
             $shortcuts[] = $shortcut;
         }
 
+        $shortcuts = array_slice($shortcuts, 0, $shortcuts_count_max);
+
         global $hook_images;
             
         $screenshots = false;
@@ -4294,6 +4320,8 @@
             }
         }
 
+        $screenshots = array_slice($screenshots, 0, $screenshots_count_max);
+        
         $json = array(
 
             "name"             => get("title"),
@@ -4358,7 +4386,7 @@
     {
         heredoc_start(-2); ?><html><?php heredoc_flush(null); ?> 
         
-            <svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
+            <svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" width="100" height="100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
 
                 <g transform="rotate(0 50 50)"   style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="<?= $color ?>" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>
                 <g transform="rotate(36 50 50)"  style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="<?= $color ?>" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>
@@ -4460,13 +4488,13 @@
         {
             $fonts = array_merge(array(
 
+                $quote.'Arial Narrow'.$quote,
                 $quote.'AvenirNextCondensed-Bold'.$quote,
                 $quote.'Futura-CondensedExtraBold'.$quote,
                 'HelveticaNeue-CondensedBold',
                 $quote.'Ubuntu Condensed'.$quote,
                 $quote.'Liberation Sans Narrow'.$quote,
                 $quote.'Franklin Gothic Demi Cond'.$quote,
-                $quote.'Arial Narrow'.$quote,
                 'sans-serif-condensed', 'Arial',
                 $quote.'Trebuchet MS'.$quote,
                 $quote.'Lucida Grande'.$quote,
@@ -4553,15 +4581,23 @@
 
         foreach ($__generated as &$generated)
         { 
-            $generated["generate"] = !!get("generate", true);
-
-          //Unless generation is requested, do not generate each file that is already accessible
-          //Even if it accesses a parent/inherited file
-
-            if (!get("generate"))
+            if (true == get("generate", DOM_AUTO))
             {
-                if (path($generated["path"]))        { $generated["generate"] = false; continue; }
-                if (path($generated["path"].".php")) { $generated["generate"] = false; continue; }
+                $generated["generate"] = true;
+            }
+            else if (false == get("generate", DOM_AUTO))
+            {
+                $generated["generate"] = false;
+            }
+            else if (DOM_AUTO == get("generate", DOM_AUTO))
+            {
+                // Unless generation is requested, do not generate each file that is already accessible
+                // Even if it accesses a parent/inherited file
+    
+                $generated["generate"] = true;
+    
+                     if (path($generated["path"]))        $generated["generate"] = false;
+                else if (path($generated["path"].".php")) $generated["generate"] = false;
             }
         }
     }
@@ -4644,6 +4680,12 @@
     function url_500px_user                 ($username = false)                 { $username = ($username === false) ? get("500px_user")         : $username;   return "https://www.500px.com/$username/";                                 }
     function url_pixelfed_user              ($username = false)                 { $username = ($username === false) ? get("pixelfed_user")      : $username;   return "https://pixelfed.social/$username/";                               }
     function url_mastodon_user              ($username = false)                 { $username = ($username === false) ? get("mastodon_user")      : $username;   return "https://mastodon.social/@$username/";                              }
+    function url_github_user                ($username = false)                 { $username = ($username === false) ? get("github_user")        : $username;   return "https://github.com/$username";                                     }
+    function url_lastfm_user                ($username = false)                 { $username = ($username === false) ? get("lastfm_user")        : $username;   return "https://last.fm/user/$username";                                   }
+
+    function url_twitter_user               ($username = false)                 { $username = ($username === false) ? get("twitter_user")       : $username;   return "https://twitter.com/$username";                                    }
+    function url_facebook_user              ($username = false)                 { $username = ($username === false) ? get("facebook_user")      : $username;   return "https://www.facebook.com/$username";                               }
+    
     function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? get("flickr_page")        : $page;       return "https://www.flickr.com/photos/$page/";                             }
     function url_pinterest_pin              ($pin)                              {                                                                              return "https://www.pinterest.com/pin/$pin/";                              }    
     function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page";                                   }
@@ -4749,9 +4791,10 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!get("no_html")) return ''; if (!!get("minify", false) || $force_minify) { $html    = /*minify_html*/   ($html);    } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("no_js"))   return ''; if (!!get("minify", false) || $force_minify) { $js      = minify_js     ($js);      } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("no_css"))  return ''; if (!!get("minify", false) || $force_minify) { $css     = minify_css    ($css);     } return trim($css  ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("no_html")) return ''; if (!!get("minify", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("no_js"))   return ''; if (!!get("minify", false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("no_css"))  return ''; if (!!get("minify", false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  {                                  if (!!get("minify", false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
@@ -5063,9 +5106,9 @@
                     }
                 }*/
 
-                $attributes = attributes_add($attributes, attributes(attr("class", "no-js"), attr("lang", get("lang","en"))));
-
-                if (AMP()) $attributes = attributes_add($attributes, attributes(attr("amp", "amp")));
+                                        $attributes = attributes_add($attributes, attributes(attr("lang",   get("lang","en"))   ));
+                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")            ));
+                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")              ));
 
                 //  Return html
 
@@ -5081,7 +5124,7 @@
                     
                     $html.
                     eol().
-                    
+                   
                     raw_html(
                         '</html>'.
                         comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : ""))
@@ -5430,6 +5473,12 @@
             .   meta('copyright',                           get("author",DOM_AUTHOR).' 2000-'.date('Y'))
             .   meta('title',                               get("title"))
             .   meta('theme-color',                         get("theme_color"))
+
+            .   eol()
+            .   meta('view-transition',                     'same-origin')
+
+            .   eol()
+            .   meta('color-scheme',                        'dark light')
             
             .   eol()       
             .   meta('DC.title',                            get("title"))
@@ -6168,16 +6217,16 @@
             /*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
             
             /* Document
-            ========================================================================== */
+             ========================================================================== */
             
             /**
-            * 1. Correct the line height in all browsers.
-            * 2. Prevent adjustments of font size after orientation changes in iOS.
-            */
+             * 1. Correct the line height in all browsers.
+             * 2. Prevent adjustments of font size after orientation changes in iOS.
+             */
             
             html {
-            line-height: 1.15; /* 1 */
-            -webkit-text-size-adjust: 100%; /* 2 */
+                line-height: 1.15; /* 1 */
+                -webkit-text-size-adjust: 100%; /* 2 */
             }
             
             /* Sections
@@ -6705,7 +6754,9 @@
     {
         return css_root(
 
-            eol(1).css_vars_color_scheme_light_base().
+            eol(1)."color-scheme: light dark;".
+
+            eol(2).css_vars_color_scheme_light_base().
             eol(2).css_vars_color_scheme_light_brands().            (is_callable("dom\\css_vars_color_scheme_light_brands_toolbar") ? (
             eol(2).css_vars_color_scheme_light_brands_toolbar().    "") : "").
 
@@ -6794,8 +6845,8 @@
     
             /* Colors */
             
-            body            { background-color: var(--background-color,        #eee); color: var(--text-color, #0d0d0d); }
-            header, footer  { background-color: var(--background-darker-color, #ddd); color: var(--text-color, #0d0d0d); }
+            body            { background-color: var(--background-darker-color, #eee); color: var(--text-color, #0d0d0d); }
+            header, footer  { background-color: var(--background-color,        #ddd); color: var(--text-color, #0d0d0d); }
     
             /* "Cards" */
             /* TODO: TOO opinionated? Too often to be unset? */
@@ -6805,13 +6856,13 @@
                                               border-color: var(--border-color); }
 
             .card                       { background-color: var(--background-lighter-color); color: var(--text-color); }
-            .card-title                 { background-color: var(--background-darker-color);  color: var(--text-color); }
+            .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); }
 
             article blockquote,
             article aside               { background-color: var(--background-color);        }
 
             article .card               { background-color: var(--background-color);        }
-            article .card .card-title   { background-color: var(--background-darker-color); }
+            article .card .card-title   { background-color: var(--background-color);        }
 
             /* Headlines */
          
@@ -6924,11 +6975,12 @@
     
             :root {
     
-                --root-font-size:   1.0em;
-                --line-height:      1.5em;
+                --root-font-size:   clamp(1.00rem, 0.59rem + 1.47vw, 1.20rem);
+                --line-height:      clamp(1.35rem, 1.60rem + 1.70vw, 1.5rem);
     
-                --max-text-width:   1024px;
-                --gap:              1rem; /* Should stay rem or px, not em */
+                --max-text-width:   48rem;
+
+                --gap:              1rem;
                 --scrollbar-width:  17px;
         
                 --scroll-margin:    var(--gap);
@@ -7014,6 +7066,8 @@
     
             /* Typography */
 
+            html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height) }
+
             body                    { text-underline-offset: 0.15em; }
     
             body                    { word-break: break-word; }
@@ -7050,12 +7104,32 @@
             /* Main content inflate (makes footer sticky) */
     
             body        { display: flex; flex-direction: column; gap: 0; min-height: 100vh; } 
+
+            /* V1 */
+            /*
             body > main { flex-grow: 1; }
+            */
+            /* V2 */
+            
+            body {
+                justify-content: center;
+                align-items:     center;
+            }/*
+            body > :is(header, main, footer) {
+                width:  inherit;
+                height: auto;
+            }*/
+            body > :is(header, footer, main)
+            {
+                width: 100%;
+            }
+
+
     
             /* Main */
     
             main { 
-    
+                
                 width:          100%;
                 text-align:     left;
                 padding-top:    unset; /*
@@ -7080,7 +7154,8 @@
     
             h1 {
                 margin-inline: var(--gap);
-                margin-block: calc(0.5 * var(--gap));
+                margin-block-start: 1.2em;
+                margin-block-end: 1.0em;
                 scroll-margin: 4em;
             }          
             h2, h3 {
@@ -7106,7 +7181,7 @@
             /* Text limited width & heroes full width */
     
                   :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"], a, span)) {
+            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"], span, a)) {
     
                 margin-inline: var(--gap);
             }
@@ -7125,6 +7200,11 @@
 
             .card-media > * {
                 margin-inline: 0;
+            }
+
+            .card-title h1 {                
+                margin-block-start: .5rem;
+                margin-block-end: .5rem;
             }
               
             /* Images */
@@ -7160,8 +7240,11 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            a[href^="//"]:after, a[href^="http"]:after, a.external:after {
+            a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
+            a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
+            a:not(:has(img,picture,video,audio,svg)).external:after {
 
+                /*
                 content:        "🡵";
                 display:        inline-block;
                 color:          var(--text-color);
@@ -7169,11 +7252,50 @@
                 transform:      translateY(-0.6rem);
                 white-space:    nowrap;
                 position:       absolute;
-            }    
-            a[href^="//"]:hover:after, a[href^="http"]:hover:after, a.external:hover:after {
+                */
+                -webkit-text-fill-color: currentColor; /* to prevent invisibility if child of something having a linear inner color effect */
 
-                font-size:  small;
-                color:      var(--link-hover-color);
+
+                display:        inherit;
+                position:       static;
+                transform:      unset;
+                
+                content:        "🡵";
+                white-space:    nowrap;
+                font-size:      0.5em;
+                font-weight:    lighter;
+                
+                color:          var(--text-color);
+                opacity:        0.3;
+                
+                -webkit-text-fill-color: currentColor; /* to prevent invisibility if child of something having a linear inner color effect */
+
+                border:         1px solid currentColor;
+                border-radius:  3px;
+
+                vertical-align: middle;
+                margin-inline:  0.5em 0.2em;
+                margin-block:   0;
+                padding:        0.2em 0.2em;
+            }    
+            a:not(:has(img,picture,video,audio,svg))[href^="//"]:hover:after, 
+            a:not(:has(img,picture,video,audio,svg))[href^="http"]:hover:after, 
+            a:not(:has(img,picture,video,audio,svg)).external:hover:after {
+                /*
+                font-size:          small;*/
+                color:              var(--link-hover-color);
+                text-decoration:    none;
+                opacity:            1.0;
+            }
+
+            @media print {
+                        
+                a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
+                a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
+                a:not(:has(img,picture,video,audio,svg)).external:after {
+
+                    content: attr(href);
+                }
             }
 
             /* Service worker install "call to action" */
@@ -7740,23 +7862,26 @@
             
             function onUpdateBackToTopButton()
             {
-                console.log("onUpdateBackToTopButton");
+                //console.log("onUpdateBackToTopButton");
 
                 var back_to_top = document.querySelector(".back-to-top");
 
-                if (window.scrollY > back_to_top_offset) 
+                if (back_to_top)
                 {
-                    back_to_top.classList.add("back-to-top-is-visible")
-                }
-                else
-                {
-                    back_to_top.classList.remove("back-to-top-is-visible");
-                    back_to_top.classList.remove("back-to-top-fade-out");
-                }
-            
-                if (window.scrollY > back_to_top_offset_opacity)
-                {
-                    back_to_top.classList.add("back-to-top-fade-out");
+                    if (window.scrollY > back_to_top_offset) 
+                    {
+                        back_to_top.classList.add("back-to-top-is-visible")
+                    }
+                    else
+                    {
+                        back_to_top.classList.remove("back-to-top-is-visible");
+                        back_to_top.classList.remove("back-to-top-fade-out");
+                    }
+                
+                    if (window.scrollY > back_to_top_offset_opacity)
+                    {
+                        back_to_top.classList.add("back-to-top-fade-out");
+                    }
                 }
             }
 
@@ -7874,10 +7999,10 @@
     {
         if (has("ajax")) return "";
 
-        return  script_third_parties                  ().
-                script_ajax_body                      ().
-                script_google_analytics               ().               ((!!get("script_document_events",   true)) ? (
-                script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",           true)) ? (
+        return  script_third_parties              ().
+                script_ajax_body                  ().
+                script_google_analytics           ().               ((!!get("script_document_events",   true)) ? (
+                script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
                 script(js_back_to_top             ()).   "") : ""). ((!!get("script_images_loading",        true)) ? (
                 script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",              true)) ? (
                 script(js_sliders                 ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
@@ -8082,7 +8207,7 @@
         . (AMP() ? delayed_component("_amp_scripts_body")               : "")
 
         . eol().comment("DOM Body boilerplate markup")
-        . back_to_top_link()
+      /*. back_to_top_link()*/
 
         . eol() . comment("DOM Body scripts")
         . scripts_body()            . (is_callable("dom\\scripts_body_toolbar") ? (""
@@ -8095,22 +8220,58 @@
 
         . eol() 
         . $html_post_scripts
-        
+
+        . eol()
+        . comment("Hidden markup")
+
+        /**
+         * Indieweb
+         * 
+         * Some sites we know support it in the profiles :
+         * Eventful
+         * Facebook NO MORE
+         * Flickr
+         * Identica
+         * LastFM
+         * Soup
+         * typepad
+         * Twitter NO MORE
+         * Wordpress
+         */
+
+      //. ((function () { $url = url_pinterest_board   (); if (!$url || !has("pinterest_user") ) return ""; return eol().a("Pinterest", $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_instagram_user    (); if (!$url || !has("instagram_user") ) return ""; return eol().a("Instagram", $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_flickr_user       (); if (!$url || !has("flickr_user")    ) return ""; return eol().a("Flickr",    $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_500px_user        (); if (!$url || !has("500px_user")     ) return ""; return eol().a("500px",     $url, array("hidden" => true, "rel" => "me")); })())
+        . ((function () { $url = url_pixelfed_user     (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a("Pixelfed",  $url, array("hidden" => true, "rel" => "me")); })())
+        . ((function () { $url = url_mastodon_user     (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a("Mastodon",  $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_facebook_user     (); if (!$url || !has("facebook_user")  ) return ""; return eol().a("Facebook",  $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => true, "rel" => "me")); })())
+        . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => true, "rel" => "me")); })())
+        . ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => true, "rel" => "me")); })())
+
+        . eol()
+
         . ((AMP() && get("support_service_worker", false)) ? (eol().comment("DOM Body AMP service worker")) : "")
         . ((AMP() && get("support_service_worker", false)) ? (eol().'<amp-install-serviceworker src="'.path('sw.js').'" layout="nodisplay" data-iframe-src="'.path("install-service-worker.html").'"></amp-install-serviceworker>') : "")
         ;
 
         if (DOM_AUTO === $dark_theme) $dark_theme = get("dark_theme", false);
 
+        $attributes = array_merge(array(
+            "id"    => "!",
+            "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
+            ), AMP() ? array() : array(
+            "name"  => "!"
+            ));
+
         return eol().tag(
             'body',
             $body,
-            array_merge(array(
-                "id"    => "!",
-                "class" => component_class('body').($dark_theme ? component_class('body','dark') : '')
-                ), AMP() ? array() : array(
-                "name"  => "!"
-                ))
+            $attributes
             );
     }
     
@@ -8145,6 +8306,7 @@
     function p              ($html = "", $attributes = false) {                             return  tag('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return  tag('pre',                        $html,                                                $attributes                                                         );                      }
+    function code           ($html = "", $attributes = false) {                             return  tag('code',                       $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return  tag('ul',                         $html,                                                $attributes                                                         );                      }
     function ol             ($html = "", $attributes = false) {                             return  tag('ol',                         $html,                                                $attributes                                                         );                      }
     function li             ($html = "", $attributes = false) {                             return  tag('li',                         $html,                                                $attributes                                                         );                      }
@@ -8285,13 +8447,13 @@
                             $lazy_attributes.
                             $src_attributes.
 
-                            ' width'            .'="'.$w                                        .'"'.
-                            ' height'           .'="'.$h                                        .'"'.
-                            ' layout'           .'="'.'responsive'                              .'"'.
-                            ' frameborder'      .'="'.'0'                                       .'"'.
-                            ' style'            .'="'."border: 0; --width: $w; --height: $h"    .'"'.
-                            ' overflow'         .'="'.'hidden'                                  .'"'.
-                            ' allowfullscreen'  .'="'.''                                        .'"'.
+                            ' width'            .'="'.$w            .'"'.
+                            ' height'           .'="'.$h            .'"'.
+                            ' layout'           .'="'.'responsive'  .'"'.
+                            ' frameborder'      .'="'.'0'           .'"'.
+                            ' overflow'         .'="'.'hidden'      .'"'.
+                            ' allowfullscreen'  .'="'.''            .'"'.
+                            ' style'            .'="'."border: 0; max-width: 100%; --width: $w; --height: $h"    .'"'.
 
                             '>'.
 
@@ -8535,8 +8697,8 @@
                             width:50px;">
                                 
                             <svg 
-                                width="50px"
-                                height="50px"
+                                width="50"
+                                height="50"
                                 viewBox="0 0 60 60"
                                 version="1.1"
                                 xmlns="https://www.w3.org/2000/svg"
@@ -8755,15 +8917,28 @@
             
         <?php HERE("raw_html") ?></html><?php return HSTOP();
     }
+
+    // BlogPosting microdata attributes
+    // TODO Microformats vs Microdata vs using both
+    // set("auto-microdata") ? set("auto-microformat") + helpers ?
+    // TODO indieweb + microformat + microdata
+
+    function attr_article()         { return array("class" => "h-entry",                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
+    function attr_author()          { return array("class" => "p-author",       "itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person"        ); }
+    function attr_name()            { return array("class" => "p-name",         "itemprop" => "name"); }
+    function attr_datepublished($t) { return array("class" => "dt-published",   "itemprop" => "datePublished", "datetime" => date("c", $t)); }
+    function attr_articlebody()     { return array("class" => "e-content",      "itemprop" => "articleBody"); }
     
     // Components with BlogPosting microdata
 
-    function article            ($html = "", $attributes = false) { return tag('article', $html, /*'itemscope="" itemtype="https://schema.org/BlogPosting" ' .*/ attributes_add_class($attributes, "article")); }
+    function article            ($html = "", $attributes = false)   { return tag('article', $html, attributes_add(attributes_add($attributes, attr_article()), array("class" => "article"))); }
     
-    function span_author        ($html)             { return span ($html/*, array("itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person" )*/); }
-    function span_name          ($html)             { return span ($html/*, array("itemprop" => "name"                                                                 )*/); }
-    function span_datepublished ($date, $timestamp) { return span ($date/*, array("itemprop" => "datePublished", "datetime" => date("c",$timestamp)                    )*/); }
-    function div_articlebody    ($html)             { return div  ($html/*, array("itemprop" => "articleBody"                                                          )*/); }
+    function span_author        ($html,     $attributes = false)    { return span   ($html, attributes_add($attributes, attr_author()       )); }
+    function span_name          ($html,     $attributes = false)    { return span   ($html, attributes_add($attributes, attr_name()         )); }
+    function span_datepublished ($date, $t, $attributes = false)    { return span   ($date, attributes_add($attributes, attr_datepublished($t))); }
+    function div_articlebody    ($html,     $attributes = false)    { return div    ($html, attributes_add($attributes, attr_articlebody()  )); }
+    function section_articlebody($html,     $attributes = false)    { return section($html, attributes_add($attributes, attr_articlebody()  )); }
+    function main_articlebody   ($html,     $attributes = false)    { return main   ($html, attributes_add($attributes, attr_articlebody()  )); }
     
     // LINKS
 
@@ -8847,13 +9022,16 @@
         {
             foreach ($external_attributes as $type => $attribute)
             {
-                if (array_key_exists($type, $internal_attributes))
+                foreach ((is_array($attribute) ? $attribute : array($attribute)) as $a)
                 {
-                    $internal_attributes[$type] .= " ".$attribute;
-                }
-                else
-                {
-                    $internal_attributes[$type] = $attribute;
+                    if (array_key_exists($type, $internal_attributes))
+                    {
+                        $internal_attributes[$type] .= " ".$a;
+                    }
+                    else
+                    {
+                        $internal_attributes[$type] = $a;
+                    }
                 }
             }
 
@@ -9146,15 +9324,20 @@
         return img($path, false, false, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
     }
 
-    function svg($label, $x0, $x1, $y0, $y1, $align, $svg_body, $add_wrapper = true) 
+    function svg($label, $x, $y, $w, $h, $align, $svg_body, $add_wrapper = true) 
     {
-        $html =
-            '<svg'. ' class="svg'.(" ".strtolower($label))/*." colorful-shadow".*/.'"'.
-                    ' role="img"'.                     (($label!="" && $label!=false)?(' '.
-                'aria-label="'.$label.'"'.              ''):('')).' '.
-                   'viewBox="'."$x0 $x1 $y0 $y1".'">'.
-                $svg_body.
-            '</svg>';
+        $html = '<svg'  .' class'       .'="'.  "svg ".strtolower($label)   .'"'    // + colorful-shadow ?
+                        .' role'        .'="'.  "img"                       .'"'    .(($label!="" && $label!=false)?(''
+                        .' aria-label'  .'="'.  $label                      .'"'    ):'')
+                        .' viewBox'     .'="'.  "$x $y $w $h"               .'"'
+                        .' width'       .'="'.  min(24, $w-$x)              .'"'
+                        .' height'      .'="'.  min(24, $h-$y)              .'"'
+                        .' style'       .'="'.  "fill: currentColor"        .'"'
+                        .'>'.
+
+                    $svg_body.
+
+                '</svg>';
 
         if ($add_wrapper)
             $html = tag('span', $html, array('class' => ('span-svg-wrapper icon '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : ''))));
@@ -9556,15 +9739,14 @@
     {
         if (!!get("rancards_rotate"))
         {
-            $attributes = is_array($attributes) ? array_merge($attributes, array("class" => "card",      "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("rancards_rotate"),get("rancards_rotate"))."deg);")) 
-                                                :                          array("class" => $attributes, "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("rancards_rotate"),get("rancards_rotate"))."deg);");
+            $attributes = attributes_add($attributes, array("class" => "card", "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("rancards_rotate"),get("rancards_rotate"))."deg);"));
         }
     
         hook_card_flush_context();
         
         return article(
             $html, 
-            attributes_add_class(
+            attributes_add(
                 $attributes,
                 component_class("article", "card").
                 ($horizontal ? (" ".component_class("article", "card-horizontal")) : '')
@@ -10544,6 +10726,59 @@
       
     function address($html)     { return tag("address", $html); }
     function author($author)    { return address(a($author, "#!", array("rel" => "author")), array("class" => "author")); }
+
+    function hcard($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = DOM_AUTO)
+    {
+        // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
+
+        $photo      = DOM_AUTO !== $photo       ? $photo        : "me.png";
+        $name       = DOM_AUTO !== $name        ? $name         : get("author", DOM_AUTHOR);
+        $bio        = DOM_AUTO !== $bio         ? $bio          : false;
+        $url        = DOM_AUTO !== $url         ? $url          : get("canonical");
+        $attributes = DOM_AUTO !== $attributes  ? $attributes   : array("hidden" => true);
+
+        $names = is_array($name) ? $name : explode(" ", $name);
+
+        if (count($names) <= 1)
+        {
+            $name = span($name, "p-name");
+        }
+        else
+        {
+            list($given_name, $family_name) = $names;
+
+            foreach (array_reverse(array("given-name", "given_name", "given name", "givenname", "given", "first-name", "first_name", "first name", "firstname", "first")) as $key)
+            {
+                $given_name = at($name, $key, $given_name);
+            }
+
+            foreach (array_reverse(array("family-name", "family_name", "family name", "familyname", "family", "last-name", "last_name", "last name", "lastname", "last")) as $key)
+            {
+                $family_name = at($name, $key, $family_name);
+            }
+
+            $name = span(span($given_name, "p-given-name")." ".span($family_name, "p-family-name"), "p-name");
+        }
+
+        $bio = !!$bio ? ("(".span($bio, "p-note").")") : "";
+
+        // Microformats
+
+        $attributes = attributes_add($attributes, attributes(
+
+            attr("class", "h-card"  ), 
+            attr("class", "u-url"   ), 
+            attr("class", "u-uid"   ), 
+            attr("rel",   "me"      )
+        
+        ));
+
+        $img = false !== stripos($photo, "<img") ? $photo : img($photo);
+
+        //die("<pre>".print_r($attributes, true)."</pre>");
+
+        return a("$img $name $bio", $url, $attributes);
+    }
     
     ######################################################################################################################################
     #endregion
