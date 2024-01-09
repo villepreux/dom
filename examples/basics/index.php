@@ -1,7 +1,8 @@
 <?php
 
 include "dom.php"; // Include framework and then import needed functions
-use function dom\{init,output,html,rss,jsonfeed,head,body,toolbar,header,main,footer,article,aside,h2,grid,card,card_title,card_media,card_text,p,img,a,svg_rss,svg_facebook,lorem_ipsum,unsplash_url_img};
+use function dom\{init,output,html,rss,jsonfeed,head,body,toolbar,header,main,footer,article,aside,h2,grid};
+use function dom\{card,card_title,card_media,card_text,p,img,a,svg_rss,svg_facebook,lorem_ipsum,unsplash_url_img};
 
 init(); // Initialize framework
 
@@ -38,8 +39,8 @@ output( // Output
                     p("The complete markup of this page").
                     dom\pre(htmlentities(dom\content("index.php", 666))))).
             footer(
-                p("This is my footer at the bottom").                    
-                p("Image courtesy of unsplash.com. Photo ".a("© tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8").".").
+                p("This is my footer at the bottom").
+                p("Photo ".a("©Tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8")." @ Unsplash.com").
                 p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook"))))).
     rss(). // I'm also interested in having a RSS feed and json-content from my content
     jsonfeed());

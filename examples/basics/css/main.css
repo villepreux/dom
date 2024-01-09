@@ -53,7 +53,7 @@ pre             { font-size: .8em; }
 pre {
     border:         1px dashed var(--border-color);
     padding:        var( --gap);
-    font-size:      .6em;
+    font-size:      .66em;
     line-height:    1.3em;
 }
 
