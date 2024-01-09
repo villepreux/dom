@@ -163,15 +163,16 @@ body>.footer a:hover    { text-decoration: underline; }
 
 /* Cards */
 
-.grid                           { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) }
-.card                           { border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; }
-.card img                       { width: 100%; margin-left: 0px; max-width: 100% }
-.card-text,
-.card-title                     { padding: var(--gap); }
-.card-title-sub .svg-wrapper    { margin-right: var(--gap); }
-.card .headline                 { font-size: 1em; margin: 0px; }
-.card-title-main,       
-.card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid { grid-template-columns: repeat(auto-fit, minmax(min(calc(100vw - 6 * var(--gap)), 300px), 1fr)) }
+
+article.card                           { border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 2px 2px 6px 2px #00000024; background-color: var(--background-lighter-color) }
+article.card img                       { width: 100%; margin-left: 0px; max-width: 100% }
+article.card-text,
+article.card-title                     { padding: var(--gap); }
+article.card-title-sub .svg-wrapper    { margin-right: var(--gap); }
+article.card .headline                 { font-size: 1em; margin: 0px; }
+article.card-title-main,       
+article.card-title-sub                 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /*media fullscreen */
 

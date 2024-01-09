@@ -2,7 +2,7 @@
 
     namespace dom;
 
-    require_once(dirname(__FILE__)."/dom8.php");
+    require_once(dirname(__FILE__)."/dom_html.php");
 
     $__frameworks_toolbar = array(
 
@@ -515,7 +515,7 @@
     {
         if (is_array($icon_entries))
         {
-            return wrap_each($icon_entries, eol(), "icon_entry_to_link", false);
+            return wrap_each($icon_entries, " ".eol(), "icon_entry_to_link", false);
         }
         else if (is_string($icon_entries))
         {

@@ -1,33 +1,11 @@
 <?php
 
-    require_once(dirname(__FILE__)."/../../dom_html.php"); 
-    require_once(dirname(__FILE__)."/../../dom_toolbar.php"); 
-
+    require_once("dom.php"); 
     use function dom\{set,get,unsplash_url_img,is_localhost,init,output,css_gradient,html,rss,jsonfeed,tile,head,body,header,footer,style,env_add,toolbar,main,article,anchor,h1,h2,h3,lorem_ipsum,p,grid,card,card_title,card_media,card_text,img,hr,a,svg_rss,svg_facebook,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,toolbar_nav_title,toolbar_nav_toolbar,svg_darkandlight,url_void,cards_async,script};
 
     set("my_example_img_src", "https://images.unsplash.com/photo-1551641506-ee5bf4cb45f1"); // get/set can used as a helper
 
-    // TODO ------------------------------------------------------------------------>
-    // TODO : FIX CANONICAL PATH HACK
-
-    if (!!get("static"))
-    {
-        set("canonical", rtrim(str_replace("www.villepreux.net",    "villapirorum.netlify.app", get("canonical")), "/"));
-        set("canonical", rtrim(str_replace("villepreux.net",        "villapirorum.netlify.app", get("canonical")), "/"));
-        set("canonical", rtrim(str_replace("http://localhost",      "https://",                 get("canonical")), "/"));
-        set("canonical", rtrim(str_replace("http://127.0.0.1",      "https://",                 get("canonical")), "/"));
-    }
-
-    if (is_localhost())
-    {
-        set("canonical", rtrim(str_replace("https://localhost", "http://localhost", get("canonical")), "/"));
-        set("canonical", rtrim(str_replace("https://127.0.0.1", "http://127.0.0.1", get("canonical")), "/"));
-    }
-
-    set("canonical", str_replace("///", "//", get("canonical")));
-
-    // TODO
-    // TODO ------------------------------------------------------------------------>
+    require_once(__DIR__."/../../dom_BUGFIX.php"); 
 
     define("TOKEN_FLICKR", "8359186a91acb42a4934c5a2c73195d1");
 
@@ -88,31 +66,31 @@
                                 card_title("We love cards").
                                 card_media(img(get("my_example_img_src"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("my_example_img_src"))).
                                 card_text(
-                                    "Feel free to use whatever web framework css machinery to render your cards"
+                                    p("Feel free to use whatever web framework css machinery to render your cards")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("my_example_img_src"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 ).
                             card(
                                 card_title("We love cards").
                                 card_media(img(get("my_example_img_src"))).
                                 card_text(
-                                    "Cards seem to be a popular web component nowadays.".
-                                    "So we got it. And we also got social networks accounts cards pulling."
+                                    p("Cards seem to be a popular web component nowadays.").
+                                    p("So we got it. And we also got social networks accounts cards pulling.")
                                     )
                                 )
                             )
