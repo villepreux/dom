@@ -7101,7 +7101,7 @@
 
             pre { 
                 white-space: pre-wrap; /* Otherwise overflow everywhere */
-                font-size: clamp(.5em, 2.6vw, 1em);
+                font-size: clamp(.5em, 3.5vw, 1em);
             }
         
             /* Layout */
