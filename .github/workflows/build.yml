@@ -31,16 +31,14 @@ jobs:
 
     # MISSPELL
 
-    # uses: sobolevn/misspell-fixer-action@master
-    # Use unreleased dev version while we wait for a new one to be cut. See:
+    # Commented because of:
     # https://github.com/sobolevn/misspell-fixer-action/issues/15
-    - uses: sobolevn/misspell-fixer-action@8842a5615f83fed75e8a87015e9300a54d049961
-      with:
-        options: '-rsvn .'
-    - uses: peter-evans/create-pull-request@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'Fixes by misspell-fixer'
-        title: 'Typos fix by misspell-fixer'
-
-    
+    # 
+    # - uses: sobolevn/misspell-fixer-action@master
+    #   with:
+    #     options: '-rsvn .'
+    # - uses: peter-evans/create-pull-request@v3
+    #   with:
+    #     token: ${{ secrets.GITHUB_TOKEN }}
+    #     commit-message: 'Fixes by misspell-fixer'
+    #     title: 'Typos fix by misspell-fixer'
