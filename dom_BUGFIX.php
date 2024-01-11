@@ -1,5 +1,6 @@
 <?php
 
+require_once(__DIR__."/dom8.php");
 use function dom\{set,get,is_localhost};
 
 // TODO ------------------------------------------------------------------------>

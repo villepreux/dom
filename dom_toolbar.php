@@ -61,9 +61,13 @@
         
     function css_vars_color_scheme_light_brands_toolbar($current_selector = ":root")
     {
+        if (has("dom_toolbar_no_css")) return "";
+        
         heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
 
             } .toolbar-row, .toolbar-row * {
+
+            --warning-disable: do not use empty rulesets;
 
             <?= brand_color_css_property("darkandlight", "#dddddd", 35, "light") ?> 
 
@@ -74,9 +78,13 @@
 
     function css_vars_color_scheme_dark_brands_toolbar($current_selector = ":root")
     {
+        if (has("dom_toolbar_no_css")) return "";
+        
         heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
     
             } .toolbar-row, .toolbar-row * {
+
+            --warning-disable: do not use empty rulesets;
 
             <?= brand_color_css_property("darkandlight", "#222222", 35, "dark") ?> 
 
@@ -87,6 +95,8 @@
 
     function css_toolbar_layout()
     {
+        if (has("dom_toolbar_no_css")) return "";
+        
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
     
             /* Toolbar */
@@ -120,13 +130,13 @@
 
             .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
             
-            .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(0.5 * calc(100% - var(--max-text-width))),              50%); }
+            .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)); }
 
             .toolbar-row-nav .toolbar-cell-center,
             .toolbar-row-nav .toolbar-cell-center *         { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;  }
 
             .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
-            .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(                                    var(--gap),  calc(0.5 * calc(100% - var(--max-text-width)) + var(--gap)), 50%); }
+            .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(var(--gap),  calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width)) + var(--gap)), calc(var(--right-text-margin-ratio) * 100%)); }
 
             .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
 
@@ -146,7 +156,7 @@
             #<?= DOM_MENU_ID 
             ?>-open .menu                                   { position: absolute; left: var(--gap); transform: translateY(var(--header-toolbar-height)); }
             .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
-            .menu ul                                        { padding: 0; gap: 0; list-style-type: none; align-items: stretch: flex-direction: column; }
+            .menu ul                                        { padding: 0; gap: 0; list-style-type: none; align-items: stretch; flex-direction: column; }
             .menu li                                        { padding: 0; }
             .menu li > *                                    { padding: calc(0.5 * var(--gap)) var(--gap); }
     
@@ -203,6 +213,8 @@
 
     function css_toolbar_colors()
     {
+        if (has("dom_toolbar_no_css")) return "";
+        
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
     
             /* Colors: toolbar & menu */
@@ -236,6 +248,8 @@
 
     function _include_css_main_toolbar_adaptation($main_selector)
     {
+        if (has("dom_toolbar_no_js")) return "";
+        
         if (!!get("toolbar_banner") && !!get("toolbar_nav")) return "$main_selector { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
         if (!!get("toolbar_banner"))                         return "$main_selector { margin-top: calc(var(--header-height)); }";
         if (!!get("toolbar_nav"))                            return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
@@ -245,6 +259,8 @@
 
     function js_toolbar_framework_material()
     {
+        if (has("dom_toolbar_no_js")) return "";
+        
         if ("material" != get("framework")) return "";
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
@@ -319,6 +335,8 @@
 
     function js_toolbar()
     {
+        if (has("dom_toolbar_no_js")) return "";
+        
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
             /* TOOLBAR */
@@ -380,6 +398,8 @@
 
     function js_toolbar_menu()
     {
+        if (has("dom_toolbar_no_js")) return "";
+        
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
             /* TOOLBAR MENU */
@@ -424,6 +444,8 @@
 
     function js_toolbar_banner_rotation()
     {
+        if (has("dom_toolbar_no_js")) return "";
+
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
             
             /* TOOLBAR BANNER IMAGE ROTATION */

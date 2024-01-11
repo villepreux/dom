@@ -7102,15 +7102,17 @@
     
             :root {
     
-                --root-font-size:   clamp(1.00rem, 0.59rem + 1.47vw, 1.20rem);
-                --line-height:      clamp(1.35rem, 1.60rem + 1.70vw, 1.5rem);
+                --root-font-size:           clamp(1.00rem, 0.59rem + 1.47vw, 1.20rem);
+                --line-height:              clamp(1.35rem, 1.60rem + 1.70vw, 1.5rem);
     
-                --max-text-width:   48rem;
+                --max-text-width:           48rem;
+                --left-text-margin-ratio:   0.5;
+                --right-text-margin-ratio:  calc(1.0 - var(--left-text-margin-ratio));
 
-                --gap:              1rem;
-                --scrollbar-width:  17px;
+                --gap:                      1rem;
+                --scrollbar-width:          17px;
         
-                --scroll-margin:    var(--gap);
+                --scroll-margin:            var(--gap);
             }
     
             /* Sanitize ++ */
@@ -7224,7 +7226,10 @@
                 width:          fit-content;
             }
 
-            pre { white-space: pre-wrap; } /* Otherwise overflow everywhere */
+            pre { 
+                white-space: pre-wrap; /* Otherwise overflow everywhere */
+                font-size: clamp(.5em, 3.5vw, 1em);
+            }
         
             /* Layout */
             
@@ -7315,7 +7320,8 @@
     
             :is(main, header, footer) > * {
     
-                margin-inline: clamp(var(--gap), calc(0.5 * calc(100% - var(--max-text-width))), 50%);
+                margin-inline: clamp(var(--gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
+                               clamp(var(--gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
             }
 
             :is(main, header, footer, article, section, figure) > :is(img, figure, picture, svg, video, canvas, audio, iframe, embed, object) { 

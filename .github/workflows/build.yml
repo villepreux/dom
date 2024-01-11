@@ -31,13 +31,14 @@ jobs:
 
     # MISSPELL
 
-    - uses: sobolevn/misspell-fixer-action@master
-      with:
-        options: '-rsvn .'
-    - uses: peter-evans/create-pull-request@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'Fixes by misspell-fixer'
-        title: 'Typos fix by misspell-fixer'
-
-    
+    # Commented because of:
+    # https://github.com/sobolevn/misspell-fixer-action/issues/15
+    # 
+    # - uses: sobolevn/misspell-fixer-action@master
+    #   with:
+    #     options: '-rsvn .'
+    # - uses: peter-evans/create-pull-request@v3
+    #   with:
+    #     token: ${{ secrets.GITHUB_TOKEN }}
+    #     commit-message: 'Fixes by misspell-fixer'
+    #     title: 'Typos fix by misspell-fixer'
