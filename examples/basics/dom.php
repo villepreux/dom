@@ -6,19 +6,38 @@ require_once(__DIR__."/../../dom_toolbar.php"); // DOM toolbar plugin
 use function dom\{set,get,pre,style}; // Import what I need here
 
 set("fonts", get("fonts")."|Fira Code");
-    
+      
 function code($code) // Custom component
 {
+    $syntax_highlight = true;
+
+    if ($syntax_highlight)
+    {
+        // Workaround crappy native php syntax hightlight function ------>
+        $functions = array("default", "html", "keyword", "string", "comment");
+        foreach ($functions as $value) ini_set("highlight.$value", "ide-highlight-$value;");
+        $code = highlight_string($code, true);
+        foreach ($functions as $value) $code = preg_replace("/style=\"color: highlight-$value;\"/", "class=\"ide-highlight-$value\"", $code);
+        $code = str_replace('style="color: ', 'class="', $code);
+        $code = str_replace(';"', '"', $code);
+        $code = str_replace(array(PHP_EOL, "\n", "\r", "\r", "\r\n", "\n\r"), "", $code);
+        //$code = str_replace(array("&nbsp;"), "", $code);
+        $code = str_replace(array("<br />", "<br/>", "<br>"), PHP_EOL, $code);
+        $code = str_replace(array("<code>", "</code>", '<span class="ide-highlight-html">'), "", $code);
+        $code = substr($code, 0, strripos($code, "</span>"));
+        // Workaround crappy native php syntax hightlight function ------>
+    }
+
     $i = 0;
 
     return 
 
-        pre(implode(PHP_EOL, array_map(function ($line) use (&$i) { 
+        pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
                 
                 return  '<div class="ide-line">'.
                 
-                            '<span class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</span>'.
-                            '<span class="ide-line-code">'.htmlentities($line).'</span>'.
+                            '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
+                            '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
                             
                         '</div>';
             
@@ -33,6 +52,7 @@ function code($code) // Custom component
             @layer ide;
         
             .ide {
+                width:          fit-content;
                 border:         1px dashed var(--border-color);
                 padding:        var( --gap);
                 font-size:      .66em;
@@ -52,7 +72,23 @@ function code($code) // Custom component
                 pointer-events: none;
                 user-select:    none;
             }
+
+            .ide-highlight-html     { color: #000000 }
+            .ide-highlight-default  { color: #0000bb }
+            .ide-highlight-keyword  { color: #007700 }
+            .ide-highlight-string   { color: #dd0000 }
+            .ide-highlight-comment  { color: #ff8000 }
             
+            @media (prefers-color-scheme: dark) {
+                    
+                .ide-highlight-html     { color: #FFFFFF }
+                .ide-highlight-default  { color: #6ACDFF }
+                .ide-highlight-keyword  { color: #84FF84 }
+                .ide-highlight-string   { color: #FFAE85 }
+                .ide-highlight-comment  { color: #BDBDBD }
+                
+            }
+
             ");
 }
 
