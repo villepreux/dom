@@ -656,16 +656,16 @@
         $heredoc_stack = get("heredoc");
         $output        = ob_get_contents();
  
-        if ($transform == false && at($heredoc_stack, "next_transform") != false)
+        if ($transform == false && at($heredoc_stack[count($heredoc_stack)-1], "next_transform") != false)
         {
-            $transform = at($heredoc_stack, "next_transform");
+            $transform = at($heredoc_stack[count($heredoc_stack)-1], "next_transform");
         }
 
-        $heredoc_stack["next_transform"] = false;
+        $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = false;
         {
-                 if ($output == "<style>"  ) $heredoc_stack["next_transform"] = "raw_css";
-            else if ($output == "<script>" ) $heredoc_stack["next_transform"] = "raw_js";
-            else if ($output == "<html>"   ) $heredoc_stack["next_transform"] = "raw_html";
+                 if ($output == "<style>"  ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_css";
+            else if ($output == "<script>" ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_js";
+            else if ($output == "<html>"   ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_html";
         }
 
         if (null !== $transform)
@@ -6085,12 +6085,22 @@
             
             category: typography
             */
-            h1 { font-size: 2.00rem; }
-            h2 { font-size: 1.50rem; }
-            h3 { font-size: 1.17rem; }
-            h4 { font-size: 1.00rem; }
-            h5 { font-size: 0.83rem; }
-            h6 { font-size: 0.67rem; }
+            
+            :root {
+                --h1-font-size: 2.00rem;
+                --h2-font-size: 1.50rem;
+                --h3-font-size: 1.17rem;
+                --h4-font-size: 1.00rem;
+                --h5-font-size: 0.83rem;
+                --h6-font-size: 0.67rem;
+            }
+
+            h1 { font-size: var(--h1-font-size); }
+            h2 { font-size: var(--h2-font-size); }
+            h3 { font-size: var(--h3-font-size); }
+            h4 { font-size: var(--h4-font-size); }
+            h5 { font-size: var(--h5-font-size); }
+            h6 { font-size: var(--h6-font-size); }
             
             
             /* @docs
@@ -9276,6 +9286,9 @@
 
     function grid ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid")     )); }
     function row  ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid-row") )); }
+
+    function section_grid ($html, $attributes = false) { return section($html, attributes_add_class($attributes, component_class("section", "grid")     )); }
+    function article_grid ($html, $attributes = false) { return article($html, attributes_add_class($attributes, component_class("article", "grid")     )); }
 
     function cell($html, $s = 4, $m = 4, $l = 4, $classes = false)
     {
