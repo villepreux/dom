@@ -5813,12 +5813,19 @@
             
             /* For images to not be able to exceed their container */
             img {
-                max-width: 100%;
+                /* max-width: 100%;*/ /* TODO: Check removal impacts */
+                max-inline-size: 100%;
+                max-block-size: 100%;
             }
             
             /* removes spacing between cells in tables */
             table {
                 border-collapse: collapse;
+            }
+
+            /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
+            input, textarea {
+                -webkit-user-select: auto;
             }
             
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -5831,10 +5838,20 @@
                 -webkit-appearance: revert;
                 appearance: revert;
             }
+
+            /* preformatted text - use only for this feature */
+            :where(pre) {
+                all: revert;
+            }
             
             /* reset default text opacity of input placeholder */
             ::placeholder {
                 color: unset;
+            }
+
+            /* remove default dot (•) sign */
+            ::marker {
+                content: initial;
             }
             
             /* fix the feature of 'hidden' attribute.
@@ -5842,19 +5859,26 @@
             :where([hidden]) {
                 display: none;
             }
-            
+
             /* revert for bug in Chromium browsers
-            - fix for the content editable attribute will work properly. */
-            :where([contenteditable]) {
+            - fix for the content editable attribute will work properly.
+            - webkit-user-select: auto; added for Safari in case of using user-select:none on wrapper element */
+            :where([contenteditable]:not([contenteditable="false"])) {
                 -moz-user-modify: read-write;
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
+                -webkit-user-select: auto;
             }
             
             /* apply back the draggable feature - exist only in Chromium and Safari */
             :where([draggable="true"]) {
                 -webkit-user-drag: element;
+            }
+
+            /* Revert Modal native behavior */
+            :where(dialog:modal) {
+                all: revert;
             }
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
@@ -6989,6 +7013,11 @@
             }
     
             /* Sanitize ++ */
+
+            * { 
+                min-width: 0; 
+                min-height: 0;
+            }
     
             html {
                 height: 100%;
