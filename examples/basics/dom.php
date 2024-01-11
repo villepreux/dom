@@ -40,12 +40,14 @@ function code($code) // Custom component
             }
             .ide-line { 
                 display:        inline-flex; 
+                align-items:    flex-start;
                 gap:            .5em; 
                 font-family:    'Fira Code', monospace; 
                 font-size:      smaller
             }
             .ide-line-number {
                 white-space:    nowrap;
+                flex-shrink:    0;
                 color:          var(--theme-color, var(--text-on-background-lighter-color));
                 pointer-events: none;
                 user-select:    none;
