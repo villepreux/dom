@@ -256,14 +256,14 @@
 
             // If path exists then directly return it
 
-            if (false !== stripos($path, "batiment")) die("CWD = (".getcwd().")PATH = ($path) EXISTS = (".file_exists($path).")");
+            // if (false !== stripos($path, "batiment")) die("CWD = (".getcwd().")PATH = ($path) EXISTS = (".file_exists($path).")");
 
-            if (@file_exists($path))                                return $path.$param;
+            if (@file_exists($path))                            return $path.$param;
             if (($max_depth == $depth) && url_exists($path))    return $path.$param;
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists("$path.php"))                              return $path.$param;
+                if (@file_exists("$path.php"))                          return $path.$param;
                 if (($max_depth == $depth) && url_exists("$path.php"))  return $path.$param;
             }
 
@@ -338,10 +338,10 @@
     #region WIP DEPENDENCIES
     ######################################################################################################################################
     
-   @internal_include(path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
-
-   @internal_include(path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
-   @internal_include(path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));
+    @internal_include(path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
+    @internal_include(path("../vendor/autoload.php")); /*
+    @internal_include(path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
+    @internal_include(path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));*/
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -640,7 +640,8 @@
 
             "current_output" => "",
             "tab_offset"     => $tab_offset,
-            "tab"            => $tab            
+            "tab"            => $tab,
+            "next_transform" => false
         );
 
         set("heredoc", $heredoc_stack);
@@ -652,12 +653,23 @@
 
     function heredoc_flush($transform = false, $transform_force_minify = false)
     {
+        $heredoc_stack = get("heredoc");
+        $output        = ob_get_contents();
+ 
+        if ($transform == false && at($heredoc_stack, "next_transform") != false)
+        {
+            $transform = at($heredoc_stack, "next_transform");
+        }
+
+        $heredoc_stack["next_transform"] = false;
+        {
+                 if ($output == "<style>"  ) $heredoc_stack["next_transform"] = "raw_css";
+            else if ($output == "<script>" ) $heredoc_stack["next_transform"] = "raw_js";
+            else if ($output == "<html>"   ) $heredoc_stack["next_transform"] = "raw_html";
+        }
+
         if (null !== $transform)
         {
-            $output = ob_get_contents();
-
-            $heredoc_stack = get("heredoc");
-
             if ($heredoc_stack[count($heredoc_stack)-1]["tab_offset"] != 0) $output = modify_tab($output, $heredoc_stack[count($heredoc_stack)-1]["tab_offset"], $heredoc_stack[count($heredoc_stack)-1]["tab"]);
             
             if (!!$transform) 
@@ -667,9 +679,9 @@
             }
         
             $heredoc_stack[count($heredoc_stack)-1]["current_output"] .= $output;
-
-            set("heredoc", $heredoc_stack);
-        }        
+        }   
+        
+        set("heredoc", $heredoc_stack);
 
         ob_end_clean();
         ob_start();
@@ -1098,6 +1110,19 @@
     #region HELPERS : MISC
     ######################################################################################################################################
 
+    if (!function_exists('array_is_list')) {
+
+        function array_is_list($arr)
+        {
+            if ($arr === array()) 
+            {
+                return true;
+            }
+
+            return array_keys($arr) === range(0, count($arr) - 1);
+        }
+    }
+
     function coalesce()
     {
         $args = func_get_args();
@@ -1472,10 +1497,32 @@
 
     use Michelf\Markdown;
     use Michelf\SmartyPants;
+    use League\CommonMark\GithubFlavoredMarkdownConverter;
         
-    function markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = true, $markdown = true)
+    function markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = false, $markdown = false, $commonmark = true)
     {
-        if ($markdown)    $html = Markdown::defaultTransform($text); 
+        $html = "";
+        
+        if ($markdown)
+        {   
+          //$html = Markdown::defaultTransform($text);
+            $parser = new Markdown;
+          //$parser->hard_wrap = true;
+            $html = $parser->transform($text);
+        }
+
+        if ($commonmark)
+        {   
+            try
+            {
+                $converter = new GithubFlavoredMarkdownConverter();
+                $html = $converter->convert($text)->getContent();
+            }
+            catch (\Exception $e)
+            {
+            }
+        }
+
         if ($smartypants) $html = SmartyPants::defaultTransform($html);
         if ($hard_wrap)   $html = str_replace("\n", "<br>", $html);
 
@@ -4799,7 +4846,87 @@
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
     function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
+        
+    // DOM powered html transform
     
+    function xml_decode($xml)
+    {
+        $e = is_string($xml) ? simplexml_load_string($xml) : $xml;
+        if (!is_object($e)) return $e;
+
+        $a = array("name" => $e->getName(), "attributes" => array(), "children" => array(), "value" => strval($e));
+
+        foreach ($e->attributes() as $attribute => $value)
+        {
+            $a["attributes"][] = array("name" => $attribute, "value" => strval($value));
+        }
+
+        foreach ($e->children() as $child)
+        {
+            $a["children"][] = xml_decode($child);
+        }
+
+        return $a;
+    }
+
+    function raw_dom_parse($tree, $parent_node_name = "document", $debug_comments = false)
+    {  
+        $html = "";
+
+        if (is_array($tree))
+        {
+            //foreach ($tree as $_tree_node)
+            {
+                $node               = $tree["value"];
+                $node_name          = $tree["name"];
+                $node_attributes    = $tree["attributes"];
+                $children           = $tree["children"];
+
+                $func_name = str_replace("-", "_", $node_name);
+
+                $children_html = "";
+
+                foreach ($children as $child)
+                {
+                    $children_html .= raw_dom_parse($child, $node_name, $debug_comments);
+                }
+
+                foreach (array("dom\\$parent_node_name"."_$func_name", "dom\\$func_name", $parent_node_name."_".$func_name, $func_name) as $dom_func)
+                {
+                    if (is_callable($dom_func))
+                    {
+                        $attributes = array();
+
+                        foreach ($node_attributes as $node_attribute)
+                        {
+                            $attributes[$node_attribute["name"]] = at($attributes, $node_attribute["name"], array());
+                            $attributes[$node_attribute["name"]][] = $node_attribute["value"];
+                        }
+
+                        foreach ($attributes as $name => $value)
+                        {
+                            $attributes[$name] = implode(" ", $value);
+                        }
+
+                        $html .= $dom_func($children_html.$node, $attributes);
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            $html = $tree;
+        }
+
+        return $html;
+    }
+
+    function raw_dom($html, $debug_comments = false)
+    {
+        return raw_dom_parse(xml_decode($html), "document", $debug_comments);
+    }
+
     /*
      * CSS tags
      */
@@ -8197,8 +8324,16 @@
     }
     
     function body($html = "", $html_post_scripts = "", $dark_theme = DOM_AUTO)
-    {
+    {        
         $profiler = debug_track_timing();
+
+        $attributes = false;
+
+        if (is_array($html_post_scripts))
+        {
+            $attributes         = $html_post_scripts;
+            $html_post_scripts  = at($attributes, "script", "");
+        }
         
         $properties_organization = array
         (
@@ -8254,6 +8389,7 @@
         . ($app_js ? script_src($app_js) : '')         ))
 
         . eol() 
+        . comment("Post scripts")
         . $html_post_scripts
 
         . eol()
@@ -9281,6 +9417,12 @@
         if (is_array($path)) 
         {
             return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy);
+        }
+
+        if (is_array($w))
+        {
+            $attributes = $w;
+            return img(at($attributes, "src", $path), at($attributes, "width"), at($attributes, "height"), $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size);
         }
 
         if (DOM_AUTO === $precompute_size)
@@ -10627,9 +10769,9 @@
 
     // HEREDOC SNIPPET HELPER
 
-    function HSTART($offset = 0) { return heredoc_start($offset); }
-    function HSTOP($out = null)  { return heredoc_stop($out);     }
-    function HERE($out  = null)  { return heredoc_flush($out);    }
+    function HSTART($offset = 0, $tab = "    ")                   { return heredoc_start($offset, $tab); }
+    function HSTOP($out = null, $transform_force_minify = false)  { return heredoc_stop($out,  $transform_force_minify); }
+    function HERE($out  = null, $transform_force_minify = false)  { return heredoc_flush($out, $transform_force_minify); }
 
     #endregion
 
