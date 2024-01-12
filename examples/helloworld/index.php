@@ -1,9 +1,8 @@
-<?php
-include "dom.php"; 
-use function dom\{init,output,head,body,main,h1,p,pre,content};
-init();
-output(head().body(main(
-    h1("Hello World!").        
-    p("This is a 'Hello World' example").
-    pre(htmlentities(content("index.php")))
-    )));
+<?php include "dom.php"; // Our framework
+use function dom\{init,output,head,body,main,h1,p,content};
+init(); // Ignition
+output(head().body(main( // Main layout
+    h1("Hello World!"). // Title
+    p("This is a 'Hello World' example"). // Paragraph
+    code(content("index.php")) // Going meta
+    ))); // Done in 8 lines

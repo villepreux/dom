@@ -656,16 +656,16 @@
         $heredoc_stack = get("heredoc");
         $output        = ob_get_contents();
  
-        if ($transform == false && at($heredoc_stack, "next_transform") != false)
+        if ($transform == false && at($heredoc_stack[count($heredoc_stack)-1], "next_transform") != false)
         {
-            $transform = at($heredoc_stack, "next_transform");
+            $transform = at($heredoc_stack[count($heredoc_stack)-1], "next_transform");
         }
 
-        $heredoc_stack["next_transform"] = false;
+        $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = false;
         {
-                 if ($output == "<style>"  ) $heredoc_stack["next_transform"] = "raw_css";
-            else if ($output == "<script>" ) $heredoc_stack["next_transform"] = "raw_js";
-            else if ($output == "<html>"   ) $heredoc_stack["next_transform"] = "raw_html";
+                 if ($output == "<style>"  ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_css";
+            else if ($output == "<script>" ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_js";
+            else if ($output == "<html>"   ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_html";
         }
 
         if (null !== $transform)
@@ -5940,12 +5940,19 @@
             
             /* For images to not be able to exceed their container */
             img {
-                max-width: 100%;
+                /* max-width: 100%;*/ /* TODO: Check removal impacts */
+                max-inline-size: 100%;
+                max-block-size: 100%;
             }
             
             /* removes spacing between cells in tables */
             table {
                 border-collapse: collapse;
+            }
+
+            /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
+            input, textarea {
+                -webkit-user-select: auto;
             }
             
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -5958,10 +5965,20 @@
                 -webkit-appearance: revert;
                 appearance: revert;
             }
+
+            /* preformatted text - use only for this feature */
+            :where(pre) {
+                all: revert;
+            }
             
             /* reset default text opacity of input placeholder */
             ::placeholder {
                 color: unset;
+            }
+
+            /* remove default dot (•) sign */
+            ::marker {
+                content: initial;
             }
             
             /* fix the feature of 'hidden' attribute.
@@ -5969,19 +5986,26 @@
             :where([hidden]) {
                 display: none;
             }
-            
+
             /* revert for bug in Chromium browsers
-            - fix for the content editable attribute will work properly. */
-            :where([contenteditable]) {
+            - fix for the content editable attribute will work properly.
+            - webkit-user-select: auto; added for Safari in case of using user-select:none on wrapper element */
+            :where([contenteditable]:not([contenteditable="false"])) {
                 -moz-user-modify: read-write;
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
+                -webkit-user-select: auto;
             }
             
             /* apply back the draggable feature - exist only in Chromium and Safari */
             :where([draggable="true"]) {
                 -webkit-user-drag: element;
+            }
+
+            /* Revert Modal native behavior */
+            :where(dialog:modal) {
+                all: revert;
             }
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
@@ -6061,12 +6085,22 @@
             
             category: typography
             */
-            h1 { font-size: 2.00rem; }
-            h2 { font-size: 1.50rem; }
-            h3 { font-size: 1.17rem; }
-            h4 { font-size: 1.00rem; }
-            h5 { font-size: 0.83rem; }
-            h6 { font-size: 0.67rem; }
+            
+            :root {
+                --h1-font-size: 2.00rem;
+                --h2-font-size: 1.50rem;
+                --h3-font-size: 1.17rem;
+                --h4-font-size: 1.00rem;
+                --h5-font-size: 0.83rem;
+                --h6-font-size: 0.67rem;
+            }
+
+            h1 { font-size: var(--h1-font-size); }
+            h2 { font-size: var(--h2-font-size); }
+            h3 { font-size: var(--h3-font-size); }
+            h4 { font-size: var(--h4-font-size); }
+            h5 { font-size: var(--h5-font-size); }
+            h6 { font-size: var(--h6-font-size); }
             
             
             /* @docs
@@ -7116,6 +7150,11 @@
             }
     
             /* Sanitize ++ */
+
+            * { 
+                min-width: 0; 
+                min-height: 0;
+            }
     
             html {
                 height: 100%;
@@ -9248,6 +9287,9 @@
 
     function grid ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid")     )); }
     function row  ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid-row") )); }
+
+    function section_grid ($html, $attributes = false) { return section($html, attributes_add_class($attributes, component_class("section", "grid")     )); }
+    function article_grid ($html, $attributes = false) { return article($html, attributes_add_class($attributes, component_class("article", "grid")     )); }
 
     function cell($html, $s = 4, $m = 4, $l = 4, $classes = false)
     {
