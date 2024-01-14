@@ -5788,6 +5788,7 @@
 
     function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = path($filename_or_code); $profiler = debug_track_timing(!!$filename ? $filename : "inline"); $js  = eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol(); return AMP() ? hook_amp_js($js) : (tag('script', $js, array("type" => $type) )); }
     function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_module($src,            $type = "module",          $extra = false, $force = false)                                                      { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                                                                    { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
     function script_ajax_head() { return AMP() ? "" : script(js_ajax_head()); }
@@ -6087,20 +6088,32 @@
             */
             
             :root {
-                --h1-font-size: 2.00rem;
+
+                --h1-font-size: 2.00rem;                
                 --h2-font-size: 1.50rem;
                 --h3-font-size: 1.17rem;
                 --h4-font-size: 1.00rem;
                 --h5-font-size: 0.83rem;
                 --h6-font-size: 0.67rem;
+                
+                --text-font-weight: 400;
+
+                --h1-font-weight: 600;
+                --h2-font-weight: 600;
+                --h3-font-weight: 400;
+                --h4-font-weight: 400;
+                --h5-font-weight: 400;
+                --h6-font-weight: 400;
             }
 
-            h1 { font-size: var(--h1-font-size); }
-            h2 { font-size: var(--h2-font-size); }
-            h3 { font-size: var(--h3-font-size); }
-            h4 { font-size: var(--h4-font-size); }
-            h5 { font-size: var(--h5-font-size); }
-            h6 { font-size: var(--h6-font-size); }
+            body { font-weight: var(--text-font-weight); }
+
+            h1 { font-size: var(--h1-font-size); font-weight: var(--h1-font-weight); }
+            h2 { font-size: var(--h2-font-size); font-weight: var(--h2-font-weight); }
+            h3 { font-size: var(--h3-font-size); font-weight: var(--h3-font-weight); }
+            h4 { font-size: var(--h4-font-size); font-weight: var(--h4-font-weight); }
+            h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
+            h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
             
             
             /* @docs
@@ -6777,8 +6790,8 @@
             --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff66ff") ?>;
             --dark-accent-color:                        <?= user_color("dark", "accent_color", "#22ccee") ?>;
 
-            --dark-link-color:                          <?= user_color("dark", "link_color",   "#997799") ?>;
-            --dark-link-color-accent:                   <?= user_color("dark", "link_color",   "#ee11bb") ?>;
+            --dark-link-color:                          <?= user_color("dark", "link_color",   "#cb9ecb") ?>;
+            --dark-link-color-accent:                   <?= user_color("dark", "link_color",   "#ff77e0") ?>;
 
             --dark-text-on-background-darker-color:     #e5e5e5;
             --dark-text-on-background-color:            #f2f2f2;
@@ -7036,9 +7049,9 @@
             
             /* Links */
     
-            a               { color: var(--link-color,       #990011); }
-            a:visited       { color: var(--link-color,       #990011); }
-            a:hover         { color: var(--link-hover-color, #ff00ff); }
+            a               { font-weight: 600; color: var(--link-color,       #990011); }
+            a:visited       { font-weight: 600; color: var(--link-color,       #990011); }
+            a:hover         { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
 
             /* Others */
     
@@ -7236,15 +7249,16 @@
 
             html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height) }
 
-            body                    { text-underline-offset: 0.15em; }
+            body                    { text-underline-offset: 0.25em; }
     
             body                    { word-break: break-word; }
             .grid *                 { word-break: normal; overflow: hidden; text-overflow: ellipsis;  } /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
     
-            a                       { text-decoration: none; }
-            a:hover                 { text-decoration: underline; }
+                  nav a, [role="navigation"] a          { text-decoration: none }
+            a:not(nav a, [role="navigation"] a)         { text-decoration-thickness: 0.5px }
+            a:not(nav a, [role="navigation"] a):hover   { text-decoration-thickness: 1.5px }
 
             ins, abbr, acronym      { }    
             u                       { text-decoration-style: wavy; }
