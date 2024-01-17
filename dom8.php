@@ -8555,6 +8555,11 @@
 
     function label          ($html = "", $for  = "", $attributes = false) {                 return  tag('label',                      $html,                            attributes_add( $attributes, attributes(attr("for", $for))) );                      }
 
+    function select         ($html = "", $default = false, $id = "", $attributes = false) { return  tag('select',                     $html,                            attributes_add( $attributes, $default !== false ? attributes(attr("id", $id), attr("value", $default))
+                                                                                                                                                                                                                        : attributes(attr("id", $id))  )          );                      }
+
+    function option         ($html = "", $value = "", $attributes = false) {                return  tag('option',                     $html, attributes_add( $attributes, attributes(attr("value", $value)))                             );                      }
+
     function h1             ($html = "", $attributes = false, $anchor = false) {            return  h(1,                              $html,                                            $attributes, $anchor                                                );                      }
     function h2             ($html = "", $attributes = false, $anchor = false) {            return  h(2,                              $html,                                            $attributes, $anchor                                                );                      }
     function h3             ($html = "", $attributes = false, $anchor = false) {            return  h(3,                              $html,                                            $attributes, $anchor                                                );                      }
