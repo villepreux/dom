@@ -4,5 +4,5 @@ init(); // Ignition
 output(head().body(main( // Main layout
     h1("Hello World!"). // Title
     p("This is a 'Hello World' example"). // Paragraph
-    code(content("index.php")) // Going meta
+    this() // Going meta
     ))); // Done in 8 lines

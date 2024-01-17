@@ -1,12 +1,13 @@
 <?php
 
-require_once(__DIR__."/../../dom_html.php"); // DOM html markup
-require_once(__DIR__."/../../dom_toolbar.php"); // DOM toolbar plugin
+require_once(__DIR__."/dom_html.php");       // DOM html markup
+require_once(__DIR__."/dom_toolbar.php");   // DOM toolbar plugin
+require_once(__DIR__."/dom_BUGFIX.php");    // DOM current hotfixes
 
 use function dom\{set,get,pre,style}; // Import what I need here
 
 set("fonts", get("fonts")."|Fira Code");
-      
+
 function code($code) // Custom component
 {
     $syntax_highlight = true;
