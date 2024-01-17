@@ -7295,15 +7295,24 @@
             body > main { flex-grow: 1; }
             */
             /* V2 */
+            /*
+            body {
+                justify-content: center;
+                align-items:     center;
+            }
+            body > :is(header, footer, main)
+            {
+                width: 100%;
+            }*/
+            /* V3 */
             
             body {
                 justify-content: center;
                 align-items:     center;
-            }/*
-            body > :is(header, main, footer) {
-                width:  inherit;
-                height: auto;
-            }*/
+            }
+            :is(body > header) + :is(body > main)  {
+                flex-grow: 1; 
+            }
             body > :is(header, footer, main)
             {
                 width: 100%;
@@ -10887,7 +10896,8 @@
 
         $rand = ($rand != DOM_AUTO ? $rand : md5("$__img_fakeface_index".microtime().rand(0, PHP_INT_MAX-1))).".jpg";
         $size = $type == "thumb" ? 350 : 731;
-        $url  = "https://fakeface.rest/$type/view/$rand?gender=$gender&minimum_age=$age_min&maximum_age=$age_max";
+      //$url  = "https://fakeface.rest/$type/view/$rand?gender=$gender&minimum_age=$age_min&maximum_age=$age_max";
+        $url  = "https://thispersondoesnotexist.com/";
 
         return img($url, $size, $size, false, "Fake AI generated face");
     }
