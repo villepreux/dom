@@ -56,7 +56,7 @@ function code($code) // Custom component
                 width:          fit-content;
                 border:         1px dashed var(--border-color);
                 padding:        var( --gap);
-                font-size:      .66em;
+                font-size:      .9em;
                 line-height:    1.3em;
             }
             .ide-line { 
@@ -89,6 +89,8 @@ function code($code) // Custom component
                 .ide-highlight-comment  { color: #BDBDBD }
                 
             }
+
+            .in-iframe .ide { display: none }
 
             ");
 }

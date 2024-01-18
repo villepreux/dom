@@ -703,6 +703,28 @@
     #region JAVASCRIPT SNIPPETS
     ######################################################################################################################################
 
+    function js_inside_iframe()
+    {
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            /* DOM Head Javascript boilerplate : Inside iframe detection */
+
+            var __dom_in_iframe = function () {
+                try {
+                    return window.self !== window.top;
+                } catch (Exception) {
+                    return true;
+                }
+            };
+            
+            if (__dom_in_iframe()) {
+
+                document.getElementsByTagName('html')[0].classList.add('in-iframe');
+            }
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
     function js_ajax_head()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
@@ -5793,6 +5815,8 @@
     
     function script_ajax_head() { return AMP() ? "" : script(js_ajax_head()); }
     function script_ajax_body() { return AMP() ? "" : script(js_ajax_body()); }
+
+    function script_inside_iframe() { return script(js_inside_iframe()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
     {
@@ -7032,6 +7056,9 @@
             .card                       { background-color: var(--background-lighter-color); color: var(--text-color); }
             .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); }
 
+            .card                       { border:        1px solid var(--border-color); }
+            .card-title                 { border-bottom: 1px solid var(--border-color); }
+
             article blockquote,
             article aside               { background-color: var(--background-color);        }
 
@@ -7374,8 +7401,8 @@
     
             /* Text limited width & heroes full width */
     
-                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup/*, .grid*/, [role="document"], [role="banner"], [role="menubar"], span, a)) {
+                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"]) >
+            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"], span, a)) {
     
                 margin-inline: var(--gap);
             }
@@ -7399,7 +7426,7 @@
 
             .card-title h1 {                
                 margin-block-start: .5rem;
-                margin-block-end: .5rem;
+                margin-block-end:   .5rem;
             }
               
             /* Images */
@@ -7498,7 +7525,7 @@
             .app-install, .app-install.hidden   { display: none }
             .app-install.visible                { display: inline-block }
 
-            /* Grid */
+            /* Grid & Flex */
     
             .grid { 
               
@@ -7506,6 +7533,15 @@
                 grid-gap: var(--gap);
                 grid-template-columns: repeat(auto-fit, minmax(calc(var(--line-height) + var(--gap)), 1fr));
             }
+
+            .flex {
+
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--gap);
+            }
+
+            /* Icons */
     
             .icon {
     
@@ -7518,11 +7554,15 @@
                 width: var(--line-height);
             }
 
+            /* Back to to button. TODO: remove? */
+
             .back-to-top {
                 position: fixed;
                 bottom: var(--gap);
                 right: var(--gap);
             }
+
+            /* Print styles */
 
             @media print {
                     
@@ -7563,6 +7603,7 @@
         $profiler = debug_track_timing(); 
 
         return  script_ajax_head().
+                script_inside_iframe().
 
                 script(js_scan_and_print_head()     ).  ((!!get("script_document_events", true)) ? (
                 script(js_on_document_events_head() ).  "") : "").
@@ -9311,7 +9352,9 @@
         }
     }
     
-    // GRID
+    // GRID & FLEX
+
+    function flex ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "flex")     )); }
 
     function grid ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid")     )); }
     function row  ($html, $attributes = false) { return div($html, attributes_add_class($attributes, component_class("div", "grid-row") )); }

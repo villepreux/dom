@@ -34,7 +34,7 @@ output( // Output
                 article( // Introspection : Show the markup used in this example
                     h2("Markup").
                     p("The complete markup of this page").
-                    code(content("index.php", 666)))).
+                    this())).
             footer(
                 p("This is my footer at the bottom").
                 p("Photo ".a("©Tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8")." @ Unsplash.com").
