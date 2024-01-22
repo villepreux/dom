@@ -1,6 +1,6 @@
 <?php
 
-require_once(__DIR__."/dom_html.php");       // DOM html markup
+require_once(__DIR__."/dom_html.php");      // DOM html markup
 require_once(__DIR__."/dom_toolbar.php");   // DOM toolbar plugin
 require_once(__DIR__."/dom_BUGFIX.php");    // DOM current hotfixes
 
@@ -53,11 +53,12 @@ function code($code) // Custom component
             @layer ide;
         
             .ide {
-                width:          fit-content;
-                border:         1px dashed var(--border-color);
-                padding:        var( --gap);
-                font-size:      .9em;
-                line-height:    1.3em;
+                width:              fit-content;
+                border:             1px dashed var(--border-color);
+                padding:            var( --gap);
+                font-size:          .9em;
+                line-height:        1.3em;
+                background-color:   var(--background-color);
             }
             .ide-line { 
                 display:        inline-flex; 

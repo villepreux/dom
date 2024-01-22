@@ -7046,24 +7046,28 @@
             body            { background-color: var(--background-darker-color, #eee); color: var(--text-color, #0d0d0d); }
             header, footer  { background-color: var(--background-color,        #ddd); color: var(--text-color, #0d0d0d); }
     
-            /* "Cards" */
-            /* TODO: TOO opinionated? Too often to be unset? */
+            /* Articles */
 
-            article, blockquote,aside   { background-color: var(--background-lighter-color);
+            article, blockquote, aside  { background-color: var(--background-color);
                                                      color: var(--text-color);
                                               border-color: var(--border-color); }
 
-            .card                       { background-color: var(--background-lighter-color); color: var(--text-color); }
+            article :is(
+                header, footer, 
+                blockquote, aside)      { background-color: var(--background-lighter-color);        }
+
+            /* Cards */
+
+            .card                       { background-color: var(--background-color);         color: var(--text-color); }
             .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); }
 
             .card                       { border:        1px solid var(--border-color); }
             .card-title                 { border-bottom: 1px solid var(--border-color); }
 
-            article blockquote,
-            article aside               { background-color: var(--background-color);        }
+            /* Cards inside articles */
 
-            article .card               { background-color: var(--background-color);        }
-            article .card .card-title   { background-color: var(--background-color);        }
+            article .card               { background-color: var(--background-lighter-color);   }
+            article .card .card-title   { background-color: var(--background-lighter-color);   }
 
             /* Headlines */
          
