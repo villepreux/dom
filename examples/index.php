@@ -11,8 +11,8 @@ output(head().body(
     main(section(grid(
         card(
             card_title("Minimal example").
-            card_media(iframe("helloworld#here", false, false, 1200, 1200)).
-            card_text(p("See ".a("example","helloworld")." in fullscreen"))).
+            card_media(iframe("hello-world#here", false, false, 1200, 1200)).
+            card_text(p("See ".a("example","hello-world")." in fullscreen"))).
         card(
             card_title("Basic example").
             card_media(iframe("basics#here", false, false, 1200, 1200)).

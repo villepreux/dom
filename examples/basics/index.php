@@ -30,7 +30,7 @@ output( // Output
                 article( // Introspection : Show the CSS used in this example
                     h2("CSS").
                     p("The complete css of this page").
-                    code(content("css/main.css"))).
+                    code(content("css/main.css"), "css")).
                 article( // Introspection : Show the markup used in this example
                     h2("Markup").
                     p("The complete markup of this page").

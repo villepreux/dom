@@ -6113,12 +6113,12 @@
             
             :root {
 
-                --h1-font-size: 2.00rem;                
-                --h2-font-size: 1.50rem;
-                --h3-font-size: 1.17rem;
-                --h4-font-size: 1.00rem;
-                --h5-font-size: 0.83rem;
-                --h6-font-size: 0.67rem;
+                --h1-font-size: 2.00rem; /*2.00rem;*/
+                --h2-font-size: 1.50rem; /*1.50rem;*/
+                --h3-font-size: 1.20rem; /*1.17rem;*/
+                --h4-font-size: 1.10rem; /*1.00rem;*/
+                --h5-font-size: 0.05rem; /*0.83rem;*/
+                --h6-font-size: 1.00rem; /*0.67rem;*/
                 
                 --text-font-weight: 400;
 
@@ -6768,14 +6768,26 @@
     #endregion
     #region Color vars
 
-    function user_color($scheme, $var, $default)
+    function user_color($scheme, $vars, $default)
     {
         $light = !!get("light", get("light_default", false));
 
-        return (($light && $scheme == "light") || (!$light && $scheme == "dark")) 
-            ? get($var, get("theme_color", $default)) 
-            : $default
-            ;
+        if (($light && $scheme == "light") || (!$light && $scheme == "dark"))
+        {
+            if (!is_array($vars)) $vars = array($vars);
+            $vars[] = "theme_color";
+
+            while (count($vars) > 0)
+            {
+                $var = array_shift($vars);
+
+                $val = get($scheme."-".$var); if ($val !== false) return $val;
+                $val = get($scheme."_".$var); if ($val !== false) return $val;
+                $val = get(            $var); if ($val !== false) return $val;
+            }
+        }
+        
+        return $default;
     }
 
     function css_vars_color_scheme_light_base($tab = 1)
@@ -6785,8 +6797,8 @@
             --light-theme-color:                        <?= user_color("light", "theme_color",  "#990011") ?>;
             --light-accent-color:                       <?= user_color("light", "accent_color", "#112299") ?>;
 
-            --light-link-color:                         <?= user_color("light", "link_color",   "#aa4455") ?>;
-            --light-link-color-accent:                  <?= user_color("light", "link_color",   "#cc1133") ?>;
+            --light-link-color:                         <?= user_color("light", [                      "link_color", "theme_color"  ], "var(--light-theme-color,  var(--theme-color,  #aa4455))") ?>;
+            --light-link-color-accent:                  <?= user_color("light", [ "link_color_accent", "link_color", "accent_color" ], "var(--light-accent-color, var(--accent-color, #cc1133))") ?>;
 
             --light-text-on-background-darker-color:    #000000;
             --light-text-on-background-color:           #0d0d0d;
@@ -6811,11 +6823,11 @@
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
 
-            --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff66ff") ?>;
+            --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff6eff") ?>;
             --dark-accent-color:                        <?= user_color("dark", "accent_color", "#22ccee") ?>;
 
-            --dark-link-color:                          <?= user_color("dark", "link_color",   "#cb9ecb") ?>;
-            --dark-link-color-accent:                   <?= user_color("dark", "link_color",   "#ff77e0") ?>;
+            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #cb9ecb))") ?>;
+            --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #ff77e0))") ?>;
 
             --dark-text-on-background-darker-color:     #e5e5e5;
             --dark-text-on-background-color:            #f2f2f2;
@@ -7043,8 +7055,9 @@
     
             /* Colors */
             
-            body            { background-color: var(--background-darker-color, #eee); color: var(--text-color, #0d0d0d); }
-            header, footer  { background-color: var(--background-color,        #ddd); color: var(--text-color, #0d0d0d); }
+            body    { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
+            header  { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
+            footer  { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
             /* Articles */
 
@@ -9804,6 +9817,9 @@
 
         $copyright  = array($id, $author);
         $copyrights = get("unsplash_copyrights", array());
+
+        if (is_localhost() && !!get("debug"))
+            $copyright [] = debug_backtrace();
 
         if (!in_array($copyright, $copyrights))
             set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
