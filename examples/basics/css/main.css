@@ -1,4 +1,4 @@
-<?php use function dom\{unsplash_url_img}; ?>
+<?php require_once(__DIR__."/../../dom.php"); use function dom\{unsplash_url_img}; ?>
 
 /* Theme colors */
 :root {
