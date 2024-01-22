@@ -1,6 +1,5 @@
-<?php
+<?php require_once __DIR__."/../dom_html.php";
 
-require_once __DIR__."/../dom_html.php";
 use function dom\{init,output,HSTART,HSTOP,HERE,set,get,is_localhost,head,style,body,main,section,article,grid,card,card_title,card_media,card_text,iframe,p,a};
 
 set("generate", false);
@@ -30,4 +29,3 @@ output(head().body(
         
         <?php HERE("raw_css"); ?></style><?php return HSTOP(); })())
     ));
-?>
