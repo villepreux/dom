@@ -1,4 +1,4 @@
-<?php require_once("../dom.php");
+<?php require_once(__DIR__."/../dom.php");
 
 use function dom\{set,get,unsplash_url_img};
 
