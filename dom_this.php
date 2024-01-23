@@ -174,28 +174,62 @@ function code($code, $lang = "php", $syntax_highlight = true)
                 user-select:    none;
             }
 
-            .ide { background-color: #FFFFFF }
-            
-            @media (prefers-color-scheme: dark) {
+            .ide {
                     
-                .ide { background-color: #000000 }
+                --ide-background-color: #FFFFFF;
+
+                --ide-text-color:               #000000;
+                --ide-highlight-default-color:  #0000ff;
+                --ide-highlight-keyword-color:  #006c00;
+                --ide-highlight-string-color:   #b50000;
+                --ide-highlight-comment-color:  #7a5700;
             }
 
-            .ide                    { color: #000000 }
-            .ide-highlight-default  { color: #0000ff }
-            .ide-highlight-keyword  { color: #006c00 }
-            .ide-highlight-string   { color: #b50000 }
-            .ide-highlight-comment  { color: #7a5700; font-style: italic }
-            
             @media (prefers-color-scheme: dark) {
 
-                .ide                    { color: #FFFFFF }
-                .ide-highlight-default  { color: #6ce8ff }
-                .ide-highlight-keyword  { color: #84FF84 }
-                .ide-highlight-string   { color: #ffd700 }
-                .ide-highlight-comment  { color: #FFAE85; font-style: italic }
+                .ide {
+                    
+                    --ide-background-color: #000000;
+    
+                    --ide-text-color:               #FFFFFF;
+                    --ide-highlight-default-color:  #6ce8ff;
+                    --ide-highlight-keyword-color:  #84FF84;
+                    --ide-highlight-string-color:   #ffd700;
+                    --ide-highlight-comment-color:  #FFAE85;
+                }
                 
             }
+
+            [data-colorscheme='light'] .ide {
+                    
+                --ide-background-color: #FFFFFF;
+
+                --ide-text-color:               #000000;
+                --ide-highlight-default-color:  #0000ff;
+                --ide-highlight-keyword-color:  #006c00;
+                --ide-highlight-string-color:   #b50000;
+                --ide-highlight-comment-color:  #7a5700;
+            }
+
+            [data-colorscheme='dark'] .ide {
+                    
+                --ide-background-color: #000000;
+
+                --ide-text-color:               #FFFFFF;
+                --ide-highlight-default-color:  #6ce8ff;
+                --ide-highlight-keyword-color:  #84FF84;
+                --ide-highlight-string-color:   #ffd700;
+                --ide-highlight-comment-color:  #FFAE85;
+            }
+            
+            .ide { background-color: var(--ide-background-color) }
+            
+            .ide                    { color: var(--ide-text-color) }
+            .ide-highlight-default  { color: var(--ide-highlight-default-color) }
+            .ide-highlight-keyword  { color: var(--ide-highlight-keyword-color) }
+            .ide-highlight-string   { color: var(--ide-highlight-string-color) }
+            .ide-highlight-comment  { color: var(--ide-highlight-comment-color); font-style: italic }
+            
 
             .in-iframe .ide { display: none }
 

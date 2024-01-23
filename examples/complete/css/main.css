@@ -46,7 +46,6 @@ article {
     border-radius: .75em;
     border-color: var(--background-color);
     box-shadow: 2px 2px 8px 2px #00000036;
-    overflow: hidden;
 }
 
 .grid { 
@@ -71,4 +70,16 @@ article {
     height: auto;
     aspect-ratio: 300 / 200;
     object-fit: contain;
+}
+
+/* Introspection code */
+
+article .ide {
+    
+    border-radius: .5em;
+    border-color: var(--background-lighter-color);
+    box-shadow: 2px 2px 8px 2px #00000036;
+
+    margin-inline: min(calc(1 * var(--gap)), calc(-0.5 * max(0px, calc(100vw - 2 * var(--gap) - var(--max-text-width)))));
+    width: calc(100vw - 2 * var(--margin-gap));
 }

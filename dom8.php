@@ -7314,7 +7314,7 @@
             body                    { text-underline-offset: 0.25em; }
     
             body                    { word-break: break-word; }
-            .grid *                 { word-break: normal; overflow: hidden; text-overflow: ellipsis;  } /* TODO: WHy that ? */
+            .grid *                 { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
     
@@ -7438,30 +7438,63 @@
     
                   :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"]) >
             *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"], span, a)) {
-    
-                margin-inline: var(--gap);
+
+                --margin-inline: var(--gap);    
+                  margin-inline: var(--margin-inline);
             }
     
             :is(main, header, footer) > * {
-    
-                margin-inline: clamp(var(--gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
-                               clamp(var(--gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
+
+                --max-text-width-margin-inline: clamp(var(--gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
+                                                clamp(var(--gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
+
+                --margin-inline: var(--max-text-width-margin-inline);    
+                  margin-inline: var(--margin-inline);
             }
+
+            /* Articles */
+    
+            body > :is(main, header, footer) > :is(article) {
+
+                --mobile-no-margin-breakpoint: 400px;
+                --margin-gap: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), var(--gap));
+    
+                --max-text-width-margin-inline: clamp(var(--margin-gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
+                                                clamp(var(--margin-gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
+
+                --margin-inline: var(--max-text-width-margin-inline);
+                  margin-inline: var(--margin-inline);
+            }
+    
+            body > :is(main, header, footer) > :is(article) > :is(.grid, .flex) {
+
+                margin-inline: var(--margin-gap);
+            }
+
+            /* Others */
 
             :is(main, header, footer, article, section, figure) > :is(img, figure, picture, svg, video, canvas, audio, iframe, embed, object) { 
               
-                margin-inline: 0;
+                --margin-inline: 0;    
+                  margin-inline: var(--margin-inline);
             }
 
             /* Cards */
 
             .card-media > * {
-                margin-inline: 0;
+
+                --margin-inline: 0;
+    
+                margin-inline: var(--margin-inline);
             }
 
-            .card-title h1 {                
-                margin-block-start: .5rem;
-                margin-block-end:   .5rem;
+            .card-title h1 {      
+
+                --margin-inline: .5rem;
+    
+                margin-inline:      var(--margin-inline);
+                margin-block-start: var(--margin-inline);
+                margin-block-end:   var(--margin-inline);
             }
               
             /* Images */

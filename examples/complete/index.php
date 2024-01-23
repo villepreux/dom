@@ -1,14 +1,14 @@
 <?php require_once("dom.php"); 
-    
-use function dom\{set,get,init,output,HSTART,HERE,HSTOP,html,rss,jsonfeed,head,body,header,footer,style,env_add,toolbar,main,article,anchor,h2,h3,lorem_ipsum,p,grid,card,card_title,card_media,card_text,img,hr,a,svg_rss,svg_facebook,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,toolbar_nav_title,toolbar_nav_toolbar,svg_darkandlight,url_void,cards_async,script,url_img_loading};
 
-set("unsplash", "_noSmX8Kgoo,jezar");
+// Imports
+use function dom\{set,get,init,output,HSTART,HERE,HSTOP,html,rss,jsonfeed,head,body,header,footer,script,style,main,article,h2,h3,lorem_ipsum,p,a,svg_rss,svg_facebook}; // Page
+use function dom\{grid,card,card_title,card_media,card_text,img,cards_async,url_img_loading,unsplash_url_img}; // Image cards
+use function dom\{toolbar,toolbar_nav_title,toolbar_nav_toolbar,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,url_void,svg_darkandlight}; // Header toolbar
 
-$unsplash          = explode(',',get("unsplash"));
-$unsplash_id       = get($unsplash, 0);
-$unsplash_author   = get($unsplash, 1);
+$unsplash_id       = "_noSmX8Kgoo";
+$unsplash_author   = "jezar";
 
-dom\unsplash_url_img($unsplash_id, 300, 200, $unsplash_author);
+set("unsplash", "$unsplash_id,$unsplash_author"); // So also accessible in css stylesheet
 
 init();
 
@@ -43,18 +43,24 @@ output(
                         grid(str_repeat(
                             card(
                                 card_title("We love cards").
-                                card_media(img(dom\unsplash_url_img($unsplash_id, 300, 200, $unsplash_author))).
+                                card_media(img(unsplash_url_img($unsplash_id, 300, 200, $unsplash_author))).
                                 card_text(
                                     p("Cards seem to be a popular web component nowadays.").
                                     p("So we got it. And we also got social networks accounts cards pulling."))), 
                             4))).
                 article( // Some more random content
                     h2("Third Headline").
-                    lorem_ipsum())).
+                    lorem_ipsum().
+                    this())).
             footer(
                 p(unsplash_copyrights()).
                 p("DOM.PHP v".DOM_VERSION." - This is my footer at the bottom").
                 p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook")))).
+
+        /* Some inline style & scripts (Could have been put in css/main.css and js/app.js) */
+
+        /* Color scheme switcher script */
+
         script( (function () { HSTART() ?><script><?= HERE() ?>
 
             dom.on_ready(function() {
@@ -106,16 +112,26 @@ output(
                     }); });
 
             });
+
+            <?= HERE("raw_js") ?></script><?php return HSTOP(); } )()).
+
+        /* Currently scrolled nav link style & script */
+
+        style( (function () { HSTART() ?><style><?= HERE() ?>
+
+                .toolbar-row-nav .toolbar-cell-right a.current {
+
+                    text-decoration: underline;
+                }
+
+            <?= HERE("raw_css") ?></style><?php return HSTOP(); } )()).
+
+        script( (function () { HSTART() ?><script><?= HERE() ?>
         
             dom.on_ready(function() {
 
-                /*
-                document.querySelector(".darkandlight").addEventListener("click", function() {
-                    document.documentElement.setAttribute("data-colorscheme", (window.getComputedStyle(document.querySelector("main")).getPropertyValue("color") == "rgb(242, 242, 242)") ? "light" : "dark");
-                    }); */
-
                 function update_current_link_from_scroll() {
-                    
+
                     var current_link = null;
                     
                     document.querySelectorAll(".toolbar-row-nav .toolbar-cell-right a").forEach(function(e) {
@@ -138,7 +154,7 @@ output(
                                 }
                             }
                         });
-                    
+                
                     if (current_link != null) {
 
                         document.querySelectorAll(".toolbar-row-nav .toolbar-cell-right a").forEach(function(e) {

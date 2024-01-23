@@ -1,5 +1,8 @@
 <?php require_once(__DIR__."/../dom.php");
 
+dom\set("script_toolbar",       true);
+dom\set("script_toolbar_menu",  true);
+
 use function dom\{delayed_component,get,at,a};
 
 function unsplash_copyrights()

@@ -196,6 +196,17 @@
             amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
     
         <?php } ?>
+
+            /* Scrollbar */
+
+            .toolbar-row-nav {
+                
+                overflow-x: scroll;
+            }
+            .toolbar-row-nav::-webkit-scrollbar {
+
+                display: none;
+            }
         
             /* PRINT */
                 
