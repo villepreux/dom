@@ -1,7 +1,7 @@
 <?php require_once("dom.php"); 
 
 // Imports
-use function dom\{set,get,init,output,HSTART,HERE,HSTOP,html,rss,jsonfeed,head,body,header,footer,script,style,main,article,h2,h3,lorem_ipsum,p,a,svg_rss,svg_facebook}; // Page
+use function dom\{set,get,init,output,HSTART,HERE,HSTOP,html,rss,jsonfeed,head,body,header,footer,script,style,main,article,div,h2,h3,lorem_ipsum,p,a,svg_rss,svg_facebook}; // Page
 use function dom\{grid,card,card_title,card_media,card_text,img,cards_async,url_img_loading,unsplash_url_img}; // Image cards
 use function dom\{toolbar,toolbar_nav_title,toolbar_nav_toolbar,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,url_void,svg_darkandlight}; // Header toolbar
 
