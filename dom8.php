@@ -256,8 +256,6 @@
 
             // If path exists then directly return it
 
-            // if (false !== stripos($path, "batiment")) die("CWD = (".getcwd().")PATH = ($path) EXISTS = (".file_exists($path).")");
-
             if (@file_exists($path))                            return $path.$param;
             if (($max_depth == $depth) && url_exists($path))    return $path.$param;
 
@@ -271,8 +269,6 @@
 
             if ($depth <= 0) 
             {
-                if (stripos($path, "loading.svg") !== false && stripos($path, "img/loading.svg") === false) die("$path");
-                    
                 return $default;
             }
 
@@ -282,8 +278,6 @@
             {
                 if (file_exists("$offset_path/$root_hint_file")) 
                 {
-                    if (stripos($path, "loading.svg") !== false && stripos($path, "img/loading.svg") === false) die("$path");
-                        
                     $search = false;
                     break;
                 }
