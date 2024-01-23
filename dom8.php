@@ -269,7 +269,12 @@
 
             // If we have already searched too many times then return fallback
 
-            if ($depth <= 0) return $default;
+            if ($depth <= 0) 
+            {
+                if (stripos($path, "loading.svg") !== false && stripos($path, "img/loading.svg") === false) die("$path");
+                    
+                return $default;
+            }
 
             // If beyond root then stop here
 
@@ -277,6 +282,8 @@
             {
                 if (file_exists("$offset_path/$root_hint_file")) 
                 {
+                    if (stripos($path, "loading.svg") !== false && stripos($path, "img/loading.svg") === false) die("$path");
+                        
                     $search = false;
                     break;
                 }
@@ -530,21 +537,21 @@
         
     function ajax_call_FUNC_ARGS($f, $args)
     {            
-        $period = -1;
+        $async_params = -1;
 
-        if (is_numeric($f))
+        if (is_numeric($f) || is_array($f))
         {
-            $period = $f;
+            $async_params = $f;
             array_shift($args);
             $f = $args[0];
         }
 
         array_shift($args);
 
-        return ajax_call_with_args($f, $period, $args);
+        return ajax_call_with_args($f, $async_params, $args);
     }
         
-    function ajax_call_with_args($f, $period, $args)
+    function ajax_call_with_args($f, $async_params, $args)
     {
         // Async calls disabled
         
@@ -574,7 +581,15 @@
             
             $ajax = ajax_param_encode($f, $args);
 
-            return ajax_container($ajax, img_loading(ajax_classes($ajax, $f)), $period);
+            $period      = $async_params;
+            $placeholder = "dom\img_loading";
+            
+            if (is_array($async_params))
+            {             
+                list($period, $placeholder) = $async_params; 
+            }
+
+            return ajax_container($ajax, $placeholder(ajax_classes($ajax, $f)), $period);
         }
         else
         {
@@ -2796,7 +2811,7 @@
     function __json_flickr($method, $params = array(), $token = false)
     {
         if ($token === false && !defined("TOKEN_FLICKR")) return array();
-        
+
         $token      = ($token === false) ? TOKEN_FLICKR : $token;
         $method     = (0 === stripos($method, "flickr.")) ? $method : ("flickr.".$method);
         $end_point  = "https://api.flickr.com/services/rest/?method=".$method."&api_key=".$token."&format=json&nojsoncallback=1"; // EXTERNAL ACCESS
@@ -3142,7 +3157,10 @@
 
         if ($username === false && false !== $tags_in)
         {
-            $data   = json_flickr_no_user_fallback("photos.search", array("tags" => $tags_in)); 
+            // flickr.photos.search : Parameterless searches have been disabled. Please use flickr.photos.getRecent instead
+            // $data   = json_flickr_no_user_fallback("photos.getRecent", array("tags" => $tags_in)); 
+            
+            $data   = json_flickr_no_user_fallback("photos.search", array("tags" => $tags_in));             
             $photos = at(at($data,"photos"),"photo");
         }
         else
@@ -4455,7 +4473,7 @@
     {
         heredoc_start(-2); ?><html><?php heredoc_flush(null); ?> 
         
-            <svg class="lds-spinner" width="65px" height="65px" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100" width="100" height="100" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
+            <svg viewBox="0 0 100 100" width="100" height="100" class="lds-spinner" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
 
                 <g transform="rotate(0 50 50)"   style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="<?= $color ?>" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>
                 <g transform="rotate(36 50 50)"  style="animation-play-state: running; animation-delay: 0s;"><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="<?= $color ?>" style="animation-play-state: running; animation-delay: 0s;"><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite" style="animation-play-state: running; animation-delay: 0s;"></animate></rect></g>
@@ -5320,6 +5338,7 @@
 
         return title().
 
+            eol().
             eol().comment("DOM Head Metadata").
             metas().
 
@@ -7608,7 +7627,7 @@
                                           style(css_base_colors()              ).
 
             eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "").
-            eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_colors()) : "").
+            eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "").
             eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "").
                               
             "";
@@ -8253,7 +8272,7 @@
 
         return  script_third_parties              ().
                 script_ajax_body                  ().
-                script_google_analytics           ().               ((!!get("script_document_events",   true)) ? (
+                script_google_analytics           ().               ((!!get("script_document_events",       true)) ? (
                 script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
                 script(js_back_to_top             ()).   "") : ""). ((!!get("script_images_loading",        true)) ? (
                 script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",              true)) ? (
@@ -8690,6 +8709,8 @@
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
+
+        if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
 
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
@@ -9515,6 +9536,8 @@
     
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
     {
+        if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
+
         if (is_array($path)) 
         {
             return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy);
@@ -9782,7 +9805,7 @@
     function img_tumblr         ($blogname   = false, $size_code = false)   { return img(url_img_tumblr     ($blogname),               false, false, "img-tumblr"    ); }
     
     function img_loading        ($attributes = false, $size_code = false)   { return img(url_img_loading(), false, false, $attributes); }    
-//  function img_loading        ($attributes = false, $size_code = false)   { return svg_loading(); }    
+  //function img_loading        ($attributes = false, $size_code = false)   { return svg_loading(); }    
 
     // IMAGES URLs
  
@@ -10311,11 +10334,11 @@
     function img_facebook_async                               ($ids = false, $args = false)                                                          { return ajax_call("dom\img_facebook",  $ids, $args); }
     function img_tumblr_async                                 ($ids = false, $args = false)                                                          { return ajax_call("dom\img_tumblr",    $ids, $args); }
     
-    function card_async       ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self") { return ajax_call("dom\card_", $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
-    function imgs_async       ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self") { return ajax_call("dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
-    function cards_async      ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self") { return ajax_call("dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
-    function cells_img_async  ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false)                      { return ajax_call("dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
-    function cells_card_async ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false)                      { return ajax_call("dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
+    function card_async       ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $async_params = false) { return !$async_params ? ajax_call("dom\card_", $source, $type, $ids, $filter, $tags_in, $tags_out, $container) : ajax_call($async_params, "dom\card_", $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
+    function imgs_async       ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $async_params = false) { return !$async_params ? ajax_call("dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, $container) : ajax_call($async_params, "dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
+    function cards_async      ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $container = "self", $async_params = false) { return !$async_params ? ajax_call("dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, $container) : ajax_call($async_params, "dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, $container); }
+    function cells_img_async  ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $async_params = false) { return !$async_params ? ajax_call("dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, "cell")     : ajax_call($async_params, "dom\imgs",  $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
+    function cells_card_async ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $async_params = false) { return !$async_params ? ajax_call("dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell")     : ajax_call($async_params, "dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
     
     function google_calendar_async                            ($ids = false, $w = false, $h = false)                                                 { return ajax_call("`dom\google_calendar",    $ids, $w, $h); }
     function google_photo_album_async                         ($ids = false, $wrapper = "div", $img_wrapper = "self")                                { return ajax_call("dom\google_photo_album", $ids, $wrapper, $img_wrapper); }

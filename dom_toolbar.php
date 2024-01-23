@@ -164,7 +164,7 @@
     
             /* Toolbar */
     
-            <?php if (get("no_js")) { ?> 
+            <?php if (get("no_js") || get("dom_toolbar_no_js") || !get("script_toolbar")) { ?> 
             
             .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
     
