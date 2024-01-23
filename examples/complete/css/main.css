@@ -60,6 +60,10 @@ article {
     border-color: var(--background-lighter-color);
     box-shadow: 2px 2px 8px 2px #00000036;
 }
+.card_title {
+    border-top-left-radius: .5em;
+    border-top-right-radius: .5em;
+}
 
 .ajax-container {
     margin-bottom: 0; 

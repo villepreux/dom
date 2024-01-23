@@ -7481,6 +7481,11 @@
 
             /* Cards */
 
+            :is(.card-title, .card-media, .card-text, .card-actions) {
+
+                overflow: hidden;
+            }
+
             .card-media > * {
 
                 --margin-inline: 0;
