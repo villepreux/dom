@@ -7425,8 +7425,8 @@
     
             /* Blockquote */
     
-            blockquote      { border-left: 3px solid var(--border-color, currentColor); }
-            aside           { border:      3px solid var(--border-color, currentColor); }
+            blockquote  { border-left: 3px solid var(--border-color, currentColor); }
+            aside       { border:      3px solid var(--border-color, currentColor); }
     
             /* Text limited width & heroes full width */
     

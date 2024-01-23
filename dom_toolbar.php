@@ -367,9 +367,11 @@
                     var header_height     = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue(    "height").replace("px",""), 10);
                     var header_max_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px",""), 10);
                     var header_min_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px",""), 10);
-        
+
                     var stuck_height = header_max_height - header_min_height;
 
+                    console.log({scrollY: window.scrollY, stuck_height, header_height, header_max_height, header_min_height});
+        
                     if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
                     else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
         
