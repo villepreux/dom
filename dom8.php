@@ -7608,6 +7608,7 @@
                 display: grid;
                 grid-gap: var(--gap);
                 grid-template-columns: repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
+                overflow: hidden;
             }
 
             .flex {
@@ -8608,17 +8609,11 @@
         $h += get("main", 0);
         
         hook_headline($h, $html);
+        
+        $attributes = attributes_add($attributes, attr("class", component_class("h$h")                   ));
+        $attributes = attributes_add($attributes, attr("id",    anchor_name(!!$anchor ? $anchor : $html) ));
 
-        return tag(
-            'h'.$h,
-            $html,
-            is_array($attributes) 
-                ? attributes_add_class($attributes, component_class("h$h"))
-                : array(
-                    "class" => (($attributes != "" ? "$attributes " : "").component_class("h$h")),
-                    "id"    => anchor_name(!!$anchor ? $anchor : $html)
-                    )
-            );
+        return tag('h'.$h, $html, $attributes);
     }
 
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }

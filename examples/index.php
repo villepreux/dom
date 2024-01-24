@@ -10,15 +10,15 @@ output(head().body(
     main(section(grid(
         card(
             card_title("Minimal").
-            card_media(iframe("hello-world#here", false, false, 1200, 1200)).
+            card_media(iframe("hello-world", false, false, 1200, 1200)).
             card_text(p("See ".a("example","hello-world")." in fullscreen"))).
         card(
             card_title("Basic").
-            card_media(iframe("basics#here", false, false, 1200, 1200)).
+            card_media(iframe("basics#firstheadline", false, false, 1200, 1200)).
             card_text(p("See ".a("example","basics")." in fullscreen"))).                
         card(
             card_title("Complete").
-            card_media(iframe("complete#here", false, false, 1200, 1200)).
+            card_media(iframe("complete#welovecards", false, false, 1200, 1200)).
             card_text(p("See ".a("example","complete")." in fullscreen")))
         ))).
     style((function () { HSTART(-3); ?><style><?= HERE(); ?>
