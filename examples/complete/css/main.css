@@ -49,6 +49,9 @@ list($unsplash_id, $unsplash_author) = explode(',',get("unsplash"));
     
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100vw), 1fr));
     margin-bottom: var(--gap); 
+
+    overflow: hidden; /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
+    padding: min(calc(2px + 8px), var(--margin-gap)); 
 }
 
 /* Articles & cards colors & shadows */
@@ -83,10 +86,15 @@ article > header {
     --border-radius: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), .5em);
       border-radius: var(--border-radius);
 }
-.card_title {
+.card > *:first-child {
 
     border-top-left-radius:  var(--border-radius);
     border-top-right-radius: var(--border-radius);
+}
+.card > *:last-child {
+
+    border-bottom-left-radius:  var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
 }
 
 /* Async loading container */

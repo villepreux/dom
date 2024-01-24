@@ -7608,7 +7608,8 @@
                 display: grid;
                 grid-gap: var(--gap);
                 grid-template-columns: repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
-                overflow: hidden;
+                
+                /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
             }
 
             .flex {
