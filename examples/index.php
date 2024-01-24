@@ -1,4 +1,4 @@
-<?php require_once __DIR__."/../dom_html.php";
+<?php require_once __DIR__."/dom.php";
 
 use function dom\{init,output,HSTART,HSTOP,HERE,set,get,is_localhost,head,style,body,main,section,article,grid,card,card_title,card_media,card_text,iframe,p,a};
 

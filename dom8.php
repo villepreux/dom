@@ -457,6 +457,8 @@
         set("support_metadata_organization",    true);
             
         set("include_custom_css",               false);
+
+        set("dom-auto-include-css",             true);
             
         set("carousel",                         true);
             
@@ -1361,7 +1363,7 @@
             {
                 $rows = "";
                 foreach ($x as $k => $v) $rows .= eol().
-                    td($k,                                              array("style" => "display: block;", "class" => "key")).
+                    td($k,                                          array("style" => "display: block;", "class" => "key")).
                     td(to_html($v, $transform, $k, $x, $wrapper),   array("style" => "display: block;", "class" => "val"));
                 
                 return
@@ -1682,7 +1684,7 @@
         call_user_hook("headline", $title);
     }
 
-    function get_last_headline()
+    function get_last_headline_level()
     {
         global $__last_headline_level;
         return $__last_headline_level;
@@ -1736,10 +1738,14 @@
     
     function hook_heading($heading)
     {
-        if (!!$heading && false === get("heading", false))
+        if (!!$heading)
         {
             $heading = trim(clean_from_tags($heading));
-            set("heading", $heading);
+
+            if (false === get("heading", false))
+            {
+                set("heading", $heading);
+            } 
         }        
     }
     
@@ -3929,8 +3935,8 @@
     function get_card_headline() { global $__card_headline; return $__card_headline; }
     
     function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                    return  array_imgs_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("img", 'img-thumb'))           : $attributes); }
-    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return        card_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                          $attributes); }
-    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card card-thumb')) : $attributes); }
+    function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline_level(); return        card_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                          $attributes); }
+    function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline_level(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card card-thumb')) : $attributes); }
     
     #endregion
     #region WIP HELPERS : DEBUG
@@ -5323,7 +5329,7 @@
     {
         $profiler = debug_track_timing();
 
-        $path_css = path_coalesce(            
+        $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
             "./css/main.css",
             "./main.css",
             "./css/screen.css",
@@ -7216,6 +7222,9 @@
                 --gap:                      16px; /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
                 --scrollbar-width:          17px;        
                 --scroll-margin:            var(--gap);
+                
+                --grid-default-min-width:   calc(var(--line-height) + var(--gap));
+
             }
     
             /* Sanitize ++ */
@@ -7595,10 +7604,10 @@
             /* Grid & Flex */
     
             .grid { 
-              
+
                 display: grid;
                 grid-gap: var(--gap);
-                grid-template-columns: repeat(auto-fit, minmax(calc(var(--line-height) + var(--gap)), 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
             }
 
             .flex {
@@ -10022,14 +10031,20 @@
 
     function card_title($title = false, $attributes = false)
     {
-        $title_main         =       at($title, "title",           at($title, 0, $title)           );
-        $title_sub          =       at($title, "subtitle",        at($title, 1, false)            );
-        $title_icon         =       at($title, "icon",            at($title, 2, false)            );
-        $title_link         =       at($title, "link",            at($title, 3, false)            );
-        $title_main_link    =       at($title, "link_main",       at($title, 3, $title_link)      );
-        $title_sub_link     =       at($title, "link_subtitle",   at($title, 4, $title_main_link) );
-        $title_icon_link    =       at($title, "link_icon",       at($title, 5, $title_sub_link)  );
-        $h                  = (int) at($title, "level",           at($title, 6, 1)                );
+        if (is_array($title) && count($title) == 2 && is_int(at($title, 1)))
+        {
+            $title = array("title" => at($title, 0), "level" => at($title, 1));
+        }
+
+        $title_main      = at($title, "title",         at($title, 0, $title)           );
+        $title_sub       = at($title, "subtitle",      at($title, 1, false)            );
+        $title_icon      = at($title, "icon",          at($title, 2, false)            );
+        $title_link      = at($title, "link",          at($title, 3, false)            );
+        $title_main_link = at($title, "link_main",     at($title, 3, $title_link)      );
+        $title_sub_link  = at($title, "link_subtitle", at($title, 4, $title_main_link) );
+        $title_icon_link = at($title, "link_icon",     at($title, 5, $title_sub_link)  );
+
+        $h = (int) at($title, "level", at($title, 6, $title_auto_level = 2));
 
         hook_heading($title_main);
         

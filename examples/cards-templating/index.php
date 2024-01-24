@@ -9,19 +9,19 @@ HSTART(); ?><html><?= HERE() ?>
   <head>
     <boilerplate/>
     <style>
-      .card {
-        width: calc(calc(var(--max-text-width) / 3 ) - 2 * var(--gap));
-        }
+      :root { --grid-default-min-width: 300px }
     </style>
   </head>
   <body>
+    <header>
+      <h1>Hello cards!</h1>
+      <p>This is a simple example with cards.</p>
+    </header>
     <main>
-      <h1>Hello World!</h1>
-      <p>This is the Hello World example.</p>
-      <p><a href="..">Back to tests</a></p>
-      <flex>
+      <h2>Headline 2</h2>
+      <grid>
         <card>
-          <title>Card Title</title>
+        <title><h3>Card Title</h3></title>
           <text><p>Blah blah 1</p></text>
           <media>
             <img width="300" height="200" src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg"/>
@@ -30,7 +30,7 @@ HSTART(); ?><html><?= HERE() ?>
           <text><p>Blah blah 3</p></text>
         </card>
         <card>
-          <title>Card Title</title>
+          <title><h3>Card Title</h3></title>
           <text><p>Blah blah 1</p></text>
           <media>
             <img width="300" height="200" src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg"/>
@@ -39,7 +39,7 @@ HSTART(); ?><html><?= HERE() ?>
           <text><p>Blah blah 3</p></text>
         </card>
         <card>
-          <title>Card Title</title>
+        <title><h3>Card Title</h3></title>
           <text><p>Blah blah 1</p></text>
           <media>
             <img width="300" height="200" src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg"/>
@@ -48,7 +48,7 @@ HSTART(); ?><html><?= HERE() ?>
           <text><p>Blah blah 3</p></text>
         </card>
         <card>
-          <title>Card Title</title>
+        <title><h3>Card Title</h3></title>
           <text><p>Blah blah 1</p></text>
           <media>
             <img width="300" height="200" src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg"/>
@@ -56,7 +56,8 @@ HSTART(); ?><html><?= HERE() ?>
           <text><p>Blah blah 2</p></text>
           <text><p>Blah blah 3</p></text>
         </card>
-      </flex>
+      </grid>
+      <p><a href="..">Back to examples</a></p>
       <this/>
     </main>
   </body>
