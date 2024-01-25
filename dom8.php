@@ -10096,7 +10096,7 @@
         $title_sub_link  = at($title, "link_subtitle", at($title, 4, $title_main_link) );
         $title_icon_link = at($title, "link_icon",     at($title, 5, $title_sub_link)  );
 
-        $h = (int) at($title, "level", at($title, 6, $title_auto_level = 2));
+        $h = (int) at($title, "level", at($title, 6, $title_auto_level = get("card_title_level", 2)));
 
         hook_heading($title_main);
         
