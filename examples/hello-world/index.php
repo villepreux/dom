@@ -1,8 +1,8 @@
 <?php include "dom.php";
-use function dom\{init,output,head,body,main,h1,p};
+use function dom\{init,output,main,h1,p};
 init();
-output(head().body(main(
+output(main(
     h1("Hello World!").
     p("This is a 'Hello World' example").
     this()
-    )));
+    ));

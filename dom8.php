@@ -4931,6 +4931,8 @@
                     $children_html .= raw_dom_parse($child, $node_name, $debug_comments);
                 }
 
+                $was_callable = false;
+
                 foreach (array("dom\\$parent_node_name"."_$func_name", "dom\\$func_name", $parent_node_name."_".$func_name, $func_name) as $dom_func)
                 {
                     if (is_callable($dom_func))
@@ -4948,9 +4950,62 @@
                             $attributes[$name] = implode(" ", $value);
                         }
 
-                        $html .= $dom_func($children_html.$node, $attributes);
+                        $is_regulara_params = false;
+                        {
+                            if (count($attributes) >= 1 && count($attributes) <= 9)
+                            {
+                                $is_regulara_params = true;
+
+                                foreach ($attributes as $name => $value)
+                                {
+                                    if (strlen($name) != 2 || $name[0] != '_' || !is_numeric($name[1]))
+                                    {
+                                        $is_regulara_params = false;
+                                        break;
+                                    }
+                                }
+
+                                if ($is_regulara_params)
+                                {
+                                    $content_index = 0;
+
+                                    foreach ($attributes as $name => $value)
+                                    {
+                                        if ($value == "%")
+                                        {
+                                            $content_index = (int)$name[1];
+                                            break;
+                                        }
+                                    }
+
+                                    $attributes = array_values($attributes);
+
+                                    $attributes = array_merge(
+                                        array_slice($attributes, 0, $content_index),
+                                        array($children_html.$node),
+                                        array_slice($attributes, $content_index + 1)
+                                    );
+                                }
+                            }
+                        }
+
+                        if ($is_regulara_params)
+                        {
+                            $html .= call_user_func_array($dom_func, $attributes);
+                        }
+                        else
+                        {
+                            $html .= $dom_func($children_html.$node, $attributes);
+                        }
+
+                        $was_callable = true;
                         break;
                     }
+                }
+                
+                if (!$was_callable)
+                {
+                    //die("<pre>".htmlentities("dom\\$parent_node_name"."_$func_name")."</pre>");
                 }
             }
         }
@@ -5243,7 +5298,7 @@
 
         // TODO DO THIS
 
-        /*
+        
 
         $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
         $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
@@ -5251,7 +5306,8 @@
              if ($no_head && $no_body)  { $html = head().body($html); }
         else if ($no_head)              { $html = head().     $html;  }
         else if ($no_body)              { $html =        body($html); }
-        */
+        
+
         if (has("ajax")) $_POST = array();
 
         if ("html" == get("doctype", "html"))
@@ -6841,7 +6897,7 @@
     function css_vars_color_scheme_dark_base($tab = 1)
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
-
+        
             --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff6eff") ?>;
             --dark-accent-color:                        <?= user_color("dark", "accent_color", "#22ccee") ?>;
 
@@ -6852,9 +6908,9 @@
             --dark-text-on-background-color:            #f2f2f2;
             --dark-text-on-background-lighter-color:    #ffffff;
             
-            --dark-background-darker-color:             #000000;
-            --dark-background-color:                    #0d0d0d;
-            --dark-background-lighter-color:            #1a1a1a;
+            --dark-background-darker-color:             #101012; /* #000000 no need to be that dark anymore with new default font sizez */
+            --dark-background-color:                    #161618; /* #0d0d0d no need to be that dark anymore with new default font sizez */
+            --dark-background-lighter-color:            #191920; /* #1a1a1a no need to be that dark anymore with new default font sizez */
             
             --dark-text-on-theme-darker-color:          #000000;
             --dark-text-on-theme-color:                 #0d0d0d;

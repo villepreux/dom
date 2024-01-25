@@ -20,7 +20,9 @@ output(head().body(
             card_title("Complete").
             card_media(iframe("complete#welovecards", false, false, 1200, 1200)).
             card_text(p("See ".a("example","complete")." in fullscreen")))
-        ))).
+        )).
+        section(p(a("Back", "..")." | ".a("More examples", "others")))
+    ).
     style((function () { HSTART(-3); ?><style><?= HERE(); ?>
 
         .body { display: flex; flex-direction: row; align-items: center; justify-content: center; padding: var(--gap); }
