@@ -114,21 +114,29 @@
         $report = array();
         $totals = array();
 
-        foreach ($__profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
-        foreach ($__profiling as $profiling) $totals[$profiling["function"].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
+        $id_key = "function";
 
-        if (!$totals_only)
-        {
-            foreach ($__profiling as $profiling)
-            {
-                $report[] = str_pad(number_format($profiling["t"],  2), 6, " ", STR_PAD_LEFT) . ": " . 
-                            str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling["function"] . ((false !== $profiling["tag"]) ? ("(".$profiling["tag"].")") : "");
-            }
-        }
+        foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
+        foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
 
+        $report[] = "TOTALS";
+        
         foreach ($totals as $function => $total)
         {
             $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
+        }
+
+        $report[] = "TIMELINE";
+
+        if (!$totals_only)
+        {
+            $id_key = "callstack";
+
+            foreach ($__profiling as $profiling)
+            {
+                $report[] = str_pad(number_format($profiling["t"],  2), 6, " ", STR_PAD_LEFT) . ": " . 
+                            str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling[$id_key] . ((false !== $profiling["tag"]) ? ("(".$profiling["tag"].")") : "");
+            }
         }
 
         return $report;
@@ -155,49 +163,41 @@
         return $functions;
     }
 
-    function debug_track_delta($tag = false, $dt = false, $t = null)
-    {
-        $functions_callstack = debug_functions_callstack();
-        array_shift($functions_callstack); // debug_track_delta
-        array_shift($functions_callstack); // __destruct
-
-        if (count($functions_callstack) == 0)
-        {
-            $functions_callstack[] = "_";
-        }
-
-        $functions_callstack_string = implode(" <- ", $functions_callstack);
-
-        global $__profiling;
-
-        $__profiling[] = array(
-            "dt"        => $dt,
-            "tag"       => $tag,
-            "callstack" => $functions_callstack_string,
-            "function"  => $functions_callstack[0],
-            "t"         => $t
-            );
-
-        return "";
-    }
-
     $__dom_t0 = microtime(true);
 
     class debug_track_delta_scope
     {
-        public $t = 0;
-        public $annotation = "";
+        public $profiling = array();
 
         function __construct($annotation = false)
         {
-            $this->t = microtime(true);
-            $this->annotation = $annotation;
+            $t = microtime(true);
+                
+            $functions_callstack = debug_functions_callstack();
+            array_shift($functions_callstack); // __construct
+            array_shift($functions_callstack); // debug_track_timing
+            if (count($functions_callstack) == 0) $functions_callstack[] = "_";
+            $functions_callstack_string = str_replace("dom\\", "", implode(".", array_reverse($functions_callstack)));
+            $function                   = str_replace("dom\\", "", $functions_callstack[0]);
+
+            global $__profiling;
+
+            $this->profiling = array(
+                "tag"       => $annotation,
+                "callstack" => $functions_callstack_string,
+                "function"  => $function,
+                "t"         => $t
+                );
         }
 
         function __destruct()
         {
             global $__dom_t0;
-            debug_track_delta($this->annotation, microtime(true) - $this->t, $this->t - $__dom_t0);
+            $this->profiling["dt"] = microtime(true) - $this->profiling["t"];
+            $this->profiling["t"]  = $this->profiling["t"] - $__dom_t0;
+            
+            global $__profiling;
+            $__profiling[] = $this->profiling;
         }
     };
 
@@ -4100,6 +4100,8 @@
     function init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
         if (has("main")) return;
+
+        if (!!get("profiling")) debug_enable_profiling();
 
         if ($doctype    === false) { $doctype   = "html";  }
         if ($encoding   === false) { $encoding  = "utf-8"; }
