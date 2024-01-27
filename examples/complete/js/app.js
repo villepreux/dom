@@ -1,4 +1,4 @@
-
+/*
 dom.on_loaded(function () {
             
     var observer = null;
@@ -44,15 +44,14 @@ dom.on_loaded(function () {
         if (seen != null) {
             var y0 = seen.getBoundingClientRect().top;
         
-            /* Moving */
-
             var y1 = seen.getBoundingClientRect().top;
             window.scroll(0, window.scrollY + y1 - y0);                
         }
         else {
-            /* Moving */
+        
         }
 
     });
 
 });
+*/

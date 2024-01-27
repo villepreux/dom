@@ -1,11 +1,13 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,pre,style};
+use function dom\{set,get,pre,style,debug_track_timing};
 
 set("fonts", get("fonts")."|Fira Code");
 
 function code($code, $lang = "php", $syntax_highlight = true)
 {
+    $profiler = debug_track_timing();
+
     if ($syntax_highlight)
     {
         // Workaround crappy native php syntax hightlight function ------>

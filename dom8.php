@@ -1,7 +1,7 @@
-<?php
+<?php 
 
     namespace dom;
-    
+
     #region CONSTANTS
     ######################################################################################################################################
     
@@ -10,7 +10,7 @@
     if (!defined("DOM_MENU_ID"))        define("DOM_MENU_ID",           "menu");
 
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.8.0");
+    define("DOM_VERSION",   "0.8.2");
     define("DOM_AUTO",      "__DOM_AUTO__"); // ? migrate to null as auto param ?
 
     #endregion
@@ -86,26 +86,22 @@
     #region HELPERS : PROFILING
     ######################################################################################################################################
     
-    $__console = array();
-
-    function debug_console_lines()
-    {
-        global $__console;
-        return $__console;
-    }
+    $__profiling            = array();
+    $__profiling_level      = 0;
+    $__profiling_timeline   = array();
 
     function debug_console_log($msg = "")
     {
-        global $__console;
-        $__console[] = $msg;
-        return $__console;
-    }
+        global $__profiling_timeline;
+        global $__profiling_level;        
+        
+        global $__dom_t0;
+        $t = microtime(true) - $__dom_t0;
 
-    #endregion
-    #region HELPERS : PROFILING
-    ######################################################################################################################################
-    
-    $__profiling = array();
+        $__profiling_timeline[] = str_pad(number_format($t, 2), 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." ".$msg;
+
+        return "";
+    }
 
     function debug_timings($totals_only = false)
     {
@@ -119,24 +115,23 @@
         foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
         foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
 
+        $report[] = "";
         $report[] = "TOTALS";
+        $report[] = "";
         
         foreach ($totals as $function => $total)
         {
             $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
         }
 
+        $report[] = "";
         $report[] = "TIMELINE";
+        $report[] = "";
 
         if (!$totals_only)
         {
-            $id_key = "callstack";
-
-            foreach ($__profiling as $profiling)
-            {
-                $report[] = str_pad(number_format($profiling["t"],  2), 6, " ", STR_PAD_LEFT) . ": " . 
-                            str_pad(number_format($profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . ": " . $profiling[$id_key] . ((false !== $profiling["tag"]) ? ("(".$profiling["tag"].")") : "");
-            }
+            global $__profiling_timeline;
+            $report = array_merge($report, $__profiling_timeline);
         }
 
         return $report;
@@ -169,35 +164,90 @@
     {
         public $profiling = array();
 
-        function __construct($annotation = false)
+        function __construct($annotation = false, $function = false)
         {
-            $t = microtime(true);
-                
+            $annotation = is_array($annotation) ? json_encode($annotation) : $annotation;
+
+            global $__profiling_level;
+            
+            global $__dom_t0;
+            $t = microtime(true) -  $__dom_t0;
+
             $functions_callstack = debug_functions_callstack();
             array_shift($functions_callstack); // __construct
             array_shift($functions_callstack); // debug_track_timing
             if (count($functions_callstack) == 0) $functions_callstack[] = "_";
             $functions_callstack_string = str_replace("dom\\", "", implode(".", array_reverse($functions_callstack)));
-            $function                   = str_replace("dom\\", "", $functions_callstack[0]);
+            $function = str_replace("dom\\", "", !!$function ? $function : $functions_callstack[0]);
 
             global $__profiling;
 
             $this->profiling = array(
+                "level"     => $__profiling_level,
                 "tag"       => $annotation,
                 "callstack" => $functions_callstack_string,
                 "function"  => $function,
+                "dt"        => 0,
                 "t"         => $t
                 );
+            
+            global $__profiling;
+            $__profiling[] = $this->profiling;
+            
+            $id_key = "callstack";
+
+            global $__profiling_timeline;
+            
+            $t = number_format($this->profiling["t"], 2);
+
+            $__profiling_timeline[] = str_pad("", 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level);
+            $__profiling_timeline[] = str_pad($t, 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." +- ".$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+            $__profiling_timeline[] = str_pad("", 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." | ";
+
+            ++$__profiling_level;
         }
 
         function __destruct()
         {
+            global $__profiling_level;
+            --$__profiling_level;
+            
             global $__dom_t0;
-            $this->profiling["dt"] = microtime(true) - $this->profiling["t"];
-            $this->profiling["t"]  = $this->profiling["t"] - $__dom_t0;
+            $t  = microtime(true) - $__dom_t0;
+            $dt = $t - $this->profiling["t"];
+
+            $this->profiling["t"]  = $t;
+            $this->profiling["dt"] = $dt;
+
+            $id_key = "callstack";
+            
+            global $__profiling_timeline;
+            global $__profiling_level;
+
+            $t  = number_format($this->profiling["t"],  2);
+            $dt = number_format($this->profiling["dt"], 2);
+
+            $__profiling_timeline[] =   str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
+                                        str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
+                                        str_repeat(" |  ", $__profiling_level)." | ";
+            
+            $__profiling_timeline[] =   str_pad(number_format($this->profiling["t"],  2), 6, " ", STR_PAD_LEFT) . " " . 
+                                        str_pad(number_format($this->profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . " " . 
+                                        str_repeat(" |  ", $__profiling_level)." +- ".$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+            
+            $__profiling_timeline[] =   str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
+                                        str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
+                                        str_repeat(" |  ", $__profiling_level)."";
+            
             
             global $__profiling;
             $__profiling[] = $this->profiling;
+
+            if ($this->profiling["tag"] != "") 
+            {
+                $this->profiling["tag"] = "";
+                $__profiling[] = $this->profiling;
+            }
         }
     };
 
@@ -209,10 +259,10 @@
         $__profiling_enabled  = $enable;
     }
 
-    function debug_track_timing($annotation = false)
+    function debug_track_timing($annotation = false, $function = false)
     {
         global $__profiling_enabled;
-        return $__profiling_enabled ? new debug_track_delta_scope($annotation) : null;
+        return $__profiling_enabled ? new debug_track_delta_scope($annotation, $function) : null;
     }
 
     #endregion
@@ -1201,6 +1251,8 @@
 
     function content($urls, $timeout = 7, $auto_fix = true)
     {
+        $profiler = debug_track_timing($urls);
+
         if (is_array($urls))
         {
             foreach ($urls as $url)
@@ -1220,32 +1272,35 @@
         
         $content = false;
 
-        $curl = @curl_init();
-        
-        if (false !== $curl)
+        if (!$content || $content == "")
         {
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
-            curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
-            curl_setopt($curl, CURLOPT_URL,             $url);
-            curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
-            curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
-            
-            $content = curl_exec($curl);
-
-            if (!!get("debug") && (!$content || $content == ""))
-            {
-                echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
-                echo comment(to_string(curl_getinfo($curl)));
-            }
-
-            curl_close($curl);
+            $content = @file_get_contents($url);            
         }
 
         if (!$content || $content == "")
         {
-            $content = @file_get_contents($url);            
+            $curl = @curl_init();
+            
+            if (false !== $curl)
+            {
+                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
+                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
+                curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
+                curl_setopt($curl, CURLOPT_URL,             $url);
+                curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
+                curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
+                
+                $content = curl_exec($curl);
+
+                if (!!get("debug") && (!$content || $content == ""))
+                {
+                    echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
+                    echo comment(to_string(curl_getinfo($curl)));
+                }
+
+                curl_close($curl);
+            }
         }
 
         if ($auto_fix)
@@ -1602,6 +1657,8 @@
 
     function lorem_ipsum($nb_paragraphs = 5, $tag = "p", $flavor = "lorem")
     {
+        $profiler = debug_track_timing();
+
         $html = "";
 
         if ($flavor == "cat" || $flavor == "kitty")
@@ -4174,6 +4231,11 @@
 
     function placeholder_replace($placeholder, $replaced_by, $in, $container_tag = false, $container_attributes = false)
     {
+        $profiler = debug_track_timing($placeholder);
+
+        // TODO Taking this shortcut for now as below code is too slow
+        return str_replace(placeholder($placeholder), $replaced_by, $in);
+
         for ($tab = 9; $tab >= 0; --$tab)
         {
             if (false !== stripos($in, tab($tab).placeholder($placeholder)))
@@ -4233,13 +4295,6 @@
         
         cache_stop();
     
-        if ("html" == get("doctype",false) && !!get("debug"))
-        {
-            echo eol().comment("PHP Version: ".  PHP_VERSION_ID);
-            echo eol().comment("DOM Profiling:". PHP_EOL."    ".wrap_each(debug_timings(),       PHP_EOL."    ").PHP_EOL);
-            echo eol().comment("DOM Console:".   PHP_EOL."    ".wrap_each(debug_console_lines(), PHP_EOL."    ").PHP_EOL);
-        }
-
         generate_all_postprocess();
 
         if (get("compression") == "gzip" && !has("main")) ob_end_flush();
@@ -4293,9 +4348,56 @@
 
     function cached_getimagesize($src)
     {
+        $profiler = debug_track_timing($src);
+
+        // TODO, on some image urls, the size is whithin the url ! so avoid computing it !
+        
         if (!is_string($src)) return 0;
+
         global $__cached_getimagesize;
-        if (!array_key_exists($src, $__cached_getimagesize)) $__cached_getimagesize[$src] = @getimagesize($src);
+
+        if (!array_key_exists($src, $__cached_getimagesize)) 
+        {
+            $size = false; // We need [width, height, mime]
+            
+            if ($size === false)
+            {
+                //"https://source.unsplash.com/_noSmX8Kgoo/300x200?.jpg
+
+                if (false !== stripos($src, "source.unsplash.com"))
+                {
+                    $ext  = "png";
+                    $pos  = strripos($src, "."); if (false !== $pos) $ext = substr($src, $pos + 1);
+                    $mime = "image/$ext";
+
+                    $pos_end = strripos($src, "?");
+
+                    if (false !== $pos_end)
+                    {
+                        $pos_bgn = strripos($src, "/");
+
+                        if (false !== $pos_bgn)
+                        {
+                            $width_height = substr($src, $pos_bgn + 1, $pos_end - $pos_bgn - 1);
+                            $width_height = explode("x", $width_height);
+
+                            if (count($width_height) == 2)
+                            {
+                                $size = array("width" => $width_height[0], "height" => $width_height[1], "mime" => $mime);
+                            }
+                        }                        
+                    }
+                }
+            }
+            
+            if ($size === false)
+            {
+                $size = @getimagesize($src);
+            }
+
+            $__cached_getimagesize[$src] = $size;
+        }
+        
         return $__cached_getimagesize[$src];
     }
 
@@ -5229,6 +5331,8 @@
 
     function parse_delayed_components($html)
     {
+        $profiler = debug_track_timing();
+
     //  Lazy html generation
 
         if ("html" == get("doctype", "html") && !has("ajax"))
@@ -5258,34 +5362,30 @@
                         $delayed_component = $delayed_component_and_param[0];
                         $param             = $delayed_component_and_param[1];
 
-                        $old_html = $html;
+                        //$old_html = $html;
+    
+                        $fn_delayed_component = $delayed_component;
+                        if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
 
-                        if (is_array($param))
-                        {       
-                            $fn_delayed_component = $delayed_component;
-                            if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
+                        $content = "";
+                        {
+                            $profiler_component = debug_track_timing("", $fn_delayed_component);
+                    
+                            if (is_array($param))
+                            {   
+                                $content = call_user_func_array($fn_delayed_component, array_merge($param, array($html)));
+                            }
+                            else
+                            {   
+                                $content = call_user_func($fn_delayed_component, $param, $html);
+                            }
 
-                            $html = placeholder_replace(
-                                $delayed_component.$index,
-                                call_user_func_array($fn_delayed_component, array_merge($param, array($html))), 
-                                $html,
-                                "div"
-                                );
-                        }
-                        else
-                        {   
-                            $fn_delayed_component = $delayed_component;
-                            if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
-
-                            $html = placeholder_replace(
-                                $delayed_component.$index,
-                                call_user_func($fn_delayed_component, $param, $html), 
-                                $html,
-                                "div"
-                                );
+                            unset($profiler_component);
                         }
 
-                        debug_console_log($delayed_component.$index.": ".($old_html == $html ? "Failed!" : "OK!"));
+                        $html = placeholder_replace($delayed_component.$index, $content, $html, "div");
+
+                        //debug_console_log($delayed_component.$index.": ".($old_html == $html ? "Nothing replaced!" : "Placeholder filled!"));
                     }
                 }
             }
@@ -5298,9 +5398,7 @@
     {
         $profiler = debug_track_timing();
 
-        // TODO DO THIS
-
-        
+        // TODO DO THIS        
 
         $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
         $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
@@ -5339,6 +5437,24 @@
 
                 $welcome = "Welcome my fellow web developer!".((get("minify") && !get("static")) ? " You can ?minify=0 this source code if needed!" : "");
                 
+                $debug = "";
+
+                if (!!get("debug"))
+                {
+                    $debug = pre(
+
+                        PHP_EOL.
+                        PHP_EOL."PHP Version: ".PHP_VERSION.
+                        PHP_EOL."DOM Version: ".DOM_VERSION.
+                        PHP_EOL.
+                        PHP_EOL."PROFILING:".
+                        PHP_EOL.wrap_each(debug_timings(), PHP_EOL).
+                        PHP_EOL, 
+                        
+                        array("style" => "margin: 0; white-space: pre; overflow-x: auto; background: black; color: green; width: 100%")
+                    );
+                }
+                
                 return raw_html(
                         
                         '<!doctype html>'.
@@ -5349,6 +5465,7 @@
                     
                     $html.
                     eol().
+                    $debug.
                    
                     raw_html(
                         '</html>'.
@@ -5510,12 +5627,10 @@
             }
             else
             {
-                $ext = "png";
-                $pos = stripos($url, "?");
-                if (false !== $pos) $ext = substr($url, 0, $pos);
-                $pos = strripos($url, ".");
-                if (false !== $pos) $ext = substr($url, $pos + 1);
-                $ext = "image/$ext";
+                $ext  = "png";
+                $pos  =  stripos($url, "?"); if (false !== $pos) $ext = substr($url, 0, $pos);
+                $pos  = strripos($url, "."); if (false !== $pos) $ext = substr($url, $pos + 1);
+                $mime = "image/$ext";
             }
         }
 
@@ -6979,20 +7094,22 @@
         $theme = $theme_tab[0];
         $tab   = $theme_tab[1];
 
-        heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
-
-            <?php foreach (brands() as $brand) {
+        $css = ":root {";
+            
+            foreach (brands() as $brand) {
                 
                 $fn     = "dom\\color_$brand"; // For php 5.6 compatibility
                 $colors = $fn();
                 $colors = is_array($colors) ? $colors : array($colors);
 
-                                                echo eol()."--color-$brand:            var(--$theme-color-$brand);";
-                foreach ($colors as $c => $_) { echo eol()."--color-$brand-".($c+1).": var(--$theme-color-$brand-".($c+1).");"; }
+                                                $css .= eol()."--color-$brand:            var(--$theme-color-$brand);";
+                foreach ($colors as $c => $_) { $css .= eol()."--color-$brand-".($c+1).": var(--$theme-color-$brand-".($c+1).");"; }
 
-                } ?> 
+                } 
+                
+        $css .= "}";
 
-        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
+        return $css;
     }
 
     function css_vars_color_scheme($theme, $tab = 1)
@@ -7151,8 +7268,13 @@
             .card                       { background-color: var(--background-color);         color: var(--text-color); }
             .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); }
 
-            .card                       { border:        1px solid var(--border-color); }
-            .card-title                 { border-bottom: 1px solid var(--border-color); }
+         /* .card                       { border:        1px solid var(--border-color); } */
+            .card                       { box-shadow:    2px 2px 8px 4px #00000033;     } /*
+            .card-title                 { border-bottom: 1px solid var(--border-color); } */
+
+            .card                       {             border-radius: var(--border-radius) } /* card has no overflow hidden, so we need children to have round radius */
+            .card > *:first-child       {    border-top-left-radius: var(--border-radius);    border-top-right-radius: var(--border-radius); }
+            .card > *:last-child        { border-bottom-left-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); }
 
             /* Cards inside articles */
 
@@ -7552,6 +7674,15 @@
                 --margin-inline: 0;
     
                 margin-inline: var(--margin-inline);
+            }
+
+            .card-media > iframe {
+
+                --margin-inline: calc(0.5 * var(--gap));
+
+                margin-inline: var(--margin-inline);
+
+                width: calc(100% - calc(2 * var(--margin-inline)));
             }
 
             .card-title h1 {      
@@ -8399,6 +8530,8 @@
 
     function cosmetic_indent($html, $tabs = 1, $container_tag = false, $container_attributes = false, $wrapper_eol = true)
     {
+        // TODO THIS FUNCTION IS OUR CURRENT BOTTLENECK : WAY TOO SLOW
+
         if (!get("minify") && $html != "" && in_array($container_tag, array(
 
           /*"head",
@@ -9821,20 +9954,23 @@
                 $color_var_name = str_replace("dom\\", "", $fn_color_transform);
 
                 $background_color = get($color_var_name, $color_var_name);
+                
+                if (!!get("static")) // TODO Currently too slow for non static websites
+                {           
+                    $ratio = 1.0;
+                    $debug = false;
 
-                $ratio = 1.0;
-                $debug = false;
-
-                if (false !== stripos($background_color, "#")
-                &&  false !== stripos($color, "#"))
-                {   
-                    $color = correct_auto(
-                        $color,
-                        $background_color,
-                        $color_contrast_target,
-                        $ratio,
-                        $debug
-                        );
+                    if (false !== stripos($background_color, "#")
+                    &&  false !== stripos($color, "#"))
+                    {   
+                        $color = correct_auto(
+                            $color,
+                            $background_color,
+                            $color_contrast_target,
+                            $ratio,
+                            $debug
+                            );
+                    }
                 }
             }
 
@@ -10871,7 +11007,9 @@
     define("DOM_COLOR_CONTRAST_AAA_LARGE",      4.5);
     define("DOM_COLOR_CONTRAST_AAA_NORMAL",     7.0);
     define("DOM_COLOR_CONTRAST_DEFAULT",        DOM_COLOR_CONTRAST_AA_NORMAL);
-
+    
+    $__dom_corrected_colors_cache = false;
+    
     function correct_color(
 
         $color,
@@ -10884,6 +11022,19 @@
         )
     {
         $profiler = debug_track_timing();
+
+        global $__dom_corrected_colors_cache;
+
+        if (is_array($__dom_corrected_colors_cache))
+        {
+            $cache_key = "$color,$background,$contrast_ratio_target,$delta,$debug";
+
+            if (array_key_exists($cache_key, $__dom_corrected_colors_cache))
+            {
+                if ($ratio !== null) $ratio = $__dom_corrected_colors_cache[$cache_key][1];
+                return $__dom_corrected_colors_cache[$cache_key][0];
+            }
+        }
 
         if ($delta == 0) $delta = 1;
 
@@ -10927,6 +11078,11 @@
             $percent = 0.5 * ($percent_min + $percent_max);
         }
 
+        if (is_array($__dom_corrected_colors_cache))
+        {
+            $__dom_corrected_colors_cache[$cache_key] = array($rrggbb.$debug_css, $ratio);
+        }
+
         return $rrggbb.$debug_css;
     }
 
@@ -10964,11 +11120,16 @@
         
         if (is_array($color))
         {
-            $corrected = array();
-        
-            foreach ($color as $c)
-            {
-                $corrected[] = correct_auto($c, $background, $contrast_ratio_target, $debug);
+            $corrected = $color;
+
+            if (!!get("static")) // TODO Currently too slow for non static websites
+            {       
+                $corrected = array();
+
+                foreach ($color as $c)
+                {
+                    $corrected[] = correct_auto($c, $background, $contrast_ratio_target, $debug);
+                }
             }
 
             return $corrected;

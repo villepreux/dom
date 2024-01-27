@@ -26,34 +26,32 @@
 }
 
 /* Articles look */
+
 .article {     
-    border:         1px solid var(--background-lighter-color);
-    border-radius:  .5em; 
-    box-shadow:     0px 0px 4px 2px var(--background-darker-color); 
+    --border-radius: .5em; 
+    border-radius: var(--border-radius);
+    box-shadow: 0px 0px 8px 4px #0003; 
 } 
 
 /* Cards */
 .grid { 
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr))
 }
-.card-title h1 {
-    color: var(--text-lighter-color);
-    font-size: var(--h2-font-size);
-}
 
 /* Aside look */
 aside { 
-    border-color: var(--accent-color)
+    border-color: var(--accent-color);
+    margin: var(--gap);
 }
 
 /* On large screens, put aside on the side */
 @media screen and (min-width: 1300px) {
     :root {
-        --left-text-margin-ratio: 0.3 
+        --left-text-margin-ratio: 0.3
     }
     aside {
         position: absolute;
-        right:    var(--gap);
-        width:    calc(var(--right-text-margin-ratio) * calc(100vw - var(--max-text-width)) - 2 * var(--gap));
+        right:    0;
+        width:    calc(calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))) - calc(2 * var(--gap)));
     }
 }

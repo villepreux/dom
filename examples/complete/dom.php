@@ -27,7 +27,9 @@ function _unsplash_copyrights()
 
         if (!!$id)     $html_photo .=        a("Photo #".($i+1), "https://unsplash.com/photos/".$id);
         if (!!$author) $html_photo .= " by ".a("@".$author, "https://unsplash.com/@".$author);
-        if (!!$source) $html_photo .= " from ".json_encode($source);
+
+        if (dom\is_localhost() && !!get("debug") && !!get("debug-unsplash"))
+            if (!!$source) $html_photo .= " from ".json_encode($source);
 
         $photos[] = $html_photo; 
     }

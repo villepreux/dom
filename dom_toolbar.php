@@ -2,7 +2,7 @@
 
     namespace dom;
 
-    require_once(dirname(__FILE__)."/dom_html.php");
+    require_once(__DIR__."/dom8.php");
 
     $__frameworks_toolbar = array(
 
@@ -163,16 +163,8 @@
         <?php if (!AMP()) { ?> 
     
             /* Toolbar */
-    
-            <?php if (get("no_js") || get("dom_toolbar_no_js") || !get("script_toolbar")) { ?> 
-            
-            .toolbar                                        { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
-    
-            <?php } else { ?> 
-    
-            .toolbar                                        { position: fixed; top: 0px; } <?= include_css_main_toolbar_adaptation("body>main") ?> 
-    
-            <?php } ?> 
+        
+            .toolbar { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
             
             /* Menu open/close mechanism */
     
@@ -254,7 +246,7 @@
         
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer("base-components", heredoc_stop(null));
     }
-    
+    /*
     function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
 
     function _include_css_main_toolbar_adaptation($main_selector)
@@ -266,7 +258,7 @@
         if (!!get("toolbar_nav"))                            return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
 
         return "";
-    }
+    }*/
 
     function js_toolbar_framework_material()
     {
@@ -344,7 +336,7 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_toolbar()
+    function js_toolbar_height()
     {
         if (has("dom_toolbar_no_js")) return "";
         
@@ -370,14 +362,15 @@
 
                     var stuck_height = header_max_height - header_min_height;
 
-                    console.log({scrollY: window.scrollY, stuck_height, header_height, header_max_height, header_min_height});
-        
                     if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
                     else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
         
                     var target = Math.max(0, header_max_height - window.scrollY);
 
-                    var h = (animate) ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) : target;
+                    var h = (animate) 
+                        ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) 
+                        : target;
+
                     h = parseInt(Math.max(0, h), 0); /* So it's properly snapped */
 
                     toolbar_row_banner.style.height = h + "px";
@@ -397,11 +390,31 @@
         
             function onInitToolbarHeight()
             {
-                window.cancelAnimationFrame(idAnimationFrame);
-                updateToolbarHeight(false);
+                var toolbars = document.querySelectorAll(".toolbar");
+                var toolbar  = toolbars ? toolbars[0] : null;
+
+                if (toolbar)
+                {
+                    toolbar.style.position = "fixed";
+                    toolbar.style.top      = "0px";
+                    
+                    var under_toolbar_element = document.querySelector("body > main");
+
+                    if (under_toolbar_element)
+                    {                
+                        var toolbar_nav    = toolbar.querySelector(".toolbar-row-nav");
+                        var toolbar_banner = toolbar.querySelector(".toolbar-row-banner");
+
+                            if (toolbar_banner && toolbar_nav) { under_toolbar_element.style.marginTop = "calc(var(--header-height) + var(--header-toolbar-height))";   }
+                        else if (toolbar_banner)                { under_toolbar_element.style.marginTop = "calc(var(--header-height))";                                  }
+                        else if (toolbar_nav)                   { under_toolbar_element.style.marginTop = "calc(var(--header-toolbar-height))";                          }
+                    }
+
+                    window.cancelAnimationFrame(idAnimationFrame);
+                    updateToolbarHeight(false);
+                }
             }
 
-            console.log("DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG ");
             dom.on_ready( onInitToolbarHeight);
             dom.on_loaded(onInitToolbarHeight);
             dom.on_scroll(onUpdateToolbarHeight);
@@ -509,8 +522,8 @@
     {
         if (has("ajax")) return "";
 
-        return                                                            ((!!get("script_toolbar",              true)) ? (
-                script(js_toolbar                       ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
+        return                                                            ((!!get("toolbar_support_height",      true)) ? (
+                script(js_toolbar_height                ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
                 script(js_toolbar_banner_rotation       ()).   "") : ""). ((!!get("script_toolbar_menu",         true)) ? (
                 script(js_toolbar_menu                  ()).   "") : ""). ((!!get("script_framework_material",   true)) ? (
                 script(js_toolbar_framework_material    ()).   "") : "");
@@ -731,7 +744,7 @@
             ($html === false) ? '' : $html,
 
             attributes(
-                attr("role", "menu"),
+              /*attr("role", "menu"),*/
                 attr("class",
                     component_class("section", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
                     component_class("section", "toolbar-cell-right-shrink")    ) : "")
