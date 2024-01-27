@@ -4350,8 +4350,6 @@
     {
         $profiler = debug_track_timing($src);
 
-        // TODO, on some image urls, the size is whithin the url ! so avoid computing it !
-        
         if (!is_string($src)) return 0;
 
         global $__cached_getimagesize;
@@ -6086,6 +6084,9 @@
                  $i = 0;                            $css .=               pan($var.                               ":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
             for ($i = 0; $i < count($colors); ++$i) $css .= ($i>0?" ":"").pan($var.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? 31 : 0)." ".$colors[$i].";";
         }
+
+        //set("debug", true);
+        //debug_console_log($css);
         
         return $css;
     }
@@ -7094,7 +7095,8 @@
         $theme = $theme_tab[0];
         $tab   = $theme_tab[1];
 
-        $css = ":root {";
+        $css = "";
+        //$css = ":root {";
             
             foreach (brands() as $brand) {
                 
@@ -7107,7 +7109,7 @@
 
                 } 
                 
-        $css .= "}";
+        //$css .= "}";
 
         return $css;
     }
