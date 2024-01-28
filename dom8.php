@@ -6310,16 +6310,16 @@
                 --h2-font-size: 1.50rem; /*1.50rem;*/
                 --h3-font-size: 1.20rem; /*1.17rem;*/
                 --h4-font-size: 1.10rem; /*1.00rem;*/
-                --h5-font-size: 0.05rem; /*0.83rem;*/
+                --h5-font-size: 1.05rem; /*0.83rem;*/
                 --h6-font-size: 1.00rem; /*0.67rem;*/
                 
                 --text-font-weight: 400;
 
                 --h1-font-weight: 600;
                 --h2-font-weight: 600;
-                --h3-font-weight: 400;
-                --h4-font-weight: 400;
-                --h5-font-weight: 400;
+                --h3-font-weight: 500;
+                --h4-font-weight: 500;
+                --h5-font-weight: 500;
                 --h6-font-weight: 400;
             }
 
