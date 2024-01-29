@@ -1,10 +1,10 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,pre,style,debug_track_timing};
+use function dom\{set,get,div,pre,style,debug_track_timing};
 
 set("fonts", get("fonts")."|Fira Code");
 
-function code($code, $lang = "php", $syntax_highlight = true)
+function code($code, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
     $profiler = debug_track_timing();
 
@@ -136,44 +136,45 @@ function code($code, $lang = "php", $syntax_highlight = true)
 
     $i = 0;
 
+    $attributes = dom\attributes_add_class($attributes, "ide");
+
     return 
 
-        pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
-                
-            return  '<div class="ide-line">'.
-            
-                        '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
-                        '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
-                        
-                    '</div>';
-            
-            }, $lines)), "ide").
-        
         style("
 
             @layer ide;
         
-            .ide {
-
+            .ide {/*
+                padding:            calc(0.5 * var(--gap));*/
+                overflow:           hidden;
+                margin-block:       var(--gap);
                 width:              fit-content;
-                border:             1px dashed var(--border-color);
-                padding:            var( --gap);
-
+                border:             2px dashed var(--border-color, var(--theme-color));
+            }
+            .ide-code {
                 font-family:        'Fira Code', monospace; 
                 font-size:          14px;
                 font-weight:        400;
                 line-height:        1.3em;
+                white-space:        pre-wrap;/*
+                background-color:   var(--background-color);
+                padding:            calc(0.5 * var(--gap));*/
+                padding:            var(--gap);
+                margin:             0;/*
+                box-shadow:         inset 2px 2px 4px 2px #00000030;*/
+                overflow:           hidden;
+                overflow-x:         auto;
             }
             .ide-line { 
-                display:        inline-flex; 
-                align-items:    flex-start;
-                gap:            .5em; 
+                display:            inline-flex; 
+                align-items:        flex-start;
+                gap:                .5em; 
             }
             .ide-line-number {
-                white-space:    nowrap;
-                flex-shrink:    0;
-                pointer-events: none;
-                user-select:    none;
+                white-space:        nowrap;
+                flex-shrink:        0;
+                pointer-events:     none;
+                user-select:        none;
             }
 
             .ide {
@@ -224,24 +225,55 @@ function code($code, $lang = "php", $syntax_highlight = true)
                 --ide-highlight-comment-color:  #FFAE85;
             }
             
-            .ide { background-color: var(--ide-background-color) }
+            .ide-code { background-color: var(--ide-background-color) }
             
-            .ide                    { color: var(--ide-text-color) }
+            .ide-code               { color: var(--ide-text-color) }
             .ide-highlight-default  { color: var(--ide-highlight-default-color) }
             .ide-highlight-keyword  { color: var(--ide-highlight-keyword-color) }
             .ide-highlight-string   { color: var(--ide-highlight-string-color) }
             .ide-highlight-comment  { color: var(--ide-highlight-comment-color); font-style: italic }
             
-
             .in-iframe .ide { display: none }
 
-            ");
+            /* IDE within a card */
+                        
+            .card.ide {
+
+                width:              fit-content;
+                max-width:          calc(100vw - 2 * var(--gap));
+                padding:            calc(0.5 * var(--gap));
+                margin-inline:      auto;
+                overflow:           hidden;
+                border:             none;
+            }
+
+            .card.ide .ide-code {
+
+                padding:            calc(0.5 * var(--gap));
+                margin:             0;
+                white-space:        pre;
+
+                box-shadow:         inset 2px 2px 4px 2px #00000030;
+            }
+
+            ").
+
+        div(pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
+                
+            return  '<div class="ide-line">'.
+            
+                        '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
+                        '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
+                        
+                    '</div>';
+            
+            }, $lines)), "ide-code"), $attributes).
+        
+        "";
 }
 
-function this()
+function this($attributes = false)
 {
-    //return pre(htmlentities(file_get_contents(__FILE__)));
-
     $callstack = debug_backtrace(0);
     if (0 == count($callstack)) return "";
 
@@ -249,7 +281,7 @@ function this()
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content);
+    return code($caller_source_content, $attributes);
 }
 
 ?>

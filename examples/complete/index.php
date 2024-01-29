@@ -51,7 +51,7 @@ output(
                 article( // Some more random content
                     h2("Third Headline").
                     lorem_ipsum().
-                    this())).
+                    this("card"))).
             footer(
                 p(unsplash_copyrights()).
                 p("DOM.PHP v".DOM_VERSION." - This is my footer at the bottom").

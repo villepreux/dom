@@ -97,6 +97,28 @@ article > header {
     border-bottom-right-radius: var(--border-radius);
 }
 
+article> *:last-child {
+
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+article > *:first-child {
+
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
+article> *:last-child {
+
+    border-bottom-left-radius: var(--border-radius);
+    border-bottom-right-radius: var(--border-radius);
+}
+article > *:first-child {
+
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+}
+
 /* Async loading container */
 
 .ajax-container {
@@ -113,7 +135,7 @@ article > header {
 
 /* Introspection code */
 
-article .ide {
+article .card.ide {
     
     --border-radius: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), .5em);
     border-radius: var(--border-radius);
@@ -123,7 +145,10 @@ article .ide {
 
     margin-inline: min(calc(1 * var(--gap)), calc(-0.5 * max(0px, calc(100vw - 2 * var(--gap) - var(--max-text-width)))));
     width: calc(100vw - 2 * var(--margin-gap));
+}
 
+article .card.ide .ide-code {
+    
     white-space: pre;
     overflow-x: scroll;
 }

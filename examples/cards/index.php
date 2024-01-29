@@ -16,4 +16,4 @@ output(html(head().body(
                 p("Blah blah 2").
                 p("Blah blah 3"))), 5)).
         p(a("Back to examples", "..")).
-        this()))));
+        this("card")))));

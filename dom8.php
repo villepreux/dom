@@ -7449,6 +7449,7 @@
                 --gap:                      16px; /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
                 --scrollbar-width:          17px;        
                 --scroll-margin:            var(--gap);
+                --margin-gap:               var(--gap);
                 
                 --grid-default-min-width:   calc(var(--line-height) + var(--gap));
 
