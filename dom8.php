@@ -115,26 +115,62 @@
         foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
         foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
 
-        $report[] = "";
-        $report[] = "TOTALS";
-        $report[] = "";
-        
-        foreach ($totals as $function => $total)
+        if (count($totals) > 0)
         {
-            $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
+            $report[] = "";
+            $report[] = "TOTALS";
+            $report[] = "";
+            
+            foreach ($totals as $function => $total)
+            {
+                $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
+            }
         }
 
-        $report[] = "";
-        $report[] = "TIMELINE";
-        $report[] = "";
+        global $__profiling_timeline;
 
-        if (!$totals_only)
+        if (count($__profiling_timeline) > 0)
         {
-            global $__profiling_timeline;
-            $report = array_merge($report, $__profiling_timeline);
+            $report[] = "";
+            $report[] = "TIMELINE";
+            $report[] = "";
+
+            if (!$totals_only)
+            {
+                $report = array_merge($report, $__profiling_timeline);
+            }
         }
 
         return $report;
+    }
+
+    function debug_console()
+    {
+        $debug_timings = debug_timings();
+        
+        $html  = PHP_EOL;
+        $html .= PHP_EOL."PHP Version: ".PHP_VERSION;
+        $html .= PHP_EOL."DOM Version: ".DOM_VERSION;
+
+        if (is_array($debug_timings) && count($debug_timings) > 0)
+        {
+            $html .= PHP_EOL;
+            $html .= PHP_EOL.wrap_each(debug_timings(), PHP_EOL);
+        }
+
+        $html .= PHP_EOL;
+
+        return pre($html, array("style" => "
+        
+            min-height:     100vh; 
+            margin:         0; 
+            white-space:    pre; 
+            overflow-x:     auto; 
+            background:     black; 
+            color:          green; 
+            width:          100%;
+            
+            "));
     }
     
     function debug_callstack($shift_current_call = true)
@@ -4990,10 +5026,28 @@
     function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
         
     // DOM powered html transform
+
+    function html_decode($html)
+    {
+        return xml_decode($html);/*
+        $doc = new \DOMDocument();
+        @$doc->loadHTML($html, LIBXML_NOWARNING);
+        $sxml = @simplexml_import_dom($doc);
+        return xml_decode($sxml);*/
+    }
     
     function xml_decode($xml)
     {
+        libxml_use_internal_errors(true);
+
         $e = is_string($xml) ? simplexml_load_string($xml) : $xml;
+        
+        foreach (libxml_get_errors() as $error) {
+            debug_console_log(json_encode($error));
+        }
+    
+        libxml_clear_errors();
+
         if (!is_object($e)) return $e;
 
         $a = array("name" => $e->getName(), "attributes" => array(), "children" => array(), "value" => strval($e));
@@ -5005,7 +5059,7 @@
 
         foreach ($e->children() as $child)
         {
-            $a["children"][] = xml_decode($child);
+            $a["children"][] = html_decode($child);
         }
 
         return $a;
@@ -5097,7 +5151,7 @@
                         }
                         else
                         {
-                            $html .= $dom_func($children_html.$node, $attributes);
+                            $html .= $dom_func($children_html.$node, ...array_values($attributes));
                         }
 
                         $was_callable = true;
@@ -5121,7 +5175,9 @@
 
     function raw_dom($html, $debug_comments = false)
     {
-        return raw_dom_parse(xml_decode($html), "document", $debug_comments);
+        //debug_console_log(htmlentities($html));
+
+        return raw_dom_parse(html_decode($html), "document", $debug_comments);
     }
 
     /*
@@ -5439,18 +5495,7 @@
 
                 if (!!get("debug"))
                 {
-                    $debug = pre(
-
-                        PHP_EOL.
-                        PHP_EOL."PHP Version: ".PHP_VERSION.
-                        PHP_EOL."DOM Version: ".DOM_VERSION.
-                        PHP_EOL.
-                        PHP_EOL."PROFILING:".
-                        PHP_EOL.wrap_each(debug_timings(), PHP_EOL).
-                        PHP_EOL, 
-                        
-                        array("style" => "margin: 0; white-space: pre; overflow-x: auto; background: black; color: green; width: 100%")
-                    );
+                    $debug = debug_console();
                 }
                 
                 return raw_html(
