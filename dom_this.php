@@ -1,10 +1,10 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,div,pre,style,debug_track_timing};
+use function dom\{set,get,card,card_title,card_text,header,div,pre,style,p,debug_track_timing};
 
 set("fonts", get("fonts")."|Fira Code");
 
-function code($code, $attributes = false, $lang = "php", $syntax_highlight = true)
+function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
     $profiler = debug_track_timing();
 
@@ -136,6 +136,20 @@ function code($code, $attributes = false, $lang = "php", $syntax_highlight = tru
 
     $i = 0;
 
+    $html_header = "";
+
+    if (!!$title && "" != $title)
+    {
+        if ($attributes == "card")
+        {
+            $html_header = card_title($title);
+        }
+        else
+        {
+            $html_header = header($title);
+        }
+    }
+
     $attributes = dom\attributes_add_class($attributes, "ide");
 
     return 
@@ -258,7 +272,7 @@ function code($code, $attributes = false, $lang = "php", $syntax_highlight = tru
 
             ").
 
-        div(pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
+        div($html_header.pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
                 
             return  '<div class="ide-line">'.
             
@@ -272,7 +286,7 @@ function code($code, $attributes = false, $lang = "php", $syntax_highlight = tru
         "";
 }
 
-function this($attributes = false)
+function this($html_title = "", $attributes = false)
 {
     $callstack = debug_backtrace(0);
     if (0 == count($callstack)) return "";
@@ -281,7 +295,7 @@ function this($attributes = false)
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content, $attributes);
+    return code($caller_source_content, $html_title, $attributes);
 }
 
 ?>

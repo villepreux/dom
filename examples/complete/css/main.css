@@ -74,11 +74,16 @@ article {
 
     --border-radius: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), .75em);
       border-radius: var(--border-radius);
+      
+    position: relative;
 }
 article > header {
 
     border-top-left-radius:  var(--border-radius);
     border-top-right-radius: var(--border-radius);
+
+    position: relative;
+    box-shadow: 0 2px 4px -1px #0000008a;
 }
 
 .card {
@@ -145,6 +150,7 @@ article .card.ide {
 
     margin-inline: min(calc(1 * var(--gap)), calc(-0.5 * max(0px, calc(100vw - 2 * var(--gap) - var(--max-text-width)))));
     width: calc(100vw - 2 * var(--margin-gap));
+    min-width: 100%;
 }
 
 article .card.ide .ide-code {

@@ -5065,104 +5065,110 @@
         return $a;
     }
 
+    $__raw_dom_parse_debug_i = 0;
+
     function raw_dom_parse($tree, $parent_node_name = "document", $debug_comments = false)
     {  
         $html = "";
 
         if (is_array($tree))
         {
-            //foreach ($tree as $_tree_node)
+            $node               = $tree["value"];
+            $node_name          = $tree["name"];
+            $node_attributes    = $tree["attributes"];
+            $children           = $tree["children"];
+
+            $func_name = str_replace("-", "_", $node_name);
+
+            $children_html = "";
+
+            foreach ($children as $child)
             {
-                $node               = $tree["value"];
-                $node_name          = $tree["name"];
-                $node_attributes    = $tree["attributes"];
-                $children           = $tree["children"];
+                $children_html .= raw_dom_parse($child, $node_name, $debug_comments);
+            }
 
-                $func_name = str_replace("-", "_", $node_name);
+            $was_callable = false;
 
-                $children_html = "";
-
-                foreach ($children as $child)
+            foreach (array("dom\\$parent_node_name"."_$func_name", "dom\\$func_name", $parent_node_name."_".$func_name, $func_name) as $dom_func)
+            {
+                if (is_callable($dom_func))
                 {
-                    $children_html .= raw_dom_parse($child, $node_name, $debug_comments);
-                }
+                    $attributes = array();
 
-                $was_callable = false;
-
-                foreach (array("dom\\$parent_node_name"."_$func_name", "dom\\$func_name", $parent_node_name."_".$func_name, $func_name) as $dom_func)
-                {
-                    if (is_callable($dom_func))
+                    foreach ($node_attributes as $node_attribute)
                     {
-                        $attributes = array();
+                        $attributes[$node_attribute["name"]] = at($attributes, $node_attribute["name"], array());
+                        $attributes[$node_attribute["name"]][] = $node_attribute["value"];
+                    }
 
-                        foreach ($node_attributes as $node_attribute)
-                        {
-                            $attributes[$node_attribute["name"]] = at($attributes, $node_attribute["name"], array());
-                            $attributes[$node_attribute["name"]][] = $node_attribute["value"];
-                        }
+                    foreach ($attributes as $name => $value)
+                    {
+                        $attributes[$name] = implode(" ", $value);
+                    }
 
-                        foreach ($attributes as $name => $value)
+                    $is_regular_params = false;
+                    {
+                        if (count($attributes) >= 1 && count($attributes) <= 9)
                         {
-                            $attributes[$name] = implode(" ", $value);
-                        }
+                            $is_regular_params = true;
 
-                        $is_regulara_params = false;
-                        {
-                            if (count($attributes) >= 1 && count($attributes) <= 9)
+                            foreach ($attributes as $name => $value)
                             {
-                                $is_regulara_params = true;
+                                if (strlen($name) != 2 || $name[0] != '_' || !is_numeric($name[1]))
+                                {
+                                    $is_regular_params = false;
+                                    break;
+                                }
+                            }
+
+                            if ($is_regular_params)
+                            {
+                                $content_index = 0;
 
                                 foreach ($attributes as $name => $value)
                                 {
-                                    if (strlen($name) != 2 || $name[0] != '_' || !is_numeric($name[1]))
+                                    if ($value == "%")
                                     {
-                                        $is_regulara_params = false;
+                                        $content_index = (int)$name[1];
                                         break;
                                     }
                                 }
 
-                                if ($is_regulara_params)
-                                {
-                                    $content_index = 0;
+                                $attributes = array_values($attributes);
 
-                                    foreach ($attributes as $name => $value)
-                                    {
-                                        if ($value == "%")
-                                        {
-                                            $content_index = (int)$name[1];
-                                            break;
-                                        }
-                                    }
-
-                                    $attributes = array_values($attributes);
-
-                                    $attributes = array_merge(
-                                        array_slice($attributes, 0, $content_index),
-                                        array($children_html.$node),
-                                        array_slice($attributes, $content_index + 1)
-                                    );
-                                }
+                                $attributes = array_merge(
+                                    array_slice($attributes, 0, $content_index),
+                                    array($children_html.$node),
+                                    array_slice($attributes, $content_index + 1)
+                                );
                             }
                         }
+                    }
 
-                        if ($is_regulara_params)
+                    if ($is_regular_params)
+                    {
+                        $html .= call_user_func_array($dom_func, $attributes);
+                    }
+                    else
+                    {
+                        if ($children_html.$node === "")
                         {
-                            $html .= call_user_func_array($dom_func, $attributes);
+                            $html .= $dom_func(...array_values($attributes));
                         }
                         else
                         {
                             $html .= $dom_func($children_html.$node, ...array_values($attributes));
                         }
-
-                        $was_callable = true;
-                        break;
                     }
+
+                    $was_callable = true;
+                    break;
                 }
-                
-                if (!$was_callable)
-                {
-                    //die("<pre>".htmlentities("dom\\$parent_node_name"."_$func_name")."</pre>");
-                }
+            }
+            
+            if (!$was_callable)
+            {
+                //ob_end_clean();  die("<pre>".htmlentities("dom\\$parent_node_name"."_$func_name")."</pre>");
             }
         }
         else
@@ -5175,8 +5181,6 @@
 
     function raw_dom($html, $debug_comments = false)
     {
-        //debug_console_log(htmlentities($html));
-
         return raw_dom_parse(html_decode($html), "document", $debug_comments);
     }
 
@@ -7700,6 +7704,7 @@
             body > :is(main, header, footer) > :is(article) > :is(.grid, .flex) {
 
                 margin-inline: var(--margin-gap);
+                padding-block: var(--gap);
             }
 
             /* Others */
@@ -9606,6 +9611,8 @@
             $attributes =   attributes_as_string($internal_attributes).
                             attributes_as_string($external_attributes);
         }
+
+        //if (false !== stripos($url, "selfie")) die($attributes);
 
         if ($target == DOM_INTERNAL_LINK)
         {

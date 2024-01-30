@@ -51,7 +51,8 @@ output(
                 article( // Some more random content
                     h2("Third Headline").
                     lorem_ipsum().
-                    this("card"))).
+                    this(h3("Source code of this example"), "card").
+                    p(a("Back to examples", "..")))).
             footer(
                 p(unsplash_copyrights()).
                 p("DOM.PHP v".DOM_VERSION." - This is my footer at the bottom").

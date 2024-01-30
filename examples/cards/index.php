@@ -1,5 +1,5 @@
 <?php include "dom.php";
-use function dom\{init,output,html,head,body,style,header,main,h1,h2,p,a,grid,card,card_title,card_text,card_media,img};
+use function dom\{init,output,html,head,body,style,header,main,h1,h2,h3,p,a,grid,card,card_title,card_text,card_media,img};
 
 init();
 
@@ -16,4 +16,4 @@ output(html(head().body(
                 p("Blah blah 2").
                 p("Blah blah 3"))), 5)).
         p(a("Back to examples", "..")).
-        this("card")))));
+        this(h3("Source code of this example"), "card")))));

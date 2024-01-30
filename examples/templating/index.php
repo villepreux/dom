@@ -19,7 +19,7 @@
             <title><h3>Card Title</h3></title>
             <text><p>Blah blah 1</p></text>
             <media>
-              <img width="300" height="200" src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg"/>
+              <img src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg" width="300" height="200"/>
             </media>
             <text>
               <p>Blah blah 2</p>
@@ -33,5 +33,4 @@
     </main>
   </body>
 </html>
-
 <?= HERE("raw_dom", true) ?></html><?php echo HSTOP();
