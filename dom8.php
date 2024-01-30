@@ -4269,8 +4269,11 @@
     {
         $profiler = debug_track_timing($placeholder);
 
-        // TODO Taking this shortcut for now as below code is too slow
-        return str_replace(placeholder($placeholder), $replaced_by, $in);
+        if (!get("static"))
+        {
+            // TODO Taking this shortcut for now as below code is too slow
+            return str_replace(placeholder($placeholder), $replaced_by, $in);
+        }
 
         for ($tab = 9; $tab >= 0; --$tab)
         {
@@ -10010,7 +10013,7 @@
 
                 $background_color = get($color_var_name, $color_var_name);
                 
-                if (!!get("static")) // TODO Currently too slow for non static websites
+                //if (!!get("static")) // TODO Currently too slow for non static websites
                 {           
                     $ratio = 1.0;
                     $debug = false;
