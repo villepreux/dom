@@ -150,6 +150,22 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         }
     }
 
+    $html_code = pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
+                
+        return  '<div class="ide-line">'.
+        
+                    '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
+                    '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
+                    
+                '</div>';
+        
+        }, $lines)), "ide-code");
+
+    if ($attributes == "card")
+    {
+        $html_code = card_text($html_code);
+    }
+    
     $attributes = dom\attributes_add_class($attributes, "ide");
 
     return 
@@ -255,10 +271,14 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
 
                 width:              fit-content;
                 max-width:          calc(100vw - 2 * var(--gap));
-                padding:            calc(0.5 * var(--gap));
                 margin-inline:      auto;
                 overflow:           hidden;
                 border:             none;
+            }
+
+            .card.ide .card-text {
+
+                padding:            calc(0.5 * var(--gap));
             }
 
             .card.ide .ide-code {
@@ -272,16 +292,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
 
             ").
 
-        div($html_header.pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
-                
-            return  '<div class="ide-line">'.
-            
-                        '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
-                        '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
-                        
-                    '</div>';
-            
-            }, $lines)), "ide-code"), $attributes).
+        div($html_header.$html_code, $attributes).
         
         "";
 }
