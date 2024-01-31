@@ -1766,13 +1766,13 @@
 
     $__last_headline_level = false;
 
-    function hook_headline($h, $title)
+    function hook_headline($h, $title, $section = false)
     {
         global $__last_headline_level;
         $__last_headline_level = (int)$h;
 
         if ($h == 1) hook_title($title);
-        if ($h == 2) hook_section($title);
+        if ($h == 2) hook_section($title, $section);
 
         call_user_hook("headline", $title);
     }
@@ -1805,9 +1805,14 @@
         }        
     }
 
-    function hook_section($title)
+    function hook_section($title, $section = false)
     {
-        $title = trim(clean_from_tags($title));
+        if (false === $section) $section = $title;
+
+        $title   = trim(clean_from_tags($title));
+        $section = trim(clean_from_tags($section));
+
+        $title_and_link = array($section, "#".anchor_name($title));
         
         if (!!get("hook_section_filter"))
         {
@@ -1822,11 +1827,11 @@
                     return "";
                 }
 
-                $title = array($modified_title, "#".anchor_name($title));
+                $title_and_link = array($modified_title, "#".anchor_name($title));
             }
         }
 
-        set("hook_sections", array_merge(get("hook_sections", array()), array($title)));
+        set("hook_sections", array_merge(get("hook_sections", array()), array($title_and_link)));
     }
     
     function hook_heading($heading)
@@ -8852,11 +8857,14 @@
     
 //  HTML tags
         
-    function h($h, $html = "", $attributes = false, $anchor = false)
+    function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true)
     {
         $h += get("main", 0);
         
-        hook_headline($h, $html);
+        if ($headline_hook)
+        {
+            hook_headline($h, $html, $anchor);
+        }
         
         $attributes = attributes_add($attributes, attr("class", component_class("h$h")                   ));
         $attributes = attributes_add($attributes, attr("id",    anchor_name(!!$anchor ? $anchor : $html) ));
