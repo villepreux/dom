@@ -10338,8 +10338,14 @@
     function card_actions($button = false, $attributes = false, $attributes_button = false)
     {
         if ($button === false) return "";
-        if (false === stripos($button, "button")) $button = button($button, attributes_add_class($attributes_button, component_class("button", 'card-action-button')));
+        if (false === stripos($button, "button")
+        &&  false === stripos($button, "href")) $button = button($button, attributes_add_class($attributes_button, component_class("button", 'card-action-button')));
         return section($button, attributes_add_class($attributes, component_class("section", "card-actions")));
+    }
+
+    function card_action($button = false, $attributes = false, $attributes_button = false)
+    {
+        return card_actions($button, $attributes, $attributes_button);
     }
   
     function card($html, $attributes = false, $horizontal = false)

@@ -192,8 +192,8 @@
             /* Scrollbar */
 
             .toolbar-row-nav {
-                
-                overflow-x: scroll;
+                /*
+                overflow-x: scroll; */
             }
             .toolbar-row-nav::-webkit-scrollbar {
 

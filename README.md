@@ -26,6 +26,8 @@ Proof Of Concept
   * Compiling into fast code
   * Compiling into valid markup (HTML, CSS, JSON, AMP...)
   * Compiling into good SEO
+  * Rendering well without CSS nor JS
+  * Not needed JS at all if wanted or when disabled
   * Using a single language for everything (templating, css-preprocessing, ...)
   * While still allowing to inject HTML/CSS/JS anywhere at will
 
