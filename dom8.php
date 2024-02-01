@@ -377,6 +377,8 @@
             }
         }
 
+        //if (false !== stripos($path0, "autoload.php")) { ob_end_clean(); die("PATH = [".$path0."]"); }
+
         return $default;
     }
 
@@ -426,9 +428,9 @@
     ######################################################################################################################################
     
     @internal_include(path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
-    @internal_include(path("../vendor/autoload.php")); /*
-    @internal_include(path("../vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
-    @internal_include(path("../vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));*/
+    @internal_include(path("vendor/autoload.php")); /*
+    @internal_include(path("vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
+    @internal_include(path("vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));*/
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -485,6 +487,8 @@
         // Cannot be modified at browser URL level
 
       //set("title",                             "Blog"); // Will be deducted/overriden from document headlines, if any
+        del("title");
+
         set("keywords",                          "");
 
       //set("url",                               url());                              if (path("DTD/xhtml-target.dtd", path("xhtml-target.dtd")))
@@ -5350,7 +5354,7 @@
             {
                 $xml = rss_channel(
                 
-                                rss_title           (get("title"))
+                            rss_title           (get("title"))
                 . eol() .   rss_description     (get("keywords", get("title")))
                 . eol() .   rss_link            (get("url")."/"."rss")
                 . eol() .   rss_lastbuilddate   ()
@@ -5358,7 +5362,7 @@
 
                 . eol() .   rss_image(
                             
-                                            rss_url     (get("url")."/".get("image"))
+                                        rss_url     (get("url")."/".get("image"))
                             . eol() .   rss_title   (get("title"))
                             . eol() .   rss_link    (get("url")."/"."rss")
                             )
@@ -5370,10 +5374,10 @@
             $path_css = path("css/rss.css");
 
             return  ''
-        /*  .       '<?xml version="1.0" encoding="'.get("encoding", "utf-8").'" ?>'    */
+          /*.       '<?xml version="1.0" encoding="'.get("encoding", "utf-8").'" ?>'    */
             .       '<?xml version="1.0" encoding="'.strtoupper(get("encoding", "utf-8")).'"?>'
             .       (!!$path_css ? ('<?xml-stylesheet href="'.$path_css.'" type="text/css" ?>') : '')
-        /*  .       '<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:media="https://search.yahoo.com/mrss/">'    */
+          /*.       '<rss version="2.0" xmlns:atom="https://www.w3.org/2005/Atom" xmlns:media="https://search.yahoo.com/mrss/">'    */
             .       '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">'
             . eol()   
             . eol() . $xml
@@ -10180,7 +10184,7 @@
             
             foreach ($photosets as $photoset_index => $photoset_nth)
             { 
-                $photoset       =               $photoset_nth;
+                $photoset       =           $photoset_nth;
                 $photoset_id    =        at($photoset_nth, "id");
                 $photoset_title = at(at($photoset_nth, "title"), "_content");
 
@@ -10203,7 +10207,7 @@
         
         foreach ($photos as $photo_index => $photo_nth)
         { 
-            $photo          =        $photo_nth;
+            $photo          =    $photo_nth;
             $photo_id       = at($photo_nth, "id",      $photo_id);
             $photo_secret   = at($photo_nth, "secret",  $photo_secret);
             $photo_server   = at($photo_nth, "server",  $photo_server);
@@ -10265,7 +10269,7 @@
     function hook_card_set_context($key, $val)
     {
         global $__hook_card_context;
-        if (!array_key_exists($key, $__hook_card_context)) $__hook_card_context[$key] = ""; else $__hook_card_context[$key] .= " ";
+        if (!array_key_exists($key, $__hook_card_context)) $__hook_card_context[$key] = ""; else $__hook_card_context[$key] .= " ";        
         $__hook_card_context[$key] .= $val;
         return $val;
     }
@@ -10659,7 +10663,7 @@
 
     function cdata($html) { return "<![CDATA[$html]]>"; }
 
-    function rss_sanitize($html) { return trim(htmlspecialchars(strip_tags($html), ENT_QUOTES, 'utf-8')); }
+    function rss_sanitize($html) { return trim(htmlspecialchars(str_replace("  ", " ", strip_tags(str_replace(">", "> ", $html))), ENT_QUOTES, 'utf-8')); }
     
     function rss_item_from_item_info($item_info)
     {
@@ -10668,7 +10672,7 @@
         if (!is_array(at($item_info,"img_url",false))) $item_info["img_url"] = array(at($item_info,"img_url"));
         
         $rss =  
-                        rss_title       (at($item_info,"title",get("title")))
+                    rss_title       (at($item_info,"title",get("title")))
         . eol() .   rss_link        (get("canonical"))
         . eol() .   rss_description (at($item_info,"description",""))
         . eol() .   rss_pubDate     (at($item_info,"timestamp", 0));
