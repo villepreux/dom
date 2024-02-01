@@ -504,7 +504,7 @@
         set("text_color",                       "#0d0d0d");
         set("link_color",                       "#aa4455"); */
         
-        set("css_layers_support",               false);
+        set("css_layers_support",               true);
     
         set("default_image_ratio_w",            "300");
         set("default_image_ratio_h",            "200");
@@ -4700,11 +4700,18 @@
         <?php heredoc_flush("raw_html"); ?></script><?php return heredoc_stop(null);
     }
 
-    function string_system_font_stack($quote = '"', $condensed = false)
+    function string_system_font_stack_symbols($quote = '"')
     {
-        if ($quote === true || $quote === false) { $condensed = $quote; $quote = '"'; }
+        return implode(", ", get("font_stack_regular", array(
 
-        $fonts = get("font_stack", array(
+            $quote.'Noto Sans Symbols'.$quote, 'sans-serif'
+
+            )));
+    }
+
+    function string_system_font_stack_regular($quote = '"')
+    {
+        return implode(", ", get("font_stack_regular", array(
 
             'Inter', 'Roboto', '-apple-system',
             'system-ui', 'BlinkMacSystemFont',
@@ -4715,28 +4722,35 @@
             $quote.'Segoe UI Emoji'.$quote,
             $quote.'Segoe UI Symbol'.$quote
 
-            ));
+            )));
+    }
 
-        if ($condensed)
-        {
-            $fonts = array_merge(array(
+    function string_system_font_stack_condensed($quote = '"')
+    {
+        return implode(", ", get("font_stack_condensed", array(
 
-                $quote.'Arial Narrow'.$quote,
-                $quote.'AvenirNextCondensed-Bold'.$quote,
-                $quote.'Futura-CondensedExtraBold'.$quote,
-                'HelveticaNeue-CondensedBold',
-                $quote.'Ubuntu Condensed'.$quote,
-                $quote.'Liberation Sans Narrow'.$quote,
-                $quote.'Franklin Gothic Demi Cond'.$quote,
-                'sans-serif-condensed', 'Arial',
-                $quote.'Trebuchet MS'.$quote,
-                $quote.'Lucida Grande'.$quote,
-                'Tahoma', 'Verdana', 'sans-serif'
+            $quote.'Arial Narrow'.$quote,
+            $quote.'AvenirNextCondensed-Bold'.$quote,
+            $quote.'Futura-CondensedExtraBold'.$quote,
+            'HelveticaNeue-CondensedBold',
+            $quote.'Ubuntu Condensed'.$quote,
+            $quote.'Liberation Sans Narrow'.$quote,
+            $quote.'Franklin Gothic Demi Cond'.$quote,
+            'sans-serif-condensed', 'Arial',
+            $quote.'Trebuchet MS'.$quote,
+            $quote.'Lucida Grande'.$quote,
+            'Tahoma', 'Verdana', 'sans-serif'
 
-                ), $fonts);
-        }
+            )));
+    }
 
-        return implode(", ", $fonts);
+    function string_system_font_stack($quote = '"', $type = false)
+    {
+        if ($quote === true || $quote === false || $quote === "symbols" || $quote === "condensed") { $type = $quote; $quote = '"'; }
+
+        if ("condensed" == $type || true == $type)  return string_system_font_stack_condensed($quote);
+        if ("symbols"   == $type)                   return string_system_font_stack_symbols($quote);
+                                                    return string_system_font_stack_regular($quote);
     }
 
     function string_loading_svg_src_base64($force_minify = false)
@@ -6076,7 +6090,7 @@
         if (!!$fonts)         $fonts = str_replace(' ','+', trim($fonts, ", /|"));
 
         return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "screen", $async) : '')
-            . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
+                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
     }
     
     function link_styles($async = false, $fonts = false)
@@ -7791,46 +7805,32 @@
             a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
             a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
             a:not(:has(img,picture,video,audio,svg)).external:after {
-
-                /*
-                content:        "🡵";
-                display:        inline-block;
-                color:          var(--text-color);
-                font-size:      xx-small;
-                transform:      translateY(-0.6rem);
-                white-space:    nowrap;
-                position:       absolute;
-                */
-                -webkit-text-fill-color: currentColor; /* to prevent invisibility if child of something having a linear inner color effect */
-
-
-                display:        inherit;
-                position:       static;
-                transform:      unset;
-                
-                content:        "🡵";
-                white-space:    nowrap;
-                font-size:      0.5em;
-                font-weight:    lighter;
-                
-                color:          var(--text-color);
-                opacity:        0.3;
-                
-                -webkit-text-fill-color: currentColor; /* to prevent invisibility if child of something having a linear inner color effect */
-
-                border:         1px solid currentColor;
-                border-radius:  3px;
-
+                -webkit-text-fill-color: currentColor;
+                display: inline-block;
+                position: static;
+                transform: unset;
+                /* 🡵 Requires special fonts. ie. 'Noto Sans Symbols 2' google font
+                content: "🡵";*/
+                content: "+";
+                font-weight: lighter;
+                font-size: 0.5em;
+                line-height: .5em;
+                white-space: nowrap;
+                color: var(--text-color);
+                opacity: 0.3;
+                -webkit-text-fill-color: currentColor;
+                border: 1px solid currentColor;
+                border-radius: 3px;
                 vertical-align: middle;
-                margin-inline:  0.5em 0.2em;
-                margin-block:   0;
-                padding:        0.2em 0.2em;
+                margin-inline: 0.5em 0.2em;
+                margin-block: 0;
+                padding: 0.4em 0.2em;
+                text-decoration: none;
             }    
             a:not(:has(img,picture,video,audio,svg))[href^="//"]:hover:after, 
             a:not(:has(img,picture,video,audio,svg))[href^="http"]:hover:after, 
             a:not(:has(img,picture,video,audio,svg)).external:hover:after {
-                /*
-                font-size:          small;*/
+
                 color:              var(--link-hover-color);
                 text-decoration:    none;
                 opacity:            1.0;
