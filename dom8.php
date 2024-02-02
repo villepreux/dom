@@ -305,7 +305,7 @@
     #region HELPERS : FILE AND FOLDERS PATH FINDER
     ######################################################################################################################################
         
-    function path($path0, $default = false, $search = true, $depth0 = DOM_AUTO, $max_depth = DOM_AUTO, $offset_path0 = ".")
+    function path($path0, $default = false, $search = true, $depth0 = DOM_AUTO, $max_depth = DOM_AUTO, $offset_path0 = ".", $bypass_root_hints = false)
     {
         $profiler = debug_track_timing();
 
@@ -360,12 +360,15 @@
 
             // If beyond root then stop here
 
-            foreach (get("root_hints", array()) as $root_hint_file)
+            if (!$bypass_root_hints)
             {
-                if (file_exists("$offset_path/$root_hint_file")) 
+                foreach (get("root_hints", array()) as $root_hint_file)
                 {
-                    $search = false;
-                    break;
+                    if (file_exists("$offset_path/$root_hint_file")) 
+                    {
+                        $search = false;
+                        break;
+                    }
                 }
             }
 
@@ -428,7 +431,7 @@
     ######################################################################################################################################
     
     @internal_include(path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
-    @internal_include(path("vendor/autoload.php")); /*
+    @internal_include(path("vendor/autoload.php"/*, false, true, DOM_AUTO, DOM_AUTO, ".", $bypass_root_hints = true*/)); /*
     @internal_include(path("vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
     @internal_include(path("vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));*/
 
