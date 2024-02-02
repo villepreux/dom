@@ -1417,6 +1417,45 @@
     #endregion
     #region WIP ????
 
+    function rand_seed($seed = DOM_AUTO)
+    {
+        if (DOM_AUTO === $seed)
+        {
+            $seed = null;
+
+            if (!!get("rss_date_granularity_daily"))
+            {
+                $d0 = new \DateTime("1976-06-13");
+                $d  = new \DateTime(date('Y-m-d'));
+
+                $seed = $d0->diff($d)->d;
+            }
+        }
+
+        mt_srand($seed);
+
+        global $__dom_rand_is_seeded;
+        $__dom_rand_is_seeded = true;
+    }
+
+    $__dom_rand_is_seeded = false;
+
+    function rand($min = DOM_AUTO, $max = DOM_AUTO)
+    {
+        global $__dom_rand_is_seeded;
+
+        if (!$__dom_rand_is_seeded)
+        {
+            rand_seed();            
+            $__dom_rand_is_seeded = true;
+        }
+
+        if (DOM_AUTO === $min) $min = 0;
+        if (DOM_AUTO === $max) $max = mt_getrandmax();
+
+        return mt_rand($min, $max);
+    }
+
     function str_replace_all($from, $to, $str)
     {
         if (is_string($str))
@@ -9928,13 +9967,16 @@
 
     function svg($label, $x, $y, $w, $h, $align, $svg_body, $add_wrapper = true) 
     {
-        $html = '<svg'  .' class'       .'="'.  "svg ".strtolower($label)   .'"'    // + colorful-shadow ?
-                        .' role'        .'="'.  "img"                       .'"'    .(($label!="" && $label!=false)?(''
-                        .' aria-label'  .'="'.  $label                      .'"'    ):'')
-                        .' viewBox'     .'="'.  "$x $y $w $h"               .'"'
-                        .' width'       .'="'.  min(24, $w-$x)              .'"'
-                        .' height'      .'="'.  min(24, $h-$y)              .'"'
-                        .' style'       .'="'.  "fill: currentColor"        .'"'
+        $class = strtolower($label);
+        if (is_numeric($class[0])) $class = "_$class";
+
+        $html = '<svg'  .' class'       .'="'.  "svg ".$class           .'"'    // + colorful-shadow ?
+                        .' role'        .'="'.  "img"                   .'"'    .(($label!="" && $label!=false)?(''
+                        .' aria-label'  .'="'.  $label                  .'"'    ):'')
+                        .' viewBox'     .'="'.  "$x $y $w $h"           .'"'
+                        .' width'       .'="'.  min(24, $w-$x)          .'"'
+                        .' height'      .'="'.  min(24, $h-$y)          .'"'
+                        .' style'       .'="'.  "fill: currentColor"    .'"'
                         .'>'.
 
                     $svg_body.
@@ -9977,8 +10019,11 @@
             $colors   = is_array($colors) ? $colors : array($colors);
             $class    = "brand-$brand";
             $var      = "--color-$brand";
+            
+            $svg_class = strtolower($brand);
+            if (is_numeric($svg_class[0])) $svg_class = "_$svg_class";
     
-            $css .= eol().tab($tab)."svg.$brand {"; 
+            $css .= eol().tab($tab)."svg.$svg_class {"; 
                                                         $css .= eol()."--fill-color".        ": var($var); ";
                 for ($i = 0; $i < count($colors); ++$i) $css .= eol()."--fill-color-".($i+1).": var($var".(($i > 0) ? ("-".($i+1)) : "")."); ";
             
@@ -11381,7 +11426,7 @@
         $name       = DOM_AUTO !== $name        ? $name         : get("author", DOM_AUTHOR);
         $bio        = DOM_AUTO !== $bio         ? $bio          : false;
         $url        = DOM_AUTO !== $url         ? $url          : get("canonical");
-        $attributes = DOM_AUTO !== $attributes  ? $attributes   : array("hidden" => true);
+        $attributes = DOM_AUTO !== $attributes  ? $attributes   : array("hidden" => "hidden");
 
         $names = is_array($name) ? $name : explode(" ", $name);
 

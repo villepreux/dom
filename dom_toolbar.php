@@ -51,7 +51,7 @@
         )
     );
 
-    init_extend_frameworks_table($__frameworks_toolbar);
+    \dom\init_extend_frameworks_table($__frameworks_toolbar);
 
     function hook_toolbar($row)
     {
@@ -148,8 +148,8 @@
 
             /* Menu open/close mechanism */
     
-            .menu                                           { display: none } /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
-            a.menu-switch-link.close                        { display: none }
+          /*.menu                                           { display: none }*/ /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
+          /*a.menu-switch-link.close                        { display: none }*/
     
             /* Menu list */
                 
@@ -168,13 +168,13 @@
             
             /* Menu open/close mechanism */
     
-            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block;  }
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block;  }/*
             #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.open   { display: none; }
             
-            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none;  }
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none;  }*/
             #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.close  { display: inline-block; }
             
-            #<?= DOM_MENU_ID ?>-open        .menu                     { display: none;  max-height:   0vh; }
+            #<?= DOM_MENU_ID ?>-open        .menu                     { /*display: none;  */max-height:   0vh; }
             #<?= DOM_MENU_ID ?>-open:target .menu                     { display: block; max-height: 100vh; }
                 
         <?php } if (AMP()) { ?> 
@@ -188,6 +188,8 @@
             amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
     
         <?php } ?>
+
+            [hidden="hidden"] { display: none !important }
 
             /* Scrollbar */
 
@@ -415,7 +417,7 @@
                 }
             }
 
-            dom.on_ready( onInitToolbarHeight);
+          /*dom.on_ready( onInitToolbarHeight);*/
             dom.on_loaded(onInitToolbarHeight);
             dom.on_scroll(onUpdateToolbarHeight);
 
@@ -430,13 +432,25 @@
 
             /* TOOLBAR MENU */
 
+            function show(selector) {
+
+                /*document.querySelector(selector).style.display = "block";*/
+                document.querySelector(selector).removeAttribute("hidden");
+            }
+
+            function hide(selector) {
+
+              /*document.querySelector(selector).style.display = "none";*/
+                document.querySelector(selector).setAttribute("hidden", "hidden");
+            }
+
             document.querySelectorAll('#menu-open .menu-switch-link.open').forEach(function (e) { e.addEventListener('click', function(ev) {
         
-                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "none";
-                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "block";
+                hide("#menu-open .menu-switch-link.open"  );
+                show("#menu-open .menu-switch-link.close" );
+                show("#menu-open .menu");
 
-                document.querySelector("#menu-open .menu"                   ).style.display   = "block";
-                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "100vh";
+                document.querySelector("#menu-open .menu").style.maxHeight = "100vh";
 
                 ev.preventDefault();
                 
@@ -444,11 +458,11 @@
 
             document.querySelectorAll('#menu-open .menu-switch-link.close').forEach(function (e) { e.addEventListener('click', function(ev) {
         
-                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "block";
-                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "none";
+                show("#menu-open .menu-switch-link.open"  );
+                hide("#menu-open .menu-switch-link.close" );
+                hide("#menu-open .menu");
 
-                document.querySelector("#menu-open .menu"                   ).style.display   = "none";
-                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "initial";
+                document.querySelector("#menu-open .menu").style.maxHeight = "initial";
 
                 ev.preventDefault();
 
@@ -456,10 +470,11 @@
 
             document.querySelectorAll('#menu-open .menu-list a').forEach(function (e) { e.addEventListener('click', function(ev) {
 
-                document.querySelector("#menu-open .menu-switch-link.open"  ).style.display   = "block";
-                document.querySelector("#menu-open .menu-switch-link.close" ).style.display   = "none";
-                document.querySelector("#menu-open .menu"                   ).style.display   = "none";
-                document.querySelector("#menu-open .menu"                   ).style.maxHeight = "initial";
+                show("#menu-open .menu-switch-link.open"  );
+                hide("#menu-open .menu-switch-link.close" );
+                hide("#menu-open .menu");
+
+                document.querySelector("#menu-open .menu").style.maxHeight = "initial";
 
               /*ev.preventDefault();*/ /* Menu links keep being recorded in navigation history */
 
@@ -638,8 +653,8 @@
                                 .   (get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
                                 .   (get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
                                 .   (get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                            . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close",  array("class" => "menu-switch-link close nav-link material-icons", "aria-label" => "Menu Toggle"))
-                                                                                                                                        , "#".DOM_MENU_ID."-open",   array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
+                                                                      . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close", array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden", "aria-label" => "Menu Toggle"))
+                                                                                                                            , "#".DOM_MENU_ID."-open",  array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
                                                             ; 
     }
 
@@ -707,7 +722,7 @@
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
 
-        return (get("framework") != "bootstrap" ? div($html, "menu-entries " . component_class("div", "menu")) : $html);
+        return (get("framework") != "bootstrap" ? div($html, array("class" => ("menu-entries " . component_class("div", "menu")), "hidden" => "hidden")) : $html);
     }
 
     function menu_toggle($html, $sidebar = DOM_AUTO)
@@ -715,7 +730,7 @@
         if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
         if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
 
-        return div($html, array("role" => "switch", "aria-checked" => "false", "id" => "menu-open", "hidden" => "hidden", "class" => component_class("div", "menu-toggle")));
+        return div($html, array("role" => "switch", "aria-checked" => "false", "id" => "menu-open"/*, "hidden" => "hidden"*/, "class" => component_class("div", "menu-toggle")));
     }
 
     function toolbar_nav_toolbar($html = false)
