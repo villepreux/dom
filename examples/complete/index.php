@@ -8,8 +8,6 @@ use function dom\{toolbar,toolbar_nav_title,toolbar_nav_toolbar,toolbar_banner,t
 $unsplash_id       = "_noSmX8Kgoo";
 $unsplash_author   = "jezar";
 
-set("unsplash", "$unsplash_id,$unsplash_author"); // So also accessible in css stylesheet
-
 init();
 
 function flickr_placeholder($classnames)

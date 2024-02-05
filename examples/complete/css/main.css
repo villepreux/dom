@@ -1,8 +1,9 @@
 <?php require_once(__DIR__."/../dom.php");
 
-use function dom\{set,get,unsplash_url_img};
+use function dom\unsplash_url_img;
 
-list($unsplash_id, $unsplash_author) = explode(',',get("unsplash"));
+$unsplash_id       = "_noSmX8Kgoo";
+$unsplash_author   = "jezar";
 
 ?>
 

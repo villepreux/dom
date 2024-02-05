@@ -5634,6 +5634,9 @@
 
             eol().
             link_rel_manifest().
+                                        (!get("webmentions") ? "" : (
+            eol().
+            link_rel_webmentions().     "")).
 
             (AMP() ? "" : (eol().comment("DOM Head styles"))).
             link_styles($async_css).
@@ -5750,6 +5753,194 @@
         }
 
         return link_rel("preload", $url, array("as" => "image", "type" => $mime));
+    }
+
+    /* COOKIES */
+
+    function js_storage()
+    {
+        if (has("ajax")) return '';
+
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            dom.on_ready(function() {
+                
+                window.addEventListener("storage", function() {
+                    
+                    console.log("DOM", "Storage", JSON.parse(window.localStorage.getItem("dom")));
+                });
+                
+            });
+            
+            function dom_storage_get(name) {
+                
+                var dom_storage = window.localStorage.getItem("dom");
+
+                /*console.log("DOM", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
+
+                if (!dom_storage)
+                {
+                    return false;
+                }
+
+                var jsonObject = {}; try { jsonObject = JSON.parse(dom_storage); } catch { jsonObject = {}; }
+                if (typeof jsonObject == "undefined" || jsonObject == false || jsonObject == null) jsonObject = {};
+                
+                /*console.log("DOM JSONOBJ", jsonObject, name, jsonObject[name]);*/
+                if (jsonObject[name] == undefined) return false;
+
+                return jsonObject[name];
+            }
+
+            function dom_storage_set(name, value) {
+
+                var dom_storage = window.localStorage.getItem("dom");
+
+                if (!dom_storage)
+                {
+                    dom_storage = "{}";
+                    window.localStorage.setItem("dom", dom_storage);                    
+                }
+
+                var jsonObject = {}; try { jsonObject = JSON.parse(dom_storage); } catch { jsonObject = {}; }
+                if (typeof jsonObject == "undefined" || jsonObject == false || jsonObject == null) jsonObject = {};
+                
+                jsonObject[name] = value;
+                dom_storage = JSON.stringify(jsonObject);
+                window.localStorage.setItem("dom", dom_storage);
+
+                /*console.log("DOM", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
+            }
+
+            dom.set = dom_storage_set;
+            dom.get = dom_storage_get;
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
+    /* WEB MENTIONS */
+
+    function webmentions_api_token()
+    {       
+        $token = false;
+
+             if (defined("TOKEN_WEBMENTIONS_IO"))   $token = constant("TOKEN_WEBMENTIONS_IO");
+        else if (defined("TOKEN_WEBMENTION_IO"))    $token = constant("TOKEN_WEBMENTION_IO");
+        else                                        $token = get("webmentions_token", $token);
+
+        return $token;
+    }
+
+    function webmentions_domain()
+    {       
+        $domain = false;
+
+        if (defined("TOKEN_WEBMENTIONS_DOMAIN"))    $domain = constant("TOKEN_WEBMENTIONS_DOMAIN");
+        else                                        $domain = get("webmentions_domain", $domain);
+
+        return $domain;
+    }
+
+    function link_rel_webmentions()
+    {
+        return  '<link rel="webmention" href="https://webmention.io/'.webmentions_domain().'/webmention" />'.
+              //'<link rel="pingback"   href="https://webmention.io/'.webmentions_domain().'/xmlrpc"     />'.
+              //'<link rel="pingback"   href="https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint" />'.
+  
+            "";
+    }
+
+    function js_webmentions()
+    {
+        if (has("ajax")) return '';
+
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+        
+            on_ready(function() {
+                    
+                var urls = [];
+                var base;
+
+                document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+
+                    var url = e.getAttribute("data-url");
+
+                            if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                    else if (url.indexOf("https://") < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+
+                    var parser = document.createElement('a');
+                    parser.href = url;
+                    base = parser.protocol + "//" + parser.hostname;
+                    urls.push(parser.pathname + parser.search);
+
+                });
+
+                async function fetch_mentions_endpoint(url = "", data = {}) {
+                
+                    try
+                    {
+                        const response = await fetch(url, {
+                        
+                            method:         "POST",                 /* GET, POST, PUT, DELETE, etc.*/
+                            mode:           "no-cors",              /* no-cors, *cors, same-origin */
+                            cache:          "no-cache",             /* *default, no-cache, reload, force-cache, only-if-cached */
+                            credentials:    "same-origin",          /* include, *same-origin, omit */
+                            redirect:       "follow",               /* manual, *follow, error */
+                            referrerPolicy: "no-referrer",          /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
+                            body:           JSON.stringify(data),   /* body data type must match "Content-Type" header */
+                            headers: {
+                                
+                                "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
+                            },
+                            
+                        });
+                    
+                        return (response && response.ok) ? response.json() : null;
+                    }
+                    catch
+                    {
+                        return null;
+                    }
+                }
+
+                /*
+                fetch("https://webmention.io/api/count?target=https://example.com/page/100")
+                    .then(response => response.json())
+                    .then(responseJson => console.log(responseJson));
+                */
+
+                fetch_mentions_endpoint(
+                    
+                    "https://webmention.io/api/count?base="+base+"&target="+urls.join(","), 
+                    { base: base, target: urls.join(","), targets: urls.join(",") }
+                    
+                    ).then(function(data) {
+
+                        if (data) {
+
+                            document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+
+                                e.innerHTML = data.count[e.getAttribute('data-url')];
+                            });
+                        }
+                    });
+            });
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
+    function webmentions_counter($placeholder = "?", $suffix = " mentions", $url = DOM_AUTO, $tag = "span")
+    {
+        if ($url === DOM_AUTO) $url = get("canonical");
+        return tag($tag, span($placeholder, [ "data-webmention-count" => true, "data-url" => $url ]).$suffix);
+    }
+
+    /**
+     * type : atom|html
+     */
+    function webmentions_feed_url($type = "atom")
+    {
+        return "https://webmention.io/api/mentions.$type?token=".webmentions_api_token();
     }
 
     function link_rel_manifest($path_manifest = false, $type = false, $pan = 17)
@@ -7979,8 +8170,9 @@
         return  script_ajax_head().
                 script_inside_iframe().
 
-                script(js_scan_and_print_head()     ).  ((!!get("script_document_events", true)) ? (
-                script(js_on_document_events_head() ).  "") : "").
+                script(js_scan_and_print_head()     ).      ((!!get("script_document_events", true)) ? (
+                script(js_on_document_events_head() ).
+                script(js_storage()                 ).      "") : "").
 
                 (!AMP() ? "" : (eol().comment("DOM AMP Javascript"))).
                 (!AMP() ? "" : (delayed_component("_amp_scripts_head")))
@@ -8619,7 +8811,8 @@
                 script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",           true)) ? (
                 script(js_pwa_install             ()).   "") : ""). ((!!get("script_framework_material",    true)) ? (
                 script(js_framework_material      ()).   "") : ""). ((!!get("script_scan_and_print",        true)) ? (
-                script(js_scan_and_print_body     ()).   "") : "")
+                script(js_scan_and_print_body     ()).   "") : ""). ((!!get("webmentions",                 false)) ? (
+                script(js_webmentions             ()).   "") : "")
                 ;
     }
     
