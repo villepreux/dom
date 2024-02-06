@@ -146,17 +146,22 @@
 
     function debug_console()
     {
-        $debug_timings = debug_timings();
-        
         $html  = PHP_EOL;
         $html .= PHP_EOL."PHP Version: ".PHP_VERSION;
         $html .= PHP_EOL."DOM Version: ".DOM_VERSION;
 
+        $debug_timings = debug_timings();
+        
         if (is_array($debug_timings) && count($debug_timings) > 0)
         {
             $html .= PHP_EOL;
-            $html .= PHP_EOL.wrap_each(debug_timings(), PHP_EOL);
-        }
+            $html .= PHP_EOL.wrap_each($debug_timings, PHP_EOL);
+        }/*
+        else
+        {
+            $html .= PHP_EOL;
+            $html .= PHP_EOL."No timings nor console output";
+        }*/
 
         $html .= PHP_EOL;
 
@@ -405,10 +410,20 @@
     #endregion
     #region HELPERS : PHP FILE INCLUDE
 
+    $__dom_internal_included = false;
+
+    function is_included()
+    {
+        global $__dom_internal_included;
+        return $__dom_internal_included;
+    }
+
     function internal_include($path, $no_display = false)
     {
         if ($no_display) ob_start();
+        global $__dom_internal_included; $__dom_internal_included = true;
         if (!!$path) @include($path);
+        $__dom_internal_included = false;
         if ($no_display) ob_end_clean();
         return "";
     }
@@ -1292,7 +1307,7 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $timeout = 7, $auto_fix = true)
+    function content($urls, $timeout = 7, $auto_fix = true, $debug_error_output = true)
     {
         $profiler = debug_track_timing($urls);
 
@@ -1317,9 +1332,11 @@
 
         if (!$content || $content == "")
         {
-            $content = @file_get_contents($url);            
+            $content = @file_get_contents($url);
         }
 
+        $curl_debug_errors = array();
+        
         if (!$content || $content == "")
         {
             $curl = @curl_init();
@@ -1336,10 +1353,10 @@
                 
                 $content = curl_exec($curl);
 
-                if (!!get("debug") && (!$content || $content == ""))
+                if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""))
                 {
-                    echo comment("CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result"));
-                    echo comment(to_string(curl_getinfo($curl)));
+                    $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result");
+                    $curl_debug_errors[] = to_string(curl_getinfo($curl));
                 }
 
                 curl_close($curl);
@@ -1347,16 +1364,17 @@
         }
 
         if ($auto_fix)
-        {
-            if (!$content || $content == "") $content = content(url().    $url,  $timeout, false);
-          //if (!$content || $content == "") $content = content(path(     $url), $timeout, false);
-            if (!$content || $content == "") $content = content(url()."/".$url,  $timeout, false);
-          //if (!$content || $content == "") $content = content(path( "/".$url), $timeout, false);
+        {    
+            if (!$content || $content == "") $content = content(url()."/".$url,  $timeout, false, false);
+            if (!$content || $content == "") $content = content(url().    $url,  $timeout, false, false);
+          //if (!$content || $content == "") $content = content(path( "/".$url), $timeout, false, false);
+          //if (!$content || $content == "") $content = content(path(     $url), $timeout, false, false);
         }
 
-        if (!$content)
+        if (!!$debug_error_output && !!get("debug") && !$content)
         {
-            if (!!get("debug")) echo eol().comment("COULD NOT PARSE $url");
+            debug_console_log("COULD NOT PARSE $url");
+            foreach ($curl_debug_errors as $curl_debug_error) debug_console_log($curl_debug_error);
         }
 
         return $content;
@@ -1417,6 +1435,8 @@
     #endregion
     #region WIP ????
 
+    $__dom_rand_is_seeded = false;
+
     function rand_seed($seed = DOM_AUTO)
     {
         if (DOM_AUTO === $seed)
@@ -1432,13 +1452,12 @@
             }
         }
 
+        debug_console_log("rand_seed: $seed");
         mt_srand($seed);
 
         global $__dom_rand_is_seeded;
         $__dom_rand_is_seeded = true;
     }
-
-    $__dom_rand_is_seeded = false;
 
     function rand($min = DOM_AUTO, $max = DOM_AUTO)
     {
@@ -1745,25 +1764,41 @@
 
         if ($flavor == "cat" || $flavor == "kitty")
         {
-                 if ($nb_paragraphs < 0.5) $html .= tag($tag, "Cat ipsum dolor sit amet, human is behind a closed door, emergency! abandoned! meeooowwww!!!. Do doodoo in the litter-box, clickityclack on the piano, be frumpygrumpy chase ball of string.");
-            else if ($nb_paragraphs < 1.0) $html .= tag($tag, "Sitting in a box. Kitty ipsum dolor sit amet, shed everywhere shed everywhere stretching attack your ankles chase the red dot, hairball run catnip eat the grass sniff soft kitty warm kitty little ball of furr poop in a handbag look delicious and drink the soapy mopping up water then puke giant foamy fur-balls tickle my belly at your own peril i will pester for food when you're in the kitchen.");
+            if ($nb_paragraphs >= 0.0) $html .= "Cat ipsum dolor sit amet, human is behind a closed door, emergency! ";
+            if ($nb_paragraphs >= 0.1) $html .= "abandoned! meeooowwww!!!. Do doodoo in the litter-box, clickityclack on the piano. ";
+            if ($nb_paragraphs >= 0.2) $html .= "Be frumpygrumpy chase ball of string. Relentlessly pursues moth spit up on light gray carpet. ";
+            if ($nb_paragraphs >= 0.3) $html .= "Instead of adjacent linoleum and chew iPad power cord. ";
+            if ($nb_paragraphs >= 0.4) $html .= "Stare at imaginary bug yet kitten is playing with dead mouse and destroy house in 5 seconds. ";
+            if ($nb_paragraphs >= 0.5) $html .= "And have a lot of grump in yourself because you can't forget to be grumpy. ";
+            if ($nb_paragraphs >= 0.6) $html .= "And not be like king grumpy cat. ";
+            if ($nb_paragraphs >= 0.7) $html .= "Purr purr purr until owner pets why owner not pet me hiss scratch meow kitty pounce. ";
+            if ($nb_paragraphs >= 0.8) $html .= "Trip, faceplant you didn't see that no you didn't definitely didn't lick, lick, lick. ";
+            if ($nb_paragraphs >= 0.9) $html .= "And preen away the embarrassment poop on floor and watch human clean up walk on keyboard. ";
 
-            if ($nb_paragraphs >= 1) $html .= tag($tag, "Cat ipsum dolor sit amet, human is behind a closed door, emergency! abandoned! meeooowwww!!!. Do doodoo in the litter-box, clickityclack on the piano, be frumpygrumpy chase ball of string. Relentlessly pursues moth spit up on light gray carpet instead of adjacent linoleum and chew iPad power cord, stare at imaginary bug yet kitten is playing with dead mouse and destroy house in 5 seconds and have a lot of grump in yourself because you can't forget to be grumpy and not be like king grumpy cat. Purr purr purr until owner pets why owner not pet me hiss scratch meow kitty pounce, trip, faceplant you didn't see that no you didn't definitely didn't lick, lick, lick, and preen away the embarrassment poop on floor and watch human clean up walk on keyboard. ");
-            if ($nb_paragraphs >= 2) $html .= tag($tag, "Plan steps for world domination run outside as soon as door open. Immediately regret falling into bathtub claw drapes. Prow?? ew dog you drink from the toilet, yum yum warm milk hotter pls, ouch too hot cat playing a fiddle in hey diddle diddle?, waffles but eat my own ears and destroy dog and ignore the squirrels, you'll never catch them anyway hiss and stare at nothing then run suddenly away. Spread kitty litter all over house love me! so jump up to edge of bath, fall in then scramble in a mad panic to get out or instead of drinking water from the cat bowl, make sure to steal water from the toilet chase laser. I rule on my back you rub my tummy i bite you hard scratch so owner bleeds where is it? i saw that bird i need to bring it home to mommy squirrel! sniff other cat's butt and hang jaw half open thereafter.");
-            if ($nb_paragraphs >= 3) $html .= tag($tag, "Sitting in a box. Kitty ipsum dolor sit amet, shed everywhere shed everywhere stretching attack your ankles chase the red dot, hairball run catnip eat the grass sniff soft kitty warm kitty little ball of furr poop in a handbag look delicious and drink the soapy mopping up water then puke giant foamy fur-balls tickle my belly at your own peril i will pester for food when you're in the kitchen even if it's salad . Kitty. Scratch me there, elevator butt crash against wall but walk away like nothing happened purr purr purr until owner pets why owner not pet me hiss scratch meow. Sit in box grass smells good but asdflkjaertvlkjasntvkjn (sits on keyboard) drool. Chase dog then run away enslave the hooman so try to jump onto window and fall while scratching at wall.");
-            if ($nb_paragraphs >= 4) $html .= tag($tag, "Cat gets stuck in tree firefighters try to get cat down firefighters get stuck in tree cat eats firefighters' slippers murder hooman toes chase mice, and really likes hummus. Poop in litter box, scratch the walls lick face hiss at owner, pee a lot, and meow repeatedly scratch at fence purrrrrr eat muffins and poutine until owner comes back so poop on floor and watch human clean up under the bed, yet bite off human's toes yet behind the couch. Curl up and sleep on the freshly laundered towels cat cat moo moo lick ears lick paws but sleep nap prance along on top of the garden fence, annoy the neighbor's dog and make it bark that box? i can fit in that box yet cat snacks stuff and things. Vommit food and eat it again groom yourself 4 hours - checked, have your beauty sleep 18 hours - checked...");
-            if ($nb_paragraphs >= 5) $html .= tag($tag, "Cat jumps and falls onto the couch purrs and wakes up in a new dimension filled with kitty litter meow meow yummy there is a bunch of cats hanging around eating catnip catch mouse and gave it as a present chase imaginary bugs, or eat a rug and furry furry hairs everywhere oh no human coming lie on counter don't get off counter making bread on the bathrobe for hack, yet cough furball into food bowl then scratch owner for a new one. Avoid the new toy and just play with the box it came in. Sleep on keyboard eat my own ears. Meoooow leave hair everywhere, but bury the poop bury it deep or present belly, scratch hand when stroked. Pretend not to be evil cuddle no cuddle cuddle love scratch scratch, asdflkjaertvlkjasntvkjn (sits on keyboard) have my breakfast spaghetti yarn for hiss at vacuum cleaner, where is it?");
+                                       $html  = tag($tag, $html);            
+            if ($nb_paragraphs >= 2.0) $html .= tag($tag, "Plan steps for world domination run outside as soon as door open. Immediately regret falling into bathtub claw drapes. Prow?? ew dog you drink from the toilet, yum yum warm milk hotter pls, ouch too hot cat playing a fiddle in hey diddle diddle?, waffles but eat my own ears and destroy dog and ignore the squirrels, you'll never catch them anyway hiss and stare at nothing then run suddenly away. Spread kitty litter all over house love me! so jump up to edge of bath, fall in then scramble in a mad panic to get out or instead of drinking water from the cat bowl, make sure to steal water from the toilet chase laser. I rule on my back you rub my tummy i bite you hard scratch so owner bleeds where is it? i saw that bird i need to bring it home to mommy squirrel! sniff other cat's butt and hang jaw half open thereafter.");
+            if ($nb_paragraphs >= 3.0) $html .= tag($tag, "Sitting in a box. Kitty ipsum dolor sit amet, shed everywhere shed everywhere stretching attack your ankles chase the red dot, hairball run catnip eat the grass sniff soft kitty warm kitty little ball of furr poop in a handbag look delicious and drink the soapy mopping up water then puke giant foamy fur-balls tickle my belly at your own peril i will pester for food when you're in the kitchen even if it's salad . Kitty. Scratch me there, elevator butt crash against wall but walk away like nothing happened purr purr purr until owner pets why owner not pet me hiss scratch meow. Sit in box grass smells good but asdflkjaertvlkjasntvkjn (sits on keyboard) drool. Chase dog then run away enslave the hooman so try to jump onto window and fall while scratching at wall.");
+            if ($nb_paragraphs >= 4.0) $html .= tag($tag, "Cat gets stuck in tree firefighters try to get cat down firefighters get stuck in tree cat eats firefighters' slippers murder hooman toes chase mice, and really likes hummus. Poop in litter box, scratch the walls lick face hiss at owner, pee a lot, and meow repeatedly scratch at fence purrrrrr eat muffins and poutine until owner comes back so poop on floor and watch human clean up under the bed, yet bite off human's toes yet behind the couch. Curl up and sleep on the freshly laundered towels cat cat moo moo lick ears lick paws but sleep nap prance along on top of the garden fence, annoy the neighbor's dog and make it bark that box? i can fit in that box yet cat snacks stuff and things. Vommit food and eat it again groom yourself 4 hours - checked, have your beauty sleep 18 hours - checked...");
+            if ($nb_paragraphs >= 5.0) $html .= tag($tag, "Cat jumps and falls onto the couch purrs and wakes up in a new dimension filled with kitty litter meow meow yummy there is a bunch of cats hanging around eating catnip catch mouse and gave it as a present chase imaginary bugs, or eat a rug and furry furry hairs everywhere oh no human coming lie on counter don't get off counter making bread on the bathrobe for hack, yet cough furball into food bowl then scratch owner for a new one. Avoid the new toy and just play with the box it came in. Sleep on keyboard eat my own ears. Meoooow leave hair everywhere, but bury the poop bury it deep or present belly, scratch hand when stroked. Pretend not to be evil cuddle no cuddle cuddle love scratch scratch, asdflkjaertvlkjasntvkjn (sits on keyboard) have my breakfast spaghetti yarn for hiss at vacuum cleaner, where is it?");
         }
         else
         {
-                 if ($nb_paragraphs < 0.5) $html .= tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa.");
-            else if ($nb_paragraphs < 1.0) $html .= tag($tag, "Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
+            if ($nb_paragraphs >= 0.0) $html .= "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ";
+            if ($nb_paragraphs >= 0.1) $html .= "Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. ";
+            if ($nb_paragraphs >= 0.2) $html .= "Nulla gravida odio ac arcu maximus egestas ut ac massa. ";
+            if ($nb_paragraphs >= 0.3) $html .= "Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. ";
+            if ($nb_paragraphs >= 0.4) $html .= "Donec vehicula vulputate enim, vitae vulputate sapien auctor et. ";
+            if ($nb_paragraphs >= 0.5) $html .= "Ut imperdiet non augue quis suscipit. Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. ";
+            if ($nb_paragraphs >= 0.6) $html .= "Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. ";
+            if ($nb_paragraphs >= 0.7) $html .= "Maecenas rhoncus sit amet est quis tempus. ";
+            if ($nb_paragraphs >= 0.8) $html .= "Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. ";
+            if ($nb_paragraphs >= 0.9) $html .= "Nulla imperdiet suscipit felis, a blandit ante dictum a. ";
 
-            if ($nb_paragraphs >= 1) $html .= tag($tag, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque enim nibh, finibus ut sapien ac, congue sagittis erat. Nulla gravida odio ac arcu maximus egestas ut ac massa. Maecenas sagittis tincidunt pretium. Suspendisse dictum orci non nibh porttitor posuere. Donec vehicula vulputate enim, vitae vulputate sapien auctor et. Ut imperdiet non augue quis suscipit. Phasellus risus ipsum, varius vitae elit laoreet, convallis pharetra nisl. Aliquam iaculis, neque quis sollicitudin volutpat, quam leo lobortis enim, consectetur volutpat sapien ipsum in mauris. Maecenas rhoncus sit amet est quis tempus. Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. Nulla imperdiet suscipit felis, a blandit ante dictum a.");
-            if ($nb_paragraphs >= 2) $html .= tag($tag, "Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
-            if ($nb_paragraphs >= 3) $html .= tag($tag, "Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
-            if ($nb_paragraphs >= 4) $html .= tag($tag, "Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
-            if ($nb_paragraphs >= 5) $html .= tag($tag, "Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
+                                       $html  = tag($tag, $html);
+            if ($nb_paragraphs >= 2.0) $html .= tag($tag, "Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
+            if ($nb_paragraphs >= 3.0) $html .= tag($tag, "Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
+            if ($nb_paragraphs >= 4.0) $html .= tag($tag, "Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
+            if ($nb_paragraphs >= 5.0) $html .= tag($tag, "Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
         }
 
         return $html;
@@ -4459,6 +4494,7 @@
                     $mime = "image/$ext";
 
                     $pos_end = strripos($src, "?");
+                    if (false === $pos_end) $pos_end = strlen($src);
 
                     if (false !== $pos_end)
                     {
