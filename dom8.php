@@ -1475,6 +1475,21 @@
         return mt_rand($min, $max);
     }
 
+    function rand_pick_ARGS($values, $fallback = null)
+    {
+        if (0 == count($values)) return $fallback;
+        return $values[rand(0, count($values) - 1)];
+    }
+
+    function rand_pick()
+    {        
+        $args = func_get_args();
+        if (count($args) === 1 && is_array($args[0])) return rand_pick_ARGS(array_values($args[0]));
+        return rand_pick_ARGS(array_values($args));
+    }
+
+    /* String utilities */
+
     function str_replace_all($from, $to, $str)
     {
         if (is_string($str))
