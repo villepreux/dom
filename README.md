@@ -42,7 +42,7 @@ Proof Of Concept
 ## Getting started
 
 Why not start with examples?
-The standard [Hello World](https://github.com/villepreux/dom/tree/master/examples/hello-world/index.php) one first, then more complete [examples](https://github.com/villepreux/dom/tree/master/examples).
+The standard [Hello World](https://github.com/villepreux/dom/tree/master/examples/hello-world/) one first, then more complete [examples](https://github.com/villepreux/dom/tree/master/examples).
 
 
 ## Known issues
