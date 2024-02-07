@@ -696,9 +696,9 @@
         if ($section2 === false) $section2 = "";
         if ($section3 === false) $section3 = "";
 
-        if (stripos($section1, "<section") === false) $section1 = toolbar_section($section1);
-        if (stripos($section2, "<section") === false) $section2 = toolbar_section($section2);
-        if (stripos($section3, "<section") === false) $section3 = toolbar_section($section3);
+        if (stripos($section1, "<section") === false && $section1 != "") $section1 = toolbar_section($section1);
+        if (stripos($section2, "<section") === false && $section2 != "") $section2 = toolbar_section($section2);
+        if (stripos($section3, "<section") === false && $section3 != "") $section3 = toolbar_section($section3);
 
         return $section1.$section2.$section3;
     }
