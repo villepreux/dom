@@ -5960,9 +5960,12 @@
                     .then(responseJson => console.log(responseJson));
                 */
 
+                var encoded_base = encodeURI(base);
+                var encoded_urls = urls; /* todo */
+
                 fetch_mentions_endpoint(
                     
-                    "https://webmention.io/api/count?base="+base+"&target="+urls.join(","), 
+                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(","), 
                     { base: base, target: urls.join(","), targets: urls.join(",") }
                     
                     ).then(function(data) {
