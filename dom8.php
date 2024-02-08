@@ -4155,7 +4155,7 @@
 
     function minify_js($js)
     {
-        if (false !== stripos($js, "//")) return $js;
+        if (false !== stripos(str_replace("https://", "https:XX", str_replace("http://", "http:XX", $js)), "//")) return $js;
         
         $js = str_replace_all("\n  ",   "\n ",  $js);
         $js = str_replace_all(PHP_EOL,  " ",    $js);
@@ -5921,7 +5921,7 @@
 
                     var parser = document.createElement('a');
                     parser.href = url;
-                    base = parser.protocol + "//" + parser.hostname;
+                    base = parser.protocol + "/" + "/" + parser.hostname;
                     urls.push(parser.pathname + parser.search);
 
                 });
