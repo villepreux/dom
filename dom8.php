@@ -5817,7 +5817,7 @@
                 
                 window.addEventListener("storage", function() {
                     
-                    console.log("DOM", "Storage", JSON.parse(window.localStorage.getItem("dom")));
+                    console.log("DOM:", "Storage", JSON.parse(window.localStorage.getItem("dom")));
                 });
                 
             });
@@ -5826,7 +5826,7 @@
                 
                 var dom_storage = window.localStorage.getItem("dom");
 
-                /*console.log("DOM", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*console.log("DOM:", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
 
                 if (!dom_storage)
                 {
@@ -5859,7 +5859,7 @@
                 dom_storage = JSON.stringify(jsonObject);
                 window.localStorage.setItem("dom", dom_storage);
 
-                /*console.log("DOM", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*console.log("DOM:", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
             }
 
             dom.set = dom_storage_set;
@@ -5911,6 +5911,8 @@
                 var urls = [];
                 var base;
 
+                console.log("DOM:", "Webmentions", "Parse webmention counters");
+
                 document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
 
                     var url = e.getAttribute("data-url");
@@ -5926,32 +5928,44 @@
 
                 });
 
-                console.log(base, urls);
+                /*console.log(base, urls);*/
 
-                async function fetch_mentions_endpoint(url = "", data = {}) {
+                async function fetch_mentions_endpoint(url = "", method, data = {}) {
+
+                    console.log("DOM:", "Webmentions", "Fetch webmentions count...");
                 
                     try
                     {
-                        const response = await fetch(url, {
-                        
-                            method:         "POST",                 /* GET, POST, PUT, DELETE, etc.*/
-                            mode:           "no-cors",              /* no-cors, *cors, same-origin */
-                            cache:          "no-cache",             /* *default, no-cache, reload, force-cache, only-if-cached */
-                            credentials:    "same-origin",          /* include, *same-origin, omit */
-                            redirect:       "follow",               /* manual, *follow, error */
-                            referrerPolicy: "no-referrer",          /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
-                            body:           JSON.stringify(data),   /* body data type must match "Content-Type" header */
+                        var options = {
+                            
+                            method:         method,         /* GET, POST, PUT, DELETE, etc.*/
+                            mode:           "no-cors",      /* no-cors, *cors, same-origin */
+                            cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
+                            credentials:    "same-origin",  /* include, *same-origin, omit */
+                            redirect:       "follow",       /* manual, *follow, error */
+                            referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
                             headers: {
                                 
                                 "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
-                            },
-                            
-                        });
+                            },                            
+                        };
+
+                        if (method != "GET") {
+                            options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
+                        }
+
+                        const response = await fetch(url, options);
+
+                        if (!response || !response.ok) {
+                            console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
+                        }
                     
                         return (response && response.ok) ? response.json() : null;
                     }
-                    catch
+                    catch (e)
                     {
+                        console.log("DOM:", "Webmentions", method, url, "FAILED", e);
+                    
                         return null;
                     }
                 }
@@ -5967,10 +5981,13 @@
 
                 fetch_mentions_endpoint(
                     
-                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(","), 
+                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
+                    "GET",
                     { base: base, target: urls.join(","), targets: urls.join(",") }
                     
                     ).then(function(data) {
+
+                        console.log("DOM:", "Webmentions", "Count received", data);
 
                         if (data) {
 
