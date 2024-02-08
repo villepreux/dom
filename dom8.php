@@ -5916,7 +5916,8 @@
                     var url = e.getAttribute("data-url");
 
                          if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
-                    else if (url.indexOf("https://") < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+                    else if (url.indexOf("https://") < 0
+                         &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
 
                     var parser = document.createElement('a');
                     parser.href = url;
@@ -5924,6 +5925,8 @@
                     urls.push(parser.pathname + parser.search);
 
                 });
+
+                console.log(base, urls);
 
                 async function fetch_mentions_endpoint(url = "", data = {}) {
                 
@@ -5959,8 +5962,8 @@
                     .then(responseJson => console.log(responseJson));
                 */
 
-                var encoded_base = encodeURI(base);
-                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURI(urls[u]));
+                var encoded_base = encodeURIComponent(base);
+                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
 
                 fetch_mentions_endpoint(
                     
