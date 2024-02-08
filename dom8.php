@@ -7,7 +7,6 @@
     
     if (!defined("DOM_INTERNAL_LINK"))  define("DOM_INTERNAL_LINK",     "_self");
     if (!defined("DOM_EXTERNAL_LINK"))  define("DOM_EXTERNAL_LINK",     "_blank");
-    if (!defined("DOM_MENU_ID"))        define("DOM_MENU_ID",           "menu");
 
     define("DOM_AUTHOR",    "Antoine Villepreux");
     define("DOM_VERSION",   "0.8.2");
