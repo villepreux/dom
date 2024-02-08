@@ -5915,7 +5915,7 @@
 
                     var url = e.getAttribute("data-url");
 
-                            if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                         if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
                     else if (url.indexOf("https://") < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
 
                     var parser = document.createElement('a');
@@ -5960,7 +5960,7 @@
                 */
 
                 var encoded_base = encodeURI(base);
-                var encoded_urls = urls; /* todo */
+                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURI(urls[u]));
 
                 fetch_mentions_endpoint(
                     
