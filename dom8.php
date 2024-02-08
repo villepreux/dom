@@ -5634,7 +5634,7 @@
                    
                     raw_html(
                         '</html>'.
-                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : ""))
+                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".constant("TOKEN_PACKAGE")) : ""))
                         );
             }
             else
@@ -6552,6 +6552,7 @@
             /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
             input, textarea {
                 -webkit-user-select: auto;
+                user-select: auto; /* added by DOM */
             }
             
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -6594,7 +6595,9 @@
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
+                line-break: after-white-space; /* added by DOM */
                 -webkit-user-select: auto;
+                user-select: auto; /* added by DOM */
             }
             
             /* apply back the draggable feature - exist only in Chromium and Safari */
@@ -7185,6 +7188,7 @@
             [type="reset"],
             [type="submit"] {
             -webkit-appearance: button;
+            appearance: button;/* added by DOM */
             }
             
             /**
@@ -7277,6 +7281,7 @@
             
             [type="search"] {
             -webkit-appearance: textfield; /* 1 */
+            appearance: textfield; /* added by DOM */
             outline-offset: -2px; /* 2 */
             }
             
@@ -7286,6 +7291,7 @@
             
             [type="search"]::-webkit-search-decoration {
             -webkit-appearance: none;
+            appearance: none; /* added by DOM */
             }
             
             /**
@@ -7295,6 +7301,7 @@
             
             ::-webkit-file-upload-button {
             -webkit-appearance: button; /* 1 */
+            appearance: button; /* added by DOM */
             font: inherit; /* 2 */
             }
             
