@@ -127,7 +127,7 @@
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
 
             .toolbar-row-nav, 
-            .toolbar-row-nav :is(section, div, ul, img)     { display: flex; flex-shrink: 0; align-items: center; gap: var(--gap); }
+            .toolbar-row-nav :is(section, div, ul/*, img*/) { display: flex; flex-shrink: 0; align-items: center; gap: var(--gap); }
             .toolbar-row-nav .toolbar-cell-left .menu-list  { flex-direction: column; align-items: stretch; }
 
             .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
@@ -143,6 +143,8 @@
             .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
 
             .toolbar .nav-link                              { font-size: 1.5em; } 
+
+            .toolbar .menu-entries                          { flex-direction: column; align-items: stretch; }
 
             .menu-toggle                                    { width: var(--header-toolbar-height); flex-direction: column; }
             .menu-toggle a,       .toolbar-title a,

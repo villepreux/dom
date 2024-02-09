@@ -127,9 +127,10 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             }
         }
 
-        $line_indent_size = $tab_dst_size * (int)($line_indent_size / $tab_src_size);
+        $new_line_indent_size  = $tab_dst_size * (int)($line_indent_size / $tab_src_size);
+        $new_line_indent_size += $line_indent_size - $tab_src_size * (int)($line_indent_size / $tab_src_size);
 
-        $lines[$l] = str_repeat("&nbsp;", $line_indent_size).$line_code;
+        $lines[$l] = str_repeat("&nbsp;", $new_line_indent_size).trim($line_code);
     }
 
     $i = 0;

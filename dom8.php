@@ -1008,6 +1008,7 @@
 
         list($key, $val) = explode("=", $attributes);
         $val = trim(trim($val, '"'), "'");
+        $key = trim($key);
         $attributes = array($key => $val);
 
         return $attributes;
@@ -8061,19 +8062,16 @@
 
             .card-media > * {
 
-                --margin-inline: 0;
-    
+                --margin-inline: 0;    
                 margin-inline: var(--margin-inline);
             }
-
+            /* Disabled until I remember why I did this */ /* 
             .card-media > iframe {
 
                 --margin-inline: calc(0.5 * var(--gap));
-
                 margin-inline: var(--margin-inline);
-
                 width: calc(100% - calc(2 * var(--margin-inline)));
-            }
+            }*/
 
             .card-title h1 {      
 
@@ -9124,7 +9122,7 @@
          * Facebook NO MORE
          * Flickr
          * Identica
-         * LastFM
+         * LastFM // but no linkback
          * Soup
          * typepad
          * Twitter NO MORE
@@ -9141,7 +9139,7 @@
       //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => true, "rel" => "me")); })())
       //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => true, "rel" => "me")); })())
         . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => true, "rel" => "me")); })())
-        . ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => true, "rel" => "me")); })())
       //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => true, "rel" => "me")); })())
       //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => true, "rel" => "me")); })())
 
@@ -9818,25 +9816,31 @@
     // BlogPosting microdata attributes
     // TODO Microformats vs Microdata vs using both
     // set("auto-microdata") ? set("auto-microformat") + helpers ?
-    // TODO indieweb + microformat + microdata
+    // TODO indieweb + microformat + microdata : Mandatory for an article : e-content + p-name + dt-published + u-url
 
-    function attr_article()         { return array("class" => "h-entry",                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
-    function attr_author()          { return array("class" => "p-author",       "itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person"        ); }
-    function attr_name()            { return array("class" => "p-name",         "itemprop" => "name"); }
-    function attr_datepublished($t) { return array("class" => "dt-published",   "itemprop" => "datePublished", "datetime" => date("c", $t)); }
-    function attr_articlebody()     { return array("class" => "e-content",      "itemprop" => "articleBody"); }
+    function attr_card()            { return array("class" => "h-entry",                                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
+    function attr_article()         { return array("class" => "h-entry",                                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
+    function attr_author()          { return array("class" => "p-author", "rel" => "author",    "itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person"        ); }
+    function attr_name()            { return array("class" => "p-name",                         "itemprop" => "name"); }
+    function attr_datepublished($t) { return array("class" => "dt-published",                   "itemprop" => "datePublished", "datetime" => date("c", $t)); }
+    function attr_articlebody()     { return array("class" => "e-content",                      "itemprop" => "articleBody"); }
+    function attr_url()             { return array("class" => "u-url"); }
+    function attr_syndication()     { return array("class" => "u-syndication"); }
+    function attr_category()        { return array("class" => "p-category"); }
     
     // Components with BlogPosting microdata
+    // NOTE. Currently, only cards with title, text, and properties sub-components are almost usable for indieweb content
 
-    function article            ($html = "", $attributes = false)   { return tag('article', $html, attributes_add(attributes_add($attributes, attr_article()), array("class" => "article"))); }
+    function article            ($html = "", $attributes = false)   { return tag('article', $html,        attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))); }
     
-    function span_author        ($html,     $attributes = false)    { return span   ($html, attributes_add($attributes, attr_author()       )); }
-    function span_name          ($html,     $attributes = false)    { return span   ($html, attributes_add($attributes, attr_name()         )); }
-    function span_datepublished ($date, $t, $attributes = false)    { return span   ($date, attributes_add($attributes, attr_datepublished($t))); }
-    function div_articlebody    ($html,     $attributes = false)    { return div    ($html, attributes_add($attributes, attr_articlebody()  )); }
-    function section_articlebody($html,     $attributes = false)    { return section($html, attributes_add($attributes, attr_articlebody()  )); }
-    function main_articlebody   ($html,     $attributes = false)    { return main   ($html, attributes_add($attributes, attr_articlebody()  )); }
+    function a_author           ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_author()           )); }
+    function span_name          ($html,     $attributes = false)    { return span(          $html,        attributes_add($attributes, attr_name()             )); }
+    function time_datepublished ($date, $t, $attributes = false)    { return tag("time",    $date,        attributes_add($attributes, attr_datepublished($t)  )); }
     
+    function div_articlebody    ($html,     $attributes = false)    { return div(           $html,        attributes_add($attributes, attr_articlebody()      )); }
+    function section_articlebody($html,     $attributes = false)    { return section(       $html,        attributes_add($attributes, attr_articlebody()      )); }
+    function main_articlebody   ($html,     $attributes = false)    { return main(          $html,        attributes_add($attributes, attr_articlebody()      )); }
+
     // LINKS
 
     $__includes = array();
@@ -10638,7 +10642,11 @@
 
         hook_card_set_context("title", $title_main);
 
-        return (($title !== "") ? \dom\header($title, attributes_add_class($attributes, component_class("header", "card-title"))) : "");
+        if ($title == "") return "";
+
+        $title_hidden_microdata = span_name(trim(strip_tags($title_main)), [ "hidden" => true ]);
+
+        return \dom\header($title.$title_hidden_microdata, attributes_add_class($attributes, component_class("header", "card-title")));
     }
 
     function card_media($media = false, $attributes = false)
@@ -10655,7 +10663,7 @@
         
         hook_card_set_context("text", $text);
         
-        return (($text !== false) ? section($text, attributes_add_class($attributes, component_class("section", "card-text"))) : "");
+        return (($text !== false) ? section_articlebody($text, attributes_add_class($attributes, component_class("section", "card-text"))) : "");
     }
 
     function card_actions($button = false, $attributes = false, $attributes_button = false)
@@ -10671,23 +10679,30 @@
         return card_actions($button, $attributes, $attributes_button);
     }
   
+    function card_properties($date, $url)
+    {
+        return div(
+
+            (!!get("author") ? a_author(get("author")) : "").
+            time_datepublished($date, strtotime($date)).
+            a($url, $url, attr_url()).
+            
+            "", [ "class" => "card-properties", "hidden" => true ]);
+    }
+
     function card($html, $attributes = false, $horizontal = false)
     {
         if (!!get("rancards_rotate"))
         {
             $attributes = attributes_add($attributes, array("class" => "card", "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("rancards_rotate"),get("rancards_rotate"))."deg);"));
         }
-    
+
+        $attributes = attributes_add($attributes, attr_card());
+        $attributes = attributes_add($attributes, component_class("article", "card").($horizontal ? (" ".component_class("article", "card-horizontal")) : ''));
+
         hook_card_flush_context();
-        
-        return article(
-            $html, 
-            attributes_add(
-                $attributes,
-                component_class("article", "card").
-                ($horizontal ? (" ".component_class("article", "card-horizontal")) : '')
-                )
-            );
+
+        return article($html, $attributes);
     }
 
     function card_from_metadata($metadata, $attributes = false)
@@ -10737,10 +10752,10 @@
 
         if ("" === $data["title_main"]) $data["title_main"] = get("title");
 
-        $data["title_sub"]      =  has($metadata, "post_timestamp") ? span_datepublished(date("d/m/y", at($metadata, "post_timestamp")),           at($metadata, "post_timestamp")  ) 
-                                : (has($metadata, "post_date")      ? span_datepublished(              at($metadata, "post_date", ''  ), strtotime(at($metadata, "post_date"))      ) : '');
+        $data["title_sub"]      =  has($metadata, "post_timestamp") ? time_datepublished(date("d/m/y", at($metadata, "post_timestamp")),           at($metadata, "post_timestamp")  ) 
+                                : (has($metadata, "post_date")      ? time_datepublished(              at($metadata, "post_date", ''  ), strtotime(at($metadata, "post_date"))      ) : '');
 
-        $data["title_sub"]      = has($metadata, "user_name")       ? cat($data["title_sub"],' ',span_author(span_name($metadata["user_name"]))) : $data["title_sub"];
+        $data["title_sub"]      = has($metadata, "user_name")       ? cat($data["title_sub"],' ',a_author(span_name($metadata["user_name"]))) : $data["title_sub"];
         $data["title_sub"]      = has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, DOM_EXTERNAL_LINK)                              : $data["title_sub"];
 
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
