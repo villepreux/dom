@@ -7,7 +7,6 @@
     
     if (!defined("DOM_INTERNAL_LINK"))  define("DOM_INTERNAL_LINK",     "_self");
     if (!defined("DOM_EXTERNAL_LINK"))  define("DOM_EXTERNAL_LINK",     "_blank");
-    if (!defined("DOM_MENU_ID"))        define("DOM_MENU_ID",           "menu");
 
     define("DOM_AUTHOR",    "Antoine Villepreux");
     define("DOM_VERSION",   "0.8.2");
@@ -4156,7 +4155,7 @@
 
     function minify_js($js)
     {
-        if (false !== stripos($js, "//")) return $js;
+        if (false !== stripos(str_replace("https://", "https:XX", str_replace("http://", "http:XX", $js)), "//")) return $js;
         
         $js = str_replace_all("\n  ",   "\n ",  $js);
         $js = str_replace_all(PHP_EOL,  " ",    $js);
@@ -5635,7 +5634,7 @@
                    
                     raw_html(
                         '</html>'.
-                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".TOKEN_PACKAGE) : ""))
+                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".constant("TOKEN_PACKAGE")) : ""))
                         );
             }
             else
@@ -5818,7 +5817,7 @@
                 
                 window.addEventListener("storage", function() {
                     
-                    console.log("DOM", "Storage", JSON.parse(window.localStorage.getItem("dom")));
+                    console.log("DOM:", "Storage", JSON.parse(window.localStorage.getItem("dom")));
                 });
                 
             });
@@ -5827,7 +5826,7 @@
                 
                 var dom_storage = window.localStorage.getItem("dom");
 
-                /*console.log("DOM", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*console.log("DOM:", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
 
                 if (!dom_storage)
                 {
@@ -5860,7 +5859,7 @@
                 dom_storage = JSON.stringify(jsonObject);
                 window.localStorage.setItem("dom", dom_storage);
 
-                /*console.log("DOM", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*console.log("DOM:", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
             }
 
             dom.set = dom_storage_set;
@@ -5912,44 +5911,61 @@
                 var urls = [];
                 var base;
 
+                console.log("DOM:", "Webmentions", "Parse webmention counters");
+
                 document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
 
                     var url = e.getAttribute("data-url");
 
-                            if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
-                    else if (url.indexOf("https://") < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+                         if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                    else if (url.indexOf("https://") < 0
+                         &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
 
                     var parser = document.createElement('a');
                     parser.href = url;
-                    base = parser.protocol + "//" + parser.hostname;
+                    base = parser.protocol + "/" + "/" + parser.hostname;
                     urls.push(parser.pathname + parser.search);
 
                 });
 
-                async function fetch_mentions_endpoint(url = "", data = {}) {
+                /*console.log(base, urls);*/
+
+                async function fetch_mentions_endpoint(url = "", method, data = {}) {
+
+                    console.log("DOM:", "Webmentions", "Fetch webmentions count...");
                 
                     try
                     {
-                        const response = await fetch(url, {
-                        
-                            method:         "POST",                 /* GET, POST, PUT, DELETE, etc.*/
-                            mode:           "no-cors",              /* no-cors, *cors, same-origin */
-                            cache:          "no-cache",             /* *default, no-cache, reload, force-cache, only-if-cached */
-                            credentials:    "same-origin",          /* include, *same-origin, omit */
-                            redirect:       "follow",               /* manual, *follow, error */
-                            referrerPolicy: "no-referrer",          /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
-                            body:           JSON.stringify(data),   /* body data type must match "Content-Type" header */
+                        var options = {
+                            
+                            method:         method,         /* GET, POST, PUT, DELETE, etc.*/
+                            mode:           "no-cors",      /* no-cors, *cors, same-origin */
+                            cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
+                            credentials:    "same-origin",  /* include, *same-origin, omit */
+                            redirect:       "follow",       /* manual, *follow, error */
+                            referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
                             headers: {
                                 
                                 "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
-                            },
-                            
-                        });
+                            },                            
+                        };
+
+                        if (method != "GET") {
+                            options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
+                        }
+
+                        const response = await fetch(url, options);
+
+                        if (!response || !response.ok) {
+                            console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
+                        }
                     
                         return (response && response.ok) ? response.json() : null;
                     }
-                    catch
+                    catch (e)
                     {
+                        console.log("DOM:", "Webmentions", method, url, "FAILED", e);
+                    
                         return null;
                     }
                 }
@@ -5960,15 +5976,18 @@
                     .then(responseJson => console.log(responseJson));
                 */
 
-                var encoded_base = encodeURI(base);
-                var encoded_urls = urls; /* todo */
+                var encoded_base = encodeURIComponent(base);
+                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
 
                 fetch_mentions_endpoint(
                     
-                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(","), 
+                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
+                    "GET",
                     { base: base, target: urls.join(","), targets: urls.join(",") }
                     
                     ).then(function(data) {
+
+                        console.log("DOM:", "Webmentions", "Count received", data);
 
                         if (data) {
 
@@ -6531,6 +6550,7 @@
             /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
             input, textarea {
                 -webkit-user-select: auto;
+                user-select: auto; /* added by DOM */
             }
             
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -6573,7 +6593,9 @@
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
+                line-break: after-white-space; /* added by DOM */
                 -webkit-user-select: auto;
+                user-select: auto; /* added by DOM */
             }
             
             /* apply back the draggable feature - exist only in Chromium and Safari */
@@ -7164,6 +7186,7 @@
             [type="reset"],
             [type="submit"] {
             -webkit-appearance: button;
+            appearance: button;/* added by DOM */
             }
             
             /**
@@ -7256,6 +7279,7 @@
             
             [type="search"] {
             -webkit-appearance: textfield; /* 1 */
+            appearance: textfield; /* added by DOM */
             outline-offset: -2px; /* 2 */
             }
             
@@ -7265,6 +7289,7 @@
             
             [type="search"]::-webkit-search-decoration {
             -webkit-appearance: none;
+            appearance: none; /* added by DOM */
             }
             
             /**
@@ -7274,6 +7299,7 @@
             
             ::-webkit-file-upload-button {
             -webkit-appearance: button; /* 1 */
+            appearance: button; /* added by DOM */
             font: inherit; /* 2 */
             }
             

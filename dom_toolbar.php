@@ -3,6 +3,8 @@
     namespace dom;
 
     require_once(__DIR__."/dom8.php");
+    
+    if (!defined("DOM_MENU_ID")) define("DOM_MENU_ID", "menu");
 
     $__frameworks_toolbar = array(
 
@@ -168,14 +170,19 @@
             
             /* Menu open/close mechanism */
     
-            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block;  }/*
-            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.open   { display: none; }
+            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js")) /* When no JS there is no :target use */ { ?>
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block !important;  }
+            <?php } ?>
+            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.open   { display: none !important; }/*
             
-            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none;  }*/
-            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.close  { display: inline-block; }
+            #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none !important;  }*/
+
+            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js")) /* When no JS there is no :target use */ { ?>
+            #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.close  { display: inline-block !important; }
+            <?php } ?>
             
             #<?= DOM_MENU_ID ?>-open        .menu                     { /*display: none;  */max-height:   0vh; }
-            #<?= DOM_MENU_ID ?>-open:target .menu                     { display: block; max-height: 100vh; }
+            #<?= DOM_MENU_ID ?>-open:target .menu                     { display: flex !important; max-height: 100vh; } /* TODO change to flex ? */
                 
         <?php } if (AMP()) { ?> 
     
@@ -722,7 +729,7 @@
         if (false === stripos($html, "menu-list") 
         &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
 
-        return (get("framework") != "bootstrap" ? div($html, array("class" => ("menu-entries " . component_class("div", "menu")), "hidden" => "hidden")) : $html);
+        return (get("framework") != "bootstrap" ? div($html, array("class" => ("menu-entries"." ".component_class("div", "menu")), "hidden" => "hidden")) : $html);
     }
 
     function menu_toggle($html, $sidebar = DOM_AUTO)

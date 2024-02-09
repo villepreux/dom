@@ -2,8 +2,6 @@
 
 use function dom\{set,get,card,card_title,card_text,header,div,pre,style,p,debug_track_timing};
 
-set("fonts", get("fonts")."|Fira Code");
-
 function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
     $profiler = debug_track_timing();
@@ -167,6 +165,8 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     }
     
     $attributes = dom\attributes_add_class($attributes, "ide");
+
+    set("fonts", get("fonts")."|Fira Code");
 
     return 
 
