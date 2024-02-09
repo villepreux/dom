@@ -9834,6 +9834,7 @@
     function article            ($html = "", $attributes = false)   { return tag('article', $html,        attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))); }
     
     function a_author           ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_author()           )); }
+    function a_category         ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_category()         )); }
     function span_name          ($html,     $attributes = false)    { return span(          $html,        attributes_add($attributes, attr_name()             )); }
     function time_datepublished ($date, $t, $attributes = false)    { return tag("time",    $date,        attributes_add($attributes, attr_datepublished($t)  )); }
     
@@ -10679,13 +10680,16 @@
         return card_actions($button, $attributes, $attributes_button);
     }
   
-    function card_properties($date, $url)
+    function card_properties($date = false, $url = false, $category = false, $author = false)
     {
+        $author = !!$author ? $author : (!!get("h-card") ? false : get("author"));
+
         return div(
 
-            (!!get("author") ? a_author(get("author")) : "").
-            time_datepublished($date, strtotime($date)).
-            a($url, $url, attr_url()).
+            (!$author   ? "" : a_author(get("author"))                      ).
+            (!$category ? "" : a_category($category)                        ).
+            (!$date     ? "" : time_datepublished($date, strtotime($date))  ).
+            (!$url      ? "" : a($url, $url, attr_url())                    ).
             
             "", [ "class" => "card-properties", "hidden" => true ]);
     }
@@ -11753,6 +11757,8 @@
         $img = false !== stripos($photo, "<img") ? $photo : img($photo);
 
         //die("<pre>".print_r($attributes, true)."</pre>");
+
+        set("h-card", true);
 
         return a("$img $name $bio", $url, $attributes);
     }

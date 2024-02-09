@@ -120,8 +120,8 @@
             .toolbar-row, 
             .toolbar-row *                                  { margin: 0; }
 
-            /* QUICK DIRTY TMP HACK */
-            .toolbar-row-banner .toolbar-cell-left          { display: flex; gap: var(--gap); justify-content: end; }
+            /* QUICK DIRTY TMP HACK */ 
+            .toolbar-row-banner .toolbar-cell-left          { display: flex; gap: calc(0.5 * var(--gap)); justify-content: end; margin-right: var(--gap); } 
 
             .toolbar-row-nav, 
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
@@ -577,7 +577,7 @@
         if (false === $attributes) $attributes = array();
         
         if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
-        if (!in_array("alt",        $attributes) && !AMP()      ) $attributes["alt"         ] = $label;
+        if (!in_array("alt",        $attributes) && !AMP()          ) $attributes["alt"         ] = $label;
         if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
 
         return a($icon, $link, $attributes, $target);
