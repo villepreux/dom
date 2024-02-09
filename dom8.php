@@ -6395,7 +6395,6 @@
         $path_normalize         = !$inline_css ? false : path("css/normalize.min.css");
         $path_sanitize          = !$inline_css ? false : path("css/sanitize.min.css");
         $path_evergreen         = !$inline_css ? false : path("css/evergreen.min.css");
-      //$path_h5bp              = !$inline_css ? false : path("css/h5bp/main.css");
         $path_material          = !$inline_css ? false : path("css/material-components-web.min.css");
         $path_bootstrap         = !$inline_css ? false : path("css/bootstrap.min.css");
         $path_google_fonts      = !$inline_css ? false : path("css/google-fonts.css");
@@ -6410,15 +6409,14 @@
                                                                                              .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/system-ui.min.css',                     "screen", false     )  
                                                                                              .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/typography.min.css',                    "screen", false     )  
                                                                                              .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/ui-monospace.min.css',                  "screen", false     ))) ) : "").    (("evergreen" == get("reset"    )) ? (""
-            .   ($path_evergreen      ? link_style($path_evergreen      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_evergreen") . '/evergreen.min.css',                     "screen", false     ))  ) : "")./*  (("h5b"       == get("framework")) ? (""
-            .   ($path_h5bp           ? link_style($path_h5bp           , "screen", false)  : link_style('https://cdn.jsdelivr.net/npm/html5-boilerplate@'           . get("version_h5bp")      . '/dist/css/main.css',                     "screen", false     ))  ) : "").*/  (("material"  == get("framework")) ? (""
+            .   ($path_evergreen      ? link_style($path_evergreen      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_evergreen") . '/evergreen.min.css',                     "screen", false     ))  ) : "").    (("material"  == get("framework")) ? (""
             .   ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',  "screen", false     ))  ) : "").    (("bootstrap" == get("framework")) ? (""
             .   ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                 "screen", false     ))  ) : "").    (("spectre"   == get("framework")) ? (""
             .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
             .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                    ) : "").    (!!$fonts                              ? (""
-            .   ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                                   "screen", $async    ))  ) : "").    (("material"  == get("framework")) ? ("" 
-            .   ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                             "screen", $async    ))  ) : "")
+            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                ) : "").    (!!$fonts                              ? (""
+            .   ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                               "screen", $async    ))  ) : "").    (("material"  == get("framework")) ? ("" 
+            .   ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                         "screen", $async    ))  ) : "")
             ;
     }
     
@@ -7714,8 +7712,8 @@
             *                           {  scrollbar-width: var(--scrollbar-width, 17px); }
             *::-webkit-scrollbar        {            width: var(--scrollbar-width, 17px); }
         
-            *                           {  scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff); }
-            *::-webkit-scrollbar-thumb  { background-color: var(--scrollbar-accent-color, #990011); }
+         /* *                           {  scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff); }
+         */ *::-webkit-scrollbar-thumb  { background-color: var(--scrollbar-accent-color, #990011); }
             *::-webkit-scrollbar-track  { background-color: var(--scrollbar-background-color, #ffffff); }
         
             /* Editable styles */
