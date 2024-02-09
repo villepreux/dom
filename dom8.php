@@ -5026,7 +5026,8 @@
     function url_mastodon_user              ($username = false)                 { $username = ($username === false) ? get("mastodon_user")      : $username;   return "https://mastodon.social/@$username/";                              }
     function url_github_user                ($username = false)                 { $username = ($username === false) ? get("github_user")        : $username;   return "https://github.com/$username";                                     }
     function url_lastfm_user                ($username = false)                 { $username = ($username === false) ? get("lastfm_user")        : $username;   return "https://last.fm/user/$username";                                   }
-
+    function url_codepen_user               ($username = false)                 { $username = ($username === false) ? get("codepen_user")       : $username;   return "https://codepen.io/$username";                                     }
+    
     function url_twitter_user               ($username = false)                 { $username = ($username === false) ? get("twitter_user")       : $username;   return "https://twitter.com/$username";                                    }
     function url_facebook_user              ($username = false)                 { $username = ($username === false) ? get("facebook_user")      : $username;   return "https://www.facebook.com/$username";                               }
     
@@ -11741,7 +11742,9 @@
             $name = span(span($given_name, "p-given-name")." ".span($family_name, "p-family-name"), "p-name");
         }
 
-        $bio = !!$bio ? ("(".span($bio, "p-note").")") : "";
+        $name = a_author($name, url(), [ "rel" => "author" ]);
+
+        $bio = !!$bio ? span(" (".span($bio, "p-note").")") : "";
 
         // Microformats
 
@@ -11756,11 +11759,9 @@
 
         $img = false !== stripos($photo, "<img") ? $photo : img($photo);
 
-        //die("<pre>".print_r($attributes, true)."</pre>");
+        set("h-card", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
 
-        set("h-card", true);
-
-        return a("$img $name $bio", $url, $attributes);
+        return a($img.$name.$bio, $url, $attributes);
     }
     
     ######################################################################################################################################
