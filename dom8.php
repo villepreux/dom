@@ -9130,19 +9130,19 @@
          * Wordpress
          */
 
-      //. ((function () { $url = url_pinterest_board   (); if (!$url || !has("pinterest_user") ) return ""; return eol().a("Pinterest", $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_instagram_user    (); if (!$url || !has("instagram_user") ) return ""; return eol().a("Instagram", $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_flickr_user       (); if (!$url || !has("flickr_user")    ) return ""; return eol().a("Flickr",    $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_500px_user        (); if (!$url || !has("500px_user")     ) return ""; return eol().a("500px",     $url, array("hidden" => true, "rel" => "me")); })())
-        . ((function () { $url = url_pixelfed_user     (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a("Pixelfed",  $url, array("hidden" => true, "rel" => "me")); })())
-        . ((function () { $url = url_mastodon_user     (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a("Mastodon",  $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_facebook_user     (); if (!$url || !has("facebook_user")  ) return ""; return eol().a("Facebook",  $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => true, "rel" => "me")); })())
-        . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => true, "rel" => "me")); })())
-      //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => true, "rel" => "me")); })())
+      //. ((function () { $url = url_pinterest_board   (); if (!$url || !has("pinterest_user") ) return ""; return eol().a("Pinterest", $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_instagram_user    (); if (!$url || !has("instagram_user") ) return ""; return eol().a("Instagram", $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_flickr_user       (); if (!$url || !has("flickr_user")    ) return ""; return eol().a("Flickr",    $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_500px_user        (); if (!$url || !has("500px_user")     ) return ""; return eol().a("500px",     $url, array("hidden" => "hidden", "rel" => "me")); })())
+        . ((function () { $url = url_pixelfed_user     (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a("Pixelfed",  $url, array("hidden" => "hidden", "rel" => "me")); })())
+        . ((function () { $url = url_mastodon_user     (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a("Mastodon",  $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_facebook_user     (); if (!$url || !has("facebook_user")  ) return ""; return eol().a("Facebook",  $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => "hidden", "rel" => "me")); })())
+        . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => "hidden", "rel" => "me")); })())
 
         . eol()
 
@@ -9946,6 +9946,7 @@
                             attributes_as_string($external_attributes);
         }
 
+        //if (false !== stripos($attributes, "hidden") && false !== stripos($attributes, "rel")) die($attributes);
         //if (false !== stripos($url, "selfie")) die($attributes);
 
         if ($target == DOM_INTERNAL_LINK)
@@ -10646,7 +10647,7 @@
 
         if ($title == "") return "";
 
-        $title_hidden_microdata = span_name(trim(strip_tags($title_main)), [ "hidden" => true ]);
+        $title_hidden_microdata = span_name(trim(strip_tags($title_main)), [ "hidden" => "hidden" ]);
 
         return \dom\header($title.$title_hidden_microdata, attributes_add_class($attributes, component_class("header", "card-title")));
     }
@@ -10692,7 +10693,7 @@
             (!$date     ? "" : time_datepublished($date, strtotime($date))  ).
             (!$url      ? "" : a($url, $url, attr_url())                    ).
             
-            "", [ "class" => "card-properties", "hidden" => true ]);
+            "", [ "class" => "card-properties", "hidden" => "hidden" ]);
     }
 
     function card($html, $attributes = false, $horizontal = false)
@@ -11709,15 +11710,14 @@
     function address($html)     { return tag("address", $html); }
     function author($author)    { return address(a($author, "#!", array("rel" => "author")), array("class" => "author")); }
 
-    function hcard($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = DOM_AUTO)
+    function h_card($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
     {
         // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
 
-        $photo      = DOM_AUTO !== $photo       ? $photo        : "me.png";
-        $name       = DOM_AUTO !== $name        ? $name         : get("author", DOM_AUTHOR);
-        $bio        = DOM_AUTO !== $bio         ? $bio          : false;
-        $url        = DOM_AUTO !== $url         ? $url          : get("canonical");
-        $attributes = DOM_AUTO !== $attributes  ? $attributes   : array("hidden" => "hidden");
+        $photo = DOM_AUTO !== $photo ? $photo : "me.png";
+        $name  = DOM_AUTO !== $name  ? $name  : get("author", DOM_AUTHOR);
+        $bio   = DOM_AUTO !== $bio   ? $bio   : false;
+        $url   = DOM_AUTO !== $url   ? $url   : get("canonical");
 
         $names = is_array($name) ? $name : explode(" ", $name);
 
@@ -11742,26 +11742,27 @@
             $name = span(span($given_name, "p-given-name")." ".span($family_name, "p-family-name"), "p-name");
         }
 
-        $name = a_author($name, url(), [ "rel" => "author" ]);
-
         $bio = !!$bio ? span(" (".span($bio, "p-note").")") : "";
 
         // Microformats
 
         $attributes = attributes_add($attributes, attributes(
 
-            attr("class", "h-card"  ), 
-            attr("class", "u-url"   ), 
-            attr("class", "u-uid"   ), 
-            attr("rel",   "me"      )
-        
+            attr("class",   "h-card"    ), 
+            attr("class",   "u-url"     ), 
+            attr("class",   "u-uid"     ), 
+            attr("rel",     "me"        ), 
+            attr("hidden",  "hidden"    )
         ));
 
         $img = false !== stripos($photo, "<img") ? $photo : img($photo);
 
         set("h-card", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
 
-        return a($img.$name.$bio, $url, $attributes);
+        $a_author = a_author($name, [ "rel" => "author", "hidden" => "hidden" ]);
+        $h_card   = a($img.$name.$bio, $url, $attributes);
+
+        return $a_author.$h_card;
     }
     
     ######################################################################################################################################
