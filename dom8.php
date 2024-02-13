@@ -10092,8 +10092,10 @@
     
     function picture($html, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false)
     {
+        $attributes = to_attributes($attributes);
+
         if (false === stripos($html, "<img")
-        &&  false === stripos($html, "<amp-img")) $html = img($html, false, false, false, $alt, $lazy, $lazy_src);
+        &&  false === stripos($html, "<amp-img")) $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
 
         if (AMP())
         {
