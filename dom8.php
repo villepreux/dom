@@ -4643,7 +4643,7 @@
                         }
                         else
                         {
-                            list($w,$h) = $size;
+                            list($w,$h) = array_values($size);
                             
                             if ($w < 320 || $h < 320 || $w > 3840 || $h > 3840
                             || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
@@ -9506,7 +9506,7 @@
             if (!is_callable($img_wrapper)) $img_wrapper = "dom\\$img_wrapper";
             
             $size = cached_getimagesize($photo_url);
-            list($w, $h) = (is_array($size) ? $size : array(false, false));
+            list($w, $h) = (is_array($size) ? array_values($size) : array(false, false));
 
             $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", DOM_AUTO, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
         }
