@@ -4637,7 +4637,7 @@
                     {
                         $size = cached_getimagesize($img["src"]);
                         
-                        if (false === $size)
+                        if (false === $size || !is_array($size) || count($size) < 2)
                         {
                             unset($screenshots[$s]);
                         }
