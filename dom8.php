@@ -4254,11 +4254,19 @@
     #region WIP API : PHP DOCUMENT
     ######################################################################################################################################
 
-    function redirect($url)
+    function html_redirect_page($url, $path = false, $method = DOM_AUTO)
+    {
+        if (DOM_AUTO === $method) $method = "refresh";
+
+        if ("refresh" == $method) return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
+        if ("include" == $method) return include_file(!!$path ? "$path/$url" : $url);
+    }
+
+    function redirect($url, $path = false, $method = DOM_AUTO)
     {   
         if (!!get("static")) // PHP redirect does not work for static website
         {
-            echo "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
+            echo html_redirect_page($url, $path, $method);
         }
         else
         {
@@ -4301,8 +4309,8 @@
         if ($encoding   === false) { $encoding  = "utf-8"; }
 
         $rss = (has("rss") && (get("rss") == ""
-                               ||  get("rss") ==  false
-                               ||  get("rss") === true)) ? "rss" : get("rss");
+                           ||  get("rss") ==  false
+                           ||  get("rss") === true)) ? "rss" : get("rss");
 
         $doctype                = get("doctype",        has("rss") ? $rss         : $doctype    );
         $encoding               = get("encoding",       has("iso") ? "ISO-8859-1" : $encoding   );
@@ -5439,7 +5447,7 @@
         {
             if ($json === false)
             {
-                $json = json_encode(get("rss_items", array()));
+                $json = json_encode(rss_sanitize(get("rss_items", array())));
             }
             
             return $json;
@@ -6278,10 +6286,11 @@
                 ) : "")
 
             .   eol().comment("Alternate URLs")   
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"  : "/?lang=en" ), array("hreflang" => "en-EN"))
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"  : "/?lang=fr" ), array("hreflang" => "fr-fr"))                               ))  . (AMP() ? '' : (''
-            .   link_rel("amphtml",     get("canonical").(!!get("static") ? "/amp" : "/?amp=1"   ))                                                             ))
+                // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-EN"))
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-fr"))                               ))  . (AMP() ? '' : (''
+            .   link_rel("amphtml",     get("canonical").(!!get("static") ? "/amp"     : "/?amp=1"   ))                                                             ))
             .   link_rel("canonical",   get("canonical"))
             
             .   eol().comment("Icons")
@@ -11020,7 +11029,7 @@
 
     function cdata($html) { return "<![CDATA[$html]]>"; }
 
-    function rss_sanitize($html) { return trim(htmlspecialchars(str_replace("  ", " ", strip_tags(str_replace(">", "> ", $html))), ENT_QUOTES, 'utf-8')); }
+    function rss_sanitize($html) { if (is_array($html)) { foreach ($html as &$x) { $x = rss_sanitize($x); } return $html; }  return trim(htmlspecialchars(str_replace("  ", " ", strip_tags(str_replace(">", "> ", $html))), ENT_QUOTES, 'utf-8')); }
     
     function rss_item_from_item_info($item_info)
     {
