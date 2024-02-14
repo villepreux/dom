@@ -7847,7 +7847,7 @@
                 list-style: none;
                 padding-inline-start: 0; /* Remove that arbitrary 40px padding, especialy within nav, where we already removed list item style */
                 }
-            [role="navigation"] ul[role="menu"],
+            [role="navigation"] ul[role="menu"], nav ul,
             [role="navigation"] { display: flex; gap: var(--gap); }
 
             /* Inputs */
