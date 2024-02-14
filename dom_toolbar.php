@@ -127,7 +127,10 @@
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
 
             .toolbar-row-nav, 
-            .toolbar-row-nav :is(section, div, ul/*, img*/) { display: flex; flex-shrink: 0; align-items: center; gap: var(--gap); }
+            .toolbar-row-nav :is(section, div, ul)          { display: flex; flex-shrink: 0; align-items: center; }
+            .toolbar-row-nav,
+            .toolbar-row-nav ul                             { gap: var(--gap); }
+            .toolbar-row-nav li *                           { min-height: var(--line-height); }
             .toolbar-row-nav .toolbar-cell-left .menu-list  { flex-direction: column; align-items: stretch; }
 
             .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
