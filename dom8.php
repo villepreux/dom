@@ -4533,6 +4533,11 @@
             {
                 $size = @getimagesize($src);
             }
+            
+            /*if ($size === false)
+            {
+                $size = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
+            }*/
 
             $__cached_getimagesize[$src] = $size;
         }
@@ -4630,18 +4635,26 @@
                 {
                     foreach ($screenshots as $s => &$img)
                     {
-                        list($w,$h) = $size = cached_getimagesize($img["src"]);
+                        $size = cached_getimagesize($img["src"]);
                         
-                        if (false === $size
-                        || $w < 320 || $h < 320 || $w > 3840 || $h > 3840
-                        || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
+                        if (false === $size || !is_array($size) || count($size) < 2)
                         {
                             unset($screenshots[$s]);
                         }
                         else
                         {
-                            $img["sizes"] = $w."x".$h;
-                            $img["type"]  = $size["mime"];
+                            list($w,$h) = array_values($size);
+                            
+                            if ($w < 320 || $h < 320 || $w > 3840 || $h > 3840
+                            || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
+                            {
+                                unset($screenshots[$s]);
+                            }
+                            else
+                            {
+                                $img["sizes"] = $w."x".$h;
+                                $img["type"]  = $size["mime"];
+                            }
                         }
                     }
                 }
@@ -9492,7 +9505,8 @@
         {
             if (!is_callable($img_wrapper)) $img_wrapper = "dom\\$img_wrapper";
             
-            list($w, $h) = cached_getimagesize($photo_url);
+            $size = cached_getimagesize($photo_url);
+            list($w, $h) = (is_array($size) ? array_values($size) : array(false, false));
 
             $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", DOM_AUTO, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
         }
@@ -10092,8 +10106,10 @@
     
     function picture($html, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false)
     {
+        $attributes = to_attributes($attributes);
+
         if (false === stripos($html, "<img")
-        &&  false === stripos($html, "<amp-img")) $html = img($html, false, false, false, $alt, $lazy, $lazy_src);
+        &&  false === stripos($html, "<amp-img")) $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
 
         if (AMP())
         {
@@ -10184,7 +10200,8 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        list($w0, $h0) = $precompute_size ? cached_getimagesize($path) : array(0,0);
+        $size0 = ($precompute_size ? cached_getimagesize($path) : array(0,0));
+        list($w0, $h0) = (is_array($size0) ? $size0 : array(0, 0));
         if ($w0 == 0 || $h0 == 0) list($w0, $h0) = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
                         
         $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : $w0;
