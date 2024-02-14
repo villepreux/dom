@@ -1961,7 +1961,7 @@
         {
             global $hook_image_preloads;
 
-            if (!in_array($src, $hook_image_preloads))
+            if (!in_array($src, $hook_image_preloads) && false === stripos($src, ".svg"))
             {
                 $hook_image_preloads[] = $src;
             }
@@ -4555,8 +4555,8 @@
 
     function json_manifest()
     {
-        $shortcuts_count_max   = 10;
-        $screenshots_count_max =  5;
+        $shortcuts_count_max   = 4; // More than that, google chrome is echoing a warning
+        $screenshots_count_max = 5;
 
         $short_title = get("title");
         $pos = stripos($short_title, " ");
@@ -4574,10 +4574,12 @@
               //$icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
                 $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "any");
                 $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable");
+
+
             }
         }
 
-        $start_url = ((is_localhost() ? get("canonical") : "")."/");
+        $start_url = ((is_localhost() ? /*get("canonical")*/url() : "")."/");
 
         if (false === stripos($start_url, "?")) $start_url .= "?";
         $start_url .= "&utm_source=homescreen";
@@ -4670,9 +4672,29 @@
                 $screenshots = array_values($screenshots);
             }
         }
-
+        
         $screenshots = array_slice($screenshots, 0, $screenshots_count_max);
         
+        $widest_screenshot_index = false;
+        $widest_screenshot_ratio = 0;
+
+        foreach ($screenshots as $s => $screenshot)
+        {
+            list($w, $h) = explode("x", at($screenshot, "sizes"));
+            $ratio = $w / $h;
+            
+            if ($ratio > $widest_screenshot_ratio)
+            {
+                $widest_screenshot_index = $s;
+                $widest_screenshot_ratio = $ratio;
+            }
+        }
+
+        if (false !== $widest_screenshot_index)
+        {
+            $screenshots[$widest_screenshot_index]["form_factor"] = "wide";
+        }
+
         $json = array(
 
             "name"             => get("title"),
@@ -5926,6 +5948,8 @@
     function js_webmentions()
     {
         if (has("ajax")) return '';
+
+        if (is_localhost()) return ''; // CORS would block the calls
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
         
@@ -10251,9 +10275,9 @@
         }
         else
         {
-                 if (DOM_AUTO === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "src" =>                          $path )).attributes_add_class($attributes, "img");
-            else if (true     === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "src" => $lazy_src, "data-src" => $path )).attributes_add_class($attributes, "img lazy loading");
-            else                         $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "src" =>                          $path )).attributes_add_class($attributes, "img");
+                 if (DOM_AUTO === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", "src" =>                          $path )).attributes_add_class($attributes, "img");
+            else if (true     === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", "src" => $lazy_src, "data-src" => $path )).attributes_add_class($attributes, "img lazy loading");
+            else                         $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", "src" =>                          $path )).attributes_add_class($attributes, "img");
 
             return tag('img', $content, $attributes, false, $content == '');
         }

@@ -419,7 +419,7 @@
                         var toolbar_nav    = toolbar.querySelector(".toolbar-row-nav");
                         var toolbar_banner = toolbar.querySelector(".toolbar-row-banner");
 
-                            if (toolbar_banner && toolbar_nav) { under_toolbar_element.style.marginTop = "calc(var(--header-height) + var(--header-toolbar-height))";   }
+                             if (toolbar_banner && toolbar_nav) { under_toolbar_element.style.marginTop = "calc(var(--header-height) + var(--header-toolbar-height))";   }
                         else if (toolbar_banner)                { under_toolbar_element.style.marginTop = "calc(var(--header-height))";                                  }
                         else if (toolbar_nav)                   { under_toolbar_element.style.marginTop = "calc(var(--header-toolbar-height))";                          }
                     }
@@ -751,7 +751,7 @@
 
         return toolbar_section(($html === false) ? '' : $html,  array(
             
-            "role" => "navigation",
+            "role"  => ("navigation"/*." "."menuItem"*/),
             "class" => (component_class("section", "toolbar-cell-right") . ' ' . 
                         component_class("section", "toolbar-cell-right-shrink"))));
     }
@@ -786,13 +786,13 @@
 
         if ($html !== false && $html != "")
         {
-            if (false === stripos($html,"<a"))   $html =   a($html,'.');
+            if (false === stripos($html,"<a"))   $html =   a($html, '.');
             if (false === stripos($html,"<h1"))  $html =  h1($html);
         }
 
         if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
         
-        return toolbar_section(($html === false) ? '' : $html, attributes(attr("role", "menuitem"), component_class("section", "toolbar-cell-center")));
+        return toolbar_section(($html === false) ? '' : $html, attributes(/*attr("role", "navigation menuitem"), */component_class("section", "toolbar-cell-center")));
     }
 
     function toolbar_nav($html, $attributes = false)
