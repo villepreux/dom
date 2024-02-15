@@ -9432,7 +9432,37 @@
         
     function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
     {
+        // TODO optimize or deprecate (in favor on lat,lon)
         return iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy);
+    }
+
+    $__dom_lazy_load_index = 0;
+
+    function script_lazy_load($url, $query_selector, $src_attribute = "src")
+    {
+        global $__dom_lazy_load_index;
+        ++$__dom_lazy_load_index;
+
+        return script('
+
+            var lazy_loaded_'.$__dom_lazy_load_index.' = false;
+
+            dom.on_loaded(function() { dom.on_scroll(function () {
+
+                if (!lazy_loaded_'.$__dom_lazy_load_index.') {
+                    lazy_loaded_'.$__dom_lazy_load_index.' = true;
+                    document.querySelector("'.$query_selector.'").'.$src_attribute.' = "'.$url.'";
+                }
+
+            }); });
+        
+        ');
+    }
+        
+    function google_map_lat_lon($lat, $lon, $w = false, $h = false, $lazy = DOM_AUTO)
+    {
+        // TODO finish it. currently only works for one map on the page
+        return iframe(path("empty.html"), "Google Map", "google-map", $w, $h, $lazy).script_lazy_load("https://maps.google.com/maps?q=$lat,$lon&hl=fr;&output=embed", ".google-map");
     }
         
     function google_doc($id, $w = false, $h = false, $lazy = DOM_AUTO)

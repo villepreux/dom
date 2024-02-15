@@ -167,7 +167,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     
     $attributes = dom\attributes_add_class($attributes, "ide");
 
-    set("fonts", get("fonts")."|Fira Code");
+    //set("fonts", get("fonts")."|Fira Code");
 
     return 
 
@@ -183,7 +183,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
                 border:             2px dashed var(--border-color, var(--theme-color));
             }
             .ide-code {
-                font-family:        'Fira Code', monospace; 
+                /*font-family:        'Fira Code', monospace; */ /* to costly */
                 font-size:          14px;
                 font-weight:        400;
                 line-height:        1.3em;

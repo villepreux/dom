@@ -602,9 +602,17 @@
     
     // MENU
 
-    function menu_entry($text = "", $link = false)
+    function menu_entry($text = false, $link = false, $target = false, $attributes = false)
     {
-        return ($link === false) ? $text : array($text, $link);
+        if (false === $text && false === $link && false === $target && false === $attributes) return array(); // Separator
+
+        return array(
+            
+            "item"       => ((!!$text       && DOM_AUTO !== $text       ) ? $text       : ""                        ), 
+            "link"       => ((!!$link       && DOM_AUTO !== $link       ) ? $link       : ("#".anchor_name($text))  ),
+            "target"     => ((!!$target     && DOM_AUTO !== $target     ) ? $target     : DOM_INTERNAL_LINK         ), 
+            "attributes" => ((!!$attributes && DOM_AUTO !== $attributes ) ? $attributes : false                     ), 
+        );
     }
 
     $__ul_menu_index = -1;
@@ -624,30 +632,28 @@
             {
                 if ($menu_entry == array() || $menu_entry == "")
                 {
-                    $menu_lis .= li("", array("class" => component_class("li", "list-item-separator"), "role" => "separator"));
+                    $menu_lis .= li("", array("class" => component_class("li", "list-item-separator")/*, "role" => "separator"*/));
                 }
                 else
                 {    
                 //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
                     if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
                             
-                    $item       = get($menu_entry, "item",   get($menu_entry, 0, ""));
-                    $link       = get($menu_entry, "link",   get($menu_entry, 1, false));
-                    $target     = get($menu_entry, "target", get($menu_entry, 2, $default_target));
-                    $attributes = false;
+                    $item       = get($menu_entry, "item",       get($menu_entry, 0, ""));
+                    $link       = get($menu_entry, "link",       get($menu_entry, 1, false));
+                    $target     = get($menu_entry, "target",     get($menu_entry, 2, $default_target));
+                    $attributes = get($menu_entry, "attributes", get($menu_entry, 3, false));
                     
-                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => component_class("li", "list-item"), "role" => "menuitem", "tabindex" => "0"));
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => component_class("li", "list-item")/*, "role" => "menuitem"*/, "tabindex" => "0"));
                 }
             }
         }
 
         $html = "";
 
-        // TODO role = group ou role = list ???
-
-             if (AMP())                             { $html =  ul($menu_lis, array("role" => "group", "class" => component_class("ul",  'menu-list')/*." ".component_class('menu')*/, "role" => "menu", "aria-hidden" => "true"                                                   )); }
-        else if (get("framework") == "bootstrap")   { $html = div($menu_lis, array("role" => "group", "class" => component_class("div", 'menu-list'),                                 "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink"    )); }
-        else                                        { $html =  ul($menu_lis, array("role" => "group", "class" => component_class("ul",  'menu-list'),                                 "role" => "menu"                                                                            )); }
+             if (AMP())                             { $html =  ul($menu_lis, array(/*"role" => "group",*/ "class" => component_class("ul",  'menu-list')/*." ".component_class('menu')*/ /*, "role" => "menu", "aria-hidden" => "true" */                                                )); }
+        else if (get("framework") == "bootstrap")   { $html = div($menu_lis, array(/*"role" => "group",*/ "class" => component_class("div", 'menu-list')                                 /*, "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink" */ )); }
+        else                                        { $html =  ul($menu_lis, array(/*"role" => "group",*/ "class" => component_class("ul",  'menu-list')                                 /*, "role" => "menu" */                                                                         )); }
 
         if (AMP() && !!$sidebar)
         {
@@ -661,12 +667,12 @@
         return $html;
     }
 
-    function menu_switch() { return (get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
-                                .   (get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+    function menu_switch() { return (get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
+                                .   (get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
+                                .   (get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
                                 .   (get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                      . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close", array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden", "aria-label" => "Menu Toggle"))
-                                                                                                                            , "#".DOM_MENU_ID."-open",  array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            "role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false", "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
+                                                                      . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close", array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden"/*, "aria-label" => "Menu Toggle"*/))
+                                                                                                                            , "#".DOM_MENU_ID."-open",  array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
                                                             ; 
     }
 
@@ -807,8 +813,8 @@
         $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
         $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
 
-                   $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        "role" => "menubar", "class" => "toolbar-row-nav"         ));
-        if (AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", "role" => "menubar", "class" => "toolbar-row-nav static"  ));
+                   $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        /*"role" => "menubar",*/ "class" => "toolbar-row-nav"         ));
+        if (AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", /*"role" => "menubar",*/ "class" => "toolbar-row-nav static"  ));
 
         return $html;
     }
