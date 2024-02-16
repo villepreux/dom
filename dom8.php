@@ -4254,28 +4254,18 @@
     #region WIP API : PHP DOCUMENT
     ######################################################################################################################################
 
-    function html_redirect_page($url, $path = false, $method = DOM_AUTO)
+    function html_refresh_page($url)
     {
-        if (DOM_AUTO === $method) $method = "refresh";
-
-        if ("refresh" == $method) return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
-        if ("include" == $method) return include_file(!!$path ? "$path/$url" : $url);
+        return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
     }
 
-    function redirect($url, $path = false, $method = DOM_AUTO)
+    function redirect($url)
     {   
-        if (!!get("static")) // PHP redirect does not work for static website
-        {
-            echo html_redirect_page($url, $path, $method);
-        }
-        else
-        {
-            \header("Location: ".href($url));
-        }
-
+        if (!!get("static")) die(html_refresh_page($url));
+        \header("Location: ".href($url));
         exit;
     }
-    
+
     function redirect_https()
     {
         if (has("ajax")) return;
@@ -4579,7 +4569,8 @@
             }
         }
 
-        $start_url = ((is_localhost() ? /*get("canonical")*/url() : "")."/");
+        //$start_url = ((is_localhost() ? get("canonical") : "")."/");
+        $start_url = url();
 
         if (false === stripos($start_url, "?")) $start_url .= "?";
         $start_url .= "&utm_source=homescreen";
@@ -4701,8 +4692,8 @@
             "short_name"       => $short_title,
             "description"      => get("description"),
             
-            "background_color" => get("background_color"),
-            "theme_color"      => get("theme_color"),
+            "background_color" => get("manifest_background_color",   get("background_color")),
+            "theme_color"      => get("manifest_theme_color",        get("theme_color")),
 
             "shortcuts"        => $shortcuts,
             "screenshots"      => $screenshots,
@@ -9429,13 +9420,7 @@
         
         return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
     }
-        
-    function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
-    {
-        // TODO optimize or deprecate (in favor on lat,lon)
-        return iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy);
-    }
-
+       
     $__dom_lazy_load_index = 0;
 
     function script_lazy_load($url, $query_selector, $src_attribute = "src")
@@ -9459,12 +9444,22 @@
         ');
     }
         
-    function google_map_lat_lon($lat, $lon, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
     {
-        // TODO finish it. currently only works for one map on the page
-        return iframe(path("empty.html"), "Google Map", "google-map", $w, $h, $lazy).script_lazy_load("https://maps.google.com/maps?q=$lat,$lon&hl=fr;&output=embed", ".google-map");
+        return !!get("no_js") 
+        
+            ? iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy) 
+            
+            : ( iframe(path("empty.html"), "Google Map", "google-map", $w, $h, $lazy).
+                script_lazy_load($embed_url, ".google-map")
+            );
     }
         
+    function google_map_lat_lon($lat, $lon, $w = false, $h = false, $lazy = DOM_AUTO)
+    {
+        return google_map("https://maps.google.com/maps?q=$lat,$lon&hl=fr;&output=embed");
+    }
+ 
     function google_doc($id, $w = false, $h = false, $lazy = DOM_AUTO)
     {
         $src = $id;
