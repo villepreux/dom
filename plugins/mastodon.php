@@ -14,6 +14,14 @@ function valid_host_username_userid($host = false, $username = false, $user_id =
     return [ $host, $username, $user_id ];
 }
 
+function url_post($post_id,  $host = false, $username = false)
+{
+    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id = false);
+    if (!$host || !$username || !$user_id) return false;
+
+    return "https://$host/@$username/$post_id";
+}
+
 function url_user_statuses($host = false, $username = false, $user_id = false)
 {
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
@@ -44,9 +52,7 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
 
         <section id="mastodon-comments" class="mastodon-comments">
 
-            <p id="mastodon-comments-list">
-                <button id="mastodon-comments-load-comment">Load comments</button>
-            </p>
+            <p><button id="mastodon-comments-load-comment">Load comments</button></p>
 
             <div id="mastodon-comments-comments-wrapper">
                 <noscript><p>Loading comments relies on JavaScript.</p></noscript>
@@ -101,158 +107,179 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
 
                     let commentsWrapper = document.getElementById("mastodon-comments-comments-wrapper");
 
-                    document.getElementById("mastodon-comments-load-comment").innerHTML = "Loading";
+                    document.getElementById("mastodon-comments-load-comment").innerHTML = "Loading...";
+
+                    console.log("DOM", "Mastodon", "Loading comments...");
 
                     fetch('<?= $api_post_context ?>')
                     
                         .then(function(response) {
+
+                            console.log("DOM", "Mastodon", "Loading comments...", "Received response", response);
 
                             return response.json();
                         })
 
                         .then(function(data) {
 
+                            console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", data);
+
                             let descendants = data['descendants'];
 
-                            if (descendants
-                            &&  Array.isArray(descendants)
-                            &&  descendants.length > 0)
+                            if (descendants && Array.isArray(descendants))
                             {
-                                commentsWrapper.innerHTML = "";
+                                if (descendants.length > 0)
+                                {
+                                    commentsWrapper.innerHTML = "";
 
-                                descendants.forEach(function(status) {
+                                    descendants.forEach(function(status) {
 
-                                    console.log(descendants);
-                                
-                                    if (status.account.display_name.length > 0 ) {
-
-                                        status.account.display_name = escapeHtml(status.account.display_name);
-                                        status.account.display_name = emojify(status.account.display_name, status.account.emojis);
-                                
-                                    } else {
-
-                                        status.account.display_name = status.account.username;
-                                    }
-
-                                    let instance = "";
-
-                                    if (status.account.acct.includes("@")) {
-
-                                        instance = status.account.acct.split("@")[1];
-                                
-                                    } else {
-
-                                        instance = "<?= $host ?>";
-                                    }
-
-                                    const isReply = (status.in_reply_to_id !== "<?= $post_id ?>");
-
-                                    let op = false;
-
-                                    if (status.account.acct == "<?= $username ?>") {
+                                        console.log(descendants);
                                     
-                                        op = true;
-                                    }
+                                        if (status.account.display_name.length > 0 ) {
 
-                                    status.content = emojify(status.content, status.emojis);
+                                            status.account.display_name = escapeHtml(status.account.display_name);
+                                            status.account.display_name = emojify(status.account.display_name, status.account.emojis);
+                                    
+                                        } else {
 
-                                    let avatarSource = document.createElement("source");
-                                    avatarSource.setAttribute("srcset", escapeHtml(status.account.avatar));
-                                    avatarSource.setAttribute("media", "(prefers-reduced-motion: no-preference)");
+                                            status.account.display_name = status.account.username;
+                                        }
 
-                                    let avatarImg = document.createElement("img");
-                                    avatarImg.className = "avatar";
-                                    avatarImg.setAttribute("src", escapeHtml(status.account.avatar_static));
-                                    avatarImg.setAttribute("alt", `@${ status.account.username }@${ instance } avatar`);
+                                        let instance = "";
 
-                                    let avatarPicture = document.createElement("picture");
-                                    avatarPicture.appendChild(avatarSource);
-                                    avatarPicture.appendChild(avatarImg);
+                                        if (status.account.acct.includes("@")) {
 
-                                    let avatar = document.createElement("a");
-                                    avatar.className = "avatar-link";
-                                    avatar.setAttribute("href", status.account.url);
-                                    avatar.setAttribute("rel", "external nofollow");
-                                    avatar.setAttribute("title", `View profile at @${ status.account.username }@${ instance }`);
-                                    avatar.appendChild(avatarPicture);
+                                            instance = status.account.acct.split("@")[1];
+                                    
+                                        } else {
 
-                                    let instanceBadge = document.createElement("a");
-                                    instanceBadge.className = "instance";
-                                    instanceBadge.setAttribute("href", status.account.url);
-                                    instanceBadge.setAttribute("title", `@${ status.account.username }@${ instance }`);
-                                    instanceBadge.setAttribute("rel", "external nofollow");
-                                    instanceBadge.textContent = instance;
+                                            instance = "<?= $host ?>";
+                                        }
 
-                                    let display = document.createElement("span");
-                                    display.className = "display";
-                                    display.setAttribute("itemprop", "author");
-                                    display.setAttribute("itemtype", "http://schema.org/Person");
-                                    display.innerHTML = status.account.display_name;
+                                        const isReply = (status.in_reply_to_id !== "<?= $post_id ?>");
 
-                                    let header = document.createElement("header");
-                                    header.className = "author";
-                                    header.appendChild(display);
-                                    header.appendChild(instanceBadge);
+                                        let op = false;
 
-                                    let permalink = document.createElement("a");
-                                    permalink.setAttribute("href", status.url);
-                                    permalink.setAttribute("itemprop", "url");
-                                    permalink.setAttribute("title", `View comment at ${ instance }`);
-                                    permalink.setAttribute("rel", "external nofollow");
-                                    permalink.textContent = new Date( status.created_at ).toLocaleString('en-US', {
-                                        dateStyle: "long",
-                                        timeStyle: "short",
+                                        if (status.account.acct == "<?= $username ?>") {
+                                        
+                                            op = true;
+                                        }
+
+                                        status.content = emojify(status.content, status.emojis);
+
+                                        let avatarSource = document.createElement("source");
+                                        avatarSource.setAttribute("srcset", escapeHtml(status.account.avatar));
+                                        avatarSource.setAttribute("media", "(prefers-reduced-motion: no-preference)");
+
+                                        let avatarImg = document.createElement("img");
+                                        avatarImg.className = "avatar";
+                                        avatarImg.setAttribute("src", escapeHtml(status.account.avatar_static));
+                                        avatarImg.setAttribute("alt", `@${ status.account.username }@${ instance } avatar`);
+
+                                        let avatarPicture = document.createElement("picture");
+                                        avatarPicture.appendChild(avatarSource);
+                                        avatarPicture.appendChild(avatarImg);
+
+                                        let avatar = document.createElement("a");
+                                        avatar.className = "avatar-link";
+                                        avatar.setAttribute("href", status.account.url);
+                                        avatar.setAttribute("rel", "external nofollow");
+                                        avatar.setAttribute("title", `View profile at @${ status.account.username }@${ instance }`);
+                                        avatar.appendChild(avatarPicture);
+
+                                        let instanceBadge = document.createElement("a");
+                                        instanceBadge.className = "instance";
+                                        instanceBadge.setAttribute("href", status.account.url);
+                                        instanceBadge.setAttribute("title", `@${ status.account.username }@${ instance }`);
+                                        instanceBadge.setAttribute("rel", "external nofollow");
+                                        instanceBadge.textContent = instance;
+
+                                        let display = document.createElement("span");
+                                        display.className = "display";
+                                        display.setAttribute("itemprop", "author");
+                                        display.setAttribute("itemtype", "http://schema.org/Person");
+                                        display.innerHTML = status.account.display_name;
+
+                                        let header = document.createElement("header");
+                                        header.className = "author";
+                                        header.appendChild(display);
+                                        header.appendChild(instanceBadge);
+
+                                        let permalink = document.createElement("a");
+                                        permalink.setAttribute("href", status.url);
+                                        permalink.setAttribute("itemprop", "url");
+                                        permalink.setAttribute("title", `View comment at ${ instance }`);
+                                        permalink.setAttribute("rel", "external nofollow");
+                                        permalink.textContent = new Date( status.created_at ).toLocaleString('en-US', {
+                                            dateStyle: "long",
+                                            timeStyle: "short",
+                                        });
+
+                                        let timestamp = document.createElement("time");
+                                        timestamp.setAttribute("datetime", status.created_at);
+                                        timestamp.appendChild(permalink);
+
+                                        let main = document.createElement("main");
+                                        main.setAttribute("itemprop", "text");
+                                        main.innerHTML = status.content;
+
+                                        let interactions = document.createElement("footer");
+                                        if(status.favourites_count > 0) {
+                                            let faves = document.createElement("a");
+                                            faves.className = "faves";
+                                            faves.setAttribute("href", `${ status.url }/favourites`);
+                                            faves.setAttribute("title", `Favorites from ${ instance }`);
+                                            faves.textContent = status.favourites_count;
+
+                                            interactions.appendChild(faves);
+                                        }
+
+                                        let comment = document.createElement("article");
+                                        comment.id = `comment-${ status.id }`;
+                                        comment.className = isReply ? "comment comment-reply" : "comment";
+                                        comment.setAttribute("itemprop", "comment");
+                                        comment.setAttribute("itemtype", "http://schema.org/Comment");
+                                        comment.appendChild(avatar);
+                                        comment.appendChild(header);
+                                        comment.appendChild(timestamp);
+                                        comment.appendChild(main);
+                                        comment.appendChild(interactions);
+
+                                        if(op === true) {
+                                            comment.classList.add("op");
+
+                                            avatar.classList.add("op");
+                                            avatar.setAttribute(
+                                            "title",
+                                            "Blog post author; " + avatar.getAttribute("title")
+                                            );
+
+                                            instanceBadge.classList.add("op");
+                                            instanceBadge.setAttribute(
+                                            "title",
+                                            "Blog post author: " + instanceBadge.getAttribute("title")
+                                            );
+                                        }
+
+                                        commentsWrapper.innerHTML += /*DOMPurify.sanitize*/(comment.outerHTML); /* TODO: Purify */
+
                                     });
+                                }
+                                else
+                                {
+                                    console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", "NO COMMENT YET!");
 
-                                    let timestamp = document.createElement("time");
-                                    timestamp.setAttribute("datetime", status.created_at);
-                                    timestamp.appendChild(permalink);
+                                    document.getElementById("mastodon-comments-load-comment").innerHTML = "Load comments";
+                                    
+                                    commentsWrapper.innerHTML = "<p>No comment yet!</p>";
+                                }
+                            }
+                            else
+                            {
+                                console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", "INVALID JSON!");
 
-                                    let main = document.createElement("main");
-                                    main.setAttribute("itemprop", "text");
-                                    main.innerHTML = status.content;
-
-                                    let interactions = document.createElement("footer");
-                                    if(status.favourites_count > 0) {
-                                        let faves = document.createElement("a");
-                                        faves.className = "faves";
-                                        faves.setAttribute("href", `${ status.url }/favourites`);
-                                        faves.setAttribute("title", `Favorites from ${ instance }`);
-                                        faves.textContent = status.favourites_count;
-
-                                        interactions.appendChild(faves);
-                                    }
-
-                                    let comment = document.createElement("article");
-                                    comment.id = `comment-${ status.id }`;
-                                    comment.className = isReply ? "comment comment-reply" : "comment";
-                                    comment.setAttribute("itemprop", "comment");
-                                    comment.setAttribute("itemtype", "http://schema.org/Comment");
-                                    comment.appendChild(avatar);
-                                    comment.appendChild(header);
-                                    comment.appendChild(timestamp);
-                                    comment.appendChild(main);
-                                    comment.appendChild(interactions);
-
-                                    if(op === true) {
-                                        comment.classList.add("op");
-
-                                        avatar.classList.add("op");
-                                        avatar.setAttribute(
-                                        "title",
-                                        "Blog post author; " + avatar.getAttribute("title")
-                                        );
-
-                                        instanceBadge.classList.add("op");
-                                        instanceBadge.setAttribute(
-                                        "title",
-                                        "Blog post author: " + instanceBadge.getAttribute("title")
-                                        );
-                                    }
-
-                                    commentsWrapper.innerHTML += /*DOMPurify.sanitize*/(comment.outerHTML); /* TODO: Purify */
-
-                                });
+                                document.getElementById("mastodon-comments-load-comment").innerHTML = "Load comments";
                             }
                         });
                 }

@@ -7766,6 +7766,8 @@
             a:visited       { font-weight: 600; color: var(--link-color,       #990011); }
             a:hover         { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
 
+            button          { font-weight: 600; border: none; box-shadow: 2px 2px 4px 2px #00000055; }
+
             /* Others */
     
             u, del          { text-decoration-color: red; }
