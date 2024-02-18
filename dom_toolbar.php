@@ -127,7 +127,9 @@
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
 
             .toolbar-row-nav, 
-            .toolbar-row-nav :is(section, div, ul)          { display: flex; flex-shrink: 0; align-items: center; }
+            .toolbar-row-nav :is(section, div, ul)          { display: flex; /*flex-shrink: 0;*/ align-items: center;  scrollbar-width: none; }
+            .toolbar-row-nav,
+            .toolbar-row-nav :is(section, div, ul) > *      { flex-shrink: 0; }
             .toolbar-row-nav,
             .toolbar-row-nav ul                             { gap: var(--gap); }
             .toolbar-row-nav li *                           { min-height: var(--line-height); }

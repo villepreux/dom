@@ -597,6 +597,13 @@
         set("minify",                           get("minify",       true    )); // Performances first
         set("page",                             get("page",         1       ));
         set("n",                                get("n",            12      ));
+
+        // Options that impact others
+
+        if (AMP()) 
+        {
+            del("css_layers_support");
+        }
     }
 
     #endregion
@@ -1982,43 +1989,55 @@
 
     // Links
     
-    $hook_links = array();
+    $hook_links             = array();
+    $hook_shortcut_links    = array();
+    $hook_prefetch_links    = array();
+    $hook_external_links    = array();
     
-    function hook_link($title, $url)
+    function hook_link($title, $url, $target)
     {
         if (!is_string($url)) return;
 
         if (strlen($url) >= 1)
         {
-            if ($url == ".") return;
-
+            if ($url    == ".") return;
             if ($url[0] == "#") return;
             if ($url[0] == "?") return;
-            
+
             if (0 === stripos($url, ".?")         ) return;
             if (0 === stripos($url, "javascript") ) return;
         }
 
-        global $hook_links;
+        global $hook_links, $hook_shortcut_links, $hook_prefetch_links, $hook_external_links;
 
         $found_url = false;
+        foreach ($hook_links as $link) { if ($link["url"] == $url) { $found_url = true; break; } }
+        if ($found_url) return;
 
-        foreach ($hook_links as $link)
+        $title = trim(strip_tags($title));
+        if ($title == "" || !$title) $title = parse_url($url, PHP_URL_HOST);
+        if ($title == "" || !$title) $title = trim($url, "/");
+
+        if ($title == "" || !$title) return;
+
+        if ($target == DOM_INTERNAL_LINK)
         {
-            if ($link["url"] == $url)
-            {
-                $found_url = true;
-                break;
-            }
+            $hook_links[]           = array("title" => $title, "url" => $url);
+            $hook_shortcut_links[]  = array("title" => $title, "url" => $url);
+            $hook_prefetch_links[]  = array("title" => $title, "url" => $url);
         }
 
-        if (!$found_url)
+        if ($target == DOM_EXTERNAL_LINK)
         {
-            $title = trim(strip_tags($title));
-            if ($title == "") $title = substr($url, (int)stripos($url, "/"));
-
-            $hook_links[] = array("title" => $title, "url" => $url);
+            $hook_links[]           = array("title" => $title, "url" => $url);
+            $hook_external_links[]  = array("title" => $title, "url" => $url);
         }
+    }
+
+    function ul_page_external_links()
+    {
+        global $hook_external_links;
+        return ul(implode("", array_map(function($link) { return li(a(str_replace("www.", "", at($link, "title")), at($link, "url"))); }, $hook_external_links)));
     }
 
     function hooked_link_rel_prefetch($link)
@@ -2031,8 +2050,8 @@
     {
         if (!!get("auto_prefetch"))
         {
-            global $hook_links;
-            return wrap_each($hook_links, "", "hooked_link_rel_prefetch", false);
+            global $hook_prefetch_links;
+            return wrap_each($hook_prefetch_links, "", "hooked_link_rel_prefetch", false);
         }
         
         return "";
@@ -2060,11 +2079,11 @@
     
     $hook_amp_scripts = array();
     
-    function hook_amp_js($js)
+    function hook_amp_js($js, $html)
     {
         hook_amp_require("script");
         global $hook_amp_scripts;
-        $hook_amp_scripts[] = $js;
+        $hook_amp_scripts[] = array($js, $html);
         return "";
     }
 
@@ -2083,29 +2102,39 @@
     function _amp_sha384_hash_local_script()
     {
         $keys = array();
+        
         global $hook_amp_scripts;
-        foreach ($hook_amp_scripts as $js) $keys[] = hash("sha384",$js);
+        
+        foreach ($hook_amp_scripts as $js_html) 
+        {
+            list($js, $html) = $js_html;
+
+            $keys[] = hash("sha384", $js);
+        }
+
         return implode(" ", $keys);
     }
 
     function _amp_scripts_body()
     {
-        $html = "";
+        $html_script = "";
 
         global $hook_amp_scripts;
 
-        foreach ($hook_amp_scripts as $js)
+        foreach ($hook_amp_scripts as $js_html)
         {
+            list($js, $html) = $js_html;
+
             $uuid = md5($js);
 
-            $html .= eol().
-                '<amp-script script="amp_scripts_'.$uuid.'" layout="container"></amp-script>'.
+            $html_script .= eol().
+                '<amp-script script="amp_scripts_'.$uuid.'" layout="container">'.$html.'</amp-script>'.
                 '<script type="text/plain" target="amp-script" id="amp_scripts_'.$uuid.'">'.
                 $js.
                 '</script>';
         }
 
-        return $html;
+        return $html_script;
     }
 
     // AMP CSS
@@ -4048,20 +4077,20 @@
         return $metadata;
     }
 
-    function _array_rss_posts($type, $url, $post_img_url)
+    function _array_rss_posts($type, $url, $post_img_url_fallback)
     {
         $posts = array();
         
         foreach (at(array_open_url($url, "xml"), array("channel","item"), array()) as $item)
-        {    
+        {   
             $metadata = array
             (
                 "TYPE"              => $type
             ,   "post_title"        => extract_start(at($item, "title"))
             ,   "post_url"          => at($item, "link")
             ,   "post_date"         => at($item, "pubDate")
-            ,   "post_text"         => at($item, "title")
-            ,   "post_img_url"      => $post_img_url
+            ,   "post_text"         => p(at($item, "description", at($item, "title"))).p(implode(" ", array_map(function($cat) { return "#$cat"; }, at($item, "category", array()))))
+            ,   "post_img_url"      => $post_img_url_fallback
             );
 
             $html = at($item, "description", false);
@@ -4081,12 +4110,14 @@
                     
                     $metadata["post_img_url"] = $src;
                     $metadata["post_text"]    = $html;
-                }
+                }/*
                 else
                 {
                     $metadata["post_text"] = $html;
-                }
+                }*/
             }
+
+            //die("<pre>".print_r($metadata, true));
             
             $posts[] = $metadata;
 
@@ -4112,12 +4143,12 @@
         
         $feed = ($filter != "" && $filter !== false && array_key_exists($filter, $feeds)) ? $filter : "SCITECH";
         
-        return _array_rss_posts("googlenews", $feeds[$feed], "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/240px-Google_%22G%22_Logo.svg.png");
+        return _array_rss_posts("googlenews", $feeds[$feed], "https://upload.wikimedia.org/wikipedia/commons/0/0b/Google_News_icon.png");
     }
 
     function array_numerama_posts($id = false, $filter = "", $tags_in = false, $tags_out = false)
     {
-        return _array_rss_posts("numerama", "https://www.numerama.com/feed/rss/", "https://www.numerama.com/content/themes/project-n-theme/resources/assets/images/favicons/ms-icon-310x310.png");
+        return _array_rss_posts("numerama", "https://www.numerama.com/feed/rss/", "https://www.numerama.com/wp-content/uploads/2023/02/numerama.jpg");
     }
 
     // Get array of cards
@@ -4128,7 +4159,7 @@
     $__card_headline = 2;
     function get_card_headline() { global $__card_headline; return $__card_headline; }
     
-    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                    return  array_imgs_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("img", 'img-thumb'))           : $attributes); }
+    function array_imgs  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  {                                                                          return  array_imgs_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("img", 'img-thumb'))           : $attributes); }
     function array_card  ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline_level(); return        card_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out),                                                                                                          $attributes); }
     function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline_level(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card card-thumb')) : $attributes); }
     
@@ -4597,9 +4628,9 @@
 
         // TODO add a way to specify specific shortcuts icons
 
-        global $hook_links;
+        global $hook_shortcut_links;
 
-        foreach ($hook_links as $link)
+        foreach ($hook_shortcut_links as $link)
         {
             $title = $link["title"];
             $url   = /*$start_url."/".*/$link["url"];
@@ -5170,10 +5201,10 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!get("no_html")) return ''; if (!!get("minify", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("no_js"))   return ''; if (!!get("minify", false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("no_css"))  return ''; if (!!get("minify", false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
-    function raw_php        ($php,  $force_minify = false)  {                                  if (!!get("minify", false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("no_html")) return ''; if (!!get("minify", false) || !!get("minify_html", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("no_js"))   return ''; if (!!get("minify", false) || !!get("minify_js",   false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("no_css"))  return ''; if (!!get("minify", false) || !!get("minify_css",  false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  {                                  if (!!get("minify", false) || !!get("minify_php",  false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
@@ -6403,6 +6434,18 @@
         return "@layer ".implode(", ", $layers).";";
     }
     
+    function css_layer_bgn($layer)
+    {
+        if (false === $layer || !get("css_layers_support")) return "";
+        return "@layer $layer {".eol(2);
+    }
+    
+    function css_layer_end($layer = false)
+    {
+        if (!get("css_layers_support")) return "";
+        return eol()."}".(!$layer ? "" : " /* @layer $layer */");
+    }
+    
     function css_layer($layer, $css)
     {
         if (false === $layer || !get("css_layers_support")) return $css;
@@ -6418,13 +6461,13 @@
         return AMP() ? hook_amp_css($css) : (tag('style',  $css ));
     }
 
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = path($filename_or_code); $profiler = debug_track_timing(!!$filename ? $filename : "inline"); $js  = eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol(); return AMP() ? hook_amp_js($js) : (tag('script', $js, array("type" => $type) )); }
+    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = path($filename_or_code); $profiler = debug_track_timing(!!$filename ? $filename : "inline"); $js  = eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol(); return AMP() ? hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, ""))) : (tag('script', $js, array("type" => $type) )); }
     function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_module($src,            $type = "module",          $extra = false, $force = false)                                                      { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                                                                    { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script_ajax_head() { return AMP() ? "" : script(js_ajax_head()); }
-    function script_ajax_body() { return AMP() ? "" : script(js_ajax_body()); }
+    function script_ajax_head() { return /*AMP() ? "" : */script(js_ajax_head()); }
+    function script_ajax_body() { return /*AMP() ? "" : */script(js_ajax_body()); }
 
     function script_inside_iframe() { return script(js_inside_iframe()); }
     
@@ -7885,7 +7928,7 @@
                 padding-inline-start: 0; /* Remove that arbitrary 40px padding, especialy within nav, where we already removed list item style */
                 }
             [role="navigation"] ul[role="menu"], nav ul,
-            [role="navigation"] { display: flex; gap: var(--gap); }
+            [role="navigation"] { display: flex; gap: var(--gap); flex-wrap: wrap; } /* BEWARE: Do not break default flow. Do not make it nowrap */
 
             /* Inputs */
     
@@ -9130,8 +9173,8 @@
         . $html
 
         . (AMP() ? (eol().comment("DOM AMP sidebars").eol(2))   : "")
-        . (AMP() ? delayed_component("_amp_sidebars")                   : "")
-        . (AMP() ? delayed_component("_amp_scripts_body")               : "")
+        . (AMP() ? delayed_component("_amp_sidebars")           : "")
+        . (AMP() ? delayed_component("_amp_scripts_body")       : "")
 
         . eol().comment("DOM Body boilerplate markup")
       /*. back_to_top_link()*/
@@ -9354,6 +9397,7 @@
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
+        // TODO replace $classes by $attributes
 
         if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
 
@@ -9425,28 +9469,63 @@
 
     function script_lazy_load($url, $query_selector, $src_attribute = "src")
     {
+        if (AMP()) $query_selector .= " iframe";
+
         global $__dom_lazy_load_index;
         ++$__dom_lazy_load_index;
 
         return script('
 
-            var lazy_loaded_'.$__dom_lazy_load_index.' = false;
+            console.log("DOM", "Lazy loading");
+                
+            dom.on_loaded(function() { 
 
-            dom.on_loaded(function() { dom.on_scroll(function () {
+                console.log("DOM", "Lazy loading", "Pending", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");
+                
+                var lazy_loaded_'.$__dom_lazy_load_index.' = false;
 
-                if (!lazy_loaded_'.$__dom_lazy_load_index.') {
-                    lazy_loaded_'.$__dom_lazy_load_index.' = true;
-                    document.querySelector("'.$query_selector.'").'.$src_attribute.' = "'.$url.'";
+                function update_attribute_'.$__dom_lazy_load_index.'() {
+
+                    if (!lazy_loaded_'.$__dom_lazy_load_index.') {
+
+                        lazy_loaded_'.$__dom_lazy_load_index.' = true;
+                        document.querySelector("'.$query_selector.'").'.$src_attribute.' = "'.$url.'";
+
+                        console.log("DOM", "Lazy loading", "Apply", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");
+                    }    
                 }
+    
+                if (window.location.hash != "") {
 
-            }); });
-        
+                    update_attribute_'.$__dom_lazy_load_index.'();
+
+                } else {                
+
+                    dom.on_scroll(update_attribute_'.$__dom_lazy_load_index.'); 
+                }            
+            });        
         ');
+    }
+
+    function codepen($url, $title, $w = false, $h = false, $lazy = DOM_AUTO)
+    {
+        return (!!get("no_js") || AMP()) 
+        
+            ? iframe($url, $title, "codepen", $w, $h, $lazy)
+
+            : ( iframe(path("empty.html"), $title, "codepen", $w, $h, $lazy).
+                script_lazy_load($url, ".codepen")
+            );
+    }
+
+    function user_codepen($id, $title, $w = false, $h = false, $lazy = DOM_AUTO)
+    {
+        return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy);
     }
         
     function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
     {
-        return !!get("no_js") 
+        return (!!get("no_js") || AMP()) 
         
             ? iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy) 
             
@@ -10021,10 +10100,7 @@
         //if (false !== stripos($attributes, "hidden") && false !== stripos($attributes, "rel")) die($attributes);
         //if (false !== stripos($url, "selfie")) die($attributes);
 
-        if ($target == DOM_INTERNAL_LINK)
-        {
-            hook_link($html, $url);
-        }
+        hook_link($html, $url, $target);
         
         return tag('a', $html, $attributes);
     }
@@ -10494,7 +10570,7 @@
     function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("link");          $class = "brand-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("leboncoin");     $class = "brand-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("500px");         $class = "brand-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_pixelfed       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === DOM_AUTO ? "PixelFed"        : $label,   0,      0,      50,       50,     $align == DOM_AUTO ? false : !!$align, '<metadata id="metadata106"><rdf:RDF><cc:Work rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs class="'.$class.'" id="defs56"><linearGradient id="g1" y2="0.60117739" x2="0" y1="0.55806792" x1="1"><stop id="stop2" offset="0" class="'.$class.'-6" /><stop id="stop4" offset="1" class="'.$class.'" /></linearGradient><linearGradient id="g2" y2="0" x2="0.30560157" y1="1.1191301" x1="0.5"><stop id="stop7" offset="0" class="'.$class.'-4" /><stop id="stop9" offset="1" class="'.$class.'-5" /></linearGradient><filter x="-0.266" y="-0.189" width="1.5319999" height="1.472" filterUnits="objectBoundingBox" id="filter-18-3"><feOffset id="feOffset12" dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1" /><feGaussianBlur id="feGaussianBlur14" stdDeviation="1.5" in="shadowOffsetOuter1" result="shadowBlurOuter1" /><feColorMatrix id="feColorMatrix16" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.298686594 0" type="matrix" in="shadowBlurOuter1" /></filter><linearGradient xlink:href="#g4" id="g3" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" /><linearGradient x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" id="g4" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop20" class="'.$class.'-12" offset="0%" /><stop id="stop22" class="'.$class.'-13" offset="100%" /></linearGradient><linearGradient x1="32.778084" y1="31.292349" x2="-5.737164" y2="34.564075" id="g5" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop25" class="'.$class.'-3" offset="0%" /><stop id="stop27" class="'.$class.'-2" offset="100%" /></linearGradient><linearGradient xlink:href="#g1" id="g6" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" /><linearGradient xlink:href="#g1" id="g7" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" gradientTransform="matrix(0.73238181,-0.44005875,0.60279359,1.0032156,-5.4387332,4.178016)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g8" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g10" id="g9" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441984,1.1703848)" x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" /><linearGradient x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" id="g10" gradientTransform="scale(0.85441984,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop34" class="'.$class.'-7" offset="0%" /><stop id="stop36" class="'.$class.'-8" offset="100%" /></linearGradient><linearGradient x1="40.01442" y1="3.0503507" x2="21.610674" y2="22.693472" id="g11" gradientTransform="matrix(0.8028135,0.67363955,-0.61334952,0.73096044,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop39" class="'.$class.'-9" offset="0" /><stop id="stop41" class="'.$class.'-10" offset="1" /></linearGradient><linearGradient x1="31.906258" y1="22.861416" x2="56.143276" y2="28.198187" id="g12" gradientTransform="matrix(0.67306192,0.5647652,-0.7315899,0.87187364,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop44" class="'.$class.'-11" offset="0" /><stop id="stop46" class="'.$class.'-14" offset="1" /></linearGradient><linearGradient x1="18.604218" y1="60.088772" x2="29.551889" y2="34.263325" id="g13" gradientTransform="matrix(0.93316856,0.78302028,-0.52767025,0.62885203,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop49" class="'.$class.'-3" offset="0" /><stop id="stop51" class="'.$class.'-2" offset="1" /></linearGradient><linearGradient xlink:href="#g1" id="g14" x1="30.973358" y1="27.509178" x2="1.1089396" y2="28.796618" gradientTransform="matrix(0.64006516,0.53707767,-0.76930493,0.9168206,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g15" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" /></defs><path id="path58" d="M 24.844501,25.208859 C 20.77843,19.646166 13.002814,18.371306 7.4771766,22.36138 1.9515387,26.351453 0.76832601,34.0955 4.8343958,39.658194 l 0.3076235,0.420851 C -1.4888222,31.406438 -1.8150576,19.240724 4.7952638,10.325752 l 0.1176971,-0.1564 c 4.095389,-5.4421 11.8771861,-6.487086 17.3811281,-2.33404 5.503943,4.153045 6.6458,11.931447 2.550412,17.373547 z" style="fill:url(#g14)" /><path id="path60" d="m 24.844501,25.208859 c -6.472999,2.189353 -9.877881,9.222288 -7.605018,15.708503 2.272862,6.486214 9.362782,9.969509 15.835779,7.780157 L 33.50409,48.552478 C 25.454263,51.432746 16.076124,50.047472 8.9909709,44.102332 7.5339337,42.879734 6.2499668,41.528152 5.1420193,40.079045 L 4.8343958,39.658194 C 0.76832601,34.0955 1.9515387,26.351453 7.4771766,22.36138 13.002814,18.371306 20.77843,19.646166 24.844501,25.208859 Z" style="fill:url(#g13)" /><path id="path62" d="m 24.844501,25.208859 c 0.04163,6.84562 5.636761,12.42884 12.497071,12.470471 6.860311,0.04163 12.387942,-5.47409 12.346311,-12.319709 l -9.53e-4,-0.156747 c 0.07327,5.679151 -1.798009,11.388946 -5.714387,16.056296 -2.883411,3.436311 -6.515801,5.879029 -10.468453,7.293308 l -0.428828,0.145041 C 26.602265,50.886871 19.512345,47.403576 17.239483,40.917362 14.96662,34.431147 18.371502,27.398212 24.844501,25.208859 Z" style="fill:url(#g12)" /><path id="path64" d="M 24.844501,25.208859 C 31.381909,27.363866 38.367988,23.843413 40.448347,17.345706 42.528706,10.848 38.915553,3.83359 32.378144,1.678584 L 31.842952,1.502162 c 3.149862,0.958982 6.167442,2.558035 8.855077,4.813224 5.838829,4.899353 8.898368,11.870026 8.988901,18.887488 l 9.53e-4,0.156747 c 0.04163,6.845619 -5.486,12.361341 -12.346311,12.319709 -6.86031,-0.04163 -12.45544,-5.624851 -12.497071,-12.470471 z" style="fill:url(#g11)" /><path id="path66" style="fill:url(#g15)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><g id="g72" style="opacity:0.54425222;fill:none" transform="matrix(-0.37460713,0.92718385,-0.92718518,-0.37460659,68.842244,2.122857)"><path id="path68" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="fill:url(#g9)" /><path id="path70" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49988679" /></g><path id="path74" style="opacity:0.1;fill:url(#g8)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><path id="path76" style="opacity:0.18013395;fill:url(#g7)" d="M 4.8244748,10.490984 4.946318,10.330719 C 9.112291,4.851089 16.920883,3.718459 22.387296,7.80092 27.853707,11.883381 28.907921,19.634987 24.741947,25.114618 24.177499,24.278959 23.527245,23.535182 22.810409,22.8869 24.7942,19.528843 24.933782,15.24584 22.803609,11.700712 19.69445,6.526212 12.927139,4.883207 7.6883949,8.030957 6.5691013,8.703496 5.6101449,9.540315 4.8244318,10.490984 Z" /><g id="g82" style="opacity:0.18013395;fill:none" transform="matrix(0.85716853,-0.51503807,0.51503881,0.8571673,-5.2722905,4.334214)"><path id="path78" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="fill:url(#g6)" /><path id="path80" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="mix-blend-mode:multiply;fill:#000000;fill-opacity:0.77284307" /></g><g id="g88" style="opacity:0.5841518;fill:none" transform="matrix(-0.22495138,-0.97437006,0.97437146,-0.22495105,-15.913458,55.421439)"><path id="path84" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="fill:url(#g5)" /><path id="path86" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.50308539" /></g><g id="g94" style="opacity:0.56222097;fill:none" transform="matrix(-0.99863096,-0.05233596,0.05233603,-0.99862953,57.15441,72.548735)"><path id="path90" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="fill:url(#g3)" /><path id="path92" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="mix-blend-mode:overlay;fill:#000000" /></g><path id="path96" d="m 32.186954,1.615568 0.191202,0.06303 c 6.537408,2.155006 10.150561,9.169416 8.070202,15.667122 -2.080359,6.497706 -9.066438,10.01816 -15.603846,7.863153 0.606364,-0.805759 1.097919,-1.662736 1.477505,-2.551578 3.820968,0.782433 7.916076,-0.48 10.574561,-3.648255 C 40.776928,14.384625 40.127202,7.451106 35.445374,3.522591 34.445068,2.683237 33.341634,2.048968 32.186954,1.61557 Z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49617866" /><path id="path98" d="m 24.100846,55.523071 h 4.544831 c 4.281413,0 7.752184,-3.36365 7.752184,-7.512922 0,-4.149273 -3.470771,-7.512923 -7.752184,-7.512923 h -6.55954 c -2.470046,0 -4.472413,1.940568 -4.472413,4.334379 v 16.869977 z" style="fill:#000000;filter:url(#filter-18-3)" transform="matrix(1.0000014,0,0,1,-1.2150017,-25)" /><path id="path100" d="m 22.885879,30.523071 h 4.544837 c 4.281419,0 7.752195,-3.36365 7.752195,-7.512922 0,-4.149273 -3.470776,-7.512923 -7.752195,-7.512923 h -6.559549 c -2.47005,0 -4.47242,1.940568 -4.47242,4.334379 v 16.869977 z" style="fill:#ffffff" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_pixelfed       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === DOM_AUTO ? "PixelFed"        : $label,   0,      0,      50,       50,     $align == DOM_AUTO ? false : !!$align, '<defs class="'.$class.'" id="defs56"><linearGradient id="g1" y2="0.60117739" x2="0" y1="0.55806792" x1="1"><stop id="stop2" offset="0" class="'.$class.'-6" /><stop id="stop4" offset="1" class="'.$class.'" /></linearGradient><linearGradient id="g2" y2="0" x2="0.30560157" y1="1.1191301" x1="0.5"><stop id="stop7" offset="0" class="'.$class.'-4" /><stop id="stop9" offset="1" class="'.$class.'-5" /></linearGradient><filter x="-0.266" y="-0.189" width="1.5319999" height="1.472" filterUnits="objectBoundingBox" id="filter-18-3"><feOffset id="feOffset12" dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1" /><feGaussianBlur id="feGaussianBlur14" stdDeviation="1.5" in="shadowOffsetOuter1" result="shadowBlurOuter1" /><feColorMatrix id="feColorMatrix16" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.298686594 0" type="matrix" in="shadowBlurOuter1" /></filter><linearGradient xlink:href="#g4" id="g3" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" /><linearGradient x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" id="g4" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop20" class="'.$class.'-12" offset="0%" /><stop id="stop22" class="'.$class.'-13" offset="100%" /></linearGradient><linearGradient x1="32.778084" y1="31.292349" x2="-5.737164" y2="34.564075" id="g5" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop25" class="'.$class.'-3" offset="0%" /><stop id="stop27" class="'.$class.'-2" offset="100%" /></linearGradient><linearGradient xlink:href="#g1" id="g6" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" /><linearGradient xlink:href="#g1" id="g7" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" gradientTransform="matrix(0.73238181,-0.44005875,0.60279359,1.0032156,-5.4387332,4.178016)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g8" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g10" id="g9" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441984,1.1703848)" x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" /><linearGradient x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" id="g10" gradientTransform="scale(0.85441984,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop34" class="'.$class.'-7" offset="0%" /><stop id="stop36" class="'.$class.'-8" offset="100%" /></linearGradient><linearGradient x1="40.01442" y1="3.0503507" x2="21.610674" y2="22.693472" id="g11" gradientTransform="matrix(0.8028135,0.67363955,-0.61334952,0.73096044,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop39" class="'.$class.'-9" offset="0" /><stop id="stop41" class="'.$class.'-10" offset="1" /></linearGradient><linearGradient x1="31.906258" y1="22.861416" x2="56.143276" y2="28.198187" id="g12" gradientTransform="matrix(0.67306192,0.5647652,-0.7315899,0.87187364,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop44" class="'.$class.'-11" offset="0" /><stop id="stop46" class="'.$class.'-14" offset="1" /></linearGradient><linearGradient x1="18.604218" y1="60.088772" x2="29.551889" y2="34.263325" id="g13" gradientTransform="matrix(0.93316856,0.78302028,-0.52767025,0.62885203,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop49" class="'.$class.'-3" offset="0" /><stop id="stop51" class="'.$class.'-2" offset="1" /></linearGradient><linearGradient xlink:href="#g1" id="g14" x1="30.973358" y1="27.509178" x2="1.1089396" y2="28.796618" gradientTransform="matrix(0.64006516,0.53707767,-0.76930493,0.9168206,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g15" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" /></defs><path id="path58" d="M 24.844501,25.208859 C 20.77843,19.646166 13.002814,18.371306 7.4771766,22.36138 1.9515387,26.351453 0.76832601,34.0955 4.8343958,39.658194 l 0.3076235,0.420851 C -1.4888222,31.406438 -1.8150576,19.240724 4.7952638,10.325752 l 0.1176971,-0.1564 c 4.095389,-5.4421 11.8771861,-6.487086 17.3811281,-2.33404 5.503943,4.153045 6.6458,11.931447 2.550412,17.373547 z" style="fill:url(#g14)" /><path id="path60" d="m 24.844501,25.208859 c -6.472999,2.189353 -9.877881,9.222288 -7.605018,15.708503 2.272862,6.486214 9.362782,9.969509 15.835779,7.780157 L 33.50409,48.552478 C 25.454263,51.432746 16.076124,50.047472 8.9909709,44.102332 7.5339337,42.879734 6.2499668,41.528152 5.1420193,40.079045 L 4.8343958,39.658194 C 0.76832601,34.0955 1.9515387,26.351453 7.4771766,22.36138 13.002814,18.371306 20.77843,19.646166 24.844501,25.208859 Z" style="fill:url(#g13)" /><path id="path62" d="m 24.844501,25.208859 c 0.04163,6.84562 5.636761,12.42884 12.497071,12.470471 6.860311,0.04163 12.387942,-5.47409 12.346311,-12.319709 l -9.53e-4,-0.156747 c 0.07327,5.679151 -1.798009,11.388946 -5.714387,16.056296 -2.883411,3.436311 -6.515801,5.879029 -10.468453,7.293308 l -0.428828,0.145041 C 26.602265,50.886871 19.512345,47.403576 17.239483,40.917362 14.96662,34.431147 18.371502,27.398212 24.844501,25.208859 Z" style="fill:url(#g12)" /><path id="path64" d="M 24.844501,25.208859 C 31.381909,27.363866 38.367988,23.843413 40.448347,17.345706 42.528706,10.848 38.915553,3.83359 32.378144,1.678584 L 31.842952,1.502162 c 3.149862,0.958982 6.167442,2.558035 8.855077,4.813224 5.838829,4.899353 8.898368,11.870026 8.988901,18.887488 l 9.53e-4,0.156747 c 0.04163,6.845619 -5.486,12.361341 -12.346311,12.319709 -6.86031,-0.04163 -12.45544,-5.624851 -12.497071,-12.470471 z" style="fill:url(#g11)" /><path id="path66" style="fill:url(#g15)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><g id="g72" style="opacity:0.54425222;fill:none" transform="matrix(-0.37460713,0.92718385,-0.92718518,-0.37460659,68.842244,2.122857)"><path id="path68" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="fill:url(#g9)" /><path id="path70" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49988679" /></g><path id="path74" style="opacity:0.1;fill:url(#g8)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><path id="path76" style="opacity:0.18013395;fill:url(#g7)" d="M 4.8244748,10.490984 4.946318,10.330719 C 9.112291,4.851089 16.920883,3.718459 22.387296,7.80092 27.853707,11.883381 28.907921,19.634987 24.741947,25.114618 24.177499,24.278959 23.527245,23.535182 22.810409,22.8869 24.7942,19.528843 24.933782,15.24584 22.803609,11.700712 19.69445,6.526212 12.927139,4.883207 7.6883949,8.030957 6.5691013,8.703496 5.6101449,9.540315 4.8244318,10.490984 Z" /><g id="g82" style="opacity:0.18013395;fill:none" transform="matrix(0.85716853,-0.51503807,0.51503881,0.8571673,-5.2722905,4.334214)"><path id="path78" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="fill:url(#g6)" /><path id="path80" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="mix-blend-mode:multiply;fill:#000000;fill-opacity:0.77284307" /></g><g id="g88" style="opacity:0.5841518;fill:none" transform="matrix(-0.22495138,-0.97437006,0.97437146,-0.22495105,-15.913458,55.421439)"><path id="path84" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="fill:url(#g5)" /><path id="path86" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.50308539" /></g><g id="g94" style="opacity:0.56222097;fill:none" transform="matrix(-0.99863096,-0.05233596,0.05233603,-0.99862953,57.15441,72.548735)"><path id="path90" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="fill:url(#g3)" /><path id="path92" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="mix-blend-mode:overlay;fill:#000000" /></g><path id="path96" d="m 32.186954,1.615568 0.191202,0.06303 c 6.537408,2.155006 10.150561,9.169416 8.070202,15.667122 -2.080359,6.497706 -9.066438,10.01816 -15.603846,7.863153 0.606364,-0.805759 1.097919,-1.662736 1.477505,-2.551578 3.820968,0.782433 7.916076,-0.48 10.574561,-3.648255 C 40.776928,14.384625 40.127202,7.451106 35.445374,3.522591 34.445068,2.683237 33.341634,2.048968 32.186954,1.61557 Z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49617866" /><path id="path98" d="m 24.100846,55.523071 h 4.544831 c 4.281413,0 7.752184,-3.36365 7.752184,-7.512922 0,-4.149273 -3.470771,-7.512923 -7.752184,-7.512923 h -6.55954 c -2.470046,0 -4.472413,1.940568 -4.472413,4.334379 v 16.869977 z" style="fill:#000000;filter:url(#filter-18-3)" transform="matrix(1.0000014,0,0,1,-1.2150017,-25)" /><path id="path100" d="m 22.885879,30.523071 h 4.544837 c 4.281419,0 7.752195,-3.36365 7.752195,-7.512922 0,-4.149273 -3.470776,-7.512923 -7.752195,-7.512923 h -6.559549 c -2.47005,0 -4.47242,1.940568 -4.47242,4.334379 v 16.869977 z" style="fill:#ffffff" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_mastodon       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("mastodon");      $class = "brand-mastodon";        return svg($label === DOM_AUTO ? "Mastodon"        : $label,   0,      0,      32,       32,     $align == DOM_AUTO ? false : !!$align, '<g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path class="'.$class.'" d="M 15.9375 4.03125 C 12.917 4.0435 9.9179219 4.4269844 8.3574219 5.1464844 C 8.3574219 5.1464844 5 6.6748594 5 11.880859 C 5 18.077859 4.9955 25.860234 10.5625 27.365234 C 12.6945 27.938234 14.527953 28.061562 16.001953 27.976562 C 18.676953 27.825562 20 27.005859 20 27.005859 L 19.910156 25.029297 C 19.910156 25.029297 18.176297 25.640313 16.029297 25.570312 C 13.902297 25.495313 11.6615 25.335688 11.3125 22.679688 C 11.2805 22.432688 11.264625 22.182594 11.265625 21.933594 C 15.772625 23.052594 19.615828 22.420969 20.673828 22.292969 C 23.627828 21.933969 26.199344 20.081672 26.527344 18.388672 C 27.041344 15.720672 26.998047 11.880859 26.998047 11.880859 C 26.998047 6.6748594 23.646484 5.1464844 23.646484 5.1464844 C 22.000984 4.3779844 18.958 4.019 15.9375 4.03125 z M 12.705078 8.0019531 C 13.739953 8.0297031 14.762578 8.4927031 15.392578 9.4707031 L 16.001953 10.505859 L 16.609375 9.4707031 C 17.874375 7.5037031 20.709594 7.6264375 22.058594 9.1484375 C 23.302594 10.596438 23.025391 11.531 23.025391 18 L 23.025391 18.001953 L 20.578125 18.001953 L 20.578125 12.373047 C 20.578125 9.7380469 17.21875 9.6362812 17.21875 12.738281 L 17.21875 16 L 14.787109 16 L 14.787109 12.738281 C 14.787109 9.6362812 11.429688 9.7360938 11.429688 12.371094 L 11.429688 18 L 8.9765625 18 C 8.9765625 11.526 8.7043594 10.585438 9.9433594 9.1484375 C 10.622859 8.3824375 11.670203 7.9742031 12.705078 8.0019531 z"></path></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
     function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("seloger");       $class = "brand-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
 
@@ -10841,9 +10917,21 @@
 
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
 
-        $data["desc"]           = has($metadata, "post_text") ? div_articlebody((is_callable("add_hastag_links_$source") ? call_user_func("add_hastag_links_$source", at($metadata, "post_text"), $userdata) : '')) : false;
+        $data["desc"]           = has($metadata, "post_text") 
+        
+            ?   div_articlebody(
+                
+                    (
+                        is_callable("add_hastag_links_$source") 
+                        
+                        ?   call_user_func("add_hastag_links_$source", at($metadata, "post_text"), $userdata) 
+                        :                                              at($metadata, "post_text")
+                    )
+                ) 
+            
+            :   false;
 
-        if (false !==                         at($metadata,"post_url",false)
+        if (false !==                             at($metadata,"post_url", false)
         &&  ""    !=                                 $metadata["post_url"]
         &&  false !== strpos($data["desc"],          $metadata["post_url"])
         &&  false === strpos($data["desc"], 'href="'.$metadata["post_url"])
@@ -10904,9 +10992,9 @@
                     at($data, "title_sub"),         // subtitle
                     at($data, "title_img_src"),     // icon
                     at($data, "title_link"),        // link/link_main
-                    false,                              // link_subtitle
-                    false,                              // link_icon
-                    1/*get_card_headline()*/        // level
+                    false,                          // link_subtitle
+                    false,                          // link_icon
+                    3//get_card_headline()          // level // TODO Correct way for user to specify headline level + decide if used for toolbar nav menu
                     
                     )
                 ).
