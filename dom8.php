@@ -102,6 +102,8 @@
         return "";
     }
 
+    function debug_log($msg) { return debug_console_log($msg); }
+
     function debug_timings($totals_only = false)
     {
         global $__profiling;
@@ -346,6 +348,7 @@
 
             // If path exists then directly return it
 
+          //if (@is_dir($path))                                 return $path.$param;
             if (@file_exists($path))                            return $path.$param;
             if (($max_depth == $depth) && url_exists($path))    return $path.$param;
 
@@ -385,6 +388,8 @@
         }
 
         //if (false !== stripos($path0, "autoload.php")) { ob_end_clean(); die("PATH = [".$path0."]"); }
+
+        //if ($default == false) die($path0);
 
         return $default;
     }
@@ -1246,12 +1251,66 @@
     #region HELPERS : LOCALIZATION
     ######################################################################################################################################
     
-    function T($label, $default = false, $lang = false)
-    { 
-        $lang = strtolower(substr((false === $lang) ? get("lang", server_http_accept_language('en')) : $lang, 0, 2));
-        $key = "loc_".$lang."_".$label;
-        if (false === get($key, false) && false !== $default) set($key, $default);
-        return get($key, (false === $default) ? $label : $default);
+    function server_language()
+    {
+        return  at("" == get("server-language",  "")           ? false : explode(",", get("server-language")                ), 0,
+                at("" == server_http_accept_language('en-EN')  ? false : explode(",", server_http_accept_language('en-EN')  ), 0,
+                "en-EN")
+                );
+    }
+
+    function server_language_short()
+    {
+        return at("" == server_language() ? false : explode("-", server_language()), 0, "en");
+    }
+
+    function content_language()
+    {
+        return  get( "lang",
+                at("" == get("content-language", "")    ? false : explode(",", get("content-language")  ), 0,
+                at("" == get("html-language",    "")    ? false : explode(",", get("html-language")     ), 0,
+                at("" == server_language()              ? false : explode(",", server_language()        ), 0,
+                "en-EN")
+                )));
+    }
+
+    function content_language_short()
+    {
+        return at("" == content_language() ? false : explode("-", content_language()), 0, "en");
+    }
+    
+    function T()
+    {
+        if (func_num_args() >= 3) 
+        {
+            list($label, $lang, $text) = func_get_args();
+            $key = strtolower("i18n-$lang-$label");
+            set($key, $text);
+            debug_log("$key = $text");
+            return "";
+        }
+
+        if (func_num_args() == 2)
+        {
+            list($lang, $text) = func_get_args();
+            debug_log("i18n-$lang / $text");
+            return (strtolower(server_language_short()) == strtolower($lang)) ? $text : "";
+        }
+
+        if (func_num_args() == 1)
+        {
+            list($label) = func_get_args();
+            foreach (array(server_language_short(), "en") as $lang) {
+                $key = strtolower("i18n-$lang-$label");
+                if (has($key)) {
+                    debug_log("i18n / $label -> $key -> ".get($key, ""));
+                    return get($key, "");
+                }
+            }
+            return $label;
+        }
+
+        return "";
     }
     
     #endregion
@@ -3853,7 +3912,7 @@
             {
                 if ($post_exclude_article_body)
                 {
-                    $post_message .= '<br><hr><div class="facebook_article_link"><a href="#'.md5($post_article["post_url"]).'">'.T("READ_ARTICLE", "Read article").'</a></div>';
+                    $post_message .= '<br><hr><div class="facebook_article_link"><a href="#'.md5($post_article["post_url"]).'">'.T("en", "Read article").'</a></div>';
                 }
                 else 
                 {
@@ -5672,9 +5731,9 @@
                     }
                 }*/
 
-                                        $attributes = attributes_add($attributes, attributes(attr("lang",   get("lang","en"))   ));
-                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")            ));
-                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")              ));
+                                        $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
+                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                        ));
+                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                          ));
 
                 //  Return html
 
@@ -6244,9 +6303,9 @@
         return  meta_charset('utf-8')
             
             .   eol()
-            .                     meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
+            .                 meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
             .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
-            .                     meta_http_equiv('content-language',  get("lang_target",get("lang","en")))
+            .                 meta_http_equiv('content-language',  get("content-language", content_language()))
             .   eol()       
             .   meta(array("title" => get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')))
             .   eol()       
@@ -6272,7 +6331,7 @@
             .   eol()       
             .   meta('DC.title',                            get("title"))
             .   meta('DC.format',                           'text/html')
-            .   meta('DC.language',                         get("lang","en"))
+            .   meta('DC.language',                         get("dc-language", content_language()))
             
             .   eol()       
             .   meta('geo.region',                          get("geo_region"))
@@ -7969,7 +8028,7 @@
 
             body                    { text-underline-offset: 0.25em; }
     
-            body                    { word-break: break-word; }
+            body                    { word-break: break-word; text-wrap: balance; }
             .grid *                 { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
@@ -9584,7 +9643,7 @@
         {        
             $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
 
-            return iframe($url, "Google Video", "google-video", $w, $w, $lazy);
+            return iframe($url, "Google Video", "google-video", $w, $h, $lazy);
         }
     }
         
@@ -11490,7 +11549,7 @@
 
     function calculate_luminosity_ratio($color1, $color2, $fallback1 = 1.0, $fallback2 = 0.0) {
 
-        $profiler = debug_track_timing();
+        //$profiler = debug_track_timing();
         
         $l1 = calculate_luminosity($color1, $fallback1);
         $l2 = calculate_luminosity($color2, $fallback2);

@@ -127,7 +127,7 @@
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
 
             .toolbar-row-nav, 
-            .toolbar-row-nav :is(section, div, ul)          { display: flex; /*flex-shrink: 0;*/ align-items: center;  scrollbar-width: none; }
+            .toolbar-row-nav :is(section, div, ul)          { display: flex; /*flex-shrink: 0;*/ align-items: center;  scrollbar-width: none; flex-wrap: nowrap; }
             .toolbar-row-nav,
             .toolbar-row-nav :is(section, div, ul) > *      { flex-shrink: 0; }
             .toolbar-row-nav,
@@ -572,12 +572,14 @@
 
     function icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
     {
-        $icon       = get($icon_entry, "icon",          get($icon_entry, 0, ""));
-        $label      = get($icon_entry, "label",         get($icon_entry, 1, ""));
-        $link       = get($icon_entry, "link",          get($icon_entry, 2, false));
-        $id         = get($icon_entry, "id",            get($icon_entry, 3, false));
-        $target     = get($icon_entry, "target",        get($icon_entry, 4, $default_target));
-        $attributes = get($icon_entry, "attributes",    get($icon_entry, 5, false));
+        if (!is_array($icon_entry)) return $icon_entry;
+
+        $icon       = get($icon_entry, "icon", get($icon_entry, "item", get($icon_entry, 0, "")));
+        $label      = get($icon_entry, "label",                         get($icon_entry, 1, ""));
+        $link       = get($icon_entry, "link",                          get($icon_entry, 2, false));
+        $id         = get($icon_entry, "id",                            get($icon_entry, 3, false));
+        $target     = get($icon_entry, "target",                        get($icon_entry, 4, $default_target));
+        $attributes = get($icon_entry, "attributes",                    get($icon_entry, 5, false));
 
         if (false === $attributes) $attributes = array();
         
@@ -765,7 +767,7 @@
     }
 
     function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = DOM_AUTO) { return ul_menu(get("hook_sections"), DOM_INTERNAL_LINK, $sidebar); }
+    function _ul_menu_auto($sidebar = DOM_AUTO) { $sections = get("hook_sections"); return (!is_array($sections) || count($sections) < 2) ? "" : ul_menu($sections, DOM_INTERNAL_LINK, $sidebar); }
 
     function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
