@@ -7,8 +7,8 @@ use function \dom\{get,at,array_open_url,HSTART,HERE,HSTOP};
 
 function valid_host_username_userid($host = false, $username = false, $user_id = false)
 {
-    $host     = !!$host     ? $host     : "mastodon.social";
-    $username = !!$username ? $username : get("author", @constant("TOKEN_MASTODON_USER"));
+    $host     = !!$host     ? $host     : trim(get("mastodon_domain", "mastodon.social"), "@");
+    $username = !!$username ? $username : trim(get("mastodon_author", get("mastodon_user", defined("TOKEN_MASTODON_USER") ? constant("TOKEN_MASTODON_USER") : get("author"))), "@");
     $user_id  = !!$user_id  ? $user_id  : at(array_open_url("https://$host/api/v1/accounts/lookup?acct=$username"), "id");
 
     return [ $host, $username, $user_id ];
