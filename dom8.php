@@ -1499,7 +1499,15 @@
     function quote($txt, $quote = false)                    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
     
     #endregion
-    #region WIP ????
+    #region Time & Durations utilities
+
+    function age($yyyy, $mm, $dd)
+    {
+        return (int)date_diff(date_create("$yyyy-$mm-$dd"), date_create())->format('%y');
+    }
+    
+    #endregion
+    #region Random utilities
 
     $__dom_rand_is_seeded = false;
 
@@ -1554,7 +1562,8 @@
         return rand_pick_ARGS(array_values($args));
     }
 
-    /* String utilities */
+    #endregion
+    #region String utilities
 
     function str_replace_all($from, $to, $str)
     {
@@ -1659,8 +1668,8 @@
         return array() === $a || array_keys($a) === range(0, count($a) - 1);
     }
 
-    /* DEPRECATED */
-    /*function internal_if($expr, $html)                           { return (!!$expr) ? $html : ""; }*/
+    #endregion
+    #region Array / String utilities
 
     function wrap_each($a, $glue = "", $transform = "self", $flatten_array = true)
     {
@@ -5760,7 +5769,7 @@
                    
                     raw_html(
                         '</html>'.
-                        comment("DOM.PHP ".DOM_VERSION.(defined("TOKEN_PACKAGE") ? (" / ".constant("TOKEN_PACKAGE")) : ""))
+                        comment("DOM.PHP ".DOM_VERSION)
                         );
             }
             else
@@ -6019,6 +6028,9 @@
 
     function link_rel_webmentions()
     {
+        // ie. Sets webmention' endpoint as https://webmention.io/villapirorum.netlify.app/webmention
+        // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://villepreux.free.fr&target=https://villapirorum.netlify.app/now
+
         return  '<link rel="webmention" href="https://webmention.io/'.webmentions_domain().'/webmention" />'.
               //'<link rel="pingback"   href="https://webmention.io/'.webmentions_domain().'/xmlrpc"     />'.
               //'<link rel="pingback"   href="https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint" />'.
