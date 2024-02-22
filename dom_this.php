@@ -1,12 +1,12 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,card,card_title,card_text,header,div,pre,style,p,debug_track_timing};
+use function dom\{set,get,card,card_title,card_text,header,div,span,pre,style,p,debug_track_timing,nbsp};
 
 function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
     $profiler = debug_track_timing();
 
-    if ($syntax_highlight)
+    if ($syntax_highlight && !get("gemini"))
     {
         // Workaround crappy native php syntax hightlight function ------>
         $functions = array("default", "html", "keyword", "string", "comment");
@@ -130,7 +130,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         $new_line_indent_size  = $tab_dst_size * (int)($line_indent_size / $tab_src_size);
         $new_line_indent_size += $line_indent_size - $tab_src_size * (int)($line_indent_size / $tab_src_size);
 
-        $lines[$l] = str_repeat("&nbsp;", $new_line_indent_size).trim($line_code);
+        $lines[$l] = str_repeat(nbsp(), $new_line_indent_size).trim($line_code);
     }
 
     $i = 0;
@@ -151,12 +151,23 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
 
     $html_code = pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
                 
-        return  '<div class="ide-line">'.
+        return !!get("gemini") 
         
-                    '<div class="ide-line-number">'.str_pad(++$i, 3, "0", STR_PAD_LEFT).'</div>'.
-                    '<div class="ide-line-code">'.($syntax_highlight ? $line : htmlentities($line)).'</div>'.
-                    
-                '</div>';
+            ? span(
+
+                span(str_pad(++$i, 3, "0", STR_PAD_LEFT),             "ide-line-number")." ".
+                span($syntax_highlight ? $line : htmlentities($line), "ide-line-code"),
+    
+                "ide-line"            
+            )
+            
+            : div(
+
+                div(str_pad(++$i, 3, "0", STR_PAD_LEFT),             "ide-line-number").
+                div($syntax_highlight ? $line : htmlentities($line), "ide-line-code"),
+
+                "ide-line"            
+            );
         
         }, $lines)), "ide-code");
 

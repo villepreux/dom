@@ -82,81 +82,96 @@
                                   || (false !== stripos(server_remote_addr(), "127.0.0.1")); }
 
     #endregion
-    #region HELPERS : PROFILING
+    #region HELPERS : DEBUG : LOG & PROFILING
     ######################################################################################################################################
     
     $__profiling            = array();
     $__profiling_level      = 0;
     $__profiling_timeline   = array();
+    $__debug_logs           = array();
 
-    function debug_console_log($msg = "")
+    function debug_log($msg = "")
     {
-        global $__profiling_timeline;
-        global $__profiling_level;        
-        
-        global $__dom_t0;
+        global $__profiling_timeline, $__profiling_level, $__dom_t0, $__debug_logs;
+
         $t = microtime(true) - $__dom_t0;
 
-        $__profiling_timeline[] = str_pad(number_format($t, 2), 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." ".$msg;
+        $t    = str_pad(number_format($t, 2), 6, " ", STR_PAD_LEFT);
+        $tab  = str_pad("", 6, " ", STR_PAD_LEFT);
+        $tree = str_repeat(" |  ", $__profiling_level);
+
+        $__profiling_timeline[] = "$t $tab $tree $msg";
+        $__debug_logs[]         = "$t $msg";
 
         return "";
     }
 
-    function debug_log($msg) { return debug_console_log($msg); }
-
-    function debug_timings($totals_only = false)
-    {
-        global $__profiling;
-
-        $report = array();
-        $totals = array();
-
-        $id_key = "function";
-
-        foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
-        foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
-
-        if (count($totals) > 0)
-        {
-            $report[] = "";
-            $report[] = "TOTALS";
-            $report[] = "";
-            
-            foreach ($totals as $function => $total)
-            {
-                $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($totals_only ? "" : " (TOTAL)") . ": " . $function;
-            }
-        }
-
-        global $__profiling_timeline;
-
-        if (count($__profiling_timeline) > 0)
-        {
-            $report[] = "";
-            $report[] = "TIMELINE";
-            $report[] = "";
-
-            if (!$totals_only)
-            {
-                $report = array_merge($report, $__profiling_timeline);
-            }
-        }
-
-        return $report;
-    }
-
-    function debug_console()
+    function debug_console($logs = true, $profiling = true, $profiling_totals_only = false)
     {
         $html  = PHP_EOL;
         $html .= PHP_EOL."PHP Version: ".PHP_VERSION;
         $html .= PHP_EOL."DOM Version: ".DOM_VERSION;
 
-        $debug_timings = debug_timings();
+        $report = array();
         
-        if (is_array($debug_timings) && count($debug_timings) > 0)
+        if ($logs)
+        {
+            global $__debug_logs;
+
+            if (count($__debug_logs) > 0)
+            {
+                $report[] = "";
+                $report[] = "LOGS";
+                $report[] = "";
+
+                $report = array_merge($report, $__debug_logs);
+            }
+        }
+
+        if ($profiling)
+        {
+            global $__profiling;
+
+            $totals = array();
+
+            $id_key = "function";
+
+            foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
+            foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
+
+            if (count($totals) > 0)
+            {
+                $report[] = "";
+                $report[] = "PROFILING TOTALS";
+                $report[] = "";
+
+                arsort($totals);
+                
+                foreach ($totals as $function => $total)
+                {
+                    $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($profiling_totals_only ? "" : " (TOTAL)") . ": " . $function;
+                }
+            }
+
+            global $__profiling_timeline;
+
+            if (count($__profiling_timeline) > 0)
+            {
+                $report[] = "";
+                $report[] = "PROFILING TIMELINE";
+                $report[] = "";
+
+                if (!$profiling_totals_only)
+                {
+                    $report = array_merge($report, $__profiling_timeline);
+                }
+            }
+        }
+        
+        if (is_array($report) && count($report) > 0)
         {
             $html .= PHP_EOL;
-            $html .= PHP_EOL.wrap_each($debug_timings, PHP_EOL);
+            $html .= PHP_EOL.wrap_each($report, PHP_EOL);
         }/*
         else
         {
@@ -1444,8 +1459,8 @@
 
         if (!!$debug_error_output && !!get("debug") && !$content)
         {
-            debug_console_log("COULD NOT PARSE $url");
-            foreach ($curl_debug_errors as $curl_debug_error) debug_console_log($curl_debug_error);
+            debug_log("COULD NOT PARSE $url");
+            foreach ($curl_debug_errors as $curl_debug_error) debug_log($curl_debug_error);
         }
 
         return $content;
@@ -1531,7 +1546,7 @@
             }
         }
 
-        debug_console_log("rand_seed: $seed");
+        debug_log("rand_seed: ".(!!$seed ? $seed : "AUTO"));
         mt_srand($seed);
 
         global $__dom_rand_is_seeded;
@@ -1785,6 +1800,17 @@
         
     function markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = false, $markdown = false, $commonmark = true)
     {
+        if (!!get("gemini"))
+        {
+            // TODO
+
+            $text = explode(PHP_EOL, $text);
+            foreach ($text as $l => $line) if (0 === stripos($line, "  * ")) $text[$l] = "* ".substr($line, 4);
+            $text = implode(PHP_EOL, $text);
+
+            return $text;
+        }
+
         $html = "";
         
         if ($markdown)
@@ -5288,10 +5314,10 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!get("no_html")) return ''; if (!!get("minify", false) || !!get("minify_html", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("no_js"))   return ''; if (!!get("minify", false) || !!get("minify_js",   false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("no_css"))  return ''; if (!!get("minify", false) || !!get("minify_css",  false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
-    function raw_php        ($php,  $force_minify = false)  {                                  if (!!get("minify", false) || !!get("minify_php",  false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify", false) || !!get("minify_html", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify", false) || !!get("minify_js",   false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify", false) || !!get("minify_css",  false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify", false) || !!get("minify_php",  false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
@@ -5314,8 +5340,9 @@
 
         $e = is_string($xml) ? simplexml_load_string($xml) : $xml;
         
-        foreach (libxml_get_errors() as $error) {
-            debug_console_log(json_encode($error));
+        foreach (libxml_get_errors() as $error) 
+        {
+            debug_log(json_encode($error));
         }
     
         libxml_clear_errors();
@@ -5715,7 +5742,7 @@
 
                         $html = placeholder_replace($delayed_component.$index, $content, $html, "div");
 
-                        //debug_console_log($delayed_component.$index.": ".($old_html == $html ? "Nothing replaced!" : "Placeholder filled!"));
+                        //debug_log($delayed_component.$index.": ".($old_html == $html ? "Nothing replaced!" : "Placeholder filled!"));
                     }
                 }
             }
@@ -6617,7 +6644,7 @@
         }
 
         //set("debug", true);
-        //debug_console_log($css);
+        //debug_log($css);
         
         return $css;
     }
@@ -9145,8 +9172,8 @@
 
         if (in_array($tag, [ "hr", "br" ])) return PHP_EOL;
 
-        if ($tag == "picture")  return "[PIC]";
-        if ($tag == "img")      return at($attributes, "tag")." [IMG]";
+        if ($tag == "picture")  return " ";
+        if ($tag == "img")      return " ";//at($attributes, "alt", at($attributes, "title", "")) != "" ? ("[".at($attributes, "alt", at($attributes, "title", ""))."][IMG]") : "[IMG]";
 
         if ("" == trim($html)) return "";
 
@@ -9161,9 +9188,8 @@
         $is_block_tag = in_array($tag, array(
 
             "body",
-            "section", "div",
             "header", "main", "footer",
-            "article",
+            "article","section", "div",
             "table",
             "p", "ul", "ol",
             "figure",
@@ -9182,7 +9208,7 @@
             {
                 $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($image) { 
                     
-                    return "=> ".at($image, "src")." ".at($image, "alt")." [IMG]"; 
+                    return "=> ".at($image, "src")." ".(at($image, "alt", at($image, "title", "")) != "" ? at($image, "alt", at($image, "title", "")) : "[IMG]"); 
                 
                     }, $hook_images)).PHP_EOL.PHP_EOL;
 
@@ -9198,7 +9224,7 @@
             {
                 $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($link) { 
                     
-                    return "=> ".at($link, "url")." ".at($link, "title")." [LINK]";  
+                    return "=> ".at($link, "url")." ".at($link, "title")/*." [LINK]"*/;  
                 
                     }, $hook_links)).PHP_EOL.PHP_EOL;
 
@@ -9206,13 +9232,16 @@
             }            
         }
 
+        if ($is_block_tag)
+        {
+            $html = PHP_EOL.PHP_EOL.$html.PHP_EOL.PHP_EOL;
+        }
+
         return str_replace_all(
             
-            PHP_EOL.PHP_EOL.PHP_EOL, 
+            [ PHP_EOL.PHP_EOL.PHP_EOL, "\n\n\n", "\r\n\r\n\r\n" ],
             PHP_EOL.PHP_EOL, 
-            PHP_EOL.PHP_EOL.
-            $html.
-            PHP_EOL.PHP_EOL
+            $html
         );
     }
 
@@ -10289,15 +10318,15 @@
         }
     }
     
-    function char_emoji($c) { return '<span class="emoji">'.  "$c&#xFE0F;" .'</span>'; }
-    function char_text($c)  { return '<samp class="symbol">'. "$c&#xFE0E;" .'</samp>'; }
+    function char_emoji($c) { return !!get("gemini") ? "$c" : span("$c&#xFE0F;", "emoji");   }
+    function char_text($c)  { return !!get("gemini") ? "$c" : span("$c&#xFE0E;", "symbol");  }
 
     function char_phone()  { return char_text("☎"); }
     function char_email()  { return char_text("✉"); }
     function char_anchor() { return char_text("⚓"); }
     
-    function char_unsec()  { return "&nbsp;"; }
-    function char_amp()    { return "&amp;";  }
+    function char_unsec()  { return !!get("gemini") ? " " : "&nbsp;"; }
+    function char_amp()    { return !!get("gemini") ? "&" : "&amp;";  }
    
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : str_repeat(char_unsec(), $count_or_text); }
     
