@@ -28,7 +28,7 @@ $cmdline_option_spa             = arg_state("spa");
 $cmdline_option_lunr            = arg_state("lunr");
 $cmdline_option_minify          = arg_state("minify", 1, !!$cmdline_option_beautify ? 0 : 1);
 $cmdline_option_include         = arg_array("include");
-$cmdline_option_exclude         = arg_array("exclude"); $cmdline_option_exclude = array_merge($cmdline_option_exclude, array("netlify"), array($cmdline_option_output), !$cmdline_option_gemini ? null : array("gemini"), !$cmdline_option_static ? null : array("static"));
+$cmdline_option_exclude         = arg_array("exclude"); $cmdline_option_exclude = array_merge($cmdline_option_exclude, array("static", "netlify", "gemini"));
 $domain_src                     = arg_value("domain-src", substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
 $domain_dst                     = arg_value("domain-dst", "$domain_src/$cmdline_option_output");
 $main_src                       = arg_value("main-src", "../$domain_src");
@@ -375,11 +375,11 @@ function static_compile_error_check($html, $src)
 
 if (!$cmdline_option_github_action)
 {
-    include(__DIR__."/dom/dom.php");
+    require_once(__DIR__."/../dom.php");
 }
 else
 {
-    require_once("dom/dom.php");
+    require_once("dom/dom.php"); // TODO verify, now that this code has moved from ROOT/static.php to ROOT/dom/plugin/deploy.php
 }
 
 if (!static_is_localhost()) { die("Can only by run locally"); }
