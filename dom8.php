@@ -605,10 +605,11 @@
 
         // Options that impact others
 
-        if (AMP()) 
-        {
-            del("css_layers_support");
-        }
+        if (AMP())              {   del("css_layers_support");  }
+        if (!!get("beautify"))  {   set("minify",  false);      }
+        if (!!get("gemini"))    {   set("static",  true);
+                                    set("noajax",  true);
+                                    set("nolazy",  true);        }
     }
 
     #endregion
@@ -1011,12 +1012,16 @@
             return array("class" => trim($attributes));
         }
 
-        $xml = @simplexml_load_string($attributes, null, LIBXML_NOCDATA);
-
+        $xml = false;
+        if (!$xml) $xml = @simplexml_load_string(                                  $attributes,            null, LIBXML_NOCDATA);
+        if (!$xml) $xml = @simplexml_load_string("<div ".str_replace("&", "&amp;", $attributes)."></div>", null, LIBXML_NOCDATA);
+        
         if (!!$xml)
         {
             return at(@json_decode(@json_encode($xml), true), "@attributes", array());
         }
+
+        // TODO: Last resort fallback. Works only for one attribute
 
         list($key, $val) = explode("=", $attributes);
         $val = trim(trim($val, '"'), "'");
@@ -2023,13 +2028,17 @@
     $hook_images         = array();
     $hook_image_preloads = array();
     
-    function hook_img($src, $preload)
+    function hook_img($src, $alt, $preload)
     {
+        if ($src === false) return;
+
         global $hook_images;
 
-        if (!in_array($src, $hook_images))
+        $found = false; foreach ($hook_images as $image) { if ($src == $image["src"]) { $found = true; break; } }
+
+        if (!$found)
         {
-            $hook_images[] = $src;
+            $hook_images[] = [ "src" => $src, "alt" => $alt ];
         }
 
         if ($preload)
@@ -4447,17 +4456,27 @@
             }
         }
 
-        if (!$binary && $content_encoding_header !== false)  \header('Content-Encoding: ' . $encoding      . '');
-        if (array_key_exists($type, $types))                 \header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
-
-        if ($attachement_basename !== false)
+        if (!!get("gemini") && !get("debug"))
         {
-            if (array_key_exists($type, $dispositions))     @\header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
-            if ($attachement_length !== false)              @\header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
+            \header('Content-Encoding: '.$encoding);
+            \header('Content-Disposition: inline');/*
+            \header('Content-type: text/plain; charset='.$encoding);*/
+            \header('Content-type: text/gemini; charset='.$encoding);
+        }
+        else
+        {
+            if (!$binary && $content_encoding_header !== false)  \header('Content-Encoding: ' . $encoding      . '');
+            if (array_key_exists($type, $types))                 \header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
+
+            if ($attachement_basename !== false)
+            {
+                if (array_key_exists($type, $dispositions))     @\header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
+                if ($attachement_length !== false)              @\header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
+            }
+
+            @\header('Permissions-Policy: interest-cohort=()');
         }
 
-        @\header('Permissions-Policy: interest-cohort=()');
-        
         generate_all_preprocess();
 
         if (!$binary) cache_start();
@@ -4718,9 +4737,9 @@
             
         $screenshots = false;
         {
-            if (!$screenshots) $screenshots = get("screenshots");
-            if (!$screenshots) $screenshots = get("support_header_backgrounds");
-            if (!$screenshots) $screenshots = $hook_images;            
+            if (!$screenshots) { $screenshots = get("screenshots"); }
+            if (!$screenshots) { $screenshots = get("support_header_backgrounds"); }
+            if (!$screenshots) { $screenshots = array(); foreach ($hook_images as $image) $screenshots[] = $image["src"]; }
 
             if (!!$screenshots)
             {
@@ -5709,7 +5728,7 @@
     {
         $profiler = debug_track_timing();
 
-        // TODO DO THIS        
+        // TODO DO THIS
 
         $no_head = (false === stripos($html, "<head>") && false === stripos($html, "<head "));
         $no_body = (false === stripos($html, "<body>") && false === stripos($html, "<body "));
@@ -5718,10 +5737,18 @@
         else if ($no_head)              { $html = head().     $html;  }
         else if ($no_body)              { $html =        body($html); }
         
-
         if (has("ajax")) $_POST = array();
 
-        if ("html" == get("doctype", "html"))
+        if (!!get("gemini"))
+        {
+            $html = parse_delayed_components($html);
+            
+            if (!!get("debug")) $html = "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre>$html";
+            if (!!get("debug")) $html .= debug_console();
+
+            return $html;
+        }
+        else if ("html" == get("doctype", "html"))
         {
             if (!has("ajax"))
             {
@@ -5730,16 +5757,6 @@
                 $html = parse_delayed_components($html);
 
                 // Clean html
-
-                /*if (!get("minify"))
-                {
-                    while (true)
-                    {
-                        $pos = stripos($html, eol(3)); if (false === $pos) break;
-                        $html = substr_replace($html, eol(2), $pos, strlen(eol(3)));
-                    }
-                }*/
-
                                         $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
                 if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                        ));
                 if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                          ));
@@ -5747,37 +5764,17 @@
                 //  Return html
 
                 $welcome = "Welcome my fellow web developer!".((get("minify") && !get("static")) ? " You can ?minify=0 this source code if needed!" : "");
-                
-                $debug = "";
 
-                if (!!get("debug"))
-                {
-                    $debug = debug_console();
-                }
-                
-                return raw_html(
-                        
-                        '<!doctype html>'.
-                        comment($welcome).
-                        '<html'.attributes_as_string($attributes).'> '
-                        
-                        ).
-                    
-                    $html.
-                    eol().
-                    $debug.
-                   
-                    raw_html(
-                        '</html>'.
-                        comment("DOM.PHP ".DOM_VERSION)
-                        );
+                $debug = !get("debug") ? "" : debug_console();
+
+                return  raw_html('<!doctype html>'.comment($welcome).'<html'.attributes_as_string($attributes).'>'.' ').
+                        $html.eol().$debug.
+                        raw_html('</html>'.comment("DOM.PHP ".DOM_VERSION));
             }
             else
             {
                 call_asyncs_start();
-
-                $async_response = call_asyncs();
-           
+                $async_response = call_asyncs();           
                 return $async_response;
             }
         }
@@ -5840,7 +5837,7 @@
     function head($html = false, $async_css = false)
     { 
         $profiler = debug_track_timing();
-        
+
         if (false === $html)
         {
             $html = head_boilerplate($async_css);
@@ -5878,6 +5875,8 @@
                 "";
         }
 
+        if (!!get("gemini")) return "";
+        
         return tag('head', $html.$amp_scripts); 
     }
 
@@ -9054,7 +9053,7 @@
     function html_comment_end()  { return " //-->"; }
     function html_comment($text) { return html_comment_bgn().$text.html_comment_end(); }
 
-    function comment($text)          { return (has("rss")) ? "" : html_comment($text); }
+    function comment($text)          { return (has("rss") || !!get("gemini")) ? "" : html_comment($text); }
     
     function placeholder($text, $eol = 0)  { return eol($eol).html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
 
@@ -9134,15 +9133,103 @@
         return $html;
     }
 
+    function gemini_tag($tag, $html, $attributes)
+    {
+        $attributes = to_attributes($attributes);
+
+        debug_log(json_encode(["tag" => $tag, "html" => $html, "attributes" => $attributes]));
+
+        if (has($attributes, "hidden")) return "";
+        if (in_array($tag, [ "head", "meta", "link", "style", "script", "iframe", "svg", "video", "channel" ])) return "";
+        if (0 === stripos($tag, "amp-")) return "";
+
+        if (in_array($tag, [ "hr", "br" ])) return PHP_EOL;
+
+        if ($tag == "picture")  return "[PIC]";
+        if ($tag == "img")      return at($attributes, "tag")." [IMG]";
+
+        if ("" == trim($html)) return "";
+
+        if (in_array($tag, [ "pre"        ])) return "```".PHP_EOL.$html.PHP_EOL."```";
+        if (in_array($tag, [ "blockquote" ])) return "> ".implode(" ", explode(PHP_EOL, $html));
+
+        if ($tag == "h1") return PHP_EOL."# ".   trim($html);
+        if ($tag == "h2") return PHP_EOL."## ".  trim($html);
+        if ($tag == "h3") return PHP_EOL."### ". trim($html);
+        if ($tag == "li") return PHP_EOL."* ".   trim($html);
+
+        $is_block_tag = in_array($tag, array(
+
+            "body",
+            "section", "div",
+            "header", "main", "footer",
+            "article",
+            "table",
+            "p", "ul", "ol",
+            "figure",
+        ));
+        
+        if ($tag == "a")
+        {
+            $html = "[".trim($html)."]";
+        }
+
+        if ($tag  == "a" || $is_block_tag)
+        {
+            global $hook_images;
+
+            if (count($hook_images) > 0)
+            {
+                $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($image) { 
+                    
+                    return "=> ".at($image, "src")." ".at($image, "alt")." [IMG]"; 
+                
+                    }, $hook_images)).PHP_EOL.PHP_EOL;
+
+                $hook_images = array();
+            }
+        }
+
+        if ($is_block_tag)
+        {
+            global $hook_links;
+
+            if (count($hook_links) > 0)
+            {
+                $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($link) { 
+                    
+                    return "=> ".at($link, "url")." ".at($link, "title")." [LINK]";  
+                
+                    }, $hook_links)).PHP_EOL.PHP_EOL;
+
+                $hook_links = array();
+            }            
+        }
+
+        return str_replace_all(
+            
+            PHP_EOL.PHP_EOL.PHP_EOL, 
+            PHP_EOL.PHP_EOL, 
+            PHP_EOL.PHP_EOL.
+            $html.
+            PHP_EOL.PHP_EOL
+        );
+    }
+
     function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
     {
+        if (!!get("gemini"))
+        {
+            return gemini_tag($tag, $html, $attributes);
+        }
+
         $space_pos = strpos($tag, ' ');
 
         $html = cosmetic_indent($html, 1, $tag, $attributes);
         
         $prefix = "";
 
-        if (!get("minify") && in_array($tag, array(
+        $is_block_tag = in_array($tag, array(
             // HTML
             "head",
             "title",
@@ -9176,10 +9263,12 @@
             // RSS
             "channel"
 
-        )))
+        ));
+
+        if (!get("minify") && $is_block_tag)
         {
             $prefix = eol();
-        }        
+        }
 
         return (false && has('rss') && !$force_display) ? '' : (
 
@@ -9311,6 +9400,8 @@
             ), AMP() ? array() : array(
             "name"  => "!"
             ));
+
+        if (!!get("gemini")) return trim($html);
 
         return eol().tag(
             'body',
@@ -9486,9 +9577,11 @@
         
         $lazy_attributes = "";
 
-      if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
-      if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
+        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
+        if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
 
+        if (!!get("gemini")) return "";
+     
         return '<'.(AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
 
              (!!$title   ? (' title'            .'="'.$title        .'"') : '').
@@ -10316,7 +10409,11 @@
         $attributes = to_attributes($attributes);
 
         if (false === stripos($html, "<img")
-        &&  false === stripos($html, "<amp-img")) $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
+        &&  false === stripos($html, "[IMG]")
+        &&  false === stripos($html, "<amp-img")) 
+        {
+            $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
+        }
 
         if (AMP())
         {
@@ -10378,6 +10475,7 @@
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
     {
         if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
+        if (!!get("nolazy")) $lazy = false;
 
         if (is_array($path)) 
         {
@@ -10403,7 +10501,7 @@
         $codename = urlencode(basename($path, $ext));
         $alt      = ($alt === false || $alt === "") ? $codename : $alt;
         
-        $lazy_src = ($lazy_src === false) ? url_img_loading() : $lazy_src;
+        $lazy_src = ($lazy !== false) ? (($lazy_src === false) ? url_img_loading() : $lazy_src) : false;
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
@@ -10426,7 +10524,7 @@
             $preload = true;
         }
 
-        hook_img($path, $preload);
+        hook_img($path, $alt, $preload);
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
@@ -10469,6 +10567,8 @@
 
     function svg($label, $x, $y, $w, $h, $align, $svg_body, $add_wrapper = true) 
     {
+        if (!!get("gemini")) return "";
+
         $class = strtolower($label);
         if (is_numeric($class[0])) $class = "_$class";
 
@@ -10863,8 +10963,10 @@
         if ($title_icon !== false && false === stripos($title_icon, "<img")
                                   && false === stripos($title_icon, "<amp-img")) $title  = img($title_icon, false, false, array("class" => component_class("img", 'card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
         if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    component_class("a",   'card-title-link'), DOM_EXTERNAL_LINK);
-        if ($title_main !== false && false === stripos($title_main, "<h"))       $title .= h($h,           $title_main,   array("class" => component_class("h$h", 'card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
-        if ($title_main !== false && false !== stripos($title_main, "<h"))       $title .=                 $title_main;
+        if ($title_main !== false && false === stripos($title_main, "<h")
+                                  && false === stripos($title_main, "#"))        $title .= h($h,           $title_main,   array("class" => component_class("h$h", 'card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
+        if ($title_main !== false &&(false !== stripos($title_main, "<h") ||
+                                     false !== stripos($title_main, "#")))       $title .=                 $title_main;
         if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,    array("class" => component_class("p", 'card-title-sub')/*,  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*/));
 
         hook_card_set_context("title", $title_main);
@@ -11948,6 +12050,8 @@
 
     function h_card($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
     {
+        if (!!get("gemini")) return "";
+
         // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
 
         $photo = DOM_AUTO !== $photo ? $photo : "me.png";

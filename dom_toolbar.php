@@ -825,6 +825,8 @@
 
     function toolbar($html, $attributes = false)
     {
+        if (!!get("gemini")) return "";
+
         if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         
         $amp_observer = "";
@@ -849,7 +851,8 @@
                 $html.
                 $amp_observer, 
                 attributes_add_class($attributes, component_class("header", "toolbar toolbar-container"))
-                );
+                ).
+            "";
     }
 
 ?>
