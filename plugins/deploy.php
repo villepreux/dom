@@ -9,16 +9,16 @@ function arg_array($flag)                    { global $argv; $values = array(); 
 function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
 $cmdline_option_gemini          = arg_state("gemini");
-$cmdline_option_static          = arg_state("static", 1, !!$cmdline_option_gemini ? 1 : 0);
-$cmdline_option_output          = arg_value("output", !!$cmdline_option_gemini ? "gemini" : "static");
+$cmdline_option_static          = arg_state("static", 1, arg_state("gemini", 1, arg_state("netlify")));
+$cmdline_option_output          = arg_value("output", arg_state("gemini") ? "gemini" : "static");
 $cmdline_option_dom_fast        = arg_state("dom-fast");
 $cmdline_option_dom_profiling   = arg_state("dom-profiling");
-$cmdline_option_dom_debug       = arg_state("dom-debug", 1, !!$cmdline_option_dom_profiling ? 1 : 0);
+$cmdline_option_dom_debug       = arg_state("dom-debug", 1, arg_state("dom-profiling"));
 $cmdline_option_verbose         = arg_state("verbose");
 $cmdline_option_test            = arg_state("test");
 $cmdline_option_github_action   = arg_state("github-action");
 $cmdline_option_scrap           = arg_state("scrap");
-$cmdline_option_beautify        = arg_state("beautify", 1, !!$cmdline_option_dom_debug ? 1 : 0);
+$cmdline_option_beautify        = arg_state("beautify", 1, arg_state("dom-debug"));
 $cmdline_option_os              = arg_state("unix", "unix", "win");
 $cmdline_option_copy            = arg_state("copy");
 $cmdline_option_compile         = arg_state("compile");
@@ -26,13 +26,15 @@ $cmdline_option_generate        = arg_state("generate");
 $cmdline_option_netlify         = arg_state("netlify");
 $cmdline_option_spa             = arg_state("spa");
 $cmdline_option_lunr            = arg_state("lunr");
-$cmdline_option_minify          = arg_state("minify", 1, !!$cmdline_option_beautify ? 0 : 1);
+$cmdline_option_minify          = arg_state("minify", 1, !arg_state("beautify"));
 $cmdline_option_include         = arg_array("include");
-$cmdline_option_exclude         = arg_array("exclude"); $cmdline_option_exclude = array_merge($cmdline_option_exclude, array("static", "netlify", "gemini"));
-$domain_src                     = arg_value("domain-src", substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
-$domain_dst                     = arg_value("domain-dst", "$domain_src/$cmdline_option_output");
-$main_src                       = arg_value("main-src", "../$domain_src");
-$main_dst                       = arg_value("main-dst", "../$domain_dst");
+$cmdline_option_exclude         = array_merge(arg_array("exclude"), array("static", "netlify", "gemini"));
+$domain_src                     = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
+$domain_dst                     = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
+$main_src                       = arg_value("main-src",     "../$domain_src");
+$main_dst                       = arg_value("main-dst",     "../$domain_dst");
+$server_name                    = arg_value("server_name",      $domain_dst);
+$server_http_host               = arg_value("server-http-host", $domain_dst);
 
 #endregion
 #region Utilities
@@ -406,10 +408,10 @@ $php_args_common =
     " "."scrap"                         ."=".   "$cmdline_option_scrap".    // Hint to inform it can scrap if needed, as it's a precompiled site (MUCH SLOWER!)
     " "."spa"                           ."=".   "$cmdline_option_spa".      // Hint to inform we want a Single Page Application (EXPERIMENTAL / WIP)
     " "."HTTP_ACCEPT_LANGUAGE"          ."=".   "fr".                       // Make assumptions on Netlify server
-    " "."SERVER_NAME"                   ."=".   "$domain_dst".
+    " "."SERVER_NAME"                   ."=".   "$server_name".
     " "."SERVER_PORT"                   ."=".   "80".
     " "."HTTPS"                         ."=".   "on".
-    " "."HTTP_HOST"                     ."=".   "$domain_dst".
+    " "."HTTP_HOST"                     ."=".   "$server_http_host".
     " "."rand_seed"                     ."=".   "666".
     " "."path_max_depth"                ."=".   "32".
     " "."rss_date_granularity_daily"    ."=".   "1".
