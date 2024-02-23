@@ -5583,7 +5583,7 @@
      * Special HTML components
      */
     
-    function if_browser($condition, $html) { return (has("rss")) ? '' : ('<!--[if '.$condition.']>' . $html . '<![endif]-->'); }
+    function if_browser($condition, $html) { return (has("rss") || !!get("gemini")) ? '' : ('<!--[if '.$condition.']>' . $html . '<![endif]-->'); }
 
     #endregion
     #region WIP API : DOM : HTML COMPONENTS : DOCUMENT ROOT
@@ -9172,18 +9172,33 @@
 
         if (in_array($tag, [ "hr", "br" ])) return PHP_EOL;
 
-        if ($tag == "picture")  return " ";
-        if ($tag == "img")      return " ";//at($attributes, "alt", at($attributes, "title", "")) != "" ? ("[".at($attributes, "alt", at($attributes, "title", ""))."][IMG]") : "[IMG]";
+        if ($tag == "picture")  return "<pic>";
+        if ($tag == "img")      return "<img>";
 
         if ("" == trim($html)) return "";
 
         if (in_array($tag, [ "pre"        ])) return "```".PHP_EOL.$html.PHP_EOL."```";
         if (in_array($tag, [ "blockquote" ])) return "> ".implode(" ", explode(PHP_EOL, $html));
 
-        if ($tag == "h1") return PHP_EOL."# ".   trim($html);
-        if ($tag == "h2") return PHP_EOL."## ".  trim($html);
-        if ($tag == "h3") return PHP_EOL."### ". trim($html);
-        if ($tag == "li") return PHP_EOL."* ".   trim($html);
+        if ($tag == "h1") return PHP_EOL.PHP_EOL."# ".   "<h1>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h2") return PHP_EOL.PHP_EOL."## ".  "<h2>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h3") return PHP_EOL.PHP_EOL."### ". "<h3>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h4") return PHP_EOL.PHP_EOL."".     "<h4>". strtoupper(trim(implode(" ", explode(PHP_EOL, $html)), "") );
+        if ($tag == "h5") return PHP_EOL.PHP_EOL."".     "<h5>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h6") return PHP_EOL.PHP_EOL."".     "<h6>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h7") return PHP_EOL.PHP_EOL."".     "<h7>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h8") return PHP_EOL.PHP_EOL."".     "<h8>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h9") return PHP_EOL.PHP_EOL."".     "<h9>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+
+        if ($tag == "li") 
+        {
+            $html = trim(/*implode(" ", explode(PHP_EOL,*/ $html/*))*/, "\t\r\n* ");
+
+            if ($html == "")                                return PHP_EOL.  "⇨";
+            if (trim(at(explode(PHP_EOL, $html), 0)) == "") return PHP_EOL."* ⇨".PHP_EOL.$html."<li>";
+
+            return PHP_EOL."* $html<li>";
+        }
 
         $is_block_tag = in_array($tag, array(
 
@@ -9191,16 +9206,31 @@
             "header", "main", "footer",
             "article","section", "div",
             "table",
-            "p", "ul", "ol",
+            "p", "ul", "ol", // TODO intricated lists
             "figure",
         ));
         
         if ($tag == "a")
         {
-            $html = "[".trim($html)."]";
+            $html = strip_tags(trim($html));
+            $html = $html == "#" ? "" : $html;
+            $html = $html == "☰" ? "" : $html;
+            $html = $html == "" ? "" : "<a>[$html]";
         }
 
-        if ($tag  == "a" || $is_block_tag)
+        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", ""), 'toolbar-title ')
+        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", "")) == 'toolbar-title' )
+        {
+            $html .= "<toolbar-title>";
+        }
+
+        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", ""), 'toolbar ')
+        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", "")) == 'toolbar' )
+        {
+            $html .= "<toolbar>";
+        }
+
+        if (/*$tag  == "a" ||*/ $is_block_tag)
         {
             global $hook_images;
 
@@ -9208,7 +9238,7 @@
             {
                 $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($image) { 
                     
-                    return "=> ".at($image, "src")." ".(at($image, "alt", at($image, "title", "")) != "" ? at($image, "alt", at($image, "title", "")) : "[IMG]"); 
+                    return "<a>=> ".at($image, "src")." ".(at($image, "alt", at($image, "title", "")) != "" ? at($image, "alt", at($image, "title", "")) : "<img>"); 
                 
                     }, $hook_images)).PHP_EOL.PHP_EOL;
 
@@ -9224,7 +9254,7 @@
             {
                 $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($link) { 
                     
-                    return "=> ".at($link, "url")." ".at($link, "title")/*." [LINK]"*/;  
+                    return "<a>=> ".at($link, "url")." ".at($link, "title");  
                 
                     }, $hook_links)).PHP_EOL.PHP_EOL;
 
@@ -9234,15 +9264,26 @@
 
         if ($is_block_tag)
         {
-            $html = PHP_EOL.PHP_EOL.$html.PHP_EOL.PHP_EOL;
+            $html = PHP_EOL.PHP_EOL.PHP_EOL.$html.PHP_EOL.PHP_EOL;
         }
 
-        return str_replace_all(
+        if ($tag == "body")
+        {
+            $html = str_replace_all([
+                
+                "<toolbar>", "<toolbar-title>",
+                "<img>", "<pic>", "<a>", "<li>", 
+                "<h1>", "<h2>", "<h3>", "<h4>", "<h5>", "<h6>", "<h7>", "<h8>", "<h9>",
             
-            [ PHP_EOL.PHP_EOL.PHP_EOL, "\n\n\n", "\r\n\r\n\r\n" ],
-            PHP_EOL.PHP_EOL, 
-            $html
-        );
+                ], "", str_replace_all(
+                
+                [ PHP_EOL.PHP_EOL.PHP_EOL, "\r\n\r\n\r\n", "\n\n\n" ],
+                PHP_EOL.PHP_EOL, 
+                $html
+            ));
+        }
+
+        return $html;
     }
 
     function tag($tag, $html, $attributes = false, $force_display = false, $self_closing = false, $extra_attributes_raw = false)
@@ -9315,12 +9356,12 @@
     }
     
     function body($html = "", $html_post_scripts = "", $dark_theme = DOM_AUTO)
-    {        
+    {
         $profiler = debug_track_timing();
 
         $attributes = false;
 
-        if (is_array($html_post_scripts))
+        if (is_array($html_post_scripts))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
         {
             $attributes         = $html_post_scripts;
             $html_post_scripts  = at($attributes, "script", "");
@@ -9355,7 +9396,7 @@
         
         $body = ''
 
-        . if_browser('lte IE 9', eol().'<p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="https://browsehappy.com/">upgrade your browser</a> to improve your experience and security.</p>')
+        . if_browser('lte IE 9', eol().p('You are using an '.strong('outdated').' browser. Please '.a('upgrade your browser', "https://browsehappy.com/").' to improve your experience and security.', 'browserupgrade'))
         
         . (get("support_metadata_person",       false) ? script_json_ld($properties_person)         : "")
         . (get("support_metadata_organization", false) ? script_json_ld($properties_organization)   : "")
@@ -9429,8 +9470,6 @@
             ), AMP() ? array() : array(
             "name"  => "!"
             ));
-
-        if (!!get("gemini")) return trim($html);
 
         return eol().tag(
             'body',
@@ -10438,7 +10477,6 @@
         $attributes = to_attributes($attributes);
 
         if (false === stripos($html, "<img")
-        &&  false === stripos($html, "[IMG]")
         &&  false === stripos($html, "<amp-img")) 
         {
             $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
