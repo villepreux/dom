@@ -623,6 +623,8 @@
 
     function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
     {
+        if (!!get("gemini")) return "";
+        
         global $__ul_menu_index;
         ++$__ul_menu_index;
 
@@ -727,6 +729,8 @@
 
     function toolbar_banner($icon_entries = false, $section2 = false, $section3 = false)
     {
+        if (!!get("gemini")) return "";
+        
         hook_toolbar("banner");
 
         return toolbar_row(
@@ -757,6 +761,8 @@
 
     function toolbar_nav_toolbar($html = false)
     {
+        if (!!get("gemini")) return "";
+        
         if (false === $html) $html = ul_menu_auto();
 
         return toolbar_section(($html === false) ? '' : $html,  array(
@@ -773,6 +779,8 @@
 
     function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = DOM_AUTO)
     {
+        if (!!get("gemini")) return "";
+        
         if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
         if (false === $html)                                            $html = menu_toggle_auto($sidebar);
         
@@ -825,7 +833,7 @@
 
     function toolbar($html, $attributes = false)
     {
-        if (!!get("gemini")) return "";
+        //if (!!get("gemini")) return "";
 
         if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         

@@ -4,13 +4,13 @@
 
     #region CONSTANTS
     ######################################################################################################################################
-    
-    if (!defined("DOM_INTERNAL_LINK"))  define("DOM_INTERNAL_LINK",     "_self");
-    if (!defined("DOM_EXTERNAL_LINK"))  define("DOM_EXTERNAL_LINK",     "_blank");
+
+    if (!defined("DOM_INTERNAL_LINK"))  define("DOM_INTERNAL_LINK", "_self");
+    if (!defined("DOM_EXTERNAL_LINK"))  define("DOM_EXTERNAL_LINK", "_blank");
 
     define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.8.2");
-    define("DOM_AUTO",      "__DOM_AUTO__"); // ? migrate to null as auto param ?
+    define("DOM_VERSION",   "0.8.3");
+    define("DOM_AUTO",      "__DOM_AUTO__"); // TODO migrate to null as auto param ?
 
     #endregion
     #region HELPERS : CONFIG
@@ -5726,7 +5726,7 @@
 
                         $content = "";
                         {
-                            $profiler_component = debug_track_timing("", $fn_delayed_component);
+                            //$profiler_component = debug_track_timing("", $fn_delayed_component);
                     
                             if (is_array($param))
                             {   
@@ -5737,7 +5737,7 @@
                                 $content = call_user_func($fn_delayed_component, $param, $html);
                             }
 
-                            unset($profiler_component);
+                            //unset($profiler_component);
                         }
 
                         $html = placeholder_replace($delayed_component.$index, $content, $html, "div");
@@ -9162,6 +9162,10 @@
 
     function gemini_tag($tag, $html, $attributes)
     {
+        $WIP =  PHP_EOL."THIS PAGE IS WORK IN PROGRESS! ".
+                PHP_EOL."(Pages are generated from DOM.PHP lib. And hosting disk space is very limited here)".
+                "";
+
         $attributes = to_attributes($attributes);
 
         debug_log(json_encode(["tag" => $tag, "html" => $html, "attributes" => $attributes]));
@@ -9180,15 +9184,15 @@
         if (in_array($tag, [ "pre"        ])) return "```".PHP_EOL.$html.PHP_EOL."```";
         if (in_array($tag, [ "blockquote" ])) return "> ".implode(" ", explode(PHP_EOL, $html));
 
-        if ($tag == "h1") return PHP_EOL.PHP_EOL."# ".   "<h1>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h2") return PHP_EOL.PHP_EOL."## ".  "<h2>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h3") return PHP_EOL.PHP_EOL."### ". "<h3>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h4") return PHP_EOL.PHP_EOL."".     "<h4>". strtoupper(trim(implode(" ", explode(PHP_EOL, $html)), "") );
-        if ($tag == "h5") return PHP_EOL.PHP_EOL."".     "<h5>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h6") return PHP_EOL.PHP_EOL."".     "<h6>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h7") return PHP_EOL.PHP_EOL."".     "<h7>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h8") return PHP_EOL.PHP_EOL."".     "<h8>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
-        if ($tag == "h9") return PHP_EOL.PHP_EOL."".     "<h9>".            trim(implode(" ", explode(PHP_EOL, $html)), "");
+        if ($tag == "h1") return PHP_EOL.PHP_EOL."# ".   "<h1>".            implode(" ", explode(PHP_EOL, $html)).$WIP;
+        if ($tag == "h2") return PHP_EOL.PHP_EOL."## ".  "<h2>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h3") return PHP_EOL.PHP_EOL."### ". "<h3>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h4") return PHP_EOL.PHP_EOL."".     "<h4>". strtoupper(implode(" ", explode(PHP_EOL, $html)) );
+        if ($tag == "h5") return PHP_EOL.PHP_EOL."".     "<h5>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h6") return PHP_EOL.PHP_EOL."".     "<h6>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h7") return PHP_EOL.PHP_EOL."".     "<h7>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h8") return PHP_EOL.PHP_EOL."".     "<h8>".            implode(" ", explode(PHP_EOL, $html));
+        if ($tag == "h9") return PHP_EOL.PHP_EOL."".     "<h9>".            implode(" ", explode(PHP_EOL, $html));
 
         if ($tag == "li") 
         {
@@ -9215,8 +9219,10 @@
             $html = strip_tags(trim($html));
             $html = $html == "#" ? "" : $html;
             $html = $html == "☰" ? "" : $html;
-            $html = $html == "" ? "" : "<a>[$html]";
+            $html = $html == "" ? "" : "<a>$html";
         }
+
+        //$debug = false;
 
         if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", ""), 'toolbar-title ')
         ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", "")) == 'toolbar-title' )
@@ -9237,8 +9243,15 @@
             if (count($hook_images) > 0)
             {
                 $html .= PHP_EOL.PHP_EOL.implode(PHP_EOL, array_map(function($image) { 
-                    
-                    return "<a>=> ".at($image, "src")." ".(at($image, "alt", at($image, "title", "")) != "" ? at($image, "alt", at($image, "title", "")) : "<img>"); 
+             
+                    $src = at($image, "src");
+                    $alt = at($image, "alt", at($image, "title", "")) != "" ? at($image, "alt", at($image, "title", "")) : "<img>";
+
+                    // Currently do not point to local images. As hosting disk space is so limited
+                         if (0 === stripos($src, "gemini://")) $src = str_replace("gemini://", host_url()."/", $src);
+                    else if (0 !== stripos($src, "http"))      $src = url()."/$src";
+       
+                    return "<a>=> $src $alt";
                 
                     }, $hook_images)).PHP_EOL.PHP_EOL;
 
@@ -9265,11 +9278,18 @@
         if ($is_block_tag)
         {
             $html = PHP_EOL.PHP_EOL.PHP_EOL.$html.PHP_EOL.PHP_EOL;
+
+            $html = str_replace_all(
+                
+                [ PHP_EOL.PHP_EOL.PHP_EOL, "\r\n\r\n\r\n", "\n\n\n" ],
+                PHP_EOL.PHP_EOL, 
+                $html
+            );
         }
 
         if ($tag == "body")
         {
-            $html = str_replace_all([
+            $html = trim(str_replace_all([
                 
                 "<toolbar>", "<toolbar-title>",
                 "<img>", "<pic>", "<a>", "<li>", 
@@ -9280,7 +9300,7 @@
                 [ PHP_EOL.PHP_EOL.PHP_EOL, "\r\n\r\n\r\n", "\n\n\n" ],
                 PHP_EOL.PHP_EOL, 
                 $html
-            ));
+            )));
         }
 
         return $html;
@@ -11400,7 +11420,6 @@
     
     function google_calendar_async                            ($ids = false, $w = false, $h = false)                                                 { return ajax_call("`dom\google_calendar",    $ids, $w, $h); }
     function google_photo_album_async                         ($ids = false, $wrapper = "div", $img_wrapper = "self")                                { return ajax_call("dom\google_photo_album", $ids, $wrapper, $img_wrapper); }
-       
 
     #endregion
     #region WIP API : DOM : RSS

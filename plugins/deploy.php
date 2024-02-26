@@ -8,33 +8,35 @@ function arg_state($flag, $on = 1, $off = 0) { global $argv; return (STATIC_CLI 
 function arg_array($flag)                    { global $argv; $values = array(); if (STATIC_CLI) { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $values = array_merge($values, explode(",", $val)); } } else { $values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return $values; }
 function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
-$cmdline_option_gemini          = arg_state("gemini");
-$cmdline_option_static          = arg_state("static", 1, arg_state("gemini", 1, arg_state("netlify")));
-$cmdline_option_output          = arg_value("output", arg_state("gemini") ? "gemini" : "static");
-$cmdline_option_dom_fast        = arg_state("dom-fast");
-$cmdline_option_dom_profiling   = arg_state("dom-profiling");
-$cmdline_option_dom_debug       = arg_state("dom-debug", 1, arg_state("dom-profiling"));
-$cmdline_option_verbose         = arg_state("verbose");
-$cmdline_option_test            = arg_state("test");
-$cmdline_option_github_action   = arg_state("github-action");
-$cmdline_option_scrap           = arg_state("scrap");
-$cmdline_option_beautify        = arg_state("beautify", 1, arg_state("dom-debug"));
-$cmdline_option_os              = arg_state("unix", "unix", "win");
-$cmdline_option_copy            = arg_state("copy");
-$cmdline_option_compile         = arg_state("compile");
-$cmdline_option_generate        = arg_state("generate");
-$cmdline_option_netlify         = arg_state("netlify");
-$cmdline_option_spa             = arg_state("spa");
-$cmdline_option_lunr            = arg_state("lunr");
-$cmdline_option_minify          = arg_state("minify", 1, !arg_state("beautify"));
-$cmdline_option_include         = arg_array("include");
-$cmdline_option_exclude         = array_merge(arg_array("exclude"), array("static", "netlify", "gemini"));
-$domain_src                     = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
-$domain_dst                     = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
-$main_src                       = arg_value("main-src",     "../$domain_src");
-$main_dst                       = arg_value("main-dst",     "../$domain_dst");
-$server_name                    = arg_value("server_name",      $domain_dst);
-$server_http_host               = arg_value("server-http-host", $domain_dst);
+$cmdline_option_gemini                  = arg_state("gemini");
+$cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
+$cmdline_option_static                  = arg_state("static", 1, arg_state("gemini", 1, arg_state("netlify")));
+$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? "gemini" : "static");
+$cmdline_option_dom_fast                = arg_state("dom-fast");
+$cmdline_option_dom_profiling           = arg_state("dom-profiling");
+$cmdline_option_dom_debug               = arg_state("dom-debug", 1, arg_state("dom-profiling"));
+$cmdline_option_verbose                 = arg_state("verbose");
+$cmdline_option_test                    = arg_state("test");
+$cmdline_option_github_action           = arg_state("github-action");
+$cmdline_option_scrap                   = arg_state("scrap");
+$cmdline_option_beautify                = arg_state("beautify", 1, arg_state("dom-debug"));
+$cmdline_option_os                      = arg_state("unix", "unix", "win");
+$cmdline_option_copy                    = arg_state("copy");
+$cmdline_option_compile                 = arg_state("compile");
+$cmdline_option_generate                = arg_state("generate");
+$cmdline_option_generate_index_files    = arg_state("generate-index-files");
+$cmdline_option_netlify                 = arg_state("netlify");
+$cmdline_option_spa                     = arg_state("spa");
+$cmdline_option_lunr                    = arg_state("lunr");
+$cmdline_option_minify                  = arg_state("minify", 1, !arg_state("beautify"));
+$cmdline_option_include                 = arg_array("include");
+$cmdline_option_exclude                 = array_merge(arg_array("exclude"), array("netlify", "static", "gemini"));
+$domain_src                             = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
+$domain_dst                             = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
+$main_src                               = arg_value("main-src",     "../$domain_src");
+$main_dst                               = arg_value("main-dst",     "../$domain_dst");
+$server_name                            = arg_value("server_name",      $domain_dst);
+$server_http_host                       = arg_value("server-http-host", $domain_dst);
 
 #endregion
 #region Utilities
@@ -94,8 +96,8 @@ function static_log()
         $len = "mb_strlen"; // strlen vs iconv_strlen vs mb_strlen
         $sub = "mb_substr"; // substr vs mb_substr
 
-        $str  = static_at($args, 0, ""); $str  = $sub($str,  0, $__static_log_dimensions[0]); if (@$len($str)  > $__static_log_dimensions[0]) $str  = $sub($str,  0, $__static_log_dimensions[0] - 3)."[…]"; $str  .= str_repeat(" ", $__static_log_dimensions[0] - @$len($str));
-        $info = static_at($args, 1, ""); $info = $sub($info, 0, $__static_log_dimensions[1]); if (@$len($info) > $__static_log_dimensions[1]) $info = $sub($info, 0, $__static_log_dimensions[1] - 3)."[…]"; $info .= str_repeat(" ", $__static_log_dimensions[1] - @$len($info));
+        $str  = static_at($args, 0, ""); $str  = $sub($str,  0, $__static_log_dimensions[0]); $len_str  = @$len($str);  if ($len_str  > $__static_log_dimensions[0]) $str  = $sub($str,  0, $__static_log_dimensions[0] - 3)."[…]"; $str  .= str_repeat(" ", $__static_log_dimensions[0] - $len_str);
+        $info = static_at($args, 1, ""); $info = $sub($info, 0, $__static_log_dimensions[1]); $len_info = @$len($info); if ($len_info > $__static_log_dimensions[1]) $info = $sub($info, 0, $__static_log_dimensions[1] - 3)."[…]"; $info .= str_repeat(" ", $__static_log_dimensions[1] - $len_info);
     
         if ($__static_log_line > 0 && $__static_log_progressbar_size > 0) // Complete progressbar dots to vizualize its dimensions
         {
@@ -151,7 +153,7 @@ function static_compare_first_value($a,$b)
     return 0;
 }
 
-function should_be_parsed($path)
+function should_be_parsed($path, $parse_output = false)
 {
     global $cmdline_option_include;
     global $cmdline_option_exclude;
@@ -160,9 +162,16 @@ function should_be_parsed($path)
 
     if (false !== stripos($path, "/vendor/"))       return false; // INFO PHP dependencies not needed on the static site
     if (false !== stripos($path, "/node_modules/")) return false; // TODO Handle that
-    if (false !== stripos($path, "/static/"))       return false; // INFO Do not parse my output
-    if (false !== stripos($path, "static.php"))     return false; // INFO Do not parse myself
-    if (false !== stripos($path, "static.bat"))     return false; // INFO Do not parse myself
+
+    if (!$parse_output)
+    {
+        if (false !== stripos($path, "/static/"))   return false; // INFO Do not parse my output
+        if (false !== stripos($path, "/gemini/"))   return false; // INFO Do not parse my output
+    }
+
+    if (false !== stripos($path, "static.php"))                 return false; // INFO Do not parse myself
+    if (false !== stripos($path, "/dom/plugins/deploy.php"))    return false; // INFO Do not parse myself
+    if (false !== stripos($path, "static.bat"))                 return false; // INFO Do not parse myself
 
     // Excluded
 
@@ -170,6 +179,9 @@ function should_be_parsed($path)
     {
         foreach ($cmdline_option_exclude as $e)
         {
+            global $cmdline_option_output;
+            if ($parse_output && false !== stripos($path, "/$cmdline_option_output/")) continue;
+
             if (false !== stripos($path, $e)) return false;
         }
     }
@@ -213,7 +225,7 @@ function should_be_parsed($path)
     return true;
 }
 
-function static_scan($path)
+function static_scan($path, $parse_output = false)
 {
     $scan = array();
 
@@ -224,7 +236,7 @@ function static_scan($path)
         if ($name    == "static.php")   continue;
         if ($name    == "static.bat")   continue;
 
-        if (!should_be_parsed("$path/$name")) continue;
+        if (!should_be_parsed("$path/$name", $parse_output)) continue;
 
         $scan[] = $name;
     }
@@ -234,12 +246,12 @@ function static_scan($path)
 
 function static_mime_from_filename($filename) 
 {   
-    $parts     = explode('.', $filename); 
-    $pathinfo  = pathinfo($filename);
-    $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : strtolower($parts[count($parts) - 1]);
+    $pathinfo  = is_array($filename) ? $filename : pathinfo($filename);
+    $extension = static_at($pathinfo, "extension", "");
 
     $mimes = array( 
 
+        // Text
         'txt'   => 'text/plain',
         'htm'   => 'text/html',
         'html'  => 'text/html',
@@ -249,11 +261,15 @@ function static_mime_from_filename($filename)
         'js'    => 'application/javascript',
         'json'  => 'application/json',
         'xml'   => 'application/xml',
+        //Flash
         'swf'   => 'application/x-shockwave-flash',
         'flv'   => 'video/x-flv',
-        'png'   => 'image/png',        // images
+        // images
+        'png'   => 'image/png',        
         'jpe'   => 'image/jpeg',
         'jpeg'  => 'image/jpeg',
+        'jxr'   => 'image/jxr',
+        'webp'  => 'image/webp',
         'jpg'   => 'image/jpeg',
         'gif'   => 'image/gif',
         'bmp'   => 'image/bmp',
@@ -262,51 +278,57 @@ function static_mime_from_filename($filename)
         'tif'   => 'image/tiff',
         'svg'   => 'image/svg+xml',
         'svgz'  => 'image/svg+xml',
-        'zip'   => 'application/zip',        // archives
+        // Archives
+        'zip'   => 'application/zip',        
         'rar'   => 'application/x-rar-compressed',
         'exe'   => 'application/x-msdownload',
         'msi'   => 'application/x-msdownload',
         'cab'   => 'application/vnd.ms-cab-compressed',
-        'mp3'   => 'audio/mpeg',        // audio/video
+        // Audio/video
+        'mp3'   => 'audio/mpeg',        
         'qt'    => 'video/quicktime',
         'mov'   => 'video/quicktime',
-        'pdf'   => 'application/pdf',        // adobe
+        // Adobe
+        'pdf'   => 'application/pdf',        
         'psd'   => 'image/vnd.adobe.photoshop',
         'ai'    => 'application/postscript',
         'eps'   => 'application/postscript',
         'ps'    => 'application/postscript',
-        'doc'   => 'application/msword',        // ms office
+        // MS-Office
+        'doc'   => 'application/msword',        
         'rtf'   => 'application/rtf',
         'xls'   => 'application/vnd.ms-excel',
         'ppt'   => 'application/vnd.ms-powerpoint',
         'docx'  => 'application/msword',
         'xlsx'  => 'application/vnd.ms-excel',
         'pptx'  => 'application/vnd.ms-powerpoint',
-        'odt'   => 'application/vnd.oasis.opendocument.text',        // open office
+        // Open Office
+        'odt'   => 'application/vnd.oasis.opendocument.text',        
         'ods'   => 'application/vnd.oasis.opendocument.spreadsheet',
     );
 
     return static_at($mimes, $extension, 'application/octet-stream');
- }
+}
 
-function static_is_binary_file($path)
+function static_is_text_file($path)
 {
     $mime = static_mime_from_filename($path);
+    
+    return 0     === stripos($mime, "text/")
+        || 0     === stripos($mime, "application/")
+        || false !== stripos($mime, "+xml");
+}
 
-    if (false !== stripos($mime, "text/"))          return false;
-    if (false !== stripos($mime, "/javascript"))    return false;
-    if (false !== stripos($mime, "/json"))          return false;
-    if (false !== stripos($mime, "/xml"))           return false;
-    if (false !== stripos($mime, "/gemini"))        return false;
-
-    return true;
+function static_is_image_file($path)
+{
+    return 0 === stripos(static_mime_from_filename($path), "image/");
 }
 
 function static_subdirs($path)                  { return array_filter(static_scan($path), function($name) use ($path) { return  is_dir("$path/$name"); }); }
 function static_subfiles($path)                 { return array_filter(static_scan($path), function($name) use ($path) { return !is_dir("$path/$name"); }); }
 
 function static_content($str, $encode = false)  { return $encode ? base64_encode(str_replace("\r\n","\n",trim($str))) : str_replace("\r\n","\n",trim($str)); }
-function static_content_file($path)             { return static_content(@file_get_contents($path), static_is_binary_file($path)); }
+function static_content_file($path)             { return static_content(@file_get_contents($path), !static_is_text_file($path)); }
 
 function static_substr($str, $pos, $length)
 {
@@ -321,12 +343,14 @@ function static_diff($str1, $str2, $diff_chunk_length = 16, $prefix = "")
     $str1 = str_replace("\n", "\\n", str_replace("\r", "\\r", $str1));
     $str2 = str_replace("\n", "\\n", str_replace("\r", "\\r", $str2));
 
-    $len = "mb_strlen"; // strlen vs iconv_strlen vs mb_strlen
+    $len  = "mb_strlen"; // strlen vs iconv_strlen vs mb_strlen
+    $len1 = $len($str1);
+    $len2 = $len($str2);
 
-    for ($c = 0; $c < min($len($str1), $len($str2)); ++$c)
-    if (     $str1[$c] !=  $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": [".static_substr($str1, $c,          $diff_chunk_length)."] VS [".static_substr($str2, $c,          $diff_chunk_length)."]");
-    if ($len($str1) < $len($str2))    return $prefix.(str_pad(      $len($str1), 7, " ", STR_PAD_LEFT).": [".   str_repeat(" ",                $diff_chunk_length)."] VS [".static_substr($str2, $len($str1), $diff_chunk_length)."]");
-    if ($len($str2) < $len($str1))    return $prefix.(str_pad(      $len($str2), 7, " ", STR_PAD_LEFT).": [".static_substr($str1, $len($str2), $diff_chunk_length)."] VS [".   str_repeat(" ",                $diff_chunk_length)."]");
+    for ($c = 0; $c < min($len1, $len2); ++$c)
+    if ($str1[$c] != $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": [".static_substr($str1, $c,    $diff_chunk_length)."] VS [".static_substr($str2, $c,    $diff_chunk_length)."]");
+    if ($len1     <  $len2)     return $prefix.(str_pad(            $len1, 7, " ", STR_PAD_LEFT).": [".   str_repeat(" ",          $diff_chunk_length)."] VS [".static_substr($str2, $len1, $diff_chunk_length)."]");
+    if ($len2     <  $len1)     return $prefix.(str_pad(            $len2, 7, " ", STR_PAD_LEFT).": [".static_substr($str1, $len2, $diff_chunk_length)."] VS [".   str_repeat(" ",          $diff_chunk_length)."]");
 
     return "";
 }
@@ -571,15 +595,28 @@ if (!!$cmdline_option_copy)
                 &&  $extension != "css"
                 &&  $extension != "js")
                 {
-                    if (!is_file("$dst/$name") || (static_content_file("$src/$name") != static_content_file("$dst/$name"))) 
+                    if (!!$cmdline_option_gemini && !$cmdline_option_gemini_local_bin && !static_is_text_file($pathinfo))
+                    {   
+                        if (is_file("$dst/$name"))
+                        {
+                            $os_path_dst = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
+
+                            static_log($file_index, $nb_files, "[-] $dst/$name", "REMOVE");
+                            static_exec("del" ." \"$os_path_dst\"");
+                        }
+                    }
+                    else
                     {
-                        $os_path_src = ($cmdline_option_os == "win") ? str_replace("/","\\","$src/$name") : "$src/$name";
-                        $os_path_dst = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
+                        if (!is_file("$dst/$name") || (static_content_file("$src/$name") != static_content_file("$dst/$name"))) 
+                        {
+                            $os_path_src = ($cmdline_option_os == "win") ? str_replace("/","\\","$src/$name") : "$src/$name";
+                            $os_path_dst = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
 
-                        static_log($file_index, $nb_files, "[+] $dst/$name",static_diff(static_content_file("$src/$name"), static_content_file("$dst/$name")));
+                            static_log($file_index, $nb_files, "[+] $dst/$name",static_diff(static_content_file("$src/$name"), static_content_file("$dst/$name")));
 
-                        if ($cmdline_option_os == "win")  static_exec("copy" ." \"$os_path_src\" \"$os_path_dst\"");
-                        if ($cmdline_option_os == "unix") static_exec("cp"   ." \"$os_path_src\" \"$os_path_dst\"");
+                            if ($cmdline_option_os == "win")  static_exec("copy" ." \"$os_path_src\" \"$os_path_dst\"");
+                            if ($cmdline_option_os == "unix") static_exec("cp"   ." \"$os_path_src\" \"$os_path_dst\"");
+                        }
                     }
                 }
             }    
@@ -652,6 +689,9 @@ if (!!$cmdline_option_compile)
                 $html = false;
                 $derivative_outputs = array();
 
+                $static_name = str_replace(".php", ".$target_ext", $name);  
+                static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
+
                 if (!!$cmdline_option_verbose)
                 {
                     $static_name = str_replace(".php", ".$target_ext", $name);            
@@ -675,7 +715,7 @@ if (!!$cmdline_option_compile)
                     {
                         if (!!$cmdline_option_verbose)
                         {
-                            $static_name = str_replace(".php", ".$target_ext", $name);            
+                            $static_name = str_replace(".php", ".$target_ext", $name);
                             static_log($file_index, $nb_files, "[i] $dst/$static_name -> $type", "$file_index / $nb_files: $name -> COMPILE $type");
                         }
         
@@ -683,9 +723,9 @@ if (!!$cmdline_option_compile)
                         chdir($src);
                         {
                             $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
-
+           
                             $derivative_outputs[$type] = static_exec("php -f $name -- $php_args $type_arg".  " rss_date_granularity_daily=1");
-                            
+
                             static_compile_error_check($derivative_outputs[$type], "$src/$name $type");
                         }
                         chdir($cwd);
@@ -698,7 +738,7 @@ if (!!$cmdline_option_compile)
                         static_log($file_index, $nb_files, "[i] $dst/$name", "$file_index / $nb_files: $name -> COMPILE");
                     }
     
-                //  Assumes other php files have to be able to be included from anywhere
+                  //Assumes other php files have to be able to be included from anywhere
                     $html = static_exec("php -f $src/$name -- $php_args");
                     
                     static_compile_error_check($html, "$src/$name html");
@@ -718,14 +758,14 @@ if (!!$cmdline_option_compile)
                     if ($md5_prev != static_content($html))
                     {
                         static_log($file_index, $nb_files, "[C] $dst/$static_name", static_diff(static_content($html), $md5_prev));
-
+    
                         file_put_contents("$dst/$static_name", $html);
                     }
                 }
 
                 static_log($file_index, $nb_files);
                 ++$file_index;
-
+                
                 foreach ($derivatives as $type)
                 {
                     $output = array_key_exists($type, $derivative_outputs) ? $derivative_outputs[$type] : false;
@@ -768,8 +808,8 @@ if (!!$cmdline_option_compile)
 
                     if ($md5_prev != static_content($html_redirect))
                     {
-                        file_put_contents("$dst/$type/index.$target_ext", $html_redirect);
                         static_log($file_index, $nb_files, "[C] $dst/$type/index.$target_ext", static_diff(static_content($html_redirect), $md5_prev));
+                        file_put_contents("$dst/$type/index.$target_ext", $html_redirect);
                     } 
 
                     // Derivative file
@@ -783,8 +823,8 @@ if (!!$cmdline_option_compile)
 
                     if ($md5_prev != static_content($output))
                     {
-                        file_put_contents("$dst/$static_name", $output);
                         static_log($file_index, $nb_files, "[C] $dst/$static_name", static_diff(static_content($output), $md5_prev));
+                        file_put_contents("$dst/$static_name", $output);
                     }  
                 }
             }        
@@ -895,6 +935,52 @@ if (!!$cmdline_option_generate)
     }
 
     static_log("[i] generating files...OK");
+}
+
+if (!!$cmdline_option_generate || !!$cmdline_option_generate_index_files)
+{
+    static_log("[i] generating index files...");
+
+    $nb_dirs = 0;
+
+    $roots = array($main_dst);
+    $dirs  = array();
+
+    while (count($roots) > 0)
+    {
+        $dst = array_shift($roots);
+        ++$nb_dirs;
+
+        foreach (static_scan($dst, true) as $name) 
+        {
+            if (is_dir("$dst/$name")) $roots[] = "$dst/$name"; 
+        }
+    }
+
+    $dir_index = 0;
+
+    $roots = array($main_dst);
+
+    while (count($roots) > 0)
+    {
+        $dst = array_shift($roots);
+
+        if (!is_file("$dst/index.$target_ext"))
+        {
+            static_log("[+] Generate $dst/index.$target_ext");
+            file_put_contents("$dst/index.$target_ext", "");
+        }  
+
+        static_log($dir_index, $nb_dirs);
+        ++$dir_index;
+
+        foreach (static_scan($dst, true) as $name)
+        {
+            if (is_dir("$dst/$name")) $roots[] = "$dst/$name";
+        }
+    }
+
+    static_log("[i] generating index files...OK");
 }
 
 if (!!$cmdline_option_lunr)
