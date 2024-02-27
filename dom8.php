@@ -4890,6 +4890,21 @@
         <?php heredoc_flush("raw"); ?></html><?php return heredoc_stop(null);
     }
 
+    function string_gpc()
+    {
+        return json_encode([
+
+            "gpc"           => true,
+            "version"       => 1,
+            "lastUpdate"    => date("Y-m-d")
+        ]);
+    }
+
+    function string_dnt_policy()
+    {
+        return content("https://raw.githubusercontent.com/EFForg/dnt-policy/master/dnt-policy-1.0.txt");
+    }
+
     function string_loading_svg($force_minify = false, $color = "#FF8800")
     {
         heredoc_start(-2); ?><html><?php heredoc_flush(null); ?> 
@@ -5090,6 +5105,8 @@
         array("path" => "badge.xml",                     "generate" => false, "function" => "string_ms_badge"),
         array("path" => "robots.txt",                    "generate" => false, "function" => "string_robots"),
         array("path" => "human.txt",                     "generate" => false, "function" => "string_human"),
+        array("path" => ".well-known/gpc.json",          "generate" => false, "function" => "string_gpc"),
+        array("path" => ".well-known/dnt-policy.txt",    "generate" => false, "function" => "string_dnt_policy"),
         array("path" => "loading.svg",                   "generate" => false, "function" => "string_loading_svg"),
         array("path" => "offline.html",                  "generate" => false, "function" => "string_offline_html"),
         array("path" => "sw.js",                         "generate" => false, "function" => "string_service_worker"),
@@ -9839,6 +9856,55 @@
             return iframe($url, "Google Video", "google-video", $w, $h, $lazy);
         }
     }
+
+    function offset_html_headlines($html, $offset)
+    {
+        $levels = [1,2,3,4,5,6,7,8,9];
+        if ($offset > 0) $levels = array_reverse($levels);
+
+        foreach ($levels as $h)
+        {
+            $html = str_replace_all("<h$h",  "<h" .($h+$offset), $html);
+            $html = str_replace_all("</h$h", "</h".($h+$offset), $html);
+        }
+
+        return $html;
+    }
+  
+    function wikipedia($page)
+    {
+        return         
+            div(            
+                style((function () { HSTART(); ?><style><?php HERE() ?>
+
+                    .wikipedia-api-parse :is(.noarchive, .metadata, .mw-editsection, .navbox-container, .bandeau-portail) { display: none }
+                    .wikipedia-api-parse figure { width: 30%; margin: var(--gap) var(--gap) var(--gap) 0; }
+                    .wikipedia-api-parse figcaption { padding: calc(0.5 * var(--gap)) var(--gap); }
+                    .wikipedia-api-parse .gallery { display: flex; gap: var(--gap); padding-inline-start: 0; }
+                    .wikipedia-api-parse .gallery li { list-style: none }
+                    .wikipedia-api-parse :is(td,th) { border: none; white-space: normal }
+                    .wikipedia-api-parse th { white-space: pre }
+                    .wikipedia-api-parse table, 
+                    .wikipedia-api-parse table * { background: none !important; border: none !important; color: currentColor !important; box-shadow: none !important }
+                    .wikipedia-api-parse table .NavEnd { display: none }
+                    .wikipedia-api-parse table img { width: auto }
+                    .wikipedia-api-parse .flagicon { max-width: 64px; display: inline-block; }
+                    .wikipedia-api-parse .mw-halign-right { float: right; }
+
+                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()).
+
+                str_replace_all('href="/', 'href="https://fr.wikipedia.org/', 
+                str_replace_all('href="',  'target="_blank" href="', 
+                    offset_html_headlines(
+                        at(at(
+                            array_open_url("https://fr.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1"), 
+                            "parse"), "text"),
+                        1
+                        )
+                    )), 
+                "wikipedia-api-parse"
+                );
+    }
         
     function json_google_photo_album_from_content($url)
     {
@@ -10835,7 +10901,7 @@
     function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("seloger");       $class = "brand-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
 
     function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("deezer");        $class = "brand-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_spotify        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("spotify");       $class = "brand-spotify";         return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill="<?= $color ?>" d="m83.996 0.277c-46.249 0-83.743 37.493-83.743 83.742 0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l0.001-0.004zm38.404 120.78c-1.5 2.46-4.72 3.24-7.18 1.73-19.662-12.01-44.414-14.73-73.564-8.07-2.809 0.64-5.609-1.12-6.249-3.93-0.643-2.81 1.11-5.61 3.926-6.25 31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-0.903-8.148-4.35-1.04-3.453 0.907-7.093 4.354-8.143 30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-0.001zm0.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219-1.254-4.14 1.08-8.513 5.221-9.771 29.581-8.98 78.756-7.245 109.83 11.202 3.73 2.209 4.95 7.016 2.74 10.733-2.2 3.722-7.02 4.949-10.73 2.739z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_spotify        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("spotify");       $class = "brand-spotify";         return svg($label === DOM_AUTO ? "Spotify"         : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill="<?= $color ?>" d="m83.996 0.277c-46.249 0-83.743 37.493-83.743 83.742 0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l0.001-0.004zm38.404 120.78c-1.5 2.46-4.72 3.24-7.18 1.73-19.662-12.01-44.414-14.73-73.564-8.07-2.809 0.64-5.609-1.12-6.249-3.93-0.643-2.81 1.11-5.61 3.926-6.25 31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-0.903-8.148-4.35-1.04-3.453 0.907-7.093 4.354-8.143 30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-0.001zm0.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219-1.254-4.14 1.08-8.513 5.221-9.771 29.581-8.98 78.756-7.245 109.83 11.202 3.73 2.209 4.95 7.016 2.74 10.733-2.2 3.722-7.02 4.949-10.73 2.739z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code), false, false, "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                    false, false, "img-pinterest" ); }
