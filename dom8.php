@@ -8320,8 +8320,9 @@
                 position: static;
                 transform: unset;
                 /* 🡵 Requires special fonts. ie. 'Noto Sans Symbols 2' google font
-                content: "🡵";*/
-                content: "+";
+                content: "🡵";
+                content: "+";*/
+                content: "🌐"; /* Let's try that one */
                 font-weight: lighter;
                 font-size: 0.5em;
                 line-height: .5em;
