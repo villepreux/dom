@@ -96,9 +96,9 @@
 
         $t = microtime(true) - $__dom_t0;
 
-        $t    = str_pad(number_format($t, 2), 6, " ", STR_PAD_LEFT);
-        $tab  = str_pad("", 6, " ", STR_PAD_LEFT);
-        $tree = str_repeat(" |  ", $__profiling_level);
+        $t    = mb_str_pad(number_format($t, 2), 6, nbsp(), STR_PAD_LEFT);
+        $tab  = str_repeat(nbsp(), 6);
+        $tree = str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
 
         $__profiling_timeline[] = "$t $tab $tree $msg";
         $__debug_logs[]         = "$t $msg";
@@ -106,92 +106,114 @@
         return "";
     }
 
+    function debug_console_line($line = "")
+    {
+        if ($line == "") $line = nbsp();
+        if (0 === stripos($line, "<")) return eol().$line;
+        return div($line, "debug-console-line");
+    }
+
     function debug_console($logs = true, $profiling = true, $profiling_totals_only = false)
     {
-        $html  = PHP_EOL;
-        $html .= PHP_EOL."PHP Version: ".PHP_VERSION;
-        $html .= PHP_EOL."DOM Version: ".DOM_VERSION;
-
         $report = array();
-        
-        if ($logs)
         {
-            global $__debug_logs;
-
-            if (count($__debug_logs) > 0)
+            if ($logs)
             {
-                $report[] = "";
-                $report[] = "LOGS";
-                $report[] = "";
+                global $__debug_logs;
 
-                $report = array_merge($report, $__debug_logs);
+                if (count($__debug_logs) > 0)
+                {
+                    $report[] = "";
+                    $report[] = "LOGS";
+                    $report[] = "";
+
+                    $report = array_merge($report, $__debug_logs);
+                }
+            }
+
+            if ($profiling)
+            {
+                global $__profiling;
+
+                $totals = array();
+
+                $id_key = "function";
+
+                foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
+                foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
+
+                if (count($totals) > 0)
+                {
+                    $report[] = "";
+                    $report[] = "PROFILING TOTALS";
+                    $report[] = "";
+
+                    arsort($totals);
+                    
+                    foreach ($totals as $function => $total)
+                    {
+                        $report[] = mb_str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($profiling_totals_only ? "" : " (TOTAL)") . ": " . $function;
+                    }
+                }
+
+                global $__profiling_timeline;
+
+                if (count($__profiling_timeline) > 0)
+                {
+                    $report[] = "";
+                    $report[] = "PROFILING TIMELINE";
+                    $report[] = "";
+
+                    if (!$profiling_totals_only)
+                    {
+                        $report = array_merge($report, $__profiling_timeline);
+                    }
+                }
             }
         }
 
-        if ($profiling)
+        $html = "";
         {
-            global $__profiling;
+            $html .= debug_console_line();
+            $html .= debug_console_line("PHP Version: ".PHP_VERSION);
+            $html .= debug_console_line("DOM Version: ".DOM_VERSION);
 
-            $totals = array();
-
-            $id_key = "function";
-
-            foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
-            foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
-
-            if (count($totals) > 0)
+            if (is_array($report) && count($report) > 0)
             {
-                $report[] = "";
-                $report[] = "PROFILING TOTALS";
-                $report[] = "";
+                $html .= wrap_each($report, "", "debug_console_line");
+            }
+        }
 
-                arsort($totals);
+        return style("
+        
+            .debug-console {
+
+                min-height:     100vh; 
+                margin:         0; 
+                white-space:    nowrap; 
+                overflow-x:     auto; 
+                background:     black; 
+                color:          green; 
+                width:          100%;
+                font-family:    monospace;
+                line-height:    24px;
+            }
+
+            .debug-console,
+            .debug-console details,
+            .debug-console summary {
                 
-                foreach ($totals as $function => $total)
-                {
-                    $report[] = str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($profiling_totals_only ? "" : " (TOTAL)") . ": " . $function;
-                }
+                display:        flex;
+                flex-direction: column;
+                flex-wrap:      nowrap;
             }
 
-            global $__profiling_timeline;
+            .debug-console-line,
+            .debug-console summary { list-style: none; margin; 0; margin-inline: 0; }
+            .debug-console summary::-webkit-details-marker { display: none; height: 0px; margin: 0; padding: 0; }
+            .debug-console summary::marker { display: none; height: 0px; margin: 0; padding: 0; }
 
-            if (count($__profiling_timeline) > 0)
-            {
-                $report[] = "";
-                $report[] = "PROFILING TIMELINE";
-                $report[] = "";
-
-                if (!$profiling_totals_only)
-                {
-                    $report = array_merge($report, $__profiling_timeline);
-                }
-            }
-        }
-        
-        if (is_array($report) && count($report) > 0)
-        {
-            $html .= PHP_EOL;
-            $html .= PHP_EOL.wrap_each($report, PHP_EOL);
-        }/*
-        else
-        {
-            $html .= PHP_EOL;
-            $html .= PHP_EOL."No timings nor console output";
-        }*/
-
-        $html .= PHP_EOL;
-
-        return pre($html, array("style" => "
-        
-            min-height:     100vh; 
-            margin:         0; 
-            white-space:    pre; 
-            overflow-x:     auto; 
-            background:     black; 
-            color:          green; 
-            width:          100%;
-            
-            "));
+            ").div($html, "debug-console");
     }
     
     function debug_callstack($shift_current_call = true)
@@ -257,9 +279,11 @@
             
             $t = number_format($this->profiling["t"], 2);
 
-            $__profiling_timeline[] = str_pad("", 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level);
-            $__profiling_timeline[] = str_pad($t, 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." +- ".$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-            $__profiling_timeline[] = str_pad("", 6, " ", STR_PAD_LEFT)." ".str_pad("", 6, " ", STR_PAD_LEFT)." ".str_repeat(" |  ", $__profiling_level)." | ";
+          //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
+            $__profiling_timeline[] = "<details><summary>";
+            $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+            $__profiling_timeline[] = "</summary>";
+            $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
 
             ++$__profiling_level;
         }
@@ -284,17 +308,19 @@
             $t  = number_format($this->profiling["t"],  2);
             $dt = number_format($this->profiling["dt"], 2);
 
-            $__profiling_timeline[] =   str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
-                                        str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
-                                        str_repeat(" |  ", $__profiling_level)." | ";
+            $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
+                                        str_repeat(nbsp(), 6) . nbsp() . 
+                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
             
-            $__profiling_timeline[] =   str_pad(number_format($this->profiling["t"],  2), 6, " ", STR_PAD_LEFT) . " " . 
-                                        str_pad(number_format($this->profiling["dt"], 2), 6, " ", STR_PAD_LEFT) . " " . 
-                                        str_repeat(" |  ", $__profiling_level)." +- ".$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-            
-            $__profiling_timeline[] =   str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
-                                        str_pad("",                                       6, " ", STR_PAD_LEFT) . " " . 
-                                        str_repeat(" |  ", $__profiling_level)."";
+            $__profiling_timeline[] =   mb_str_pad(number_format($this->profiling["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                        mb_str_pad(number_format($this->profiling["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+            /*
+            $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
+                                        str_repeat(nbsp(), 6) . nbsp() . 
+                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level)."";*/
+
+            $__profiling_timeline[] = "</details>";
             
             
             global $__profiling;
@@ -992,8 +1018,8 @@
         {
             $html = '';
             
-            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode(" ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan[$i], ' ', 1); ++$i; } }
-            else                {         foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode(" ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan,     ' ', 1);       } }
+            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan[$i], ' ', 1); ++$i; } }
+            else                {         foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan,     ' ', 1);       } }
             
             return $html;
         }
@@ -1033,15 +1059,17 @@
         
         if (!!$xml)
         {
-            return at(@json_decode(@json_encode($xml), true), "@attributes", array());
+            $attributes = at(@json_decode(@json_encode($xml), true), "@attributes", array());
         }
+        else
+        {
+            // TODO: Last resort fallback. Works only for one attribute
 
-        // TODO: Last resort fallback. Works only for one attribute
-
-        list($key, $val) = explode("=", $attributes);
-        $val = trim(trim($val, '"'), "'");
-        $key = trim($key);
-        $attributes = array($key => $val);
+            list($key, $val) = explode("=", $attributes);
+            $val = trim(trim($val, '"'), "'");
+            $key = trim($key);
+            $attributes = array($key => $val);
+        }
 
         return $attributes;
     }
@@ -1065,13 +1093,34 @@
 
         foreach ($attributes1 as $name1 => $values1)
         {
-            if (!is_array($values1)) $values1 = explode(" ", $values1);
+            if (!is_array($values1))
+            {
+                if ($name1 == "style")
+                {
+                    $values1 = explode(";", $values1);
+                }
+                else
+                {
+                    $values1 = explode(" ", $values1);
+                }
+            }
 
             foreach ($attributes2 as $name2 => $values2)
             {
                 if ($name2 == $name1)
                 {
-                    if (!is_array($values2)) $values2 = explode(" ", $values2);        
+                    if (!is_array($values2)) 
+                    {
+                        if ($name2 == "style")
+                        {
+                            $values2 = explode(";", $values2);
+                        }
+                        else
+                        {
+                            $values2 = explode(" ", $values2);
+                        }
+                    }
+
                     $values1 = array_values(array_merge($values1, $values2));
                 }
             }
@@ -1085,7 +1134,18 @@
         {
             if (!in_array($name2, $names1))
             {
-                if (!is_array($values2)) $values2 = explode(" ", $values2); 
+                if (!is_array($values2))
+                {
+                    if ($name2 == "style")
+                    {
+                        $values2 = explode(";", $values2);
+                    }
+                    else
+                    {
+                        $values2 = explode(" ", $values2);
+                    }
+                }
+                
                 $attributes[$name2] = $values2;
             }
         }
@@ -1584,6 +1644,15 @@
 
     #endregion
     #region String utilities
+
+    if (!function_exists("mb_str_pad"))
+    {
+        function mb_str_pad( $input, $pad_length, $pad_string = ' ', $pad_type = STR_PAD_RIGHT)
+        {
+            while (mb_strlen($input) < $pad_length) $input = ($pad_type == STR_PAD_RIGHT ? ($input.$pad_string) : ($pad_string.$input));
+            return $input;
+        }
+    }
 
     function str_replace_all($from, $to, $str)
     {
@@ -2583,7 +2652,7 @@
         
         if ($token === false && !defined("TOKEN_PINTEREST")) return array();
         
-        $token      = ($token === false) ? TOKEN_PINTEREST : $token;
+        $token      = ($token === false) ? constant("TOKEN_PINTEREST") : $token;
         $fields     = array("id","link","note","url","image","media","metadata","attribution","board","color","original_link","counts","creator","created_at");
         $end_point  = "https://api.pinterest.com/v1/pins/".$pin."/?access_token=".$token."&fields=".implode('%2C', $fields); // EXTERNAL ACCESS
         
@@ -2598,9 +2667,9 @@
         if ($username === false && !has("pinterest_user"))  return array();
         if ($board    === false && !has("pinterest_board")) return array();
         
-        $token      = ($token    === false) ? TOKEN_PINTEREST    : $token;
-        $username   = ($username === false) ? get("pinterest_user")     : $username;
-        $board      = ($board    === false) ? get("pinterest_board")    : $board;
+        $token      = ($token    === false) ? constant("TOKEN_PINTEREST")   : $token;
+        $username   = ($username === false) ? get("pinterest_user")         : $username;
+        $board      = ($board    === false) ? get("pinterest_board")        : $board;
         $end_point  = "https://api.pinterest.com/v1/boards/".$username."/".$board."/pins/?access_token=".$token; // EXTERNAL ACCESS
         
         $result = array_open_url($end_point, "json");
@@ -2620,8 +2689,8 @@
         if ($token    === false && !defined("TOKEN_TUMBLR")) return array();
         if ($blogname === false && !has("tumblr_blog"))  return array();
         
-        $blogname   = ($blogname === false) ? get("tumblr_blog") : $blogname;
-        $token      = ($token    === false) ? TOKEN_TUMBLR       : $token;    
+        $blogname   = ($blogname === false) ? get("tumblr_blog")        : $blogname;
+        $token      = ($token    === false) ? constant("TOKEN_TUMBLR")  : $token;    
         $end_point  = "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/$method?api_key=$token"; // EXTERNAL ACCESS
         
         return array_open_url($end_point, "json");
@@ -2638,7 +2707,7 @@
         $fields_page            = ($fields_page         === false) ? array("id","name","about","mission","hometown","website","cover","picture","birthday"/*,"email","first_name","gender","last_name","quotes"*/) : ((!is_array($fields_page)) ? array($fields_page) : $fields_page);
         $fields_attachements    = ($fields_attachements === false) ? array("media","url") : ((!is_array($fields_attachements)) ? array($fields_attachements) : $fields_attachements);
         $fields_post            = ($fields_post         === false) ? array("message","description","caption","full_picture","link","attachments%7B".implode('%2C', $fields_attachements)."%7D") : ((!is_array($fields_post)) ? array($fields_post) : $fields_post);
-        $token                  = ($token               === false) ? TOKEN_FACEBOOK : $token;
+        $token                  = ($token               === false) ? constant("TOKEN_FACEBOOK") : $token;
         $end_point              = "https://graph.facebook.com/v2.10/".$username."?access_token=".$token."&fields=".implode('%2C', $fields_page); // EXTERNAL ACCESS
         $end_point             .= ($fields_post !== false) ? (",posts"."%7B".implode('%2C', $fields_post)."%7D") : "";
 
@@ -2703,7 +2772,7 @@
         $username               = ($username            === false) ? get("facebook_page")  : $username;
         $fields_attachements    = ($fields_attachements === false) ? array("media","url") : ((!is_array($fields_attachements)) ? array($fields_attachements) : $fields_attachements);
         $fields_post            = ($fields_post         === false) ? array("message","description","caption","full_picture","link","attachments%7B".implode('%2C', $fields_attachements)."%7D","created_time","from") : ((!is_array($fields_post)) ? array($fields_post) : $fields_post);
-        $token                  = ($token               === false) ? TOKEN_FACEBOOK : $token;
+        $token                  = ($token               === false) ? constant("TOKEN_FACEBOOK") : $token;
         $end_point              = "https://graph.facebook.com/v2.10/".$post_id."?access_token=".$token."&fields=".implode('%2C', $fields_post); // EXTERNAL ACCESS
 
         return array_open_url($end_point, "json");
@@ -2875,8 +2944,8 @@
         if ($token  === false && !defined("TOKEN_FACEBOOK"))    return array();
         if ($page   === false && !has("facebook_page"))     return array();
         
-        $token  = ($token   === false) ? TOKEN_FACEBOOK        : $token;
-        $page   = ($page    === false) ? get("facebook_page")  : $page;
+        $token  = ($token   === false) ? constant("TOKEN_FACEBOOK") : $token;
+        $page   = ($page    === false) ? get("facebook_page")       : $page;
 
         $end_points = array
         (
@@ -2961,9 +3030,9 @@
         if ($token    === false && !defined("TOKEN_INSTAGRAM")) return array();
         if ($username === false && !has("instagram_user"))  return array();
         
-        $token      = ($token    === false) ? TOKEN_INSTAGRAM           : $token;
-        $username   = ($username === false) ? get("instagram_user") : $username;
-        $tag        = ($tag      === false) ? get("instagram_tag")  : $tag;
+        $token      = ($token    === false) ? constant("TOKEN_INSTAGRAM")   : $token;
+        $username   = ($username === false) ? get("instagram_user")         : $username;
+        $tag        = ($tag      === false) ? get("instagram_tag")          : $tag;
 
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
@@ -3138,7 +3207,7 @@
     {
         if ($token === false && !defined("TOKEN_FLICKR")) return array();
 
-        $token      = ($token === false) ? TOKEN_FLICKR : $token;
+        $token      = ($token === false) ? constant("TOKEN_FLICKR") : $token;
         $method     = (0 === stripos($method, "flickr.")) ? $method : ("flickr.".$method);
         $end_point  = "https://api.flickr.com/services/rest/?method=".$method."&api_key=".$token."&format=json&nojsoncallback=1"; // EXTERNAL ACCESS
 
@@ -4512,9 +4581,8 @@
     {
         $profiler = debug_track_timing($placeholder);
 
-        if (!get("static") || !!get("fast"))
+        if (!get("static") || !!get("fast")) // TODO Taking this shortcut for now as below code is too slow
         {
-            // TODO Taking this shortcut for now as below code is too slow
             return str_replace(placeholder($placeholder), $replaced_by, $in);
         }
 
@@ -4526,6 +4594,39 @@
                     tab($tab).placeholder($placeholder), 
                     $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false), 
                     $in);
+
+                break;
+            }
+        }
+
+        return $in;
+    }
+
+    function placeholder_replace_once($placeholder, $replaced_by_cb, $in, $container_tag = false, $container_attributes = false)
+    {
+        $profiler = debug_track_timing($placeholder);
+
+        if (!get("static") || !!get("fast")) // TODO Taking this shortcut for now as below code is too slow
+        {            
+            $ph = placeholder($placeholder);
+
+          //return str_replace($ph, $replaced_by, $in);
+            $pos = strpos($in, $ph);
+            if (false === $pos) return $in;
+            return substr($in, 0, $pos).($replaced_by_cb()).substr($in, $pos + strlen($ph));
+        }
+
+        for ($tab = 9; $tab >= 0; --$tab)
+        {
+            $ph = tab($tab).placeholder($placeholder);
+
+            if (false !== ($pos = stripos($in, $ph)))
+            {
+                $replaced_by = $replaced_by_cb();
+                $by = $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false);
+
+              //$in = str_replace($ph, $by, $in);
+                $in = substr($in, 0, $pos).$by.substr($in, $pos + strlen($ph));
 
                 break;
             }
@@ -5735,31 +5836,37 @@
 
                         $delayed_component = $delayed_component_and_param[0];
                         $param             = $delayed_component_and_param[1];
-
-                        //$old_html = $html;
     
                         $fn_delayed_component = $delayed_component;
                         if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
 
-                        $content = "";
+                        while (true)
                         {
-                            //$profiler_component = debug_track_timing("", $fn_delayed_component);
-                    
-                            if (is_array($param))
-                            {   
-                                $content = call_user_func_array($fn_delayed_component, array_merge($param, array($html)));
-                            }
-                            else
-                            {   
-                                $content = call_user_func($fn_delayed_component, $param, $html);
-                            }
+                            $fn_get_placeholder_content_cb = function() use ($fn_delayed_component, $param, $html)
+                            {
+                                $content = "";
+                                {
+                                    if (is_array($param))
+                                    {   
+                                        $content = call_user_func_array($fn_delayed_component, array_merge($param, array($html)));
+                                    }
+                                    else
+                                    {   
+                                        $content = call_user_func($fn_delayed_component, $param, $html);
+                                    }
+                                }
 
-                            //unset($profiler_component);
+                                return $content;
+                            };
+
+                          //$content = $fn_get_placeholder_content_cb();
+                          //$html = placeholder_replace($delayed_component.$index, $content, $html, "div");
+                          //break;
+
+                            $new_html = placeholder_replace_once($delayed_component.$index, $fn_get_placeholder_content_cb, $html, "div");
+                            if ($new_html == $html) break;
+                            $html = $new_html;
                         }
-
-                        $html = placeholder_replace($delayed_component.$index, $content, $html, "div");
-
-                        //debug_log($delayed_component.$index.": ".($old_html == $html ? "Nothing replaced!" : "Placeholder filled!"));
                     }
                 }
             }
@@ -5770,6 +5877,9 @@
 
     function html($html = "", $attributes = false)
     {
+        debug_log();
+        $debug_console = !get("debug") ? "" : debug_console();
+
         $profiler = debug_track_timing();
 
         // TODO DO THIS
@@ -5788,7 +5898,7 @@
             $html = parse_delayed_components($html);
             
             if (!!get("debug")) $html = "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre>$html";
-            if (!!get("debug")) $html .= debug_console();
+            if (!!get("debug")) $html .= $debug_console;
 
             return $html;
         }
@@ -5809,10 +5919,8 @@
 
                 $welcome = "Welcome my fellow web developer!".((get("minify") && !get("static")) ? " You can ?minify=0 this source code if needed!" : "");
 
-                $debug = !get("debug") ? "" : debug_console();
-
                 return  raw_html('<!doctype html>'.comment($welcome).'<html'.attributes_as_string($attributes).'>'.' ').
-                        $html.eol().$debug.
+                        $html.eol().$debug_console.
                         raw_html('</html>'.comment("DOM.PHP ".DOM_VERSION));
             }
             else
@@ -8466,7 +8574,7 @@
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
         }
 
-        return  script_src("https://www.googletagmanager.com/gtag/js?id=".TOKEN_GOOGLE_ANALYTICS, false, 'async').
+        return  script_src("https://www.googletagmanager.com/gtag/js?id=".constant("TOKEN_GOOGLE_ANALYTICS"), false, 'async').
                 script(
 
             eol(1) . '/*  Google analytics */ '.
@@ -8476,16 +8584,16 @@
                 ' ga.q=[];'.
                 ' ga.l=+new Date;'.
 
-                ' ga("create",'. ' "'.TOKEN_GOOGLE_ANALYTICS.'",'. ' "auto"'.   ');'.
-                ' ga("set",'.    ' "anonymizeIp",'.                ' true'.     ');'.
-                ' ga("set",'.    ' "transport",'.                  ' "beacon"'. ');'.
-                ' ga("send",'.   ' "pageview"'.                                 ');'.*/
+                ' ga("create",'. ' "'.constant("TOKEN_GOOGLE_ANALYTICS").'",'. ' "auto"'.   ');'.
+                ' ga("set",'.    ' "anonymizeIp",'.                           ' true'.     ');'.
+                ' ga("set",'.    ' "transport",'.                             ' "beacon"'. ');'.
+                ' ga("send",'.   ' "pageview"'.                                            ');'.*/
 
                 ' window.dataLayer = window.dataLayer || [];'.
                 ' function gtag(){dataLayer.push(arguments);}'.
                 ' gtag(\'js\', new Date());'.
                 ' '.
-                ' gtag(\'config\', \''.TOKEN_GOOGLE_ANALYTICS.'\');'.
+                ' gtag(\'config\', \''.constant("TOKEN_GOOGLE_ANALYTICS").'\');'.
 
             eol(1)
             );
@@ -10450,10 +10558,10 @@
     function char_email()  { return char_text("✉"); }
     function char_anchor() { return char_text("⚓"); }
     
-    function char_unsec()  { return !!get("gemini") ? " " : "&nbsp;"; }
+    function char_unsec()  { return !!get("gemini") ? " " : " "/*"&nbsp;"*/; }
     function char_amp()    { return !!get("gemini") ? "&" : "&amp;";  }
    
-    function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : str_repeat(char_unsec(), $count_or_text); }
+    function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     
     function anchor_name($name, $tolower = DOM_AUTO) { return to_classname($name, $tolower); }
 
@@ -10700,9 +10808,13 @@
         }
         else
         {
-                 if (DOM_AUTO === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", "src" =>                          $path )).attributes_add_class($attributes, "img");
-            else if (true     === $lazy) $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", "src" => $lazy_src, "data-src" => $path )).attributes_add_class($attributes, "img lazy loading");
-            else                         $attributes = attributes_as_string(array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", "src" =>                          $path )).attributes_add_class($attributes, "img");
+                 if (DOM_AUTO === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", "src" =>                          $path ));
+            else if (true     === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", "src" => $lazy_src, "data-src" => $path ));
+            else                          $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", "src" =>                          $path ));
+
+                 if (DOM_AUTO === $lazy)  $attributes = attributes_add_class($attributes, "img");
+            else if (true     === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
+            else                          $attributes = attributes_add_class($attributes, "img");
 
             return tag('img', $content, $attributes, false, $content == '');
         }
