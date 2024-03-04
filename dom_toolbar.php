@@ -710,9 +710,16 @@
                 );
     }
 
+    function toolbar_skip_to_main()
+    {
+        return a(T("Skip to main"), "#".anchor_name(get("title")), "skip-to-main");
+    }
+
     function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
     {
-        if (is_array($section1)) $section1 = toolbar_section(icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
+        $skip_to_main = delayed_component("toolbar_skip_to_main");
+
+        if (is_array($section1)) $section1 = toolbar_section($skip_to_main.icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
         if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), component_class("section", "toolbar-cell-center" ));
         if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), component_class("section", "toolbar-cell-right"  ));
 

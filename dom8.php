@@ -5960,7 +5960,60 @@
             "./screen.css"
             );
 
-        return title().
+        return 
+
+            eol().
+            eol().comment("DOM Head pragma directives"). /* 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type */ 
+            head_pragma_directives().
+    
+            title(). /* 10 Title */
+
+            eol().
+            eol().comment("DOM Head preconnect hints"). /* 9 */
+            head_preconnect_hints().
+
+            eol().
+            (AMP() ? "" : (eol().comment("DOM Head Asynchronous scripts"))). /* 8 */
+          //head_asynchronous_scripts().
+            scripts_head().
+
+            eol().
+            eol().comment("DOM Head Import styles"). /* 7 */
+          //head_import_styles().
+            (!AMP() ? ("".
+                eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
+                eol().'<link rel="stylesheet" type="text/css" media="screen"/>'.
+            "") : "").
+            (AMP() ? "" : (eol().comment("DOM Head styles"))).
+            link_styles($async_css).
+            styles().            
+            (!$path_css ? "" : (
+                (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
+                style($path_css).                                                               "") : (
+                link_style($path_css).                                                          "")).
+            "")).
+            
+            eol().
+            eol().comment("DOM Head Synchronous scripts"). /* 6 */
+          //head_synchronous_scripts().
+
+            eol().
+            eol().comment("DOM Head Synchronous styles"). /* 5 */
+          //head_synchronous_styles().
+
+            eol().
+            eol().comment("DOM Head Preload hints"). /* 4 */
+          //head_preload_hints().
+
+            eol().
+            eol().comment("DOM Head Deferred scripts"). /* 3 */
+          //head_deferred_scripts().
+
+            eol().
+            eol().comment("DOM Head Prefetch and prerender hints"). /* 2 */
+          //head_prefetch_and_prerender_hints().
+
+            /* Everything else 1 */
 
             eol().
             eol().comment("DOM Head Metadata").
@@ -5972,16 +6025,6 @@
             eol().
             link_rel_webmentions().     "")).
 
-            (AMP() ? "" : (eol().comment("DOM Head styles"))).
-            link_styles($async_css).
-            styles().
-                                                                                                (!$path_css ? "" : (
-            (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).  (!get("htaccess_rewrite_php") ? (
-            style($path_css).                                                               "") : (
-            link_style($path_css).                                                              "")).
-                                                                                                "")).
-            (AMP() ? "" : (eol(). comment("DOM Head scripts"))).
-            scripts_head().
             
             "";
     }
@@ -6457,17 +6500,37 @@
 
         return link_rel($type, $path, $attributes);
     }
+
+    function head_pragma_directives()
+    {
+        return  meta_charset('utf-8')
+            .   eol()
+            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))
+            .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
+            ;        
+    }
+
+    function head_preconnect_hints()
+    {
+        return (!get("unsplash-preconnect") ? '' : '<link rel="preconnect" href="https://source.unsplash.com">');
+    }
     
     function metas  () { return delayed_component("_".__FUNCTION__, false); }
     function _metas ()
     {
         $profiler = debug_track_timing();
         
-        return  meta_charset('utf-8')
+        return  ""
+        
+            .   eol().comment("Preloaded images")
+            .   link_rel_image_preloads()
             
-            .   eol()
-            .                 meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')
-            .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))
+            /*
+            .   meta_charset('utf-8')
+            
+            .   eol() */
+            .                 meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')/*
+            .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))*/
             .                 meta_http_equiv('content-language',  get("content-language", content_language()))
             .   eol()       
             .   meta(array("title" => get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')))
@@ -6475,8 +6538,8 @@
             .   meta('keywords', get("title").((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
             
             .   eol()
-            .   meta('format-detection',                    'telephone=no')
-            .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')
+            .   meta('format-detection',                    'telephone=no')/*
+            .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')*/
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
             .   meta('description',                         get("description", get("title")))
@@ -6546,13 +6609,6 @@
             // TODO FIX HREFLANG ALTERNATE
             // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
-            .   (!AMP() ? (""
-
-            .   eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before")
-            .   eol().'<link rel="stylesheet" type="text/css" media="screen"/>'
-            
-                ) : "")
-
             .   eol().comment("Alternate URLs")   
                 // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
             .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
@@ -6591,9 +6647,6 @@
             
             .   eol().comment("Prefetched pages")
             .   link_rel_prefetchs()
-
-            .   eol().comment("Preloaded images")
-            .   link_rel_image_preloads()
             ;
     }
     
@@ -8423,36 +8476,29 @@
             a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
             a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
             a:not(:has(img,picture,video,audio,svg)).external:after {
-                -webkit-text-fill-color: currentColor;
+
                 display: inline-block;
-                position: static;
-                transform: unset;
-                /* 🡵 Requires special fonts. ie. 'Noto Sans Symbols 2' google font
-                content: "🡵";
-                content: "+";*/
-                content: "🌐"; /* Let's try that one */
-                font-weight: lighter;
-                font-size: 0.5em;
-                line-height: .5em;
-                white-space: nowrap;
-                color: var(--text-color);
-                opacity: 0.3;
-                -webkit-text-fill-color: currentColor;
-                border: 1px solid currentColor;
-                border-radius: 3px;
-                vertical-align: middle;
-                margin-inline: 0.5em 0.2em;
-                margin-block: 0;
-                padding: 0.4em 0.2em;
-                text-decoration: none;
+                content: '';
+
+                background-color: currentColor;
+                mask: url('data:image/svg+xml;utf8,<svg height="1024" width="768" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M640 768H128V257.90599999999995L256 258V128H0v768h768V576H640V768zM384 128l128 128L320 448l128 128 192-192 128 128V128H384z"/></svg>');
+                mask-size: cover;
+                                
+                position: relative;
+                width:  .60em;
+                height: .75em;
+                top:    0.0em;
+                left:   0.2em;
+
+                margin-right: 0.33em;
+                
+                opacity: .4;
             }    
             a:not(:has(img,picture,video,audio,svg))[href^="//"]:hover:after, 
             a:not(:has(img,picture,video,audio,svg))[href^="http"]:hover:after, 
             a:not(:has(img,picture,video,audio,svg)).external:hover:after {
 
-                color:              var(--link-hover-color);
-                text-decoration:    none;
-                opacity:            1.0;
+                opacity: 1.0;
             }
 
             @media print {
@@ -10794,7 +10840,7 @@
 
         if (AMP())
         {
-            return tag('amp-img'.               ($content =='' ? (
+            return tag('amp-img'.                   ($content =='' ? (
                 ' fallback'.                        '') : '').
                 ' layout'.  '='.'"responsive"'.
                 ' width'.   '='.$w.
