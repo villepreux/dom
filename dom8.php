@@ -5960,6 +5960,8 @@
             "./screen.css"
             );
 
+        // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
+
         return 
 
             eol().
@@ -5980,18 +5982,6 @@
             eol().
             eol().comment("DOM Head Import styles"). /* 7 */
           //head_import_styles().
-            (!AMP() ? ("".
-                eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-                eol().'<link rel="stylesheet" type="text/css" media="screen"/>'.
-            "") : "").
-            (AMP() ? "" : (eol().comment("DOM Head styles"))).
-            link_styles($async_css).
-            styles().            
-            (!$path_css ? "" : (
-                (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
-                style($path_css).                                                               "") : (
-                link_style($path_css).                                                          "")).
-            "")).
             
             eol().
             eol().comment("DOM Head Synchronous scripts"). /* 6 */
@@ -6000,19 +5990,36 @@
             eol().
             eol().comment("DOM Head Synchronous styles"). /* 5 */
           //head_synchronous_styles().
+            (!AMP() ? ("".
+                eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
+                eol().'<link rel="stylesheet" type="text/css" media="screen"/>'.
+            "") : "").
+            (AMP() ? "" : (eol().comment("DOM Head styles"))).
+            link_styles($async_css). // if $async_css == false otherwise move to #2
+            styles().            
+            (!$path_css ? "" : (
+                (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
+                style($path_css).                                                               "") : (
+                link_style($path_css).                                                          "")).
+            "")).
 
             eol().
             eol().comment("DOM Head Preload hints"). /* 4 */
           //head_preload_hints().
+            eol().comment("Preloaded images").
+            link_rel_image_preloads().
 
             eol().
             eol().comment("DOM Head Deferred scripts"). /* 3 */
           //head_deferred_scripts().
+            //script_google_analytics should be call here if needed
 
             eol().
             eol().comment("DOM Head Prefetch and prerender hints"). /* 2 */
           //head_prefetch_and_prerender_hints().
-
+            eol().comment("Prefetched pages").
+            link_rel_prefetchs().
+            
             /* Everything else 1 */
 
             eol().
@@ -6515,16 +6522,16 @@
         return (!get("unsplash-preconnect") ? '' : '<link rel="preconnect" href="https://source.unsplash.com">');
     }
     
-    function metas  () { return delayed_component("_".__FUNCTION__, false); }
-    function _metas ()
+    function metas() { return delayed_component("_".__FUNCTION__, false); }
+    function _metas()
     {
         $profiler = debug_track_timing();
         
         return  ""
-        
+            /*
             .   eol().comment("Preloaded images")
             .   link_rel_image_preloads()
-            
+            */
             /*
             .   meta_charset('utf-8')
             
@@ -6644,9 +6651,9 @@
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
-            
+            /*
             .   eol().comment("Prefetched pages")
-            .   link_rel_prefetchs()
+            .   link_rel_prefetchs()*/
             ;
     }
     
