@@ -6246,98 +6246,107 @@
         if (is_localhost()) return ''; // CORS would block the calls
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            var scrolled = false;
         
-            on_ready(function() {
-                    
-                var urls = [];
-                var base;
+            on_loaded(function() {
+            on_scroll(function() {
 
-                console.log("DOM:", "Webmentions", "Parse webmention counters");
+                if (!scrolled) {
 
-                document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+                    scrolled = true;
+                        
+                    var urls = [];
+                    var base;
 
-                    var url = e.getAttribute("data-url");
+                    console.log("DOM:", "Webmentions", "Parse webmention counters");
 
-                         if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
-                    else if (url.indexOf("https://") < 0
-                         &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+                    document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
 
-                    var parser = document.createElement('a');
-                    parser.href = url;
-                    base = parser.protocol + "/" + "/" + parser.hostname;
-                    urls.push(parser.pathname + parser.search);
+                        var url = e.getAttribute("data-url");
 
-                });
+                            if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                        else if (url.indexOf("https://") < 0
+                            &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
 
-                /*console.log(base, urls);*/
+                        var parser = document.createElement('a');
+                        parser.href = url;
+                        base = parser.protocol + "/" + "/" + parser.hostname;
+                        urls.push(parser.pathname + parser.search);
 
-                async function fetch_mentions_endpoint(url = "", method, data = {}) {
-
-                    console.log("DOM:", "Webmentions", "Fetch webmentions count...");
-                
-                    try
-                    {
-                        var options = {
-                            
-                            method:         method,         /* GET, POST, PUT, DELETE, etc.*/
-                            mode:           "no-cors",      /* no-cors, *cors, same-origin */
-                            cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
-                            credentials:    "same-origin",  /* include, *same-origin, omit */
-                            redirect:       "follow",       /* manual, *follow, error */
-                            referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
-                            headers: {
-                                
-                                "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
-                            },                            
-                        };
-
-                        if (method != "GET") {
-                            options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
-                        }
-
-                        const response = await fetch(url, options);
-
-                        if (!response || !response.ok) {
-                            console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
-                        }
-                    
-                        return (response && response.ok) ? response.json() : null;
-                    }
-                    catch (e)
-                    {
-                        console.log("DOM:", "Webmentions", method, url, "FAILED", e);
-                    
-                        return null;
-                    }
-                }
-
-                /*
-                fetch("https://webmention.io/api/count?target=https://example.com/page/100")
-                    .then(response => response.json())
-                    .then(responseJson => console.log(responseJson));
-                */
-
-                var encoded_base = encodeURIComponent(base);
-                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
-
-                fetch_mentions_endpoint(
-                    
-                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
-                    "GET",
-                    { base: base, target: urls.join(","), targets: urls.join(",") }
-                    
-                    ).then(function(data) {
-
-                        console.log("DOM:", "Webmentions", "Count received", data);
-
-                        if (data) {
-
-                            document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
-
-                                e.innerHTML = data.count[e.getAttribute('data-url')];
-                            });
-                        }
                     });
+
+                    /*console.log(base, urls);*/
+
+                    async function fetch_mentions_endpoint(url = "", method, data = {}) {
+
+                        console.log("DOM:", "Webmentions", "Fetch webmentions count...");
+                    
+                        try
+                        {
+                            var options = {
+                                
+                                method:         method,         /* GET, POST, PUT, DELETE, etc.*/
+                                mode:           "no-cors",      /* no-cors, *cors, same-origin */
+                                cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
+                                credentials:    "same-origin",  /* include, *same-origin, omit */
+                                redirect:       "follow",       /* manual, *follow, error */
+                                referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
+                                headers: {
+                                    
+                                    "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
+                                },                            
+                            };
+
+                            if (method != "GET") {
+                                options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
+                            }
+
+                            const response = await fetch(url, options);
+
+                            if (!response || !response.ok) {
+                                console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
+                            }
+                        
+                            return (response && response.ok) ? response.json() : null;
+                        }
+                        catch (e)
+                        {
+                            console.log("DOM:", "Webmentions", method, url, "FAILED", e);
+                        
+                            return null;
+                        }
+                    }
+
+                    /*
+                    fetch("https://webmention.io/api/count?target=https://example.com/page/100")
+                        .then(response => response.json())
+                        .then(responseJson => console.log(responseJson));
+                    */
+
+                    var encoded_base = encodeURIComponent(base);
+                    var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
+
+                    fetch_mentions_endpoint(
+                        
+                        "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
+                        "GET",
+                        { base: base, target: urls.join(","), targets: urls.join(",") }
+                        
+                        ).then(function(data) {
+
+                            console.log("DOM:", "Webmentions", "Count received", data);
+
+                            if (data) {
+
+                                document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+
+                                    e.innerHTML = data.count[e.getAttribute('data-url')];
+                                });
+                            }
+                        });
+                }            
+            });
             });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -9909,11 +9918,11 @@
 
         return script('
 
-            console.log("DOM", "Lazy loading");
+          /*console.log("DOM", "Lazy loading");*/
                 
             dom.on_loaded(function() { 
 
-                console.log("DOM", "Lazy loading", "Pending", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");
+              /*console.log("DOM", "Lazy loading", "Pending", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");*/
                 
                 var lazy_loaded_'.$__dom_lazy_load_index.' = false;
 
