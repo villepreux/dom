@@ -913,6 +913,7 @@
                 }
 
                 ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
+                requestAnimationFrame(pop_ajax_call);
             };
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -997,7 +998,7 @@
             on_loaded(function() {
 
                 while ((typeof ajax_pending_calls !== "undefined") && ajax_pending_calls.length > 0) { pop_ajax_call(); };
-                setInterval(pop_ajax_call, 1*1000);
+                /*setInterval(pop_ajax_call, 1*1000);*/
 
                 });
             
@@ -9241,15 +9242,21 @@
             ;
     }
     
+    $hook_need_lazy_loding = array();
+
     function scripts_body()
     {
         if (has("ajax")) return "";
+
+        global $hook_need_lazy_loding;
+        //die("<pre>".print_r($hook_need_lazy_loding, true)."</pre>");
+        $images_loading = !!get("script_images_loading", true) && count($hook_need_lazy_loding) > 0;
 
         return  script_third_parties              ().
                 script_ajax_body                  ().
                 script_google_analytics           ().               ((!!get("script_document_events",       true)) ? (
                 script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
-                script(js_back_to_top             ()).   "") : ""). ((!!get("script_images_loading",        true)) ? (
+                script(js_back_to_top             ()).   "") : ""). (($images_loading                            ) ? (
                 script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",              true)) ? (
                 script(js_sliders                 ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
                 script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",           true)) ? (
@@ -9855,6 +9862,9 @@
 
         if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
         if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
+        
+        global $hook_need_lazy_loding;
+        if ($lazy === true) $hook_need_lazy_loding[] = $url;
 
         if (!!get("gemini")) return "";
      
@@ -10879,6 +10889,9 @@
             else if (true     === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
             else                          $attributes = attributes_add_class($attributes, "img");
 
+            global $hook_need_lazy_loding;
+            if ($lazy === true) $hook_need_lazy_loding[] = $path;
+    
             return tag('img', $content, $attributes, false, $content == '');
         }
     }
