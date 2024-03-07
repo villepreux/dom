@@ -1454,7 +1454,7 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $timeout = 7, $auto_fix = true, $debug_error_output = true)
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true)
     {
         $profiler = debug_track_timing($urls);
 
@@ -1462,7 +1462,7 @@
         {
             foreach ($urls as $url)
             {
-                $content = content($url, $timeout);
+                $content = content($url, $options, $auto_fix, false);
                 
                 if (false !== $content)
                 {
@@ -1473,13 +1473,43 @@
             return false;
         }
 
-        $url = $urls;
+        $url     = $urls;
+        $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
+        $header  = is_array($options) ? at($options, "header",  []) : [];
         
+        $token          = at($header, "Authorization",   at($options, "Authorization",   at($header, "token",        at($options, "token"               ))));
+        $content_type   = at($header, "Content-Type",    at($options, "Content-Type",    at($header, "content-type", at($options, "content-type"        ))));
+        $charset        = at($header, "Charset",         at($options, "Charset",         at($header, "charset",      at($options, "charset",    "utf-8" ))));
+        $language       = at($header, "Accept-language", at($options, "Accept-language", at($header, "language",     at($options, "language"            ))));
+        $client_id      = at($header, "Client-ID",       at($options, "Client-ID",       at($header, "client-id",    at($options, "client-id"           ))));
+
+        if (!!$token)        $header["Authorization"]   = "Bearer $token";
+        if (!!$content_type) $header["Content-Type"]    = $content_type.(!$charset ? "" : "; charset=$charset");
+        if (!!$language)     $header["Accept-language"] = $language;
+        if (!!$client_id)    $header["Client-ID"]       = $client_id;
+
+        if (0 == count($header)) $header = false;
+
         $content = false;
 
         if (!$content || $content == "")
-        {
-            $content = @file_get_contents($url);
+        {      
+            if (!!$header)      
+            {
+                if (false === stripos($url, "?")) $url .= "?";
+                if (!!$client_id) $url .= "&client_id=$client_id"; // TODO Remove hardcoded key
+                if (!!$token) $url     .= "&access_token=$token";  // TODO Remove hardcoded key
+
+                $steam_header  = implode("\r\n", array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header)));
+                $steam_options = array('http' => array('method' => "GET", 'header' => $steam_header));    
+                $steam_context = @stream_context_create($steam_options);    
+
+                $content = @file_get_contents($url, FILE_USE_INCLUDE_PATH, $steam_context);
+            }
+            else
+            {
+                $content = @file_get_contents($url);
+            }
         }
 
         $curl_debug_errors = array();
@@ -1490,6 +1520,13 @@
             
             if (false !== $curl)
             {
+                if (!!$header)
+                {
+                    $curl_header = array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
+
+                    curl_setopt($curl, CURLOPT_HTTPHEADER, $curl_header);
+                }
+
                 curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
                 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
                 curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
@@ -1512,10 +1549,10 @@
 
         if ($auto_fix)
         {    
-            if (!$content || $content == "") $content = content(url()."/".$url,  $timeout, false, false);
-            if (!$content || $content == "") $content = content(url().    $url,  $timeout, false, false);
-          //if (!$content || $content == "") $content = content(path( "/".$url), $timeout, false, false);
-          //if (!$content || $content == "") $content = content(path(     $url), $timeout, false, false);
+            if (!$content || $content == "") $content = content(url()."/".$url,  $options, false, false);
+            if (!$content || $content == "") $content = content(url().    $url,  $options, false, false);
+          //if (!$content || $content == "") $content = content(path( "/".$url), $options, false, false);
+          //if (!$content || $content == "") $content = content(path(     $url), $options, false, false);
         }
 
         if (!!$debug_error_output && !!get("debug") && !$content)
@@ -1527,9 +1564,9 @@
         return $content;
     }
 
-    function array_open_url($urls, $content_type = 'json', $timeout = 7)
+    function array_open_url($urls, $content_type = 'json', $options = 7)
     {
-        $content = content($urls, $timeout);
+        $content = content($urls, $options);
 
         if (!!$content)
         {
@@ -10827,15 +10864,16 @@
             $precompute_size = get("img_precompute_size");
         }
 
-        $path     = path($path);
-        $info     = explode('?', $path);
-        $info     = $info[0];
-        $info     = pathinfo($info);
-        $ext      = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
-        $codename = urlencode(basename($path, $ext));
-        $alt      = ($alt === false || $alt === "") ? $codename : $alt;
-        
-        $lazy_src = ($lazy !== false) ? (($lazy_src === false) ? url_img_loading() : $lazy_src) : false;
+        $valid_path = path($path);
+        $path       = !$valid_path ? $path : $valid_path;
+        $info       = explode('?', $path);
+        $info       = $info[0];
+        $info       = pathinfo($info);
+        $ext        = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+        $codename   = urlencode(basename($path, $ext));
+        $alt        = ($alt === false || $alt === "") ? $codename : $alt;
+            
+        $lazy_src   = ($lazy !== false) ? (($lazy_src === false) ? url_img_loading() : $lazy_src) : false;
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
