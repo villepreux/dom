@@ -35,7 +35,7 @@ $domain_src                             = arg_value("domain-src",       substr(t
 $domain_dst                             = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
 $main_src                               = arg_value("main-src",     "../$domain_src");
 $main_dst                               = arg_value("main-dst",     "../$domain_dst");
-$server_name                            = arg_value("server_name",      $domain_dst);
+$server_name                            = arg_value("server-name",      $domain_dst);
 $server_http_host                       = arg_value("server-http-host", $domain_dst);
 
 #endregion
