@@ -11180,6 +11180,22 @@
         return "https://source.unsplash.com/".$id."/".$w."x".$h."?.jpg";
     }
 
+    function unsplash_img($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
+    {
+        $alt        = $alt.(!!$author ? " (by $author on Unsplash)" : " (on Unsplash)");
+        $attributes = attributes_add($attributes, array("title" => $alt));
+
+        return img(unsplash_url_img($id, $w, $h, $author), $w, $h, $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size);
+    }
+
+    function unsplash_picture($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = DOM_AUTO, $lazy_src = false)
+    {
+        $alt        = $alt.(!!$author ? " (by $author on Unsplash)" : " (on Unsplash)");
+        $attributes = attributes_add($attributes, array("title" => $alt));
+
+        return picture(unsplash_url_img($id, $w, $h, $author), $attributes, $alt, $lazy, $lazy_src);
+    }
+    
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
     {
         return "https://farm".$photo_farm.".staticflickr.com/".$photo_server."/".$photo_id    ."_".$photo_secret."_".$photo_size.".jpg";
