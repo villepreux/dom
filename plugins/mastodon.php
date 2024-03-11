@@ -10,7 +10,7 @@
 namespace dom\mastodon; 
 
 require_once(__DIR__."/../dom.php"); 
-use function \dom\{set,get,at,array_open_url,HSTART,HERE,HSTOP,header,main,footer,section,p,a,picture,figure,source,img,span,div,time_datepublished,summary,details,article};
+use function \dom\{set,get,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,figure,source,img,span,div,time_datepublished,summary,details,article};
 
 #region Constants
 
@@ -256,18 +256,51 @@ function comment(
         
         [ 
             "id"        => "comment-$status_id",
-            "class"     => ("comment".($is_op ? " op" : "").($is_verified ? " verified" : "")), 
+            "class"     => ("mastodon-comment comment".($is_op ? " op" : "").($is_verified ? " verified" : "")), 
             "itemprop"  => "comment",
             "itemtype"  => "http://schema.org/Comment" 
-        ]
-
-        );
+        ]);
         
     set("minify", $minify);
     return $html;
 }
 
-function section_comments($post_id, $host = false, $username = false, $user_id = false)
+function css_comments()
+{
+    HSTART() ?><style><?= HERE() ?>
+
+        .avatar-link picture {
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            overflow: hidden;
+        }
+
+        .mastodon-comment figure img {
+
+            max-height: 120px;
+        }
+
+        .mastodon-comment :is(header, footer) {
+
+            padding: var(--gap);
+        }
+
+        .mastodon-comments-wrapper {
+
+            display:        flex;
+            flex-direction: column;
+            gap:            var(--gap);
+            margin-block:   var(--gap);
+        }
+
+        .mastodon-comment .faves:before  { content: "♥ "; }
+        .mastodon-comment .boosts:before { content: "↑↓ "; }
+
+    <?= HERE("raw_css") ?></style><?php return HSTOP();
+}
+
+function js_comments($post_id, $host = false, $username = false, $user_id = false)
 {
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return "";
@@ -276,59 +309,8 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
 
     $api_post_statuses  = url_post_statuses($post_id, $host, $username);
     $api_post_context   = url_post_context($post_id, $host, $username);
-    $post_url           = url_post($post_id, $host, $username);
 
-    HSTART() ?><html><?= HERE() ?>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<style>
-
-.avatar-link, .avatar-link *:not(source) {
-    width: 24px;
-    height: 24px;
-    display: inline-block;
-    vertical-align: unset;
-}
-
-.mastodon-comment figure img {
-    max-height: 120px;
-}
-
-</style><section id="mastodon-comments" class="mastodon-comments">
-
-    <p>
-        Comment on this blog post by publicly replying to <a target="_blank" href="https://<?= $host ?>/@<?= $username ?>/<?= $post_id ?>">this Mastodon post</a> using a Mastodon or other ActivityPub/&ZeroWidthSpace;Fediverse account. Known non-private replies are displayed below.
-    </p>
-
-    <div id="mastodon-comments-wrapper">
-        <p><small>No known comments, yet. Reply to <a target="_blank" href="https://<?= $host ?>/@<?= $username ?>/<?= $post_id ?>">this Mastodon post</a> to add your own!</small></p>
-        <noscript><p>Loading comments relies on JavaScript. Try enabling JavaScript and reloading, or visit <a target="_blank" href="https://<?= $host ?>/@<?= $username ?>/<?= $post_id ?>">the original post</a> on Mastodon.</p></noscript>
-    </div>
-
-    <script>
+    HSTART() ?><script><?= HERE() ?>
 
         function escapeHtml(unsafe)
         {
@@ -379,9 +361,9 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
             const ID              = "<?= $post_id ?>";
             const VERIFIED        = [];
             const SUPPORTED_MEDIA = [ "image", "gifv" ];
-
+            /*
             const STATUS_REQUEST  = "<?= $api_post_statuses ?>";
-            const CONTEXT_REQUEST = "<?= $api_post_context  ?>"; /*
+            const CONTEXT_REQUEST = "<?= $api_post_context  ?>"; */
 
             const REQUEST_HEADERS = new Headers(); if(TOKEN != "") { REQUEST_HEADERS.append("Authorization", "Bearer " + TOKEN); } 
             const REQUEST_OPTIONS = { method: "GET", headers: REQUEST_HEADERS, mode: "cors", cache: "default" }; 
@@ -389,7 +371,7 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
             console.log("DOM", "MASTODON", "REQUEST_OPTIONS", REQUEST_OPTIONS);
 
             const STATUS_REQUEST  = new Request("<?= $api_post_statuses ?>", REQUEST_OPTIONS);
-            const CONTEXT_REQUEST = new Request("<?= $api_post_context  ?>", REQUEST_OPTIONS); */
+            const CONTEXT_REQUEST = new Request("<?= $api_post_context  ?>", REQUEST_OPTIONS); 
 
             let commentsWrapper = document.getElementById("mastodon-comments-wrapper");
 
@@ -400,7 +382,7 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
 
                 let descendants = data['descendants'];
 
-                if (descendants && Array.isArray(descendants) /* && descendants.length > 0 */)
+                if (descendants && Array.isArray(descendants) && descendants.length > 0)
                 {
                     commentsWrapper.innerHTML = "";
                     descendants.unshift(status);
@@ -499,51 +481,54 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
                         var is_op       = (status.account.acct == USERNAME);
                         var is_verified = (VERIFIED.includes(status.account.acct));
                         
-                        var comment = `<?= comment(
-                            
-                            '$instance', 
-                            
-                            '$status.account.avatar', 
-                            '$status.account.avatar_static', 
-                            '$status.account.username', 
-                            '$status.account.display_name',
-                            '$status.account.url', 
-                            
-                            '$is_op',
-                            '$is_verified',
-                            
-                            '$status.id',
-                            '$status.url',
-                            '$status.content',
-                            '$status.sensitive', 
-                            '$status.spoiler_text',
-                            '$status.favourites_count', 
-                            '$status.reblogs_count',
-                            '$status.created_at',
-                            '$status.edited_at'
+                        var comment = '';
+                        {
+                            comment = `<?= comment(
+                                
+                                '$instance', 
+                                
+                                '$status.account.avatar', 
+                                '$status.account.avatar_static', 
+                                '$status.account.username', 
+                                '$status.account.display_name',
+                                '$status.account.url', 
+                                
+                                '$is_op',
+                                '$is_verified',
+                                
+                                '$status.id',
+                                '$status.url',
+                                '$status.content',
+                                '$status.sensitive', 
+                                '$status.spoiler_text',
+                                '$status.favourites_count', 
+                                '$status.reblogs_count',
+                                '$status.created_at',
+                                '$status.edited_at'
 
-                            ) ?>`.trim();
+                                ) ?>`.trim();
 
-                        comment = comment.replaceAll('$instance',                       instance);
+                            comment = comment.replaceAll('$instance',                       instance);
 
-                        comment = comment.replaceAll('$status.account.avatar_static',   status.account.avatar_static);
-                        comment = comment.replaceAll('$status.account.avatar',          status.account.avatar);
-                        comment = comment.replaceAll('$status.account.username',        status.account.username);
-                        comment = comment.replaceAll('$status.account.display_name',    status.account.display_name);
-                        comment = comment.replaceAll('$status.account.url',             status.account.url);
+                            comment = comment.replaceAll('$status.account.avatar_static',   status.account.avatar_static);
+                            comment = comment.replaceAll('$status.account.avatar',          status.account.avatar);
+                            comment = comment.replaceAll('$status.account.username',        status.account.username);
+                            comment = comment.replaceAll('$status.account.display_name',    status.account.display_name);
+                            comment = comment.replaceAll('$status.account.url',             status.account.url);
 
-                        comment = comment.replaceAll('$is_op',                          is_op);
-                        comment = comment.replaceAll('$is_verified',                    is_verified);
+                            comment = comment.replaceAll('$is_op',                          is_op);
+                            comment = comment.replaceAll('$is_verified',                    is_verified);
 
-                        comment = comment.replaceAll('$status.id',                      status.id);
-                        comment = comment.replaceAll('$status.url',                     status.url);
-                        comment = comment.replaceAll('$status.content',                 status.content);
-                        comment = comment.replaceAll('$status.sensitive',               status.sensitive);
-                        comment = comment.replaceAll('$status.spoiler_text',            status.spoiler_text);
-                        comment = comment.replaceAll('$status.favourites_count',        status.favourites_count);
-                        comment = comment.replaceAll('$status.reblogs_count',           status.reblogs_count);
-                        comment = comment.replaceAll('$status.created_at',              status.created_at);
-                        comment = comment.replaceAll('$status.edited_at',               status.edited_at);
+                            comment = comment.replaceAll('$status.id',                      status.id);
+                            comment = comment.replaceAll('$status.url',                     status.url);
+                            comment = comment.replaceAll('$status.content',                 status.content);
+                            comment = comment.replaceAll('$status.sensitive',               status.sensitive);
+                            comment = comment.replaceAll('$status.spoiler_text',            status.spoiler_text);
+                            comment = comment.replaceAll('$status.favourites_count',        status.favourites_count);
+                            comment = comment.replaceAll('$status.reblogs_count',           status.reblogs_count);
+                            comment = comment.replaceAll('$status.created_at',              status.created_at);
+                            comment = comment.replaceAll('$status.edited_at',               status.edited_at);
+                        }
 
                         commentsWrapper.innerHTML += comment;
                     });
@@ -554,275 +539,26 @@ function section_comments($post_id, $host = false, $username = false, $user_id =
 
         loadComments();
 
-    </script>
-
-</section>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        <!--<section id="mastodon-comments" class="mastodon-comments">
-
-            <p><button id="mastodon-comments-load-comment">Load comments</button></p>
-
-            <div id="mastodon-comments-comments-wrapper">
-                <noscript><p>Loading comments relies on JavaScript.</p></noscript>
-            </div>
-            
-            <noscript>You need JavaScript to view the comments.</noscript>
-
-            <script type="text/javascript" async defer>
-
-                function escapeHtml(unsafe) {
-                        
-                    return unsafe
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/"/g, "&quot;")/*
-                        .replace(/'/g, "&#039;")*/
-                        .replace(/'/g, "&apos;");
-                }
-
-                function emojify(input, emojis) {
-                        
-                    let output = input;
-
-                    emojis.forEach(emoji => {
-
-                        let picture = document.createElement("picture");
-
-                        let source = document.createElement("source");
-                        source.setAttribute("srcset", escapeHtml(emoji.url));
-                        source.setAttribute("media", "(prefers-reduced-motion: no-preference)");
-
-                        let img = document.createElement("img");
-                        img.className = "emoji";
-                        img.setAttribute("src", escapeHtml(emoji.static_url));
-                        img.setAttribute("alt", `:${ emoji.shortcode }:`);
-                        img.setAttribute("title", `:${ emoji.shortcode }:`);
-                        img.setAttribute("width", "20");
-                        img.setAttribute("height", "20");
-
-                        picture.appendChild(source);
-                        picture.appendChild(img);
-
-                        output = output.replace(`:${ emoji.shortcode }:`, picture.outerHTML);
-                    });
-
-                    return output;
-                }
-
-                function loadComments() {
-
-                    let commentsWrapper = document.getElementById("mastodon-comments-comments-wrapper");
-
-                    document.getElementById("mastodon-comments-load-comment").innerHTML = "Loading...";
-
-                    console.log("DOM", "Mastodon", "Loading comments...");
-
-                    fetch('<?= $api_post_context ?>')
-                    
-                        .then(function(response) {
-
-                            console.log("DOM", "Mastodon", "Loading comments...", "Received response", response);
-
-                            return response.json();
-                        })
-
-                        .then(function(data) {
-
-                            console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", data);
-
-                            let descendants = data['descendants'];
-
-                            if (descendants && Array.isArray(descendants))
-                            {
-                                if (descendants.length > 0)
-                                {
-                                    commentsWrapper.innerHTML = "";
-
-                                    descendants.forEach(function(status) {
-
-                                        console.log(descendants);
-                                    
-                                        if (status.account.display_name.length > 0 ) {
-
-                                            status.account.display_name = escapeHtml(status.account.display_name);
-                                            status.account.display_name = emojify(status.account.display_name, status.account.emojis);
-                                    
-                                        } else {
-
-                                            status.account.display_name = status.account.username;
-                                        }
-
-                                        let instance = "";
-
-                                        if (status.account.acct.includes("@")) {
-
-                                            instance = status.account.acct.split("@")[1];
-                                    
-                                        } else {
-
-                                            instance = "<?= $host ?>";
-                                        }
-
-                                        const isReply = (status.in_reply_to_id !== "<?= $post_id ?>");
-
-                                        let op = false;
-
-                                        if (status.account.acct == "<?= $username ?>") {
-                                        
-                                            op = true;
-                                        }
-
-                                        status.content = emojify(status.content, status.emojis);
-
-                                        let avatarSource = document.createElement("source");
-                                        avatarSource.setAttribute("srcset", escapeHtml(status.account.avatar));
-                                        avatarSource.setAttribute("media", "(prefers-reduced-motion: no-preference)");
-
-                                        let avatarImg = document.createElement("img");
-                                        avatarImg.className = "avatar";
-                                        avatarImg.setAttribute("src", escapeHtml(status.account.avatar_static));
-                                        avatarImg.setAttribute("alt", `@${ status.account.username }@${ instance } avatar`);
-
-                                        let avatarPicture = document.createElement("picture");
-                                        avatarPicture.appendChild(avatarSource);
-                                        avatarPicture.appendChild(avatarImg);
-
-                                        let avatar = document.createElement("a");
-                                        avatar.className = "avatar-link";
-                                        avatar.setAttribute("href", status.account.url);
-                                        avatar.setAttribute("rel", "external nofollow");
-                                        avatar.setAttribute("title", `View profile at @${ status.account.username }@${ instance }`);
-                                        avatar.appendChild(avatarPicture);
-
-                                        let instanceBadge = document.createElement("a");
-                                        instanceBadge.className = "instance";
-                                        instanceBadge.setAttribute("href", status.account.url);
-                                        instanceBadge.setAttribute("title", `@${ status.account.username }@${ instance }`);
-                                        instanceBadge.setAttribute("rel", "external nofollow");
-                                        instanceBadge.textContent = instance;
-
-                                        let display = document.createElement("span");
-                                        display.className = "display";
-                                        display.setAttribute("itemprop", "author");
-                                        display.setAttribute("itemtype", "http://schema.org/Person");
-                                        display.innerHTML = status.account.display_name;
-
-                                        let header = document.createElement("header");
-                                        header.className = "author";
-                                        header.appendChild(display);
-                                        header.appendChild(instanceBadge);
-
-                                        let permalink = document.createElement("a");
-                                        permalink.setAttribute("href", status.url);
-                                        permalink.setAttribute("itemprop", "url");
-                                        permalink.setAttribute("title", `View comment at ${ instance }`);
-                                        permalink.setAttribute("rel", "external nofollow");
-                                        permalink.textContent = new Date( status.created_at ).toLocaleString('en-US', {
-                                            dateStyle: "long",
-                                            timeStyle: "short",
-                                        });
-
-                                        let timestamp = document.createElement("time");
-                                        timestamp.setAttribute("datetime", status.created_at);
-                                        timestamp.appendChild(permalink);
-
-                                        let main = document.createElement("main");
-                                        main.setAttribute("itemprop", "text");
-                                        main.innerHTML = status.content;
-
-                                        let interactions = document.createElement("footer");
-                                        if(status.favourites_count > 0) {
-                                            let faves = document.createElement("a");
-                                            faves.className = "faves";
-                                            faves.setAttribute("href", `${ status.url }/favourites`);
-                                            faves.setAttribute("title", `Favorites from ${ instance }`);
-                                            faves.textContent = status.favourites_count;
-
-                                            interactions.appendChild(faves);
-                                        }
-
-                                        let comment = document.createElement("article");
-                                        comment.id = `comment-${ status.id }`;
-                                        comment.className = isReply ? "comment comment-reply" : "comment";
-                                        comment.setAttribute("itemprop", "comment");
-                                        comment.setAttribute("itemtype", "http://schema.org/Comment");
-                                        comment.appendChild(avatar);
-                                        comment.appendChild(header);
-                                        comment.appendChild(timestamp);
-                                        comment.appendChild(main);
-                                        comment.appendChild(interactions);
-
-                                        if(op === true) {
-                                            comment.classList.add("op");
-
-                                            avatar.classList.add("op");
-                                            avatar.setAttribute(
-                                            "title",
-                                            "Blog post author; " + avatar.getAttribute("title")
-                                            );
-
-                                            instanceBadge.classList.add("op");
-                                            instanceBadge.setAttribute(
-                                            "title",
-                                            "Blog post author: " + instanceBadge.getAttribute("title")
-                                            );
-                                        }
-
-                                        commentsWrapper.innerHTML += /*DOMPurify.sanitize*/(comment.outerHTML); /* TODO: Purify */
-
-                                    });
-                                }
-                                else
-                                {
-                                    console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", "NO COMMENT YET!");
-
-                                    document.getElementById("mastodon-comments-load-comment").innerHTML = "Load comments";
-                                    
-                                    commentsWrapper.innerHTML = "<p>No comment yet!</p>";
-                                }
-                            }
-                            else
-                            {
-                                console.log("DOM", "Mastodon", "Loading comments...", "Received JSON", "INVALID JSON!");
-
-                                document.getElementById("mastodon-comments-load-comment").innerHTML = "Load comments";
-                            }
-                        });
-                }
-
-                document.getElementById("mastodon-comments-load-comment").addEventListener("click", loadComments);
-
-            </script>
-
-        </section>//-->
-
-    <?= HERE("raw_html") ?></html><?php return HSTOP();
+    <?= HERE("raw_js") ?></script><?php return HSTOP();
+}
+
+function section_comments($post_id, $host = false, $username = false, $user_id = false)
+{
+    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+    if (!$host || !$username || !$user_id) return "";
+    
+    $post_url = url_post($post_id, $host, $username);
+
+    return
+        style(css_comments()).
+        section(
+            p("Comment on this blog post by publicly replying to ".a("this Mastodon post", $post_url)." using a Mastodon or other ActivityPub/Fediverse account. Known non-private replies are displayed below.").
+            div(
+                p("No known comments, yet. Reply to ".a("this Mastodon post", $post_url)." to add your own!").
+                noscript(p("Loading comments relies on JavaScript. Try enabling JavaScript and reloading, or visit ".a("the original post", $post_url)." on Mastodon.")), 
+                [ "id" => "mastodon-comments-wrapper", "class" => "mastodon-comments-wrapper" ]),
+            [ "id" => "mastodon-comments", "class" => "mastodon-comments" ]).
+        script(js_comments($post_id, $host, $username, $user_id));
 }
 
 #endregion Components

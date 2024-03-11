@@ -8014,6 +8014,30 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
+    function css_light_dark_switch($css_light, $css_dark)
+    {  
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+
+            <?= $css_light ?> 
+
+            @media (prefers-color-scheme: dark) {
+
+                <?= $css_dark ?> 
+            }
+
+            [data-colorscheme="light"] {
+
+                <?= $css_light ?> 
+            }
+
+            [data-colorscheme="dark"] {
+
+                <?= $css_dark ?> 
+            }
+
+        <?php heredoc_flush("raw_css"); ?></style><?php return heredoc_stop(null);
+    }
+
     #endregion
     #region Base CSS
 
@@ -9752,6 +9776,7 @@
         return tag('h'.$h, $html, $attributes);
     }
 
+    function noscript       ($html = "", $attributes = false) {                             return  tag('noscript',                   $html,                                                $attributes                                                         );                      }
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
     function nav            ($html = "", $attributes = false) {                             return  tag('nav',                        $html,                                                $attributes                                                         );                      }
     function div            ($html = "", $attributes = false) {                             return  tag('div',                        $html,                                                $attributes                                                         );                      }
