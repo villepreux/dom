@@ -89,7 +89,7 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
 #endregion Content requets
 #region Components
 
-function comment(
+function comment_card(
     
     $instance, 
     
@@ -206,22 +206,24 @@ function comment(
                     ),
                 $status_account_url, 
                 [ 
-                    "class" => (($is_op ? "op " : ($is_verified ? "verified " : ""))."avatar-link"), 
-                    "title" => (($is_op ? "Blog post author; " : "")."View profile at @$status_account_username@$instance".($is_verified ? " (verified by site owner)" : ""))
+                    "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."photo"), 
+                    "title"  => (($is_op ? "Blog post author; " : "")."View profile at @$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
+                    "target" => DOM_EXTERNAL_LINK
                 ]
                 ).
 
             span(
                 $status_account_display_name, 
-                [ "class" => "display", "itemprop" => "author", "itemtype" => "http://schema.org/Person" ]
+                [ "class" => "name", "itemprop" => "author", "itemtype" => "http://schema.org/Person" ]
                 ).
 
             a(
                 $instance,
                 $status_account_url,
                 [
-                    "class" => (($is_op ? "op " : ($is_verified ? "verified " : ""))."badge"), 
-                    "title" => (($is_op ? "Blog post author: " : "")."@$status_account_username@$instance".($is_verified ? " (verified by site owner)" : "")) 
+                    "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."instance"), 
+                    "title"  => (($is_op ? "Blog post author: " : "")."@$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
+                    "target" => DOM_EXTERNAL_LINK
                 ]
                 )./*
 
@@ -256,7 +258,7 @@ function comment(
         
         [ 
             "id"        => "comment-$status_id",
-            "class"     => ("mastodon-comment comment".($is_op ? " op" : "").($is_verified ? " verified" : "")), 
+            "class"     => ("mastodon-comment comment card".($is_op ? " op" : "").($is_verified ? " verified" : "")), 
             "itemprop"  => "comment",
             "itemtype"  => "http://schema.org/Comment" 
         ]);
@@ -269,11 +271,17 @@ function css_comments()
 {
     HSTART() ?><style><?= HERE() ?>
 
-        .avatar-link picture {
+        a.photo picture {
             border-radius: 50%;
             width: 48px;
             height: 48px;
             overflow: hidden;
+        }
+
+        a.instance.op:before {
+            display: inline-block;
+            content: "★";
+            margin-right: .5em;
         }
 
         .mastodon-comment figure img {
@@ -483,7 +491,7 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
                         
                         var comment = '';
                         {
-                            comment = `<?= comment(
+                            comment = `<?= comment_card(
                                 
                                 '$instance', 
                                 
@@ -542,7 +550,7 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
     <?= HERE("raw_js") ?></script><?php return HSTOP();
 }
 
-function section_comments($post_id, $host = false, $username = false, $user_id = false)
+function section_comments_cards($post_id, $host = false, $username = false, $user_id = false)
 {
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return "";
