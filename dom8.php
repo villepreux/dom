@@ -6272,23 +6272,17 @@
         // ie. Sets webmention' endpoint as https://webmention.io/villapirorum.netlify.app/webmention
         // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://villepreux.free.fr&target=https://villapirorum.netlify.app/now
 
-        return  link_rel("webmention", "https://webmention.io/'.webmentions_domain().'/webmention").
-              //link_rel("pingback",   "https://webmention.io/'.webmentions_domain().'/xmlrpc").
-              //link_rel("pingback",   "https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint").
+        return  link_rel("webmention", 'https://webmention.io/'.webmentions_domain().'/webmention').
+              //link_rel("pingback",   'https://webmention.io/'.webmentions_domain().'/xmlrpc').
+              //link_rel("pingback",   'https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint').
                 "";
     }
 
     function link_rel_webauth()
     {
-        // TODO Either via indielogin or here
-        return "";
-
-        $url = "https://example.com";
-
-        return  link_rel("indieauth-metadata",      $url."/indieauth/metadata").
-                link_rel("authorization_endpoint",  $url."/auth").
-                link_rel("token_endpoint",          $url."/token").
-                "";
+        return/*link_rel("indieauth-metadata",      "https://indieauth.com/indieauth/metadata").*/ // TODO NEW WAY TO DO IT
+                link_rel("authorization_endpoint",  "https://indieauth.com/auth").
+                link_rel("token_endpoint",          "https://tokens.indieauth.com/token");
     }
 
     function js_webmentions()
