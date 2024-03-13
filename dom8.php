@@ -5950,8 +5950,8 @@
 
                 // Clean html
                                         $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
-                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                        ));
-                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                          ));
+                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
+                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                                      ));
 
                 //  Return html
 
