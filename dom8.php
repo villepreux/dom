@@ -6070,6 +6070,8 @@
             eol().
             link_rel_webmentions().     "")).
 
+            link_rel_webauth().
+
             
             "";
     }
@@ -6270,11 +6272,23 @@
         // ie. Sets webmention' endpoint as https://webmention.io/villapirorum.netlify.app/webmention
         // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://villepreux.free.fr&target=https://villapirorum.netlify.app/now
 
-        return  '<link rel="webmention" href="https://webmention.io/'.webmentions_domain().'/webmention" />'.
-              //'<link rel="pingback"   href="https://webmention.io/'.webmentions_domain().'/xmlrpc"     />'.
-              //'<link rel="pingback"   href="https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint" />'.
-  
-            "";
+        return  link_rel("webmention", "https://webmention.io/'.webmentions_domain().'/webmention").
+              //link_rel("pingback",   "https://webmention.io/'.webmentions_domain().'/xmlrpc").
+              //link_rel("pingback",   "https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint").
+                "";
+    }
+
+    function link_rel_webauth()
+    {
+        // TODO Either via indielogin or here
+        return "";
+
+        $url = "https://example.com";
+
+        return  link_rel("indieauth-metadata",      $url."/indieauth/metadata").
+                link_rel("authorization_endpoint",  $url."/auth").
+                link_rel("token_endpoint",          $url."/token").
+                "";
     }
 
     function js_webmentions()
@@ -9718,19 +9732,19 @@
          * Wordpress
          */
 
-      //. ((function () { $url = url_pinterest_board   (); if (!$url || !has("pinterest_user") ) return ""; return eol().a("Pinterest", $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_instagram_user    (); if (!$url || !has("instagram_user") ) return ""; return eol().a("Instagram", $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_flickr_user       (); if (!$url || !has("flickr_user")    ) return ""; return eol().a("Flickr",    $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_500px_user        (); if (!$url || !has("500px_user")     ) return ""; return eol().a("500px",     $url, array("hidden" => "hidden", "rel" => "me")); })())
-        . ((function () { $url = url_pixelfed_user     (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a("Pixelfed",  $url, array("hidden" => "hidden", "rel" => "me")); })())
-        . ((function () { $url = url_mastodon_user     (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a("Mastodon",  $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_facebook_user     (); if (!$url || !has("facebook_user")  ) return ""; return eol().a("Facebook",  $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => "hidden", "rel" => "me")); })())
-        . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => "hidden", "rel" => "me")); })())
-      //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => "hidden", "rel" => "me")); })())
+      //. ((function () { $url = url_pinterest_board   (); if (!$url || !has("pinterest_user") ) return ""; return eol().a("Pinterest", $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_instagram_user    (); if (!$url || !has("instagram_user") ) return ""; return eol().a("Instagram", $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_flickr_user       (); if (!$url || !has("flickr_user")    ) return ""; return eol().a("Flickr",    $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_500px_user        (); if (!$url || !has("500px_user")     ) return ""; return eol().a("500px",     $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+        . ((function () { $url = url_pixelfed_user     (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a("Pixelfed",  $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+        . ((function () { $url = url_mastodon_user     (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a("Mastodon",  $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_facebook_user     (); if (!$url || !has("facebook_user")  ) return ""; return eol().a("Facebook",  $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_twitter_user      (); if (!$url || !has("twitter_user")   ) return ""; return eol().a("Twitter",   $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_linkedin_page     (); if (!$url || !has("linkedin_page")  ) return ""; return eol().a("Linkedin",  $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+        . ((function () { $url = url_github_user       (); if (!$url || !has("github_user")    ) return ""; return eol().a("Github",    $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_lastfm_user       (); if (!$url || !has("lastfm_user")    ) return ""; return eol().a("LastFM",    $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_tumblr_blog       (); if (!$url || !has("tumblr_blog")    ) return ""; return eol().a("Tumblr",    $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
+      //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
 
         . eol()
 
@@ -10602,7 +10616,7 @@
         return $extended_link;
     }
   
-    function a($html, $url = false, $external_attributes = false, $target = false)
+    function a($html, $url = false, $external_attributes = false, $target = false, $noopener = true, $noreferrer = true)
     {
         if ($url                 === false
         &&  $external_attributes === false
@@ -10627,11 +10641,15 @@
 
         $internal_attributes = array();
 
-                                                    $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
-                                                    $internal_attributes["target"]              = $target;
-        if ($target == DOM_EXTERNAL_LINK)           $internal_attributes["rel"]                 = "noopener noreferrer";
-        if ($target == DOM_EXTERNAL_LINK && !AMP()) $internal_attributes["crossorigin"]         = "anonymous";
-        if (!!get("turbo") && !!get("turbo_links")) $internal_attributes["data-turbo-action"]   = "replace";
+                                                            $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
+                                                            $internal_attributes["target"]              = $target;
+                                                            $internal_attributes["rel"]                 = "";
+        if ($target == DOM_EXTERNAL_LINK && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
+        if ($target == DOM_EXTERNAL_LINK && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
+        if ($target == DOM_EXTERNAL_LINK && !AMP())         $internal_attributes["crossorigin"]         = "anonymous";
+        if (!!get("turbo") && !!get("turbo_links"))         $internal_attributes["data-turbo-action"]   = "replace";
+
+        if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
 
         $attributes = "";
         

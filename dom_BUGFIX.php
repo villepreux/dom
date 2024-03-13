@@ -8,10 +8,10 @@ use function dom\{set,get,is_localhost};
 
 if (!!get("static"))
 {
-    set("canonical", rtrim(str_replace("www.villepreux.net",    "villapirorum.netlify.app", get("canonical")), "/"));
-    set("canonical", rtrim(str_replace("villepreux.net",        "villapirorum.netlify.app", get("canonical")), "/"));
-    set("canonical", rtrim(str_replace("http://localhost",      "https://",                 get("canonical")), "/"));
-    set("canonical", rtrim(str_replace("http://127.0.0.1",      "https://",                 get("canonical")), "/"));
+    set("canonical", rtrim(str_replace("www.".get("local_domain"),  get("live_domain"), get("canonical")), "/"));
+    set("canonical", rtrim(str_replace(       get("local_domain"),  get("live_domain"), get("canonical")), "/"));
+    set("canonical", rtrim(str_replace("http://localhost",          "https://",         get("canonical")), "/"));
+    set("canonical", rtrim(str_replace("http://127.0.0.1",          "https://",         get("canonical")), "/"));
 }
 
 if (is_localhost())
@@ -24,7 +24,7 @@ set("canonical", str_replace("///", "//", get("canonical")));
 
 //if (!!get("static"))
 //{
-//	set("REQUEST_URI", str_replace("/villepreux.net/", "/", get("REQUEST_URI")));
+//	set("REQUEST_URI", str_replace("/".get("local_domain")."/", "/", get("REQUEST_URI")));
 //}
 
 // TODO
