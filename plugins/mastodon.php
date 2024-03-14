@@ -290,8 +290,11 @@ function css_comments()
         }
 
         .mastodon-comment :is(header, footer) {
-
+            
+            --gap: min(2vw, 1em);
             padding: var(--gap);
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         .mastodon-comments-wrapper {
