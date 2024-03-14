@@ -1901,6 +1901,42 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
+    function unindent($raw)
+    {
+        $lines = explode(PHP_EOL, $raw);
+
+        $min_indent = PHP_INT_MAX;
+
+        foreach ($lines as $line)
+        {
+            $len = strlen($line);
+            $indent = 0;
+
+            for ($c = 0; $c < $len; ++$c)
+            {
+                if ($line[$c] == " " || $line[$c] == "\t") ++$indent;
+                else break;
+            }
+
+            if ($indent == $len) $indent = $min_indent;
+            
+            if ($indent < $min_indent)
+            {
+                $min_indent = $indent;
+            }
+        }
+
+        if ($min_indent > 0)
+        {
+            foreach ($lines as &$line)
+            {
+                $line = substr($line, $min_indent);
+            }
+        }
+
+        return implode(PHP_EOL, $lines);
+    }
+
     use Michelf\Markdown;
     use Michelf\SmartyPants;
     use League\CommonMark\GithubFlavoredMarkdownConverter;
@@ -1917,6 +1953,8 @@
 
             return $text;
         }
+
+        $text = unindent($text);
 
         $html = "";
         
