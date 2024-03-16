@@ -1564,6 +1564,61 @@
         return $content;
     }
 
+    function post($api, $url, $params = array(), $header = array(), $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null)
+    {
+        $curl_user_agent = $user_agent;
+    
+        $header = array_merge(array(
+            
+            "Content-Type"      => "application/json",
+            "User-Agent"        => $curl_user_agent
+        
+        ), $header);
+    
+        $url_params = "";
+        {
+            if ($method == "GET" && count($params) > 0)
+            {
+                $url_params = "/?".http_build_query($params, "", null, PHP_QUERY_RFC3986);
+                $url_params = "/?".implode("&", array_map(function ($key, $val) { return "$key=$val"; }, array_keys($params), array_values($params)));
+            }
+        }
+    
+        $curl_url           = "$api/$url".$url_params;
+        $curl_http_header   = array_map(function ($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
+    
+        $curl_options = array();
+        {
+            $curl_options[CURLOPT_URL            ] = $curl_url;
+            $curl_options[CURLOPT_RETURNTRANSFER ] = true;
+            $curl_options[CURLOPT_ENCODING       ] = '';
+            $curl_options[CURLOPT_MAXREDIRS      ] = 10;
+            $curl_options[CURLOPT_TIMEOUT        ] = 0;
+            $curl_options[CURLOPT_FOLLOWLOCATION ] = true;
+            $curl_options[CURLOPT_HTTP_VERSION   ] = CURL_HTTP_VERSION_1_1;
+            $curl_options[CURLOPT_CUSTOMREQUEST  ] = $method;
+            $curl_options[CURLOPT_HTTPHEADER     ] = $curl_http_header;
+            $curl_options[CURLOPT_SSL_VERIFYPEER ] = 0;
+            $curl_options[CURLOPT_SSL_VERIFYHOST ] = 0;
+            $curl_options[CURLOPT_USERAGENT      ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0'/*$curl_user_agent*/;
+            
+            if ($usr != false && $pwd != false) {
+                $curl_options[CURLOPT_USERPWD] = "$usr:$pwd";
+            }
+            
+            if ($method != "GET")
+                $curl_options[CURLOPT_POSTFIELDS] = json_encode($params);
+        }
+    
+        $curl       =           curl_init();
+        $result_opt =           curl_setopt_array($curl, $curl_options);
+        $response   =           curl_exec($curl);
+        $code       = (string)  curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error      =           curl_error($curl);
+    
+        return $response;
+    }
+
     function array_open_url($urls, $content_type = 'json', $options = 7)
     {
         $content = content($urls, $options);
@@ -1939,8 +1994,15 @@
 
     use Michelf\Markdown;
     use Michelf\SmartyPants;
+
+    use League\CommonMark\Environment\Environment;
+    use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+    use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
+    use League\CommonMark\Extension\FrontMatter\Output\RenderedContentWithFrontMatter;
+    use League\CommonMark\MarkdownConverter;
+    use League\CommonMark\CommonMarkConverter;
     use League\CommonMark\GithubFlavoredMarkdownConverter;
-        
+    
     function markdown($text, $hard_wrap = false, $headline_level_offset = 0, $no_header = false, $anchor = false, $smartypants = false, $markdown = false, $commonmark = true)
     {
         if (!!get("gemini"))
@@ -1970,7 +2032,15 @@
         {   
             try
             {
-                $converter = new GithubFlavoredMarkdownConverter();
+                $config = []; // Define your configuration, if needed
+                
+                $environment = new Environment($config); // Configure the Environment with all the CommonMark parsers/renderers
+                $environment->addExtension(new CommonMarkCoreExtension());
+                $environment->addExtension(new FrontMatterExtension()); // Add the extension
+
+                //$converter = new GithubFlavoredMarkdownConverter($config);
+                $converter = new MarkdownConverter($environment);
+
                 $html = $converter->convert($text)->getContent();
             }
             catch (\Exception $e)
@@ -4712,7 +4782,7 @@
     }
 
     function output($doc = "")
-    {           
+    {
         if (!!get("binary"))
         {
             die($doc);
@@ -9891,6 +9961,8 @@
     function br             (            $attributes = false) {                             return  tag('br',                         false,                                                $attributes, false, true                                            );                      }
 
     function clearfix       () { return div("","clearfix"); }
+
+    function excerpt        ($html = "", $attributes = false) {                             return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
 
     function main($html = "", $attributes = false)
     {

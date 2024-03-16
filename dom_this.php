@@ -178,37 +178,30 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     
     $attributes = dom\attributes_add_class($attributes, "ide");
 
-    //set("fonts", get("fonts")."|Fira Code");
-
     return 
 
         style("
 
             @layer ide;
         
-            .ide {/*
-                padding:            calc(0.5 * var(--gap));*/
+            .ide {
                 overflow:           hidden;
                 margin-block:       var(--gap);
                 width:              fit-content;
                 border:             2px dashed var(--border-color, var(--theme-color));
             }
             .ide-code {
-                /*font-family:        'Fira Code', monospace; */ /* to costly */
                 font-size:          14px;
                 font-weight:        400;
                 line-height:        1.3em;
-                white-space:        pre-wrap;/*
-                background-color:   var(--background-color);
-                padding:            calc(0.5 * var(--gap));*/
+                white-space:        normal;
                 padding:            var(--gap);
-                margin:             0;/*
-                box-shadow:         inset 2px 2px 4px 2px #00000030;*/
+                margin:             0;
                 overflow:           hidden;
                 overflow-x:         auto;
             }
             .ide-line { 
-                display:            inline-flex; 
+                display:            flex; 
                 align-items:        flex-start;
                 gap:                .5em; 
             }
