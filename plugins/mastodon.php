@@ -1,8 +1,9 @@
 <?php 
 
 /**
+ * Blod post excerpt auto-positing on Mastodon
+ * +
  * Blog post commenting via Mastodon comments
- * 
  * Inspired by https://cassidyjames.com/blog/fediverse-blog-comments-mastodon/
  * Himselft inspired by https://codeberg.org/jwildeboer/jwildeboersource/src/commit/45f9750bb53b9f0f6f28399ce4d21785a3bb7d22/_includes/fediverse_comments.html
  */
@@ -10,7 +11,7 @@
 namespace dom\mastodon; 
 
 require_once(__DIR__."/../dom.php"); 
-use function \dom\{set,get,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,figure,source,img,span,div,time_datepublished,summary,details,article};
+use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div};
 
 #region Constants
 
@@ -87,7 +88,7 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
 }
 
 #endregion Content requets
-#region Components
+#region Components: Comments
 
 function comment_card(
     
@@ -195,7 +196,7 @@ function comment_card(
     $minify = get("minify");
     set("minify", true);
 
-    $html = article(
+    $html = \dom\article(
 
         header(
 
@@ -572,4 +573,122 @@ function section_comments_cards($post_id, $host = false, $username = false, $use
         script(js_comments($post_id, $host, $username, $user_id));
 }
 
-#endregion Components
+#endregion Components: Comments
+#region Components: Auto-publish
+
+function live_permalink()
+{
+    $permalink = get("canonical");
+
+    $permalink = rtrim(str_replace("https://localhost",         "http://localhost", $permalink), "/");
+    $permalink = rtrim(str_replace("https://127.0.0.1",         "http://127.0.0.1", $permalink), "/");
+    $permalink = rtrim(str_replace("www.".get("local_domain"),  get("live_domain"), $permalink), "/");
+    $permalink = rtrim(str_replace(       get("local_domain"),  get("live_domain"), $permalink), "/");
+    $permalink = rtrim(str_replace("http://localhost/",         "https://",         $permalink), "/");
+    $permalink = rtrim(str_replace("http://localhost",          "https://",         $permalink), "/");
+    $permalink = rtrim(str_replace("http://127.0.0.1/",         "https://",         $permalink), "/");
+    $permalink = rtrim(str_replace("http://127.0.0.1",          "https://",         $permalink), "/");
+
+    return $permalink;
+}
+
+function corresponding_post($permalink)
+{
+    foreach (array_user_statuses() as $post)
+    {
+      //if (false != stripos(at($post, "content"), link_to_complete_article($permalink))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+        if (false != stripos(at($post, "content"), $permalink)) // Not good at desambiguating articles
+        {
+            return $post;
+        }
+    }
+
+    return false;
+}
+
+function excerpt($html)
+{
+    set("mastondon/excerpt", $html);
+    return $html;
+}
+
+function link_to_complete_article($permalink = false)
+{
+    $permalink = !$permalink ? live_permalink() : $permalink;
+  //return "Read complete article here: ".live_permalink();
+    return "Read ".a("complete article here", live_permalink(), [ "data-article" => "corresponding" ]);
+}
+
+function post_excerpt()
+{
+    // https://mastodon.social/settings/applications/5328602
+
+    $mastodon_villapirorum_app_id       = "Wat5RgIeOvcrq5su93SJZIopG-VjS03hbKrh4e6uRm8";
+    $mastodon_villapirorum_app_secret   = "lrk4gYhvdeqlzjNIR8_9HFip_nCvrAgDGPME_51cGbU";
+    $mastodon_villapirorum_app_token    = "NgMoge0pfla1Aanrh3qeZc42ZW1ZMSg3Ed9ESg5f-OM"; 
+
+    $api_url = "https://".get("mastodon_domain", "mastodon.social");
+
+    $body = get("mastondon/excerpt").p(link_to_complete_article());
+    del("mastondon/excerpt");
+
+    $code  = null;
+    $error = null;
+
+    $response = \dom\post($api_url, "api/v1/statuses", 
+
+        array(
+            "status"            => $body,
+            "visibility"        => "private" // public, unlisted, private, direct
+            ), 
+
+        array(
+            'Content-Type'      => "application/x-www-form-urlencoded",
+            'Authorization'     => "Bearer $mastodon_villapirorum_app_token",
+            "Idempotency-Key"   => live_permalink()
+        ),
+        "POST", false, false, "DOM", $code, $error
+        );
+
+    return \dom\pre(json_encode(array("response" => $response, "code" => $code, "error" => $error, "body" => htmlentities($body)), JSON_PRETTY_PRINT));
+}
+
+function article_excerpt_autopost_and_comments() 
+{ 
+    // TODO. Solve Logic problem
+    // When the workflow is compile php -> push compile static version live
+    // The it needs to be double-posted in order to work
+
+    // TODO. Go all jaascript when static site ?
+
+    $live_permalink     = live_permalink();
+    $corresponding_post = corresponding_post($live_permalink);
+
+    $html = "";
+
+    if (!!$corresponding_post)
+    {
+        $html = header(p("Comments")).section_comments_cards(at($corresponding_post, "id"));
+    }
+    else if (!get("static"))
+    {
+        if (!get("mastondon/excerpt"))
+        {
+            $html = p("This article will be automatically posted on the Fediverse once an excerpt has been defined");
+        }
+        else if (!\dom\url_exists($live_permalink))
+        {
+            $html = p("This article will be automatically posted on the Fediverse as soon as it goes live at ".a($live_permalink));
+        }
+        else 
+        {
+            $html = p("Posting $live_permalink to Fediverse...").post_excerpt();
+        }
+    }
+
+    return \dom\article($html);
+}
+
+//die("<pre>".json_encode(dom\mastodon\array_user_statuses(), JSON_PRETTY_PRINT)."</pre>");
+
+#endregion Components: Autopublish

@@ -671,13 +671,14 @@
 
     function ajax_url_base_params($get = true, $post = false, $session = false)
     {
-        // TODO prevent exposing all the vars
+        // ! TODO prevent exposing all the vars
         $vars = get_all($get, $post, $session);
         unset($vars["support_header_backgrounds"]); // Can lead to much too long URLs
         return $vars;
     }
 
-    function ajax_url           ($ajax_params)                                      { return './?'.http_build_query(array_merge(ajax_url_base_params(), array("ajax" => $ajax_params))); }
+    function ajax_url           ($ajax_params, 
+                                 $get = true, $post = false, $session = false)      { return './?'.http_build_query(array_merge(ajax_url_base_params($get, $post, $session), array("ajax" => $ajax_params))); }
 
     function ajax_param_encode2 ($p)                                                { return (is_array($p))                                     ? implode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
     function ajax_param_decode2 ($p)                                                { return (false !== strpos($p, DOM_AJAX_PARAMS_SEPARATOR2)) ? explode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
@@ -688,7 +689,8 @@
     function ajax_placeholder   ($ajax_params, $html = "")                          { return div($html, ajax_classes($ajax_params)); }
     
     function ajax_classes       ($ajax_params, $extra = false)                      { return "ajax-container ajax-container-".to_classname($ajax_params).(($extra !== false) ? (" ajax-container-".to_classname($extra)) : ""); }
-    function ajax_container     ($ajax_params, $placeholder = false, $period = -1)  { return  (($placeholder === false) ? ajax_placeholder($ajax_params) : $placeholder) . '<script>ajax("'.ajax_url($ajax_params).'", function(content) { document.querySelector(".ajax-container-'.to_classname($ajax_params).'").outerHTML = content; on_ajax_reception(); }, '.$period.'); </script>'; }
+    function ajax_container     ($ajax_params, $placeholder = false, $period = -1,
+                                 $get = true, $post = false, $session = false)      { return  (($placeholder === false) ? ajax_placeholder($ajax_params) : $placeholder) . '<script>ajax("'.ajax_url($ajax_params, $get, $post, $session).'", function(content) { document.querySelector(".ajax-container-'.to_classname($ajax_params).'").outerHTML = content; on_ajax_reception(); }, '.$period.'); </script>'; }
 
     function ajax_call          ($f)                                                { $args = func_get_args(); return ajax_call_FUNC_ARGS($f, $args); }
         
@@ -708,7 +710,7 @@
         return ajax_call_with_args($f, $async_params, $args);
     }
         
-    function ajax_call_with_args($f, $async_params, $args)
+    function ajax_call_with_args($f, $async_params, $args, $get = true, $post = false, $session = false)
     {
         // Async calls disabled
         
@@ -746,7 +748,7 @@
                 list($period, $placeholder) = $async_params; 
             }
 
-            return ajax_container($ajax, $placeholder(ajax_classes($ajax, $f)), $period);
+            return ajax_container($ajax, $placeholder(ajax_classes($ajax, $f)), $period, $get, $post, $session);
         }
         else
         {
@@ -767,7 +769,7 @@
             $n = stripos($f,"/");
             $f = (false === $n) ? $f : substr($f, 0, $n);
 
-            if (!is_callable($f)) $f = "dom\\$f";
+            if (!is_callable($f) && is_callable("dom\\$f")) $f = "dom\\$f";
 
             return call_user_func_array($f, $args);
         }
@@ -903,28 +905,6 @@
 
             /* DOM Head Javascript boilerplate */
 
-            var ajax_pending_calls = [];
-
-            function ajax(url, onsuccess, period, onstart, mindelay)
-            {
-                if (typeof ajax_url_query_hook != "undefined")
-                {
-                    url = ajax_url_query_hook(url);
-                }
-
-                ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
-                requestAnimationFrame(pop_ajax_call);
-            };
-
-        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
-
-    function js_ajax_body()
-    {
-        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-
-            /* DOM Body Javascript boilerplate */
-
             var process_ajax = function(url, onsuccess, period, onstart, mindelay)
             {
                 if (typeof onsuccess    === "undefined") onsuccess  = null;
@@ -994,6 +974,28 @@
                     process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
                 }
             };
+
+            var ajax_pending_calls = [];
+
+            function ajax(url, onsuccess, period, onstart, mindelay)
+            {
+                if (typeof ajax_url_query_hook != "undefined")
+                {
+                    url = ajax_url_query_hook(url);
+                }
+
+                ajax_pending_calls.push(new Array(url, onsuccess, period, onstart, mindelay));
+                requestAnimationFrame(pop_ajax_call);
+            };
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
+    function js_ajax_body()
+    {
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            /* DOM Body Javascript boilerplate */
             
             on_loaded(function() {
 
@@ -1446,7 +1448,12 @@
     function url_exists($url)
     {
         $headers = @get_headers($url);
-        return (is_array($headers) && false !== stripos($headers[0], "200 OK")) ? true : false;
+        if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
+        
+        $headers = @get_headers("$url/");
+        if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
+
+        return false;
     }
 
     function clean_title($title)
@@ -12633,10 +12640,20 @@
         }
  
         array_shift($args);
-        
+
+        $get     = true;
+        $post    = false;
+        $session = false;
+
+        if (is_string($f) && false !== stripos($f, "-NO-ENV"))
+        {
+            $f = str_replace("-NO-ENV", "", $f);
+            $get = false;
+        }
+    
         register_async($f);
         
-        return ajax_call_with_args($f, $period, $args);
+        return ajax_call_with_args($f, $period, $args, $get, $post, $session);
     }
     
     /**
