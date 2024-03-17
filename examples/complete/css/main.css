@@ -155,7 +155,7 @@ article .card.ide {
 }
 
 article .card.ide .ide-code {
-    
-    white-space: pre;
+    /*
+    white-space: pre;*/
     overflow-x: scroll;
 }

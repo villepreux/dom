@@ -689,6 +689,4 @@ function article_excerpt_autopost_and_comments()
     return \dom\article($html);
 }
 
-//die("<pre>".json_encode(dom\mastodon\array_user_statuses(), JSON_PRETTY_PRINT)."</pre>");
-
 #endregion Components: Autopublish

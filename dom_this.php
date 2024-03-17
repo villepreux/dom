@@ -289,8 +289,8 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             .card.ide .ide-code {
 
                 padding:            calc(0.5 * var(--gap));
-                margin:             0;
-                white-space:        pre;
+                margin:             0;/*
+                white-space:        pre;*/
 
                 box-shadow:         inset 2px 2px 4px 2px #00000030;
             }
