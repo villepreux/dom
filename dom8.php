@@ -4644,7 +4644,7 @@
         }
     }
 
-    if (!has("main"))
+    if (!has("main") && !has("main-include"))
     {
         init_php();
         init_options();
@@ -4653,7 +4653,7 @@
 
     function init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
-        if (has("main")) return;
+        if (has("main") || has("main-include")) return;
 
         if (!!get("profiling")) debug_enable_profiling();
 
@@ -4806,6 +4806,11 @@
             die();
         }
 
+        if (has("main-include"))
+        {
+            return;
+        }
+
         if ("html" == get("doctype", false))
         {
             if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc);
@@ -4831,7 +4836,7 @@
 
         $doc .= generate_all();
 
-        if (get("compression") == "gzip" && !has("main")) ob_start("ob_gzhandler");
+        if (get("compression") == "gzip" && !has("main") && !has("main-include")) ob_start("ob_gzhandler");
 
         echo $doc;
         
@@ -4839,7 +4844,7 @@
     
         generate_all_postprocess();
 
-        if (get("compression") == "gzip" && !has("main")) ob_end_flush();
+        if (get("compression") == "gzip" && !has("main") && !has("main-include")) ob_end_flush();
     }
 
     #endregion
@@ -9890,7 +9895,8 @@
         
     function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true)
     {
-        $h += get("main", 0);
+        $h += get("main",         0);
+        $h += get("main-include", 0);
         
         if ($headline_hook)
         {
@@ -9982,6 +9988,7 @@
     function main($html = "", $attributes = false)
     {
         if (has("main")) die($html);
+        if (has("main-include")) set("main-include", $html);
 
         $profiler = debug_track_timing();
         
