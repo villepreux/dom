@@ -351,6 +351,19 @@
     #endregion
     #region HELPERS : FILE AND FOLDERS PATH FINDER
     ######################################################################################################################################
+
+    function at_root($path = ".")
+    {
+        foreach (get("root_hints", array()) as $root_hint_file)
+        {
+            if (file_exists("$path/$root_hint_file")) 
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
         
     function path($path0, $default = false, $search = true, $depth0 = DOM_AUTO, $max_depth = DOM_AUTO, $offset_path0 = ".", $bypass_root_hints = false)
     {
@@ -408,16 +421,9 @@
 
             // If beyond root then stop here
 
-            if (!$bypass_root_hints)
+            if (!$bypass_root_hints && at_root($offset_path))
             {
-                foreach (get("root_hints", array()) as $root_hint_file)
-                {
-                    if (file_exists("$offset_path/$root_hint_file")) 
-                    {
-                        $search = false;
-                        break;
-                    }
-                }
+                $search = false;
             }
 
             // If requested then search in parent folder
@@ -9971,22 +9977,26 @@
 
     function excerpt        ($html = "", $attributes = false) {                             return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
 
+    $__dom_is_first_main = true;
+
     function main($html = "", $attributes = false)
     {
         if (has("main")) die($html);
 
         $profiler = debug_track_timing();
-
-        return  tag("main", 
-                    cosmetic(eol(1)).$html.cosmetic(eol(1)),
-                    attributes_add_class(
-                        $attributes,
-                            component_class("main").
-                        ' '.component_class("main","content")
-                        )
-                    ); 
-    }
         
+        $attributes = attributes_add_class($attributes, component_class("main").' '.component_class("main","content"));
+
+        global $__dom_is_first_main;
+        
+        if ($__dom_is_first_main)
+        {
+            $__dom_is_first_main = false;
+            $attributes = attributes_add($attributes, attr("id", "main"));
+        }
+
+        return  tag("main", cosmetic(eol(1)).$html.cosmetic(eol(1)), $attributes); 
+    }       
 
     function footer     ($html = "", $attributes = false) { $profiler = debug_track_timing(); return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
     
@@ -11096,6 +11106,13 @@
         return img($path, false, false, $attributes ? $attributes : array("style" => "width: 100%; height: auto"));
     }
 
+    function svg_wrapper($html, $label, $align) 
+    {
+        if (!!get("gemini")) return "";
+
+        return tag('span', $html, array('class' => ('span-svg-wrapper icon '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : ''))));
+    }
+
     function svg($label, $x, $y, $w, $h, $align, $svg_body, $add_wrapper = true) 
     {
         if (!!get("gemini")) return "";
@@ -11117,7 +11134,7 @@
                 '</svg>';
 
         if ($add_wrapper)
-            $html = tag('span', $html, array('class' => ('span-svg-wrapper icon '.strtolower($label).($align ? ' span-svg-wrapper-aligned' : ''))));
+            $html = svg_wrapper($html, $label, $align);
 
         return $html;
     }

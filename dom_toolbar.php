@@ -38,7 +38,7 @@
             "classes" => array
             (
                 'menu-list'             => 'dropdown-menu sidebar'
-                , 'toolbar'               => 'navbar sticky-top'        
+              , 'toolbar'               => 'navbar sticky-top'        
             )
         )
         
@@ -47,7 +47,7 @@
             "classes" => array
             (
                 'toolbar-row'               => 'navbar'
-                , 'toolbar-cell'              => 'navbar-section'
+              , 'toolbar-cell'              => 'navbar-section'
 
             )
         )
@@ -354,7 +354,7 @@
 
     function js_toolbar_height()
     {
-        if (has("dom_toolbar_no_js")) return "";
+        if (has("dom_toolbar_no_js") || !!get("no_css")) return "";
         
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
@@ -712,16 +712,17 @@
 
     function toolbar_skip_to_main()
     {
-        return a(T("Skip to main"), "#".anchor_name(get("title")), "skip-to-main");
+      //return a(T("Skip to main"), "#".anchor_name(get("title")),  "skip-to-main");
+        return a(T("Skip to main"), "#main",                        "skip-to-main");
     }
 
     function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
     {
         $skip_to_main = delayed_component("toolbar_skip_to_main");
 
-        if (is_array($section1)) $section1 = toolbar_section($skip_to_main.icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
-        if (is_array($section2)) $section2 = toolbar_section(icon_entries($section2), component_class("section", "toolbar-cell-center" ));
-        if (is_array($section3)) $section3 = toolbar_section(icon_entries($section3), component_class("section", "toolbar-cell-right"  ));
+        if (is_array($section1)) $section1 = toolbar_section($skip_to_main." ". icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
+        if (is_array($section2)) $section2 = toolbar_section(                   icon_entries($section2), component_class("section", "toolbar-cell-center" ));
+        if (is_array($section3)) $section3 = toolbar_section(                   icon_entries($section3), component_class("section", "toolbar-cell-right"  ));
 
         if ($section1 === false) $section1 = "";
         if ($section2 === false) $section2 = "";
@@ -760,6 +761,8 @@
 
     function menu_toggle($html, $sidebar = DOM_AUTO)
     {
+        if (!!get("no_css")) return ""; // No css == no responsiveness toggle between navbar & navdropmenu
+
         if (false === stripos($html, "menu-entries")) $html = menu_entries($html, $sidebar);
         if (false === stripos($html, "menu-switch"))  $html = menu_switch().$html;
 
