@@ -5596,10 +5596,10 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify", false) || !!get("minify_html", false) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify", false) || !!get("minify_js",   false) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify", false) || !!get("minify_css",  false) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
-    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify", false) || !!get("minify_php",  false) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify") || !!get("minify_js"   ) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify") || !!get("minify_css"  ) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify") || !!get("minify_php"  ) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
@@ -6161,7 +6161,7 @@
             styles().            
             (!$path_css ? "" : (
                 (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
-                style($path_css).                                                               "") : (
+                style_file($path_css).                                                          "") : (
                 link_style($path_css).                                                          "")).
             "")).
 
@@ -6858,12 +6858,12 @@
     function link_style($link, $media = "screen", $async = false, $attributes = false)
     {
         if (!!get("no_css"))             return '';
-        if (!!get("include_custom_css")) return style($link, false, true);
+        if (!!get("include_custom_css")) return style_file($link, false, true);
 
         $is_external_url = ((0 === stripos($link, "http"))
                          || (0 === stripos($link, "//"  )));
 
-        if (AMP() && !$is_external_url)  return style($link, false, true);
+        if (AMP() && !$is_external_url)  return style_file($link, false, true);
 
         if ($async && !AMP())
         {
@@ -6913,19 +6913,79 @@
         return "@layer $layer {".eol(2).$css.eol()."}";
     }
 
-    function style( $filename_or_code = "", $force_minify = false, $silent_errors = DOM_AUTO)
+    function style_css_as_is($css = "", $attributes = false)
     {
-        if (!$filename_or_code || $filename_or_code == "") return '';
-        $filename = path($filename_or_code);
-        $profiler = debug_track_timing(!!$filename ? $filename : "inline");
-        $css = eol().($filename ? include_css($filename, $force_minify, $silent_errors) : raw_css ($filename_or_code, $force_minify)).eol();
-        return AMP() ? hook_amp_css($css) : (tag('style',  $css ));
+        if (!$css || $css == "") return '';
+        $css = eol().$css.eol();
+        if (AMP()) return hook_amp_css($css);
+        return tag('style',  $css, $attributes);
     }
 
-    function script($filename_or_code = "", $type = "text/javascript",                 $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)   { if (!$filename_or_code || $filename_or_code == "") return ''; $filename = path($filename_or_code); $profiler = debug_track_timing(!!$filename ? $filename : "inline"); $js  = eol().($filename ? include_js ($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol(); return AMP() ? hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, ""))) : (tag('script', $js, array("type" => $type) )); }
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)                                                      { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
-    function script_module($src,            $type = "module",          $extra = false, $force = false)                                                      { return script_src($src, $type, $extra, $force); }
-    function script_json_ld($properties)                                                                                                                    { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
+    function style($css = "", $force_minify = false, $attributes = false) // TODO attributes at 2nd position
+    {
+        $profiler = debug_track_timing();
+        if (!$css || $css == "") return '';
+        return style_css_as_is(raw_css($css, $force_minify), $attributes);
+    }
+
+    function style_file($filename = "", $force_minify = false, $silent_errors = DOM_AUTO, $attributes = false)
+    {
+        $profiler = debug_track_timing();
+        if (!$filename || $filename == "") return '';
+        $filename = path($filename);
+        if (!$filename || $filename == "") return '';        
+        return style_css_as_is(include_css($filename, $force_minify, $silent_errors), $attributes);
+    }
+
+    function style_css_or_file($filename_or_code = "", $force_minify = false, $silent_errors = DOM_AUTO)
+    {
+        $profiler = debug_track_timing();
+        if (!$filename_or_code || $filename_or_code == "") return '';
+        $filename = path($filename_or_code);
+        return style_css_as_is($filename 
+            ? include_css($filename, $force_minify, $silent_errors) 
+            : raw_css($filename_or_code, $force_minify)
+            );
+    }
+
+    function script_js_as_is($js = "", $type = "text/javascript")
+    {
+        if (!$js || $js == "") return ''; 
+        $js  = eol().$js.eol();
+        if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
+        return tag('script', $js, array("type" => $type));
+    }
+
+    function script($js = "", $type = "text/javascript",  $force_minify = false)
+    {
+        $profiler = debug_track_timing();         
+        if (!$js || $js == "") return ''; 
+        return script_js_as_is(raw_js($js, $force_minify), $type);
+    }
+
+    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)
+    {
+        $profiler = debug_track_timing(); 
+        if (!$filename || $filename == "") return ''; 
+        $filename = path($filename);
+        if (!$filename || $filename == "") return ''; 
+        return script_js_as_is(include_js($filename, $force_minify, $silent_errors), $type);
+    }
+
+    function script_js_or_file($filename_or_code = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)
+    {
+        $profiler = debug_track_timing(); 
+        
+        if (!$filename_or_code || $filename_or_code == "") return ''; 
+        $filename = path($filename_or_code);
+        $js  = eol().($filename ? include_js($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol();
+        if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
+        return tag('script', $js, array("type" => $type));
+    }
+
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
+    function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
     function script_ajax_head() { return /*AMP() ? "" : */script(js_ajax_head()); }
     function script_ajax_body() { return /*AMP() ? "" : */script(js_ajax_body()); }
@@ -8794,6 +8854,7 @@
                                           style(css_base_colors_vars()         ).
                                           style(css_base_colors()              ).
 
+            // TODO: We cannot be dependent here of a plugin
             eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "").
             eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "").
             eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "").
@@ -8831,29 +8892,30 @@
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
         }
 
-        return  script_src("https://www.googletagmanager.com/gtag/js?id=".constant("TOKEN_GOOGLE_ANALYTICS"), false, 'async').
-                script(
+        return
+            script_src("https://www.googletagmanager.com/gtag/js?id=".constant("TOKEN_GOOGLE_ANALYTICS"), false, 'async').
+            script(
 
-            eol(1) . '/*  Google analytics */ '.
+                eol(1) . '/*  Google analytics */ '.
 
-            eol(2) . tab() . /*'window.ga=function() { ga.q.push(arguments) };'.
+                eol(2) . tab() . /*'window.ga=function() { ga.q.push(arguments) };'.
 
-                ' ga.q=[];'.
-                ' ga.l=+new Date;'.
+                    ' ga.q=[];'.
+                    ' ga.l=+new Date;'.
 
-                ' ga("create",'. ' "'.constant("TOKEN_GOOGLE_ANALYTICS").'",'. ' "auto"'.   ');'.
-                ' ga("set",'.    ' "anonymizeIp",'.                           ' true'.     ');'.
-                ' ga("set",'.    ' "transport",'.                             ' "beacon"'. ');'.
-                ' ga("send",'.   ' "pageview"'.                                            ');'.*/
+                    ' ga("create",'. ' "'.constant("TOKEN_GOOGLE_ANALYTICS").'",'. ' "auto"'.   ');'.
+                    ' ga("set",'.    ' "anonymizeIp",'.                           ' true'.     ');'.
+                    ' ga("set",'.    ' "transport",'.                             ' "beacon"'. ');'.
+                    ' ga("send",'.   ' "pageview"'.                                            ');'.*/
 
-                ' window.dataLayer = window.dataLayer || [];'.
-                ' function gtag(){dataLayer.push(arguments);}'.
-                ' gtag(\'js\', new Date());'.
-                ' '.
-                ' gtag(\'config\', \''.constant("TOKEN_GOOGLE_ANALYTICS").'\');'.
+                    ' window.dataLayer = window.dataLayer || [];'.
+                    ' function gtag(){dataLayer.push(arguments);}'.
+                    ' gtag(\'js\', new Date());'.
+                    ' '.
+                    ' gtag(\'config\', \''.constant("TOKEN_GOOGLE_ANALYTICS").'\');'.
 
-            eol(1)
-            );
+                eol(1)
+                );
     }
 
     function script_google_analytics()
@@ -9825,8 +9887,8 @@
 
         . eol() . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
                                                                     .((!get("htaccess_rewrite_php")) ? (""
-        . ($app_js ? script(    $app_js) : '')         ) : (""
-        . ($app_js ? script_src($app_js) : '')         ))
+        . ($app_js ? script_file($app_js) : '')         ) : (""
+        . ($app_js ? script_src($app_js)  : '')         ))
 
         . eol() 
         . comment("Post scripts")
