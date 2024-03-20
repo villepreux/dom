@@ -6110,11 +6110,54 @@
     #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
-
-    function head_boilerplate($async_css = false)
+    /**
+     * 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type
+     */
+    function head_pragma_directives()
     {
-        $profiler = debug_track_timing();
+        return  eol().comment("DOM Head pragma directives") 
+            .   meta_charset('utf-8')
+            .   eol()
+            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))
+            .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
+            ;        
+    }
 
+    /* 10 Title */
+    function head_title()
+    {
+        return title();
+    }
+
+    /* 9 */
+    function head_preconnect_hints()
+    {
+        return  eol().comment("DOM Head preconnect hints"). 
+                (!get("unsplash-preconnect") ? '' : '<link rel="preconnect" href="https://source.unsplash.com">');
+    }
+
+    /* 8 */
+    function head_asynchronous_scripts()
+    {
+        return  (AMP() ? "" : (eol().comment("DOM Head Asynchronous scripts"))). 
+                scripts_head();
+    }
+
+    /* 7 */
+    function head_import_styles()
+    {
+        return eol().comment("DOM Head Import styles");
+    }
+
+    /* 6 */
+    function head_synchronous_scripts()
+    {
+        return eol().comment("DOM Head Synchronous scripts");
+    }
+
+    /* 5 */
+    function head_synchronous_styles($async_css = false, $styles = true)
+    {
         $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
             "./css/main.css",
             "./main.css",
@@ -6122,81 +6165,73 @@
             "./screen.css"
             );
 
-        // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
-
         return 
-
-            eol().
-            eol().comment("DOM Head pragma directives"). /* 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type */ 
-            head_pragma_directives().
-    
-            title(). /* 10 Title */
-
-            eol().
-            eol().comment("DOM Head preconnect hints"). /* 9 */
-            head_preconnect_hints().
-
-            eol().
-            (AMP() ? "" : (eol().comment("DOM Head Asynchronous scripts"))). /* 8 */
-          //head_asynchronous_scripts().
-            scripts_head().
-
-            eol().
-            eol().comment("DOM Head Import styles"). /* 7 */
-          //head_import_styles().
-            
-            eol().
-            eol().comment("DOM Head Synchronous scripts"). /* 6 */
-          //head_synchronous_scripts().
-
-            eol().
-            eol().comment("DOM Head Synchronous styles"). /* 5 */
-          //head_synchronous_styles().
+            eol().comment("DOM Head Synchronous styles").
             (!AMP() ? ("".
                 eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
                 eol().'<link rel="stylesheet" type="text/css" media="screen"/>'.
             "") : "").
             (AMP() ? "" : (eol().comment("DOM Head styles"))).
             link_styles($async_css). // if $async_css == false otherwise move to #2
-            styles().            
+            (!$styles ? "" : styles()).
             (!$path_css ? "" : (
                 (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
                 style_file($path_css).                                                          "") : (
                 link_style($path_css).                                                          "")).
-            "")).
+            ""));
+    }
 
-            eol().
-            eol().comment("DOM Head Preload hints"). /* 4 */
-          //head_preload_hints().
-            eol().comment("Preloaded images").
-            link_rel_image_preloads().
+    /* 4 */
+    function head_preload_hints()
+    {
+        return  eol().comment("Preloaded images").
+                link_rel_image_preloads();
+    }
 
-            eol().
-            eol().comment("DOM Head Deferred scripts"). /* 3 */
-          //head_deferred_scripts().
-            //script_google_analytics should be call here if needed
+    /* 3 */
+    function head_deferred_scripts()
+    {
+        return  eol().comment("DOM Head Deferred scripts").
+                //head_deferred_scripts().
+                //script_google_analytics should be call here if needed
+                "";
+    }
 
-            eol().
-            eol().comment("DOM Head Prefetch and prerender hints"). /* 2 */
-          //head_prefetch_and_prerender_hints().
-            eol().comment("Prefetched pages").
-            link_rel_prefetchs().
-            
-            /* Everything else 1 */
+    /* 2 */
+    function head_prefetch_and_prerender_hints()
+    {
+        return  eol().comment("DOM Head Prefetch and prerender hints").
+                eol().comment("Prefetched pages").
+                link_rel_prefetchs();   
+    }
 
-            eol().
-            eol().comment("DOM Head Metadata").
-            metas().
+    /* 1 */
+    function head_everything_else()
+    {
+        return  eol().comment("DOM Head Metadata").
+                      metas().
+                eol().link_rel_manifest().      (!get("webmentions") ? "" : (
+                eol().link_rel_webmentions().   "")).
+                eol().link_rel_webauth();
+    }
+    
+    function head_boilerplate($async_css = false, $styles = true)
+    {
+        $profiler = debug_track_timing();
 
-            eol().
-            link_rel_manifest().
-                                        (!get("webmentions") ? "" : (
-            eol().
-            link_rel_webmentions().     "")).
+        return // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
 
-            link_rel_webauth().
-
-            
+            eol().head_pragma_directives().
+            eol().head_title(). 
+            eol().head_preconnect_hints().
+            eol().head_asynchronous_scripts().
+            eol().head_import_styles().
+            eol().head_synchronous_scripts().
+            eol().head_synchronous_styles($async_css, $styles).
+            eol().head_preload_hints().
+            eol().head_deferred_scripts().
+            eol().head_prefetch_and_prerender_hints().
+            eol().head_everything_else().            
             "";
     }
 
@@ -6687,20 +6722,6 @@
         return link_rel($type, $path, $attributes);
     }
 
-    function head_pragma_directives()
-    {
-        return  meta_charset('utf-8')
-            .   eol()
-            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))
-            .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
-            ;        
-    }
-
-    function head_preconnect_hints()
-    {
-        return (!get("unsplash-preconnect") ? '' : '<link rel="preconnect" href="https://source.unsplash.com">');
-    }
-    
     function metas() { return delayed_component("_".__FUNCTION__, false); }
     function _metas()
     {
@@ -9068,7 +9089,7 @@
 
                         if (registration_installing && registration_installing != null)
                         {
-                            console.log("DOM: Installing: State:", registration_installing.st ate);
+                            console.log("DOM: Installing: State:", registration_installing.state);
 
                             if (registration_installing.state === "activated" && !registration_waiting)
                             {
