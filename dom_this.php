@@ -163,8 +163,8 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             
             : div(
 
-                div(str_pad(++$i, 3, "0", STR_PAD_LEFT),             "ide-line-number").
-                div($syntax_highlight ? $line : htmlentities($line), "ide-line-code"),
+                div(str_pad(++$i, 3, "0", STR_PAD_LEFT),             [ "class" => "ide-line-number", "style" => "display: inline" ])." ".
+                div($syntax_highlight ? $line : htmlentities($line), [ "class" => "ide-line-code",   "style" => "display: inline" ]),
 
                 "ide-line"            
             );

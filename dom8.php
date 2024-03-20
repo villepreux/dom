@@ -10138,8 +10138,8 @@
 
         if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
 
-        $w = ($w === false) ? "1200" : $w;
-        $h = ($h === false) ?  "675" : $h;
+        $w = ($w === false) ? "300" : $w;
+        $h = ($h === false) ? "200" : $h;
 
         hook_amp_require("iframe");
         
