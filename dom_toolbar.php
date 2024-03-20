@@ -145,7 +145,7 @@
             .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
             .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(var(--gap),  calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width)) + var(--gap)), calc(var(--right-text-margin-ratio) * 100%)); }
 
-            .toolbar .row.static                            { visibility: hidden; position: fixed; top: 0px; z-index: 999999; } 
+            .toolbar .row.static                            { visibility: hidden; position: fixed; left: 0px; top: 0px; z-index: 999999; } 
 
             .toolbar .nav-link                              { font-size: 1.5em; } 
 
@@ -173,7 +173,7 @@
     
             /* Toolbar */
         
-            .toolbar { position: sticky; top: calc(var(--header-min-height) - var(--header-height)); }
+            .toolbar { position: sticky; left: 0; top: calc(var(--header-min-height) - var(--header-height)); }
             
             /* Menu open/close mechanism */
     
@@ -698,13 +698,13 @@
 
     function toolbar_section($html, $attributes = false)
     {
-        return section(
+        return div(
                 $html,
                 attributes_add(
                     $attributes,                        
                     attributes(
-                        component_class("section", "toolbar-cell"),
-                        component_class("section", "cell")
+                        component_class("div", "toolbar-cell"),
+                        component_class("div", "cell")
                         )
                     )
                 );
@@ -720,17 +720,17 @@
     {
         $skip_to_main = delayed_component("toolbar_skip_to_main");
 
-        if (is_array($section1)) $section1 = toolbar_section($skip_to_main." ". icon_entries($section1), component_class("section", "toolbar-cell-left"   ));
-        if (is_array($section2)) $section2 = toolbar_section(                   icon_entries($section2), component_class("section", "toolbar-cell-center" ));
-        if (is_array($section3)) $section3 = toolbar_section(                   icon_entries($section3), component_class("section", "toolbar-cell-right"  ));
+        if (is_array($section1)) $section1 = toolbar_section($skip_to_main." ". icon_entries($section1), component_class("div", "toolbar-cell-left"   ));
+        if (is_array($section2)) $section2 = toolbar_section(                   icon_entries($section2), component_class("div", "toolbar-cell-center" ));
+        if (is_array($section3)) $section3 = toolbar_section(                   icon_entries($section3), component_class("div", "toolbar-cell-right"  ));
 
         if ($section1 === false) $section1 = "";
         if ($section2 === false) $section2 = "";
         if ($section3 === false) $section3 = "";
 
-        if (stripos($section1, "<section") === false && $section1 != "") $section1 = toolbar_section($section1);
-        if (stripos($section2, "<section") === false && $section2 != "") $section2 = toolbar_section($section2);
-        if (stripos($section3, "<section") === false && $section3 != "") $section3 = toolbar_section($section3);
+        if (stripos($section1, "<div") === false && $section1 != "") $section1 = toolbar_section($section1);
+        if (stripos($section2, "<div") === false && $section2 != "") $section2 = toolbar_section($section2);
+        if (stripos($section3, "<div") === false && $section3 != "") $section3 = toolbar_section($section3);
 
         return $section1.$section2.$section3;
     }
@@ -778,8 +778,8 @@
         return toolbar_section(($html === false) ? '' : $html,  array(
             
             "role"  => ("navigation"/*." "."menuItem"*/),
-            "class" => (component_class("section", "toolbar-cell-right") . ' ' . 
-                        component_class("section", "toolbar-cell-right-shrink"))));
+            "class" => (component_class("div", "toolbar-cell-right") . ' ' . 
+                        component_class("div", "toolbar-cell-right-shrink"))));
     }
 
     function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
@@ -801,8 +801,8 @@
             attributes(
               /*attr("role", "menu"),*/
                 attr("class",
-                    component_class("section", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
-                    component_class("section", "toolbar-cell-right-shrink")    ) : "")
+                    component_class("div", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
+                    component_class("div", "toolbar-cell-right-shrink")    ) : "")
                     )
                 )
             );
@@ -820,7 +820,7 @@
 
         if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
         
-        return toolbar_section(($html === false) ? '' : $html, attributes(/*attr("role", "navigation menuitem"), */component_class("section", "toolbar-cell-center")));
+        return toolbar_section(($html === false) ? '' : $html, attributes(/*attr("role", "navigation menuitem"), */component_class("div", "toolbar-cell-center")));
     }
 
     function toolbar_nav($html, $attributes = false)
