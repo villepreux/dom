@@ -406,7 +406,7 @@
         
             function onInitToolbarHeight()
             {
-                var toolbars = document.querySelectorAll(".toolbar");
+                var toolbars = document.querySelectorAll(".toolbar:not(html[data-css-naked-day] .toolbar)");
                 var toolbar  = toolbars ? toolbars[0] : null;
 
                 if (toolbar)
