@@ -431,7 +431,6 @@
                 }
             }
 
-          /*dom.on_ready( onInitToolbarHeight);*/
             dom.on_loaded(onInitToolbarHeight);
             dom.on_scroll(onUpdateToolbarHeight);
 

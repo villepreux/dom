@@ -634,7 +634,7 @@
         
         set("cache_time",                       1*60*60); // 1h
 
-        set("forwarded_flags",                  array("amp","contrast","light","no_js","rss"));
+        set("forwarded_flags",                  array("amp","contrast","light","no_js","no_css","rss"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
 
         set("img_lazy_loading_after",           3);
@@ -6432,7 +6432,7 @@
         // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://villepreux.free.fr&target=https://villapirorum.netlify.app/now
 
         return  link_rel("webmention", 'https://webmention.io/'.webmentions_domain().'/webmention').
-              //link_rel("pingback",   'https://webmention.io/'.webmentions_domain().'/xmlrpc').
+                link_rel("pingback",   'https://webmention.io/'.webmentions_domain().'/xmlrpc').
               //link_rel("pingback",   'https://webmention.io/webmention?forward=https://'.webmentions_domain().'/webmentions/endpoint').
                 "";
     }
@@ -6452,106 +6452,97 @@
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
-            var scrolled = false;
-        
-            on_loaded(function() {
-            on_scroll(function() {
-
-                if (!scrolled) {
-
-                    scrolled = true;
-                        
-                    var urls = [];
-                    var base;
-
-                    console.log("DOM:", "Webmentions", "Parse webmention counters");
-
-                    document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
-
-                        var url = e.getAttribute("data-url");
-
-                            if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
-                        else if (url.indexOf("https://") < 0
-                            &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
-
-                        var parser = document.createElement('a');
-                        parser.href = url;
-                        base = parser.protocol + "/" + "/" + parser.hostname;
-                        urls.push(parser.pathname + parser.search);
-
-                    });
-
-                    /*console.log(base, urls);*/
-
-                    async function fetch_mentions_endpoint(url = "", method, data = {}) {
-
-                        console.log("DOM:", "Webmentions", "Fetch webmentions count...");
+            on_first_interraction(function() {
                     
-                        try
-                        {
-                            var options = {
+                var urls = [];
+                var base;
+
+                console.log("DOM:", "Webmentions", "Parse webmention counters");
+
+                document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+
+                    var url = e.getAttribute("data-url");
+
+                        if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                    else if (url.indexOf("https://") < 0
+                        &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+
+                    var parser = document.createElement('a');
+                    parser.href = url;
+                    base = parser.protocol + "/" + "/" + parser.hostname;
+                    urls.push(parser.pathname + parser.search);
+
+                });
+
+                /*console.log(base, urls);*/
+
+                async function fetch_mentions_endpoint(url = "", method, data = {}) {
+
+                    console.log("DOM:", "Webmentions", "Fetch webmentions count...");
+                
+                    try
+                    {
+                        var options = {
+                            
+                            method:         method,         /* GET, POST, PUT, DELETE, etc.*/
+                            mode:           "no-cors",      /* no-cors, *cors, same-origin */
+                            cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
+                            credentials:    "same-origin",  /* include, *same-origin, omit */
+                            redirect:       "follow",       /* manual, *follow, error */
+                            referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
+                            headers: {
                                 
-                                method:         method,         /* GET, POST, PUT, DELETE, etc.*/
-                                mode:           "no-cors",      /* no-cors, *cors, same-origin */
-                                cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
-                                credentials:    "same-origin",  /* include, *same-origin, omit */
-                                redirect:       "follow",       /* manual, *follow, error */
-                                referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
-                                headers: {
-                                    
-                                    "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
-                                },                            
-                            };
+                                "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
+                            },                            
+                        };
 
-                            if (method != "GET") {
-                                options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
-                            }
-
-                            const response = await fetch(url, options);
-
-                            if (!response || !response.ok) {
-                                console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
-                            }
-                        
-                            return (response && response.ok) ? response.json() : null;
+                        if (method != "GET") {
+                            options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
                         }
-                        catch (e)
-                        {
-                            console.log("DOM:", "Webmentions", method, url, "FAILED", e);
-                        
-                            return null;
+
+                        const response = await fetch(url, options);
+
+                        if (!response || !response.ok) {
+                            console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
                         }
+                    
+                        return (response && response.ok) ? response.json() : null;
                     }
+                    catch (e)
+                    {
+                        console.log("DOM:", "Webmentions", method, url, "FAILED", e);
+                    
+                        return null;
+                    }
+                }
 
-                    /*
-                    fetch("https://webmention.io/api/count?target=https://example.com/page/100")
-                        .then(response => response.json())
-                        .then(responseJson => console.log(responseJson));
-                    */
+                /*
+                fetch("https://webmention.io/api/count?target=https://example.com/page/100")
+                    .then(response => response.json())
+                    .then(responseJson => console.log(responseJson));
+                */
 
-                    var encoded_base = encodeURIComponent(base);
-                    var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
+                var encoded_base = encodeURIComponent(base);
+                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
 
-                    fetch_mentions_endpoint(
-                        
-                        "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
-                        "GET",
-                        { base: base, target: urls.join(","), targets: urls.join(",") }
-                        
-                        ).then(function(data) {
+                fetch_mentions_endpoint(
+                    
+                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
+                    "GET",
+                    { base: base, target: urls.join(","), targets: urls.join(",") }
+                    
+                    ).then(function(data) {
 
-                            console.log("DOM:", "Webmentions", "Count received", data);
+                        console.log("DOM:", "Webmentions", "Count received", data);
 
-                            if (data) {
+                        if (data) {
 
-                                document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
+                            document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
 
-                                    e.innerHTML = data.count[e.getAttribute('data-url')];
-                                });
-                            }
-                        });
-                }            
-            });
+                                e.innerHTML = data.count[e.getAttribute('data-url')];
+                            });
+                        }
+                    });
             });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -6752,6 +6743,7 @@
             .   meta('description',                         get("description", get("title")))
             .   meta('author',                              get("author",DOM_AUTHOR))
             .   meta('copyright',                           get("author",DOM_AUTHOR).' 2000-'.date('Y'))
+            .   meta('generator',                           "DOM ".DOM_VERSION)
             .   meta('title',                               get("title"))
             .   meta('theme-color',                         get("theme_color"))
 
@@ -7940,7 +7932,7 @@
             */
             
             details {
-            display: block;
+                display: block;
             }
             
             /*
@@ -7948,7 +7940,7 @@
             */
             
             summary {
-            display: list-item;
+                display: list-item;
             }
             
             /* Misc
@@ -7959,7 +7951,7 @@
             */
             
             template {
-            display: none;
+                display: none;
             }
             
             /**
@@ -7967,7 +7959,7 @@
             */
             
             [hidden] {
-            display: none;
+                display: none;
             }
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
@@ -8851,6 +8843,12 @@
                 right: var(--gap);
             }
 
+            /* Misc. */
+
+            .hidden {
+                display: none;
+            }
+
             /* Print styles */
 
             @media print {
@@ -9467,11 +9465,28 @@
             function process_ready_callbacks()  { process_callbacks(ready_callbacks,  "READY",  true); }
             function process_loaded_callbacks() { process_callbacks(loaded_callbacks, "LOADED", true); }
 
-            function on_ready(callback)  {  ready_callbacks.push(callback); if (event_ready)                     { process_ready_callbacks();  } }
-            function on_loaded(callback) { loaded_callbacks.push(callback); if (event_ready && event_loaded) { process_loaded_callbacks(); } }
-            function on_scroll(callback) { scroll_callbacks.push(callback); }
-            function on_resize(callback) { resize_callbacks.push(callback); }
-            function on_ajax(callback)   {   ajax_callbacks.push(callback); }
+            function on_ready(callback)         {  ready_callbacks.push(callback); if (event_ready)                 { process_ready_callbacks();  } }
+            function on_loaded(callback)        { loaded_callbacks.push(callback); if (event_ready && event_loaded) { process_loaded_callbacks(); } }
+            function on_scroll(callback)        { scroll_callbacks.push(callback); }
+            function on_resize(callback)        { resize_callbacks.push(callback); }
+            function on_ajax(callback)          {   ajax_callbacks.push(callback); }
+            
+            function on_first_interraction(callback)
+            {
+                return on_loaded(function() { 
+
+                    var scrolled = false;
+                    
+                    on_scroll(function() {
+
+                        if (!scrolled) {
+
+                            scrolled = true;
+                            callback();
+                        }
+                    });                 
+                }); 
+            }
 
             function on_init_event(event)
             {
@@ -9485,13 +9500,14 @@
 
             function on_ajax_reception() { process_callbacks(ajax_callbacks); }
 
-            var dom = function () {};
+            var dom = function () {}; /* TODO put all dom js utilities in there */
 
-            dom.on_ready    = on_ready;
-            dom.on_loaded   = on_loaded;
-            dom.on_scroll   = on_scroll;
-            dom.on_resize   = on_resize;
-            dom.on_ajax     = on_ajax;
+            dom.on_ready                = on_ready;
+            dom.on_loaded               = on_loaded;
+            dom.on_scroll               = on_scroll;
+            dom.on_resize               = on_resize;
+            dom.on_ajax                 = on_ajax;
+            dom.on_first_interraction   = on_first_interraction;
 
         
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -9530,7 +9546,6 @@
         if (has("ajax")) return "";
 
         global $hook_need_lazy_loding;
-        //die("<pre>".print_r($hook_need_lazy_loding, true)."</pre>");
         $images_loading = !!get("script_images_loading", true) && count($hook_need_lazy_loding) > 0;
 
         return  script_third_parties              ().

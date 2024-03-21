@@ -11,7 +11,7 @@
 namespace dom\mastodon; 
 
 require_once(__DIR__."/../dom.php"); 
-use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div};
+use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li};
 
 #region Constants
 
@@ -199,7 +199,6 @@ function comment_card(
     $html = \dom\article(
 
         header(
-
             a(  
                 picture(
                     source($status_account_avatar).
@@ -213,32 +212,31 @@ function comment_card(
                 ]
                 ).
 
-            span(
-                $status_account_display_name, 
-                [ "class" => "name", "itemprop" => "author", "itemtype" => "http://schema.org/Person" ]
-                ).
+            ul(
+                li(span(
+                    $status_account_display_name, 
+                    [ "class" => "name", "itemprop" => "author", "itemtype" => "http://schema.org/Person" ]
+                    )).
 
-            a(
-                $instance,
-                $status_account_url,
-                [
-                    "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."instance"), 
-                    "title"  => (($is_op ? "Blog post author: " : "")."@$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
-                    "target" => DOM_EXTERNAL_LINK
-                ]
-                )./*
+                li(a(
+                    $instance,
+                    $status_account_url,
+                    [
+                        "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."instance"), 
+                        "title"  => (($is_op ? "Blog post author: " : "")."@$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
+                        "target" => DOM_EXTERNAL_LINK
+                    ]
+                    )).  
+                /*
+                li(time_datepublished(
+                    a($status_created_at, $status_url, [ "itemprop" => "url", "title" => "View comment at $instance" ]), 
+                    $status_created_at, 
+                    !$status_edited_at ? false : [ "title" => "Edited $status_edited_at" ]
+                    )).*/
 
-            time_datepublished(
-                a($status_created_at, $status_url, [ "itemprop" => "url", "title" => "View comment at $instance" ]), 
-                $status_created_at, 
-                !$status_edited_at ? false : [ "title" => "Edited $status_edited_at" ]
-                ).*/
+                "", "meta").
                 
-            "", 
-            
-            [ "class" => "author", "style" => "display: flex; align-items: center" ]
-
-            ).
+            "", "author").
         
         main(
             //details(summary($status_spoiler_text != "" ? $status_spoiler_text : "Sensitive").$status_content). 
@@ -253,8 +251,9 @@ function comment_card(
 
         footer(
             
-            span($status_favourites_count, [ "class" => "faves",  "title" => "Favorites" ]).
-            span($status_reblogs_count,    [ "class" => "boosts", "title" => "Boosts" ])
+            ul( li(span("Faves: ",  "hidden").span($status_favourites_count, [ "class" => "faves",  "title" => "Favorites" ])).
+                li(span("boosts: ", "hidden").span($status_reblogs_count,    [ "class" => "boosts", "title" => "Boosts"    ])),
+                "metrics")
             ), 
         
         [ 
@@ -306,8 +305,14 @@ function css_comments()
             margin-block:   var(--gap);
         }
 
-        .mastodon-comment .faves:before  { content: "♥ "; }
-        .mastodon-comment .boosts:before { content: "↑↓ "; }
+        .mastodon-comment :is(header, footer) > *   { margin: 0 }
+
+        .mastodon-comment .author                   { display: flex; align-items: center; gap: var(--gap) }
+        .mastodon-comment .author .meta             { display: flex; align-items: center; gap: var(--gap); list-style: none; padding-inline-start: 0; }
+
+        .mastodon-comment .metrics                  { display: flex; align-items: center; gap: var(--gap); list-style: none; padding-inline-start: 0; }
+        .mastodon-comment .metrics .faves:before    { content: "♥ "; }
+        .mastodon-comment .metrics .boosts:before   { content: "↑↓ "; }
 
     <?= HERE("raw_css") ?></style><?php return HSTOP();
 }

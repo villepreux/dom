@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,card,card_title,card_text,header,div,span,pre,style,p,debug_track_timing,nbsp};
+use function dom\{set,get,eol,card,card_title,card_text,header,div,span,pre,style,p,debug_track_timing,nbsp};
 
 function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
@@ -149,7 +149,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         }
     }
 
-    $html_code = pre(implode(PHP_EOL, array_map(function ($line) use (&$i, $syntax_highlight) { 
+    $html_code = pre(implode("", array_map(function ($line) use (&$i, $syntax_highlight) { 
                 
         return !!get("gemini") 
         
