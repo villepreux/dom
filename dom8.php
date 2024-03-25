@@ -5421,21 +5421,43 @@
                     $dst_path = get("generate_dst")."/".$generated["path"];
                 }
 
-                $f = @fopen($dst_path, "w+");
-
-                if (!$f)
-                {
-                    error_log("COULD NOT OPEN ".getcwd()."/$dst_path");/*DEBUG*/
-                    continue;
-                }
+                $old_content = file_get_contents($dst_path);
 
                 $fn = $generated["function"];
                 if (!is_callable($fn)) $fn = "dom\\$fn";
 
-                $content = $fn();
+                $new_content = $fn();
+                $new_content = utf8_encode($new_content);
 
-                fwrite($f, utf8_encode($content));
-                fclose($f);
+                if ($new_content != $old_content)
+                {
+                    //die(print_r(["666" => [ "generated" => $generated, "new_content" => $new_content,  "old_content" => $old_content ] ], true));
+                    file_put_contents($dst_path, $new_content);
+                }
+
+                /*$f = @fopen($dst_path, "w+");
+
+                if (!$f)
+                {
+                    error_log("COULD NOT OPEN ".getcwd()."/$dst_path");
+                    continue;
+                }
+
+                $old_content = stream_get_contents($f);
+                rewind($f);
+
+                $fn = $generated["function"];
+                if (!is_callable($fn)) $fn = "dom\\$fn";
+
+                $new_content = $fn();
+
+                if ($new_content != $old_content)
+                {
+                    //die(print_r(["666" => [ "generated" => $generated, "new_content" => $new_content,  "old_content" => $old_content ] ], true));
+                    fwrite($f, utf8_encode($new_content));
+                }
+
+                fclose($f);*/
             }
         }
     }
@@ -5596,10 +5618,11 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html = /*minify_html*/($html); } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify") || !!get("minify_js"   ) || $force_minify) { $js   = minify_js      ($js);   } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify") || !!get("minify_css"  ) || $force_minify) { $css  = minify_css     ($css);  } return trim($css  ); }
-    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify") || !!get("minify_php"  ) || $force_minify) { $php  = minify_php     ($php);  } return trim($php  ); }
+    function raw_svg        ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html =   minify_html   ($html); } return trim($html ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html = /*minify_html*/ ($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify") || !!get("minify_js"   ) || $force_minify) { $js   =   minify_js     ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify") || !!get("minify_css"  ) || $force_minify) { $css  =   minify_css    ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify") || !!get("minify_php"  ) || $force_minify) { $php  =   minify_php    ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
@@ -6446,16 +6469,35 @@
 
     function js_webmentions()
     {
-        if (has("ajax")) return '';
-
-        if (is_localhost()) return ''; // CORS would block the calls
+        if (has("ajax"))    return '';
+      //if (is_localhost()) return ''; // CORS would block the calls
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
+            async function fetch_mentions_endpoint(url) {
+
+                console.log("DOM:", "Webmentions", "Fetch webmentions count...");
+            
+                try
+                {
+                    const response = await fetch(url);
+                
+                    if (!response || !response.ok) {
+
+                        console.log("DOM:", "Webmentions", url, "RESULT IS NOT OK", response);
+                    }
+                
+                    return (response && response.ok) ? response.json() : null;
+                }
+                catch (e)
+                {
+                    console.log("DOM:", "Webmentions", url, "FAILED", e);
+                
+                    return null;
+                }
+            }
+
             on_first_interraction(function() {
-                    
-                var urls = [];
-                var base;
 
                 console.log("DOM:", "Webmentions", "Parse webmention counters");
 
@@ -6463,95 +6505,181 @@
 
                     var url = e.getAttribute("data-url");
 
-                        if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                    console.log("DOM:", "Webmentions", "Parse webmention counter", url);
+
+                         if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
                     else if (url.indexOf("https://") < 0
-                        &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
-
-                    var parser = document.createElement('a');
-                    parser.href = url;
-                    base = parser.protocol + "/" + "/" + parser.hostname;
-                    urls.push(parser.pathname + parser.search);
-
-                });
-
-                /*console.log(base, urls);*/
-
-                async function fetch_mentions_endpoint(url = "", method, data = {}) {
-
-                    console.log("DOM:", "Webmentions", "Fetch webmentions count...");
-                
-                    try
-                    {
-                        var options = {
-                            
-                            method:         method,         /* GET, POST, PUT, DELETE, etc.*/
-                            mode:           "no-cors",      /* no-cors, *cors, same-origin */
-                            cache:          "no-cache",     /* *default, no-cache, reload, force-cache, only-if-cached */
-                            credentials:    "same-origin",  /* include, *same-origin, omit */
-                            redirect:       "follow",       /* manual, *follow, error */
-                            referrerPolicy: "no-referrer",  /* no-referrer, *no-referrer-when-downgrade, origin, origin-when-cross-origin, same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url */
-                            headers: {
-                                
-                                "Content-Type": "application/json", /* 'Content-Type': 'application/x-www-form-urlencoded', */ 
-                            },                            
-                        };
-
-                        if (method != "GET") {
-                            options.body = JSON.stringify(data); /* body data type must match "Content-Type" header */
-                        }
-
-                        const response = await fetch(url, options);
-
-                        if (!response || !response.ok) {
-                            console.log("DOM:", "Webmentions", method, url, "RESULT IS NOT OK", response);
-                        }
+                         &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+                         
+                    /*url = encodeURIComponent(url);*/
                     
-                        return (response && response.ok) ? response.json() : null;
-                    }
-                    catch (e)
-                    {
-                        console.log("DOM:", "Webmentions", method, url, "FAILED", e);
-                    
-                        return null;
-                    }
-                }
-
-                /*
-                fetch("https://webmention.io/api/count?target=https://example.com/page/100")
-                    .then(response => response.json())
-                    .then(responseJson => console.log(responseJson));
-                */
-
-                var encoded_base = encodeURIComponent(base);
-                var encoded_urls = []; for (var u = 0; u < urls.length; ++u) encoded_urls.push(encodeURIComponent(urls[u]));
-
-                fetch_mentions_endpoint(
-                    
-                    "https://webmention.io/api/count?base="+encoded_base+"&target="+encoded_urls.join(",")+"&targets="+encoded_urls.join(","), 
-                    "GET",
-                    { base: base, target: urls.join(","), targets: urls.join(",") }
-                    
-                    ).then(function(data) {
+                    fetch_mentions_endpoint("https://webmention.io/api/count?target="+url).then(function(data) {
 
                         console.log("DOM:", "Webmentions", "Count received", data);
-
-                        if (data) {
-
-                            document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
-
-                                e.innerHTML = data.count[e.getAttribute('data-url')];
-                            });
-                        }
+                        if (data) e.innerHTML = data.count;
                     });
+                });
+
+                console.log("DOM:", "Webmentions", "Parse webmentions");
+
+                document.querySelectorAll("[data-webmentions]").forEach(function(e) {
+
+                    var url = e.getAttribute("data-url");
+
+                    console.log("DOM:", "Webmentions", "Parse webmentions", url);
+
+                         if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
+                    else if (url.indexOf("https://") < 0
+                         &&  url.indexOf("http://")  < 0) url = 'https://<?= webmentions_domain() ?>/' + url;
+                         
+                    /*url = encodeURIComponent(url);*/
+
+                    fetch_mentions_endpoint("https://webmention.io/api/mentions.jf2?target="+url).then(function(data) {
+
+                        console.log("DOM:", "Webmentions", "mentions received", data);
+
+                        if (data.children.length > 0) e.innerHTML = "";
+                        
+                        data.children.forEach(function (mention_data) {
+                            
+                            var mention = '';
+                            {
+                                mention = `<?= mention_card(
+
+                                    '$mention_data.type',
+
+                                    '$mention_data.author.type',
+                                    '$mention_data.author.name',
+                                    '$mention_data.author.photo',
+                                    '$mention_data.author.url',
+
+                                    '$mention_data.url',
+                                    '$mention_data.published',
+                                    '$mention_data.wm-received',
+                                    '$mention_data.wm-id',
+                                    '$mention_data.wm-source',
+                                    '$mention_data.wm-target',
+                                    '$mention_data.wm-protocol',
+                                    '$mention_data.name',
+
+                                    '$mention_data.content.html',
+                                    '$mention_data.content.text',
+
+                                    '$mention_data.in-reply-to',
+                                    '$mention_data.wm-property',
+                                    '$mention_data.wm-private'
+
+                                    ) ?>`.trim();
+                               
+                                mention = mention.replaceAll("$mention_data.type",          mention_data.type           );
+
+                                mention = mention.replaceAll("$mention_data.author.type",   mention_data.author.type    );
+                                mention = mention.replaceAll("$mention_data.author.name",   mention_data.author.name    );
+                                mention = mention.replaceAll("$mention_data.author.photo",  mention_data.author.photo   );
+                                mention = mention.replaceAll("$mention_data.author.url",    mention_data.author.url     );
+
+                                mention = mention.replaceAll("$mention_data.url",           mention_data.url            );
+                                mention = mention.replaceAll("$mention_data.published",     mention_data.published      );
+                                mention = mention.replaceAll("$mention_data.wm-received",   mention_data.wm_received    );
+                                mention = mention.replaceAll("$mention_data.wm-id",         mention_data.wm_id          );
+                                mention = mention.replaceAll("$mention_data.wm-source",     mention_data.wm_source      );
+                                mention = mention.replaceAll("$mention_data.wm-target",     mention_data.wm_target      );
+                                mention = mention.replaceAll("$mention_data.wm-protocol",   mention_data.wm_protocol    );
+                                mention = mention.replaceAll("$mention_data.name",          mention_data.name           );
+                                
+                                mention = mention.replaceAll("$mention_data.content.html",  mention_data.content.html   );
+                                mention = mention.replaceAll("$mention_data.content.text",  mention_data.content.text   );
+
+                                mention = mention.replaceAll("$mention_data.in-reply-to",   mention_data.in_reply_to    );
+                                mention = mention.replaceAll("$mention_data.wm-property",   mention_data.wm_property    );
+                                mention = mention.replaceAll("$mention_data.wm-private",    mention_data.wm_private     );
+                            }
+
+                            e.innerHTML += mention;
+                        });
+                    });
+                });
             });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function webmentions_counter($placeholder = "?", $suffix = " mentions", $url = DOM_AUTO, $tag = "span")
+    function webmentions_url($url = DOM_AUTO)
     {
-        if ($url === DOM_AUTO) $url = get("canonical");
-        return tag($tag, span($placeholder, [ "data-webmention-count" => true, "data-url" => $url ]).$suffix);
+      //if ($url === DOM_AUTO) $url = get("canonical");
+        if ($url === DOM_AUTO)
+        {
+            $url_branch = url_branch();
+
+            if ($url_branch != "")
+            {
+                if (0 === stripos($url_branch, get("local_domain"))) $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, get("live_domain")))  $url_branch = substr($url_branch, strlen(get("live_domain" )));
+            }
+
+            $url_branch = trim($url_branch, "/");
+        
+            $url = 'https://'.webmentions_domain();
+
+            if ($url_branch != "") $url .= "/$url_branch";
+        }
+
+        return $url;
+    }
+
+    function webmentions_counter($placeholder = "⧗", $prefix = "Web-Mention(s): ", $suffix = "", $url = DOM_AUTO, $tag = "span")
+    {
+        return tag($tag, $prefix.span($placeholder, [ "data-webmention-count" => true, "data-url" => webmentions_url($url) ]).$suffix);
+    }
+
+    function mention_card(
+
+        $type,          /* "entry" */
+
+        $author_type,   /* "card" */
+        $author_name,   /* "Webmention Rocks!" */
+        $author_photo,  /* "https://webmention.io/avatar/webmention.rocks/e08155b03da96cb1bdfd161ea24efdfad8d85d06afcee540ec246f1f613eb5a9.png" */
+        $author_url,    /* ... */
+
+        $url,           /* "https://webmention.rocks/receive/1" */
+        $published,     /* "2024-03-23T18:07:25-07:00" */
+        $wm_received,   /* "2024-03-24T01:07:27Z" */
+        $wm_id,         /* 1797069 */
+        $wm_source,     /* "https://webmention.rocks/receive/1/aaeffae4d5674c871a72b8ee3b22bf48" */
+        $wm_target,     /* "https://villapirorum.netlify.app/web" */
+        $wm_protocol,   /* "webmention" */
+        $name,          /* "Receiver Test #1" */
+
+        $content_html,  /* "<p>This test verifies that you accept a Webmention request that contains a valid source and target URL. To pass this test, your Webmention endpoint must return either HTTP 200, 201 or 202 along with the <a href=\"https://www.w3.org/TR/webmention/#receiving-webmentions\">appropriate headers</a>.</p>\n        <p>If your endpoint returns HTTP 201, then it MUST also return a <code>Location</code> header. If it returns HTTP 200 or 202, then it MUST NOT include a <code>Location</code> header.</p>" */
+        $content_text,  /* "This test verifies that you accept a Webmention request that contains a valid source and target URL. To pass this test, your Webmention endpoint must return either HTTP 200, 201 or 202 along with the appropriate headers.\n        If your endpoint returns HTTP 201, then it MUST also return a Location header. If it returns HTTP 200 or 202, then it MUST NOT include a Location header. */
+
+        $in_reply_to,   /* "https://villapirorum.netlify.app/web" */
+        $wm_property,   /* "in-reply-to" */
+        $wm_private     /* false */
+
+        ) 
+    {
+        return article(
+            header(
+                p(img($author_photo, 24, 24, [ "style" => "width: 48px; border-radius: 50%" ])." ".span($author_name)." ".span($published), [ "style" => "display: flex; gap: var(--gap); align-items: center;" ])
+                ).
+            main(
+                p($content_text)
+                )
+            , "card");
+    }
+    
+    function section_webmentions_cards($url = DOM_AUTO)
+    {
+        return section(
+
+            p("Web-mentions loaded with ".a("https://webmention.io")).
+            div(
+                p("No known mention, yet").
+                noscript(p("Loading web mentions relies on JavaScript. Try enabling JavaScript and reloading.")), 
+                [ "data-webmentions" => true, "data-url" => webmentions_url($url) ]
+                ).
+            "", [ "style" => "padding-bottom: var(--gap)" ]);
     }
 
     /**
@@ -9475,16 +9603,23 @@
             {
                 return on_loaded(function() { 
 
-                    var scrolled = false;
-                    
-                    on_scroll(function() {
+                    if (window.location.hash != "") {
 
-                        if (!scrolled) {
+                        callback();
 
-                            scrolled = true;
-                            callback();
-                        }
-                    });                 
+                    } else {
+
+                        var scrolled = false;
+                        
+                        on_scroll(function() {
+
+                            if (!scrolled) {
+
+                                scrolled = true;
+                                callback();
+                            }
+                        });
+                    }
                 }); 
             }
 

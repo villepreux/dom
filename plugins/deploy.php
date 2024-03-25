@@ -8,6 +8,7 @@ function arg_state($flag, $on = 1, $off = 0) { global $argv; return (STATIC_CLI 
 function arg_array($flag)                    { global $argv; $values = array(); if (STATIC_CLI) { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $values = array_merge($values, explode(",", $val)); } } else { $values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return $values; }
 function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
+$cmdline_option_compare_dates           = arg_state("compare-dates");
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
 $cmdline_option_static                  = arg_state("static", 1, arg_state("gemini", 1, arg_state("netlify")));
@@ -636,6 +637,7 @@ if (!!$cmdline_option_compile)
     $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile", "amp") : array();
 
     $nb_files = 0;
+    $dependencies_could_have_been_modified = false;
 
     $roots = array(array($main_src, $main_dst));
 
@@ -658,6 +660,41 @@ if (!!$cmdline_option_compile)
             ||  $extension == "js")
             {
                 $nb_files += 1 + count($derivatives);
+                
+                if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
+                {
+                    $static_name = str_replace(".php", ".$target_ext", $name);  
+                    
+                    $t_from = filemtime("$src/$name");
+                    $t_to   = is_file("$dst/$static_name") ? filemtime("$dst/$static_name") : 0;
+                    
+                    if ($t_to < $t_from) 
+                    {
+                        if ($name != "index.php" || !in_array($src, $root_sources))
+                        {   
+                            static_log("$dst/$static_name ".date ("Y-m-d H:i:s.", $t_to)." < $src/$name ".date ("Y-m-d H:i:s.", $t_from)."))");
+                            
+                          /*if ($extension == "php" || ($content_dst = static_content_file("$dst/$static_name")) != ($content_src = static_content_file("$src/$name")))
+                          */{/*
+                                if ($extension != "php")
+                                {
+                                    static_log("NOT INDEX MODIFIED FILE FOUND : $name");
+                                    static_log("DST content: $dst/$static_name");
+                                    static_log($content_dst);
+                                    static_log("SRC content: $src/$name");
+                                    static_log($content_src);
+                                    static_log("DIFF");
+                                    static_log(static_diff($content_dst, $content_src, 80));
+
+                                    die();
+                                }*/
+
+                                $dependencies_could_have_been_modified = true;
+                            }
+                        }
+                    }
+                }
+
             }        
         }
     }
@@ -692,6 +729,19 @@ if (!!$cmdline_option_compile)
                 $static_name = str_replace(".php", ".$target_ext", $name);  
                 static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
 
+                if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
+                {
+                    $t_from = filemtime("$src/$name");
+                    $t_to   = is_file("$dst/$static_name") ? ("$dst/$static_name") : 0;
+                    
+                    if ($t_to >= $t_from) 
+                    {
+                        static_log($file_index, $nb_files);
+                        ++$file_index;
+                        continue;
+                    }
+                }
+    
                 if (!!$cmdline_option_verbose)
                 {
                     $static_name = str_replace(".php", ".$target_ext", $name);            
@@ -740,6 +790,11 @@ if (!!$cmdline_option_compile)
     
                   //Assumes other php files have to be able to be included from anywhere
                     $html = static_exec("php -f $src/$name -- $php_args");
+
+                    if ($extension == "js" && !$html || $html == "")
+                    {
+                        $html = '/* empty */';
+                    }
                     
                     static_compile_error_check($html, "$src/$name html");
                 }
