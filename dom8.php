@@ -6661,7 +6661,7 @@
     {
         return article(
             header(
-                p(img($author_photo, 24, 24, [ "style" => "width: 48px; border-radius: 50%" ])." ".span($author_name)." ".span($published), [ "style" => "display: flex; gap: var(--gap); align-items: center;" ])
+                p(img($author_photo, 24, 24, [ "style" => "width: 48px; height: 48px; border-radius: 50%" ]).nbsp().span($author_name).nbsp().span($published), [ "style" => "display: flex; gap: var(--gap); align-items: center;" ])
                 ).
             main(
                 p($content_text)
@@ -6669,16 +6669,23 @@
             , "card");
     }
     
-    function section_webmentions_cards($url = DOM_AUTO)
+    function section_webmentions($url = DOM_AUTO)
     {
         return section(
 
-            p("Web-mentions loaded with ".a("https://webmention.io")).
+            p("These are ".a("webmentions", "https://indieweb.org/Webmention")." via the ".a("IndieWeb", "https://indieweb.org/")." and ".a("webmention.io", "https://webmention.io")).
             div(
                 p("No known mention, yet").
                 noscript(p("Loading web mentions relies on JavaScript. Try enabling JavaScript and reloading.")), 
                 [ "data-webmentions" => true, "data-url" => webmentions_url($url) ]
                 ).
+            p(form(
+                label("URL of your site:", "form-webmention-source", "sr-only")." ".
+                input("", "url",    "form-webmention-source",   [ "placeholder" => "https://example.com", "required" => "" ])." ".
+                input("", "hidden", "target",                   [ "name" => "target", "value" => "https://www.zachleat.com/web/google-fonts-display/" ]).
+                input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]),
+                [ "action" => "https://webmention.io/villapirorum.netlify.app/webmention", "method" => "post" ]
+                )).
             "", [ "style" => "padding-bottom: var(--gap)" ]);
     }
 
