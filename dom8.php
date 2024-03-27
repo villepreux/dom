@@ -5108,7 +5108,14 @@
             $screenshots[$widest_screenshot_index]["form_factor"] = "wide";
         }
 
-        $json = array(
+        $json = array();
+
+        if (!!get("id"))
+        {
+            $json = array_merge($json, array("id" => get("id")));    
+        }
+
+        $json = array_merge($json, array(
 
             "name"             => get("title"),
             "short_name"       => $short_title,
@@ -5122,8 +5129,16 @@
            
             "start_url"        => $start_url,
             "display"          => "standalone",
+
+            "orientation"      => "portrait-primary",
+
+            "launch_handler" => array(
+
+                "client_mode" => [ "navigate-existing", "auto" ]
+
+                ),
             
-            "related_applications"=> array( 
+            "related_applications" => array( 
 
                 array( "platform"=> "web", "url"=> get("canonical") ) 
 
@@ -5131,7 +5146,7 @@
            
             "icons"=> $icons
             
-            );
+            ));
 
         foreach ($json as $key => $value)
         {
@@ -11780,7 +11795,7 @@
 
         $h = (int) at($title, "level", at($title, 6, $title_auto_level = get("card_title_level", 2)));
 
-        hook_heading($title_main);
+      //hook_heading($title_main);
         
         $title = "";
         
