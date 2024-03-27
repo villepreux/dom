@@ -12859,21 +12859,24 @@
         }
     }
      
-    $__footnot_index = -1;
-
     function a_footnote($html, $index = false, $async = false)
     {
       //if (!has("footnote_index", false, !$async, !$async, $async)) set("footnote_index", -1, $async ? "SESSION" : "GET");
       //$footnote_index = get("footnote_index", false, false, !$async, !$async, $async) + 1;
       //set("footnote_index", $footnote_index, $async ? "SESSION" : "GET");
-        global $__footnot_index;
-        $footnote_index = !!$index ? $index : (++$__footnot_index);
+        $footnote_index = false !== $index ? $index : count(get("footnotes", array()));
 
         $footnotes = get("footnotes", array());
         $footnotes[$footnote_index] = $html;
         set("footnotes", $footnotes);
 
-        return a("[".($footnote_index + 1)."]", "#footnote-def-".($footnote_index + 1), array("id" => "footnote-".($footnote_index + 1), "class" => "footnote"));
+        return a("[".($footnote_index + 1)."]", "#footnote-def-".($footnote_index + 1), array(
+            
+            "id"    => "footnote-".($footnote_index + 1), 
+            "class" => "footnote",
+            "title" => strip_tags($html)
+        
+            ));
         //return delayed_component("_".__FUNCTION__, $footnote_index);
     }/*
     function _a_footnote($footnote_index)
