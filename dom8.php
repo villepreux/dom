@@ -11621,6 +11621,9 @@
         if (!in_array($copyright, $copyrights))
             set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
 
+        $local_path = path("img/unsplash/$id.jpg");
+        if (!!$local_path) return $local_path;
+
         return "https://source.unsplash.com/".$id."/".$w."x".$h."?.jpg";
     }
 
@@ -11639,12 +11642,12 @@
 
         return picture(unsplash_url_img($id, $w, $h, $author), $attributes, $alt, $lazy, $lazy_src);
     }
-    
+
     function url_img_flickr_cdn($photo_farm, $photo_server, $photo_id, $photo_secret, $photo_size = "b")
     {
         return "https://farm".$photo_farm.".staticflickr.com/".$photo_server."/".$photo_id    ."_".$photo_secret."_".$photo_size.".jpg";
     }
-    
+
     function url_img_flickr($photo_key = 0, $photo_size = "b", $username = false, $token = false)
     {
         $photoset_key = false;
