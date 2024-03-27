@@ -16,12 +16,12 @@
     #region HELPERS : CONFIG
     ######################################################################################################################################
 
-    function at($a, $k, $d = false)                                 { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
-    function get_all($get = true, $post = true, $session = false)   { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
-    function has($k_or_a, $__or_k = false)                          { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all()); }
-    function get($k_or_a, $d_or_k = false, $__or_d = false)         { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all(), $k_or_a, $d_or_k); }
-    function del($k)                                                { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
-    function set($k, $v = true, $aname = false)                     { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
+    function at($a, $k, $d = false)                                                                         { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
+    function get_all(                                       $get = true, $post = true, $session = false)    { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
+    function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session)); }
+    function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session), $k_or_a, $d_or_k); }
+    function del($k)                                                                                        { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
+    function set($k, $v = true, $aname = false)                                                             { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
 
     #endregion
     #region HELPERS : SERVER ARGS
@@ -544,7 +544,7 @@
     ######################################################################################################################################
 
     function host_url   ()                  { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
-    function url_branch ($params = false)   { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all() as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
+    function url_branch ($params = false, $get = true, $post = true, $session = false)   { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
     function url        ($params = false)   { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
 
     #endregion
@@ -713,7 +713,15 @@
 
         array_shift($args);
 
-        return ajax_call_with_args($f, $async_params, $args);
+        $get = true;
+
+        if (is_string($f) && false !== stripos($f, "-NO-ENV"))
+        {
+            $f = str_replace("-NO-ENV", "", $f);
+            $get = false;
+        }
+    
+        return ajax_call_with_args($f, $async_params, $args, $get);
     }
         
     function ajax_call_with_args($f, $async_params, $args, $get = true, $post = false, $session = false)
@@ -746,15 +754,19 @@
             
             $ajax = ajax_param_encode($f, $args);
 
-            $period      = $async_params;
-            $placeholder = "dom\img_loading";
+            $period             = $async_params;
+            $placeholder        = "dom\img_loading";
+            $placeholder_args   = null;
             
             if (is_array($async_params))
             {             
-                list($period, $placeholder) = $async_params; 
+                $period             = at($async_params, "period",           at($async_params, 0, $period));
+                $placeholder        = at($async_params, "placeholder",      at($async_params, 1, $placeholder));
+                $get                = at($async_params, "get",              at($async_params, 2, $get));
+                $placeholder_args   = at($async_params, "placeholder_args", at($async_params, 3, $placeholder_args));
             }
 
-            return ajax_container($ajax, $placeholder(ajax_classes($ajax, $f)), $period, $get, $post, $session);
+            return ajax_container($ajax, $placeholder_args !== null ? $placeholder($placeholder_args, ajax_classes($ajax, $f)) : $placeholder(ajax_classes($ajax, $f)), $period, $get, $post, $session);
         }
         else
         {
@@ -4732,6 +4744,7 @@
         }
 
         generate_all_preprocess();
+        init_footnotes();
 
         if (!$binary) cache_start();
     }
@@ -5255,58 +5268,53 @@
         <?php heredoc_flush("raw_html"); ?></script><?php return heredoc_stop(null);
     }
 
-    function string_system_font_stack_symbols($quote = '"')
-    {
-        return implode(", ", get("font_stack_regular", array(
+    /**
+     * FONT STACKS 
+     * https://modernfontstacks.com/ by Dan Klammer (https://twitter.com/danklammer)
+     */
 
-            $quote.'Noto Sans Symbols'.$quote, 'sans-serif'
+    function array_system_font_stack_systemui(              $quote = '"') { return [ 'system-ui', 'sans-serif' ];                                                                                                                                                                                          } // System UI fonts are those native to the operating system interface. They are highly legible and easy to read at small sizes, contains many font weights, and is ideal for UI elements.
+    function array_system_font_stack_transitional(          $quote = '"') { return [ 'Charter', $quote.'Bitstream Charter'.$quote, $quote.'Sitka Text'.$quote, 'Cambria', 'serif' ];                                                                                                                       } // Transitional typefaces are a mix between Old Style and Modern typefaces that was developed during The Enlightenment. One of the most famous examples of a Transitional typeface is Times New Roman, which was developed for the Times of London newspaper.
+    function array_system_font_stack_oldstyle(              $quote = '"') { return [ $quote.'Iowan Old Style'.$quote, $quote.'Palatino Linotype'.$quote, $quote.'URW Palladio L'.$quote, 'P052', 'serif' ];                                                                                                } // Old Style typefaces are characterized by diagonal stress, low contrast between thick and thin strokes, and rounded serifs, and were developed in the Renaissance period. One of the most famous examples of an Old Style typeface is Garamond.
+    function array_system_font_stack_humanist(              $quote = '"') { return [ 'Seravek', $quote.'Gill Sans Nova'.$quote, 'Ubuntu', 'Calibri', $quote.'DejaVu Sans'.$quote, 'source-sans-pro', 'sans-serif' ];                                                                                       } // Humanist typefaces are characterized by their organic, calligraphic forms and low contrast between thick and thin strokes. These typefaces are inspired by the handwriting of the Renaissance period and are often considered to be more legible and easier to read than other sans-serif typefaces.
+    function array_system_font_stack_geometric(             $quote = '"') { return [ 'Avenir', 'Montserrat', 'Corbel', $quote.'URW Gothic'.$quote, 'source-sans-pro', 'sans-serif' ];                                                                                                                      } // Geometric Humanist typefaces are characterized by their clean, geometric forms and uniform stroke widths. These typefaces are often considered to be modern and sleek in appearance, and are often used for headlines and other display purposes. Futura is a famous example of this classification.
+    function array_system_font_stack_classical(             $quote = '"') { return [ 'Optima', 'Candara', $quote.'Noto Sans'.$quote, 'source-sans-pro', 'sans-serif' ];                                                                                                                                    } // Classical Humanist typefaces are characterized by how the strokes subtly widen as they reach the stroke terminals without ending in a serif. These typefaces are inspired by classical Roman capitals and the stone-carving on Renaissance-period tombstones.
+    function array_system_font_stack_neogrotestque(         $quote = '"') { return [ 'Inter', 'Roboto', $quote.'Helvetica Neue'.$quote, $quote.'Arial Nova'.$quote, $quote.'Nimbus Sans'.$quote, 'Arial', 'sans-serif' ];                                                                                  } // Neo-Grotesque typefaces are a style of sans-serif that was developed in the late 19th and early 20th centuries and is characterized by its clean, geometric forms and uniform stroke widths. One of the most famous examples of a Neo-Grotesque typeface is Helvetica.
+    function array_system_font_stack_monospaceslabserif(    $quote = '"') { return [ $quote.'Nimbus Mono PS'.$quote, $quote.'Courier New'.$quote, 'monospace' ];                                                                                                                                           } // Monospace Slab Serif typefaces are characterized by their fixed-width letters, which have the same width regardless of their shape, and its simple, geometric forms. Used to emulate typewriter output for reports, tabular work and technical documentation.
+    function array_system_font_stack_monospacecode(         $quote = '"') { return [ 'ui-monospace', $quote.'Cascadia Code'.$quote, $quote.'Source Code Pro'.$quote, 'Menlo', 'Consolas', $quote.'DejaVu Sans Mono'.$quote, 'monospace' ];                                                                 } // Monospace Code typefaces are specifically designed for use in programming and other technical applications. These typefaces are characterized by their monospaced design, which means that all letters and characters have the same width, and their clear, legible forms.
+    function array_system_font_stack_industrial(            $quote = '"') { return [ 'Bahnschrift', $quote.'DIN Alternate'.$quote, $quote.'Franklin Gothic Medium'.$quote, $quote.'Nimbus Sans Narrow'.$quote, 'sans-serif-condensed', 'sans-serif' ];                                                     } // Industrial typefaces originated in the late 19th century and was heavily influenced by the advancements in technology and industry during that time. Industrial typefaces are characterized by their bold, sans-serif letterforms, simple and straightforward appearance, and the use of straight lines and geometric shapes.
+    function array_system_font_stack_rounded(               $quote = '"') { return [ 'ui-rounded', $quote.'Hiragino Maru Gothic ProN'.$quote, 'Quicksand', 'Comfortaa', 'Manjari', $quote.'Arial Rounded MT'.$quote, $quote.'Arial Rounded MT Bold'.$quote, 'Calibri', 'source-sans-pro', 'sans-serif' ];  } // Rounded typefaces are characterized by the rounded curved letterforms and give a softer, friendlier appearance. The rounded edges give the typeface a more organic and playful feel, making it suitable for use in informal or child-friendly designs. The rounded sans-serif style has been popular since the 1950s, and it continues to be widely used in advertising, branding, and other forms of graphic design.
+    function array_system_font_stack_slabserif(             $quote = '"') { return [ 'Rockwell', $quote.'Rockwell Nova'.$quote, $quote.'Roboto Slab'.$quote, $quote.'DejaVu Serif'.$quote, $quote.'Sitka Small'.$quote, 'serif' ];                                                                         } // Slab Serif typefaces are characterized by the presence of thick, block-like serifs on the ends of each letterform. These serifs are usually unbracketed, meaning they do not have any curved or tapered transitions to the main stroke of the letter.
+    function array_system_font_stack_antique(               $quote = '"') { return [ 'Superclarendon', $quote.'Bookman Old Style'.$quote, $quote.'URW Bookman'.$quote, $quote.'URW Bookman L'.$quote, $quote.'Georgia Pro'.$quote, 'Georgia', 'serif' ];                                                   } // Antique typefaces, also known as Egyptians, are a subset of serif typefaces that were popular in the 19th century. They are characterized by their block-like serifs and thick uniform stroke weight.
+    function array_system_font_stack_didone(                $quote = '"') { return [ 'Didot', $quote.'Bodoni MT'.$quote, $quote.'Noto Serif Display'.$quote, $quote.'URW Palladio L'.$quote, 'P052', 'Sylfaen', 'serif' ];                                                                                 } // Didone typefaces, also known as Modern typefaces, are characterized by the high contrast between thick and thin strokes, vertical stress, and hairline serifs with no bracketing. The Didone style emerged in the late 18th century and gained popularity during the 19th century.
+    function array_system_font_stack_handwritten(           $quote = '"') { return [ $quote.'Segoe Print'.$quote, $quote.'Bradley Hand'.$quote, 'Chilanka', 'TSCu_Comic', 'casual', 'cursive' ];                                                                                                           } // Handwritten typefaces are designed to mimic the look and feel of handwriting. Despite the vast array of handwriting styles, this font stack tend to adopt a more informal and everyday style of handwriting.
+    function array_system_font_stack_emoji(                 $quote = '"') { return [ $quote.'Apple Color Emoji'.$quote, $quote.'Segoe UI Emoji'.$quote, $quote.'Segoe UI Symbol'.$quote, $quote.'Noto Color Emoji'.$quote ];                                                                               } // Emoji Support: Looking to add native emojis to your page? Append these fonts at the end of your font stack
 
-            )));
-    }
+    // Old DOM font stacks. Condensed is still needed
 
-    function string_system_font_stack_regular($quote = '"')
-    {
-        return implode(", ", get("font_stack_regular", array(
-
-            'Inter', 'Roboto', '-apple-system',
-            'system-ui', 'BlinkMacSystemFont',
-            'ui-sans-serif', $quote.'Segoe UI'.$quote,
-            $quote.'San Francisco'.$quote,
-            'Helvetica', 'Arial', 'sans-serif',
-            $quote.'Apple Color Emoji'.$quote,
-            $quote.'Segoe UI Emoji'.$quote,
-            $quote.'Segoe UI Symbol'.$quote
-
-            )));
-    }
-
-    function string_system_font_stack_condensed($quote = '"')
-    {
-        return implode(", ", get("font_stack_condensed", array(
-
-            $quote.'Arial Narrow'.$quote,
-            $quote.'AvenirNextCondensed-Bold'.$quote,
-            $quote.'Futura-CondensedExtraBold'.$quote,
-            'HelveticaNeue-CondensedBold',
-            $quote.'Ubuntu Condensed'.$quote,
-            $quote.'Liberation Sans Narrow'.$quote,
-            $quote.'Franklin Gothic Demi Cond'.$quote,
-            'sans-serif-condensed', 'Arial',
-            $quote.'Trebuchet MS'.$quote,
-            $quote.'Lucida Grande'.$quote,
-            'Tahoma', 'Verdana', 'sans-serif'
-
-            )));
-    }
+    function array_system_font_stack_symbols(               $quote = '"') { return [ $quote.'Noto Sans Symbols'.$quote, 'sans-serif' ]; }
+    function array_system_font_stack_regular(               $quote = '"') { return [ 'Inter', 'Roboto', '-apple-system', 'system-ui', 'BlinkMacSystemFont', 'ui-sans-serif', $quote.'Segoe UI'.$quote, $quote.'San Francisco'.$quote, 'Helvetica', 'Arial', 'sans-serif', $quote.'Apple Color Emoji'.$quote, $quote.'Segoe UI Emoji'.$quote, $quote.'Segoe UI Symbol'.$quote ]; }
+    function array_system_font_stack_condensed(             $quote = '"') { return [ $quote.'Arial Narrow'.$quote, $quote.'AvenirNextCondensed-Bold'.$quote, $quote.'Futura-CondensedExtraBold'.$quote, 'HelveticaNeue-CondensedBold', $quote.'Ubuntu Condensed'.$quote, $quote.'Liberation Sans Narrow'.$quote, $quote.'Franklin Gothic Demi Cond'.$quote, 'sans-serif-condensed', 'Arial', $quote.'Trebuchet MS'.$quote, $quote.'Lucida Grande'.$quote, 'Tahoma', 'Verdana', 'sans-serif' ]; }
 
     function string_system_font_stack($quote = '"', $type = false)
     {
-        if ($quote === true || $quote === false || $quote === "symbols" || $quote === "condensed") { $type = $quote; $quote = '"'; }
+        if ($quote === true || $quote === false || (is_string($quote) && strlen($quote) > 1)) { $type = $quote; $quote = '"'; }
+        if ($type == true)  $type = "condensed";
+        if ($type == false) $type = "neogrotestque";
 
-        if ("condensed" == $type || true == $type)  return string_system_font_stack_condensed($quote);
-        if ("symbols"   == $type)                   return string_system_font_stack_symbols($quote);
-                                                    return string_system_font_stack_regular($quote);
+        $fn = "\dom\array_system_font_stack_$type";
+        if (is_callable($fn)) return implode(", ", get("font_stack_$type", $fn($quote)));
+
+        return string_system_font_stack($quote, "humanist");
     }
+
+    #region DEPRECATED
+
+    function string_system_font_stack_symbols(      $quote = '"') { return string_system_font_stack($quote, "symbols"); }
+    function string_system_font_stack_regular(      $quote = '"') { return string_system_font_stack($quote, "regular"); }
+    function string_system_font_stack_condensed(    $quote = '"') { return string_system_font_stack($quote, "condensed"); }
+
+    #endregion DEPRECATED
 
     function string_loading_svg_src_base64($force_minify = false)
     {
@@ -8663,7 +8671,7 @@
     
             /* Typography */
 
-            html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height) }
+            html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
             body                    { text-underline-offset: 0.25em; }
     
@@ -11826,7 +11834,7 @@
   
     function card_properties($date = false, $url = false, $category = false, $author = false)
     {
-        $author = !!$author ? $author : (!!get("h-card") ? false : get("author"));
+        $author = !!$author ? $author : (!!get("a-author-me-already") ? false : get("author"));
 
         return div(
 
@@ -12088,11 +12096,11 @@
     
     function async_FUNC_ARGS($f, $args)
     {
-        $period = -1;
+        $async_params = -1;
 
-        if (is_numeric($f))
+        if (is_numeric($f) || is_array($f))
         {
-            $period = $f;
+            $async_params = $f;
             array_shift($args);
             $f = $args[0];
         }
@@ -12111,7 +12119,7 @@
     
         register_async($f);
         
-        return ajax_call_with_args($f, $period, $args, $get, $post, $session);
+        return ajax_call_with_args($f, $async_params, $args, $get, $post, $session);
     }
     
     /**
@@ -12835,24 +12843,43 @@
 
     #endregion
     #region Footnotes
-        
-    $__footnote_index = -1;
 
-    function a_footnote($html)
+    function init_footnotes()
     {
-        global $__footnote_index;
-        ++$__footnote_index;
+        if (has("ajax")) 
+        {
+          //session_start([ 'read_and_close' => true ]);
+        }
+        else
+        {
+          //session_write_close();
+          //session_start([ 'read_and_close' => true ]);
+
+            del("footnote_index");
+        }
+    }
+     
+    $__footnot_index = -1;
+
+    function a_footnote($html, $index = false, $async = false)
+    {
+      //if (!has("footnote_index", false, !$async, !$async, $async)) set("footnote_index", -1, $async ? "SESSION" : "GET");
+      //$footnote_index = get("footnote_index", false, false, !$async, !$async, $async) + 1;
+      //set("footnote_index", $footnote_index, $async ? "SESSION" : "GET");
+        global $__footnot_index;
+        $footnote_index = !!$index ? $index : (++$__footnot_index);
 
         $footnotes = get("footnotes", array());
-        $footnotes[] = $html;
+        $footnotes[$footnote_index] = $html;
         set("footnotes", $footnotes);
 
-        return delayed_component("_".__FUNCTION__, $__footnote_index);
-    }
+        return a("[".($footnote_index + 1)."]", "#footnote-def-".($footnote_index + 1), array("id" => "footnote-".($footnote_index + 1), "class" => "footnote"));
+        //return delayed_component("_".__FUNCTION__, $footnote_index);
+    }/*
     function _a_footnote($footnote_index)
     {
         return a("[".($footnote_index + 1)."]", "#footnote-def-".($footnote_index + 1), array("id" => "footnote-".($footnote_index + 1), "class" => "footnote"));
-    }
+    }*/
 
     function footnotes() { return delayed_component("_".__FUNCTION__); }
     function _footnotes()
@@ -12873,16 +12900,16 @@
     function address($html)     { return tag("address", $html); }
     function author($author)    { return address(a($author, "#!", array("rel" => "author")), array("class" => "author")); }
 
-    function h_card($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
+    function h_card($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = false, $me = false)
     {
         if (!!get("gemini")) return "";
 
         // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
 
-        $photo = DOM_AUTO !== $photo ? $photo : "me.png";
-        $name  = DOM_AUTO !== $name  ? $name  : get("author", DOM_AUTHOR);
-        $bio   = DOM_AUTO !== $bio   ? $bio   : false;
-        $url   = DOM_AUTO !== $url   ? $url   : get("canonical");
+        $photo  = DOM_AUTO !== $photo ? $photo : "me.png";
+        $name   = DOM_AUTO !== $name  ? $name  : get("author", DOM_AUTHOR);
+        $bio    = DOM_AUTO !== $bio   ? $bio   : false;
+        $url    = DOM_AUTO !== $url   ? $url   : get("canonical");
 
         $names = is_array($name) ? $name : explode(" ", $name);
 
@@ -12922,9 +12949,9 @@
 
         $img = false !== stripos($photo, "<img") ? $photo : img($photo);
 
-        set("h-card", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
+        if (!!$me) set("a-author-me-already", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
 
-        $a_author = a_author($name, [ "rel" => "author", "hidden" => "hidden" ]);
+        $a_author = !$me ? "" : a_author($name, [ "rel" => "author", "hidden" => "hidden" ]);
         $h_card   = a($img.$name.$bio, $url, $attributes);
 
         return $a_author.$h_card;
