@@ -6358,7 +6358,9 @@
 
     function link_rel_shareopenly()
     {
-        return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text={text}");
+        $text = urlencode("Bonjour! {text} - {url}");
+
+        return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text=$text");
     }
 
     function a_shareopenly($html = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
@@ -6366,8 +6368,10 @@
         $html = $html !== DOM_AUTO ? $html : DOM_I18N_SHARE;
         $url  = $url  !== DOM_AUTO ? $url  : live_url();
 
-        $url = urlencode($url);
-        return a($html, "https://shareopenly.org/share/?url=$url", $attributes);
+        $url  = urlencode($url);
+        $text = urlencode("Happy to share!");
+
+        return a($html, "https://shareopenly.org/share/?url=$url&text=$text", $attributes);
     }
 
     /* DELAYED COMPONENTS */
