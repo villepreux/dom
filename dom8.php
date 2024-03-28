@@ -547,6 +547,25 @@
     function url_branch ($params = false, $get = true, $post = true, $session = false)   { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
     function url        ($params = false)   { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
 
+    function live_url($params = false)
+    {
+        $url_branch = url_branch($params);
+        {
+            if ($url_branch != "")
+            {
+                if (0 === stripos($url_branch, get("local_domain"))) $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, get("live_domain")))  $url_branch = substr($url_branch, strlen(get("live_domain" )));
+            }
+
+            $url_branch = trim($url_branch, "/");
+        }
+    
+        $url = 'https://'.get("live_domain");
+        if ($url_branch != "") $url .= "/$url_branch";
+
+        return $url;
+    }
+
     #endregion
     #region WIP SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
     ######################################################################################################################################
@@ -1351,6 +1370,8 @@
     #endregion
     #region HELPERS : LOCALIZATION
     ######################################################################################################################################
+    
+    define("DOM_I18N_SHARE", T("Share"));
     
     function server_language()
     {
@@ -5528,7 +5549,9 @@
     function url_flickr_user                ($username = false)                 { $username = ($username === false) ? get("flickr_user")        : $username;   return "https://www.flickr.com/photos/$username/";                         }
     function url_500px_user                 ($username = false)                 { $username = ($username === false) ? get("500px_user")         : $username;   return "https://www.500px.com/$username/";                                 }
     function url_pixelfed_user              ($username = false)                 { $username = ($username === false) ? get("pixelfed_user")      : $username;   return "https://pixelfed.social/$username/";                               }
-    function url_mastodon_user              ($username = false)                 { $username = ($username === false) ? get("mastodon_user")      : $username;   return "https://mastodon.social/@$username/";                              }
+    function url_mastodon_user              ($username = false, 
+                                             $instance = "mastodon.social")     { $username = ($username === false) ? get("mastodon_user")      : $username;
+                                                                                  $instance = ($instance === false) ? get("mastodon_domain")    : $instance;   return "https://$instance/@$username/";                                    }
     function url_github_user                ($username = false)                 { $username = ($username === false) ? get("github_user")        : $username;   return "https://github.com/$username";                                     }
     function url_lastfm_user                ($username = false)                 { $username = ($username === false) ? get("lastfm_user")        : $username;   return "https://last.fm/user/$username";                                   }
     function url_codepen_user               ($username = false)                 { $username = ($username === false) ? get("codepen_user")       : $username;   return "https://codepen.io/$username";                                     }
@@ -6258,7 +6281,9 @@
                       metas().
                 eol().link_rel_manifest().      (!get("webmentions") ? "" : (
                 eol().link_rel_webmentions().   "")).
-                eol().link_rel_webauth();
+                eol().link_rel_webauth().
+                eol().link_rel_shareopenly().
+                "";
     }
     
     function head_boilerplate($async_css = false, $styles = true)
@@ -6326,6 +6351,26 @@
         
         return tag('head', $html.$amp_scripts); 
     }
+
+    /**
+     * SHARING - https://shareopenly.org
+     */
+
+    function link_rel_shareopenly()
+    {
+        return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text={text}");
+    }
+
+    function a_shareopenly($html = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
+    {
+        $html = $html !== DOM_AUTO ? $html : DOM_I18N_SHARE;
+        $url  = $url  !== DOM_AUTO ? $url  : live_url();
+
+        $url = urlencode($url);
+        return a($html, "https://shareopenly.org/share/?url=$url", $attributes);
+    }
+
+    /* DELAYED COMPONENTS */
 
     function delayed_component($callback, $arg = false, $priority = 1, $eol = 1)
     {
