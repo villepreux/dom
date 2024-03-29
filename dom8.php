@@ -1717,6 +1717,12 @@
     function cat_FUNC_ARGS($args)           { return wrap_each($args,''); }
     function quote($txt, $quote = false)    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
     
+    function ellipsis($text = "", $footnote = true)
+    {
+        $ellipsis = "[…]";
+        return " ".span($ellipsis, $text == "" ? false : [ "title" => $text ]).((!$footnote || $text == "") ? "" : (" ".a_footnote("$ellipsis $text $ellipsis")))." ";
+    }
+
     #endregion
     #region Time & Durations utilities
 
@@ -6358,7 +6364,8 @@
 
     function link_rel_shareopenly()
     {
-        $text = urlencode("Bonjour! {text} - {url}");
+        $text = str_replace("TEXT", "{text}", 
+                str_replace("URL",  "{url}", urlencode("Bonjour! TEXT - URL")));
 
         return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text=$text");
     }
@@ -12926,14 +12933,17 @@
         }
     }
      
-    function a_footnote($html, $index = false, $async = false)
+    function a_footnote($html, $index = false, $async = false, $title = DOM_AUTO)
     {
-      //if (!has("footnote_index", false, !$async, !$async, $async)) set("footnote_index", -1, $async ? "SESSION" : "GET");
-      //$footnote_index = get("footnote_index", false, false, !$async, !$async, $async) + 1;
-      //set("footnote_index", $footnote_index, $async ? "SESSION" : "GET");
-        $footnote_index = false !== $index ? $index : count(get("footnotes", array()));
-
         $footnotes = get("footnotes", array());
+
+        if ($index === false)
+        {
+            // Avoid duplicates
+            foreach ($footnotes as $f => $footnote) if ($footnote == $html) $index = $f;
+        }
+
+        $footnote_index = false !== $index ? $index : count(get("footnotes", array()));
         $footnotes[$footnote_index] = $html;
         set("footnotes", $footnotes);
 
@@ -12941,18 +12951,13 @@
             
             "id"    => "footnote-".($footnote_index + 1), 
             "class" => "footnote",
-            "title" => strip_tags($html)
+            "title" => (DOM_AUTO === $title ? strip_tags($html) : $title)
         
             ));
-        //return delayed_component("_".__FUNCTION__, $footnote_index);
-    }/*
-    function _a_footnote($footnote_index)
-    {
-        return a("[".($footnote_index + 1)."]", "#footnote-def-".($footnote_index + 1), array("id" => "footnote-".($footnote_index + 1), "class" => "footnote"));
-    }*/
+    }
 
-    function footnotes() { return delayed_component("_".__FUNCTION__); }
-    function _footnotes()
+    function footnotes($attributes = false) { return delayed_component("_".__FUNCTION__, [ $attributes ]); }
+    function _footnotes($attributes)
     {
         $html = "";
 
@@ -12964,7 +12969,7 @@
             $html .= ddef($footnote);
         }
 
-        return dlist($html, "footnotes");
+        return dlist($html, attributes_add($attributes, attributes(attr("class", "footnotes"))));
     }
       
     function address($html)     { return tag("address", $html); }

@@ -559,8 +559,13 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
     <?= HERE("raw_js") ?></script><?php return HSTOP();
 }
 
-function section_mastodon_comments($post_id, $host = false, $username = false, $user_id = false)
+function section_mastodon_comments($post_id = DOM_AUTO, $host = false, $username = false, $user_id = false)
 {
+    if (DOM_AUTO === $post_id)
+    {
+        $post_id = get("mastodon-post-id", get("mastodon-post"));
+    }
+
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return "";
     
