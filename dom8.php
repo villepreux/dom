@@ -7157,6 +7157,25 @@
         return $client->sendWebmention($sourceURL, $targetURL);
     }
 
+    function webmention($label, $url)
+    { 
+        $response = webmentions_send($url); 
+
+        if (!is_localhost()) { return ""; }
+        if (true  === $response) { return ""; } 
+        if (false === $response) { return p("Could not send webmention to $label"); } 
+
+        $summary = (int)$response;
+
+        if (is_array($response)) 
+        {                
+            $body    = json_decode(at($response, "body", []), true);
+            $summary = at($body, "summary", at($body, "status", "unknown response"));
+        }
+
+        return p("Web-mention(s) sent to $label: $summary");
+    }
+
     function webmentions_api_token()
     {       
         $token = false;
