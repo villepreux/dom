@@ -1376,8 +1376,8 @@
     function server_language()
     {
         return  at("" == get("server-language",  "")           ? false : explode(",", get("server-language")                ), 0,
-                at("" == server_http_accept_language('en-EN')  ? false : explode(",", server_http_accept_language('en-EN')  ), 0,
-                "en-EN")
+                at("" == server_http_accept_language('en-US')  ? false : explode(",", server_http_accept_language('en-US')  ), 0,
+                "en-US")
                 );
     }
 
@@ -1392,7 +1392,7 @@
                 at("" == get("content-language", "")    ? false : explode(",", get("content-language")  ), 0,
                 at("" == get("html-language",    "")    ? false : explode(",", get("html-language")     ), 0,
                 at("" == server_language()              ? false : explode(",", server_language()        ), 0,
-                "en-EN")
+                "en-US")
                 )));
     }
 
@@ -7723,8 +7723,8 @@
             .   eol().comment("Alternate URLs")   
                 // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
             .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-EN"))
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-fr"))                               ))  . (AMP() ? '' : (''
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))  . (AMP() ? '' : (''
             .   link_rel("amphtml",     get("canonical").(!!get("static") ? "/amp"     : "/?amp=1"   ))                                                             ))
             .   link_rel("canonical",   get("canonical"))
             
