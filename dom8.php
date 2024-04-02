@@ -12008,7 +12008,7 @@
         }
     }
 
-    function source($path)
+    function source($path, $attributes = false)
     {
         if (AMP())
         {
@@ -12022,7 +12022,9 @@
             $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
             $type   = substr($ext,1); // ! TODO Find better solution
 
-            return tag("source", "", array("type" => "image/$type", "srcset" => $path), false, true);
+            $attributes = attributes_add($attributes, array("type" => "image/$type", "srcset" => $path));
+
+            return tag("source", "", $attributes, false, true);
         }
     }
 
@@ -12034,10 +12036,14 @@
         return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
     }
     
-    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = DOM_AUTO, $content = DOM_AUTO, $precompute_size = DOM_AUTO, $src_attribute = DOM_AUTO)
     {
         if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
         if (!!get("nolazy")) $lazy = false;
+
+        if (DOM_AUTO === $lazy_src)         $lazy_src       = false;
+        if (DOM_AUTO === $content)          $content        = '';
+        if (DOM_AUTO === $src_attribute)    $src_attribute  = 'src';
 
         if (is_array($path)) 
         {
@@ -12110,9 +12116,9 @@
         }
         else
         {
-                 if (DOM_AUTO === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", "src" =>                          $path ));
-            else if (true     === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", "src" => $lazy_src, "data-src" => $path ));
-            else                          $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", "src" =>                          $path ));
+                 if (DOM_AUTO === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", $src_attribute =>                          $path ));
+            else if (true     === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", $src_attribute => $lazy_src, "data-src" => $path ));
+            else                          $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", $src_attribute =>                          $path ));
 
                  if (DOM_AUTO === $lazy)  $attributes = attributes_add_class($attributes, "img");
             else if (true     === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
@@ -13720,7 +13726,37 @@
             attr("hidden",  "hidden"    )
         ));
 
-        $img = false !== stripos($photo, "<img") ? $photo : img($photo);
+        $img = "";
+        {
+            if (is_array($photo))
+            {
+                // https://css-tricks.com/gifs-and-prefers-reduced-motion/
+
+                $img = picture(
+                    source(
+                                              at($photo, "no-motion",                at($photo, 0                 )), attributes(attr("media", "(prefers-reduced-motion: reduce)"))).
+                    img($path               = at($photo, "animated",                 at($photo, 1                 ) ), 
+                        $w                  = at($photo, "width",    at($photo, "w", at($photo, 2, 300            ))), 
+                        $h                  = at($photo, "height",   at($photo, "h", at($photo, 3, 400            ))), $attr = false, 
+                        $alt                = at($photo, "alt",                      at($photo, 4, "Author photo" ) ), 
+                        $lazy               = DOM_AUTO, 
+                        $lazy_src           = DOM_AUTO, 
+                        $content            = DOM_AUTO, 
+                        $precompute_size    = DOM_AUTO, 
+                        $src_attribute      = "srcset"
+                        )
+                    );
+            }
+            else if (false !== stripos($photo, "<img")
+                 ||  false !== stripos($photo, "<picture"))
+            {
+                $img = $photo;
+            }
+            else
+            {
+                $img = img($photo, 300, 400);
+            }
+        }
 
         if (!!$me) set("a-author-me-already", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
 
