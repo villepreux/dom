@@ -7688,7 +7688,7 @@
             .   meta_property('og:site_name',               get("og_site_name", get("title")))
             .   meta_property('og:image',                   path(get("image")))
             .   meta_property('og:title',                   get("title"))
-            .   meta_property('og:description',             get("description"))
+            .   meta_property('og:description',             get("description", get("title")))
             .   meta_property('og:url',                     get("canonical"))            
             .   meta_property('og:type',                    'website')
             
