@@ -13735,17 +13735,6 @@
 
         $bio = !!$bio ? span(" (".span($bio, "p-note").")") : "";
 
-        // Microformats
-
-        $attributes = attributes_add($attributes, attributes(
-
-            attr("class",   "h-card"    ), 
-            attr("class",   "u-url"     ), 
-            attr("class",   "u-uid"     ), 
-            attr("rel",     "me"        ), 
-            attr("hidden",  "hidden"    )
-        ));
-
         $img = "";
         {
             if (is_array($photo))
@@ -13778,12 +13767,29 @@
             }
         }
 
+        // Microformats
+
+        $attributes = attributes_add($attributes, attributes(
+
+            attr("class",   "h-card"    ), 
+            attr("class",   "u-url"     ), 
+            attr("class",   "u-uid"     ), 
+            attr("rel",     "me"        ), 
+            attr("hidden",  "hidden"    )
+        ));
+
         if (!!$me) set("a-author-me-already", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
 
+        /*
         $a_author = !$me ? "" : a_author($name, [ "rel" => "author", "hidden" => "hidden" ]);
         $h_card   = a($img.$name.$bio, $url, $attributes);
 
         return $a_author.$h_card;
+        */
+
+        if (!!$me) $attributes = attributes_add($attributes, attr_author());
+
+        return a($img.$name.$bio, $url, $attributes);
     }
     
     ######################################################################################################################################
