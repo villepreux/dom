@@ -10895,10 +10895,10 @@
         if (DOM_AUTO === $dark_theme) $dark_theme = get("dark_theme", false);
 
         $attributes = array_merge(array(
-            "id"    => "top",
+            "id"    => "!",
             "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
             ), AMP() ? array() : array(
-            "name"  => "top-name"
+            "name"  => "!"
             ));
 
         return eol().tag(
