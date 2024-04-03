@@ -936,6 +936,35 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
+    function js_common_head()
+    {
+        $svg_light = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjYWEyMjAwKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICM1NWRkZmYpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
+        $svg_dark  = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjZmY2ZWZmKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICMyMmNjZWUpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
+
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+
+            var dom = function () {}; /* TODO put all dom js utilities in there */
+
+            dom.log_format_logo         = "%c ";
+            dom.log_format_dom          = "%cDOM";
+            dom.log_format_dom_version  = "%c<?= DOM_VERSION ?>";
+
+            dom.log_css_logo            = "margin-right: 4px;                                 padding: 0 4px 0 4px; background: no-repeat center/16px url('<?= $svg_dark ?>');";
+            dom.log_css_dom             = "margin-right: 0px; font-weight: bold; color: #000; padding: 0 4px 0 4px; background-color: #ff6eff; border-radius: 6px 0 0 6px; border: 1px solid white;";
+            dom.log_css_dom_version     = "margin-right: 4px; font-weight: bold; color: #000; padding: 0 4px 0 4px; background-color: #22ccee; border-radius: 0 6px 6px 0; border: 1px solid white;";
+
+            dom.log = function() {
+
+                console.info(
+                    dom.log_format_logo + dom.log_format_dom + dom.log_format_dom_version,
+                    dom.log_css_logo,     dom.log_css_dom,     dom.log_css_dom_version,
+                    ...arguments
+                );
+            };
+
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
+    }
+
     function js_ajax_head()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
@@ -1007,7 +1036,7 @@
                 {
                     var ajax_pending_call = ajax_pending_calls.pop();
             
-                    <?php if (!!get("debug")) { ?> console.log("DOM: Processing ajax pending call: " + ajax_pending_call[0]); console.log(ajax_pending_call); <?php } ?> 
+                    <?php if (!!get("debug")) { ?> dom.log("Processing ajax pending call: " + ajax_pending_call[0]); dom.log(ajax_pending_call); <?php } ?> 
                     process_ajax(ajax_pending_call[0], ajax_pending_call[1], ajax_pending_call[2], ajax_pending_call[3], ajax_pending_call[4]);
                 }
             };
@@ -5312,11 +5341,11 @@
             {
                 navigator.serviceWorker.register(swsource).then(function(reg)
                 {
-                    console.log("DOM: AMP ServiceWorker scope: ", reg.scope);
+                    dom.log("AMP", "ServiceWorker scope: ", reg.scope);
                 })
                 .catch(function(err)
                 {
-                    console.log("DOM: AMP ServiceWorker registration failed: ", err);
+                    dom.log("AMP", "ServiceWorker registration failed: ", err);
                 });
             };
 
@@ -5436,7 +5465,7 @@
             } 
             else 
             {
-                console.log("DOM: Could not load workbox framework!");
+                dom.log("Could not load workbox framework!");
             }
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -6483,7 +6512,7 @@
                 
                 window.addEventListener("storage", function() {
                     
-                    console.log("DOM:", "Storage", JSON.parse(window.localStorage.getItem("dom")));
+                    dom.log("Storage", JSON.parse(window.localStorage.getItem("dom")));
                 });
                 
             });
@@ -6492,7 +6521,7 @@
                 
                 var dom_storage = window.localStorage.getItem("dom");
 
-                /*console.log("DOM:", "Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*dom.log("Storage before get", JSON.parse(window.localStorage.getItem("dom")));*/
 
                 if (!dom_storage)
                 {
@@ -6502,7 +6531,7 @@
                 var jsonObject = {}; try { jsonObject = JSON.parse(dom_storage); } catch { jsonObject = {}; }
                 if (typeof jsonObject == "undefined" || jsonObject == false || jsonObject == null) jsonObject = {};
                 
-                /*console.log("DOM JSONOBJ", jsonObject, name, jsonObject[name]);*/
+                /*dom.log("JSONOBJ", jsonObject, name, jsonObject[name]);*/
                 if (jsonObject[name] == undefined) return false;
 
                 return jsonObject[name];
@@ -6525,7 +6554,7 @@
                 dom_storage = JSON.stringify(jsonObject);
                 window.localStorage.setItem("dom", dom_storage);
 
-                /*console.log("DOM:", "Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
+                /*dom.log("Storage after set", JSON.parse(window.localStorage.getItem("dom")));*/
             }
 
             dom.set = dom_storage_set;
@@ -7253,7 +7282,7 @@
 
             async function fetch_mentions_endpoint(url) {
 
-                console.log("DOM:", "Webmentions", "Fetch webmentions count...");
+                dom.log("Webmentions", "Fetch webmentions count...");
             
                 try
                 {
@@ -7261,14 +7290,14 @@
                 
                     if (!response || !response.ok) {
 
-                        console.log("DOM:", "Webmentions", url, "RESULT IS NOT OK", response);
+                        dom.log("Webmentions", url, "RESULT IS NOT OK", response);
                     }
                 
                     return (response && response.ok) ? response.json() : null;
                 }
                 catch (e)
                 {
-                    console.log("DOM:", "Webmentions", url, "FAILED", e);
+                    dom.log("Webmentions", url, "FAILED", e);
                 
                     return null;
                 }
@@ -7276,13 +7305,13 @@
 
             on_first_interraction(function() {
 
-                console.log("DOM:", "Webmentions", "Parse webmention counters");
+                dom.log("Webmentions", "Parse webmention counters");
 
                 document.querySelectorAll("[data-webmention-count]").forEach(function(e) {
 
                     var url = e.getAttribute("data-url");
 
-                    console.log("DOM:", "Webmentions", "Parse webmention counter", url);
+                    dom.log("Webmentions", "Parse webmention counter", url);
 
                          if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
                     else if (url.indexOf("https://") < 0
@@ -7292,18 +7321,18 @@
                     
                     fetch_mentions_endpoint("https://webmention.io/api/count?target="+url).then(function(data) {
 
-                        console.log("DOM:", "Webmentions", "Count received", data);
+                        dom.log("Webmentions", "Count received", data);
                         if (data) e.innerHTML = data.count;
                     });
                 });
 
-                console.log("DOM:", "Webmentions", "Parse webmentions");
+                dom.log("Webmentions", "Parse webmentions");
 
                 document.querySelectorAll("[data-webmentions]").forEach(function(e) {
 
                     var url = e.getAttribute("data-url");
 
-                    console.log("DOM:", "Webmentions", "Parse webmentions", url);
+                    dom.log("Webmentions", "Parse webmentions", url);
 
                          if (url == false || url == "")   url = 'https://<?= webmentions_domain() ?>';
                     else if (url.indexOf("https://") < 0
@@ -7313,7 +7342,7 @@
 
                     fetch_mentions_endpoint("https://webmention.io/api/mentions.jf2?target="+url).then(function(data) {
 
-                        console.log("DOM:", "Webmentions", "mentions received", data);
+                        dom.log("Webmentions", "mentions received", data);
 
                         if (data.children.length > 0) e.innerHTML = "";
                         
@@ -7912,9 +7941,9 @@
     function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script_ajax_head() { return /*AMP() ? "" : */script(js_ajax_head()); }
-    function script_ajax_body() { return /*AMP() ? "" : */script(js_ajax_body()); }
-
+    function script_common_head()   { return /*AMP() ? "" : */script(js_common_head()); }
+    function script_ajax_head()     { return /*AMP() ? "" : */script(js_ajax_head());   }
+    function script_ajax_body()     { return /*AMP() ? "" : */script(js_ajax_body());   }
     function script_inside_iframe() { return script(js_inside_iframe()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
@@ -9802,7 +9831,8 @@
     {   
         $profiler = debug_track_timing(); 
 
-        return  script_ajax_head().
+        return  script_common_head().
+                script_ajax_head().
                 script_inside_iframe().
 
                 script(js_scan_and_print_head()     ).      ((!!get("script_document_events", true)) ? (
@@ -9903,7 +9933,7 @@
 
                 scan_and_print = function()
                 {
-                    console.log("DOM: Print");
+                    dom.log("Print");
 
                     var e = document.querySelector("html");
 
@@ -9925,11 +9955,11 @@
             {
                 let deferredPrompt = null;
                 
-                console.log("DOM: Register Before Install Prompt callback");
+                dom.log("Register Before Install Prompt callback");
                 
                 window.addEventListener("beforeinstallprompt", function(e) 
                 {
-                    console.log("DOM: Before Install Prompt");
+                    dom.log("Before Install Prompt");
                     e.preventDefault();
                     deferredPrompt = e;
 
@@ -9954,15 +9984,15 @@
                             
                             deferredPrompt.userChoice.then(function(choiceResult)
                             {
-                                if (choiceResult.outcome === "accepted") console.log("DOM: User accepted the A2HS prompt");
-                                else                                     console.log("DOM: User dismissed the A2HS prompt");
+                                if (choiceResult.outcome === "accepted") dom.log("User accepted the A2HS prompt");
+                                else                                     dom.log("User dismissed the A2HS prompt");
                                 
                                 deferredPrompt = null;
                             });
                         }
                         else
                         {
-                            console.log("DOM: Install promt callback not received yet");
+                            dom.log("Install promt callback not received yet");
                         }
                     }); 
                 }); 
@@ -9986,34 +10016,34 @@
             {
                 if ("serviceWorker" in navigator)
                 {
-                    console.log("DOM: Service Worker is supported. Registering...");
+                    dom.log("Service Worker is supported. Registering...");
 
                     navigator.serviceWorker.register("<?= path('sw.js') ?>").then(
                         
                     function(registration)
                     {
-                        console.log("DOM: ServiceWorker registration successful with scope: ", registration.scope);
+                        dom.log("ServiceWorker registration successful with scope: ", registration.scope);
                         
                         var registration_installing = registration.installing;
                         var registration_waiting    = registration.waiting;
 
                         if (registration_installing && registration_installing != null)
                         {
-                            console.log("DOM: Installing: State:", registration_installing.state);
+                            dom.log("Installing: State:", registration_installing.state);
 
                             if (registration_installing.state === "activated" && !registration_waiting)
                             {
-                                console.log("DOM: Send Clients claim");
+                                v("Send Clients claim");
                                 registration_installing.postMessage({type: "CLIENTS_CLAIM" });
                             }
 
                             registration_installing.addEventListener("statechange", function()
                             {
-                                console.log("DOM: Installing: New state:", registration_installing.state);
+                                dom.log("Installing: New state:", registration_installing.state);
 
                                 if (registration_installing.state === "activated" && !registration_waiting) 
                                 {
-                                    console.log("DOM: Send Clients claim");                                    
+                                    dom.log("Send Clients claim");                                    
                                     registration_installing.postMessage({ type: "CLIENTS_CLAIM" });
                                 }
                             });
@@ -10025,11 +10055,11 @@
                             {
                                 if (!(subscription === null)) 
                                 {
-                                    console.log("DOM: User IS subscribed.");
+                                    dom.log("User IS subscribed.");
                                 }
                                 else 
                                 {
-                                    console.log("DOM: User is NOT subscribed.");
+                                    dom.log("User is NOT subscribed.");
                                 }
                             })
 
@@ -10042,7 +10072,7 @@
 
                             }).then(function(pushSubscription)
                             {
-                                console.log("DOM: Received PushSubscription: ", JSON.stringify(pushSubscription));
+                                dom.log("Received PushSubscription: ", JSON.stringify(pushSubscription));
                                 return pushSubscription;
                             })
 
@@ -10056,17 +10086,17 @@
                             }
                             else
                             {  
-                                console.log("DOM: ServiceWorker registration sync is undefined");
+                                dom.log("ServiceWorker registration sync is undefined");
                             }
                         });
                     },                     
                     function(err) 
                     {
-                        console.log("DOM: ServiceWorker registration failed: ", err);
+                        dom.log("ServiceWorker registration failed: ", err);
 
                     }).catch(function(err)
                     {
-                        console.log("DOM: Service Worker registration failed: ", err);
+                        dom.log("Service Worker registration failed: ", err);
 
                     });
 
@@ -10075,13 +10105,13 @@
                     if ("PushManager" in window) 
                     {
                     /*
-                        console.log("DOM: Service Worker push notifications are supported. Registering...");
+                        dom.log("Service Worker push notifications are supported. Registering...");
 
                         new Promise(function(resolve, reject) 
                         {
                             Notification.requestPermission().then(function(permission) 
                             {
-                                console.log("DOM: Notifications permissions : " + permission);
+                                dom.log("Notifications permissions : " + permission);
                                 if (permission !== "granted") return reject(Error("Denied notification permission"));
                                 resolve();
                             });
@@ -10099,20 +10129,20 @@
                         })
                         .then(function()
                         {
-                            console.log("DOM: Sync registered");
+                            dom.log("Sync registered");
 
                         })
                         .catch(function(err) 
                         {
-                            console.log("DOM: It broke");
-                            console.log(err.message);
+                            dom.log("It broke");
+                            dom.log(err.message);
                         });
                     */
                     }
                 }
                 else
                 {
-                    console.log("DOM: Service worker not supported");
+                    dom.log("Service worker not supported");
                 } 
             }
 
@@ -10140,7 +10170,7 @@
 
             /* IMAGES LOADING */
             
-            console.log("DOM: Register images handlers");
+            dom.log("Register images handlers");
             
             var interaction_observer = null;
                 
@@ -10259,7 +10289,7 @@
       
             function scan_images() 
             {
-                console.log("DOM: Scanning images");
+                dom.log("Scanning images");
 
                 /* Handle images loading errors */
                 document.querySelectorAll("img").forEach(function (e) { e.addEventListener("error", on_img_error); });
@@ -10300,7 +10330,7 @@
             
             function onUpdateBackToTopButton()
             {
-                //console.log("onUpdateBackToTopButton");
+                //dom.log("onUpdateBackToTopButton");
 
                 var back_to_top = document.querySelector(".back-to-top");
 
@@ -10369,7 +10399,7 @@
 
             function process_callbacks(callbacks, log, clear)
             {
-                if (typeof log != "undefined" && log) console.log("DOM: DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
+                if (typeof log != "undefined" && log) dom.log("DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
                 callbacks.forEach(function(callback) { callback(); });
                 if (typeof log != "undefined" && clear) callbacks = [];
             }
@@ -10411,15 +10441,13 @@
             {
                 var was_not_ready_and_loaded = (!event_ready || !event_loaded);
 
-                if (!event_ready  && event == "ready")  { event_ready  = true; console.log("DOM: DOCUMENT READY"); process_ready_callbacks(); }
-                if (!event_loaded && event == "loaded") { event_loaded = true; console.log("DOM: DOCUMENT LOADED"); }
+                if (!event_ready  && event == "ready")  { event_ready  = true; dom.log("DOCUMENT READY"); process_ready_callbacks(); }
+                if (!event_loaded && event == "loaded") { event_loaded = true; dom.log("DOCUMENT LOADED"); }
 
                 if (was_not_ready_and_loaded && event_ready && event_loaded) { process_loaded_callbacks(); }
             }
 
             function on_ajax_reception() { process_callbacks(ajax_callbacks); }
-
-            var dom = function () {}; /* TODO put all dom js utilities in there */
 
             dom.on_ready                = on_ready;
             dom.on_loaded               = on_loaded;
@@ -11152,11 +11180,11 @@
 
         return script('
 
-          /*console.log("DOM", "Lazy loading");*/
+          /*dom.log("Lazy loading");*/
                 
             dom.on_loaded(function() { 
 
-              /*console.log("DOM", "Lazy loading", "Pending", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");*/
+              /*dom.log("Lazy loading", "Pending", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");*/
                 
                 var lazy_loaded_'.$__dom_lazy_load_index.' = false;
 
@@ -11167,7 +11195,7 @@
                         lazy_loaded_'.$__dom_lazy_load_index.' = true;
                         document.querySelector("'.$query_selector.'").'.$src_attribute.' = "'.$url.'";
 
-                        console.log("DOM", "Lazy loading", "Apply", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");
+                        dom.log("Lazy loading", "Apply", "'.$query_selector.'", "'.$src_attribute.'", "'.$url.'");
                     }    
                 }
     
