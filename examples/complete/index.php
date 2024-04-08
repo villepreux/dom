@@ -53,7 +53,7 @@ output(
                     p(a("Back to examples", "..")))).
             footer(
                 p(unsplash_copyrights()).
-                p("DOM.PHP v".DOM_VERSION." - This is my footer at the bottom").
+                p("DOM.PHP v".dom\version." - This is my footer at the bottom").
                 p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook")))).
 
         /* Some inline style & scripts (Could have been put in css/main.css and js/app.js) */
