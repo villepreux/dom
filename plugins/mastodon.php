@@ -12,6 +12,7 @@ namespace dom\mastodon;
 
 require_once(__DIR__."/../dom.php"); 
 use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li};
+use const \dom\{auto,external_link,internal_link};
 
 #region Constants
 
@@ -208,7 +209,7 @@ function comment_card(
                 [ 
                     "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."photo"), 
                     "title"  => (($is_op ? "Blog post author; " : "")."View profile at @$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
-                    "target" => DOM_EXTERNAL_LINK
+                    "target" => external_link
                 ]
                 ).
 
@@ -224,7 +225,7 @@ function comment_card(
                     [
                         "class"  => (($is_op ? "op " : ($is_verified ? "verified " : ""))."instance"), 
                         "title"  => (($is_op ? "Blog post author: " : "")."@$status_account_username@$instance".($is_op ? "" : ($is_verified ? " (verified by site owner)" : ""))),
-                        "target" => DOM_EXTERNAL_LINK
+                        "target" => external_link
                     ]
                     )).  
                 /*
@@ -559,9 +560,9 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
     <?= HERE("raw_js") ?></script><?php return HSTOP();
 }
 
-function section_mastodon_comments($post_id = DOM_AUTO, $host = false, $username = false, $user_id = false)
+function section_mastodon_comments($post_id = auto, $host = false, $username = false, $user_id = false)
 {
-    if (DOM_AUTO === $post_id)
+    if (auto === $post_id)
     {
         $post_id = get("mastodon-post-id", get("mastodon-post"));
     }
@@ -678,7 +679,8 @@ function article_excerpt_autopost_and_comments()
 
     if (!!$corresponding_post)
     {
-        $html = header(p("Comments")).section_comments_cards(at($corresponding_post, "id"));
+      //$html = header(p("Comments")).section_comments_cards(at($corresponding_post, "id"));
+        $html = section_mastodon_comments(at($corresponding_post, "id"));
     }
     else if (!get("static"))
     {

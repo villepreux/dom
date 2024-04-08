@@ -5,12 +5,12 @@
     #region CONSTANTS
     ######################################################################################################################################
 
-    if (!defined("DOM_INTERNAL_LINK"))  define("DOM_INTERNAL_LINK", "_self");
-    if (!defined("DOM_EXTERNAL_LINK"))  define("DOM_EXTERNAL_LINK", "_blank");
+    const auto          = "__DOM_AUTO__";
+    const internal_link = "_self";
+    const external_link = "_blank";
 
-    define("DOM_AUTHOR",    "Antoine Villepreux");
-    define("DOM_VERSION",   "0.8.3");
-    define("DOM_AUTO",      "__DOM_AUTO__"); // TODO migrate to null as auto param ?
+    const author        = "Antoine Villepreux";
+    const version       = "0.8.5";
 
     #endregion
     #region HELPERS : CONFIG
@@ -176,7 +176,7 @@
         {
             $html .= debug_console_line();
             $html .= debug_console_line("PHP Version: ".PHP_VERSION);
-            $html .= debug_console_line("DOM Version: ".DOM_VERSION);
+            $html .= debug_console_line("DOM Version: ".version);
 
             if (is_array($report) && count($report) > 0)
             {
@@ -372,12 +372,12 @@
         return false;
     }
         
-    function path($path0, $default = false, $search = true, $depth0 = DOM_AUTO, $max_depth = DOM_AUTO, $offset_path0 = ".", $bypass_root_hints = false)
+    function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {
         $profiler = debug_track_timing();
 
-        if ($depth0    === DOM_AUTO) $depth0    = get("path_max_depth", 8);
-        if ($max_depth === DOM_AUTO) $max_depth = get("path_max_depth", 8);
+        if ($depth0    === auto) $depth0    = get("path_max_depth", 8);
+        if ($max_depth === auto) $max_depth = get("path_max_depth", 8);
         
         $param = "";
 
@@ -503,10 +503,8 @@
     #region WIP DEPENDENCIES
     ######################################################################################################################################
     
-    @internal_include(path("tokens.php")); // TODO let responsibility to end-user ? or use a dom-specific name
-    @internal_include(path("vendor/autoload.php"/*, false, true, DOM_AUTO, DOM_AUTO, ".", $bypass_root_hints = true*/)); /*
-    @internal_include(path("vendor/michelf/php-markdown/Michelf/Markdown.inc.php"));
-    @internal_include(path("vendor/michelf/php-smartypants/Michelf/SmartyPants.inc.php"));*/
+    @internal_include(path("tokens.php"));
+    @internal_include(path("vendor/autoload.php"));
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -956,7 +954,7 @@
 
             dom.log_format_logo         = "%c ";
             dom.log_format_dom          = "%cDOM";
-            dom.log_format_dom_version  = "%c<?= DOM_VERSION ?>";
+            dom.log_format_dom_version  = "%c<?= version ?>";
 
             dom.log_css_logo            = "margin-right: 4px;                                 padding: 0 4px 0 4px; background: no-repeat center/16px url('<?= $svg_dark ?>');";
             dom.log_css_dom             = "margin-right: 0px; font-weight: bold; color: #000; padding: 0 4px 0 4px; background-color: #ff6eff; border-radius: 6px 0 0 6px; border: 1px solid white;";
@@ -1152,12 +1150,12 @@
         return $attributes;
     }
     
-    function attribute($name, $values = "DOM_AUTO_CLASS")
+    function attribute($name, $values = auto)
     {
-        return ($values === "DOM_AUTO_CLASS") ? to_attributes($name) : array($name => $values);
+        return ($values === auto) ? to_attributes($name) : array($name => $values);
     }
     
-    function attr($name, $values = "DOM_AUTO_CLASS")
+    function attr($name, $values = auto)
     {
         return attribute($name, $values);
     }
@@ -1502,9 +1500,9 @@
         return $fallback;
     }
 
-    function to_classname($str, $tolower = DOM_AUTO)
+    function to_classname($str, $tolower = auto)
     {
-        if ($tolower === DOM_AUTO) $tolower = true;
+        if ($tolower === auto) $tolower = true;
 
         // TODO Real implementation
         
@@ -1768,6 +1766,9 @@
 
     function age($yyyy, $mm, $dd)
     {
+        if (is_integer($mm) && $mm < 10) $mm = "0$mm";
+        if (is_integer($dd) && $dd < 10) $dd = "0$dd";
+
         return (int)date_diff(date_create("$yyyy-$mm-$dd"), date_create())->format('%y');
     }
     
@@ -1776,9 +1777,9 @@
 
     $__dom_rand_is_seeded = false;
 
-    function rand_seed($seed = DOM_AUTO)
+    function rand_seed($seed = auto)
     {
-        if (DOM_AUTO === $seed)
+        if (auto === $seed)
         {
             $seed = null;
 
@@ -1798,7 +1799,7 @@
         $__dom_rand_is_seeded = true;
     }
 
-    function rand($min = DOM_AUTO, $max = DOM_AUTO)
+    function rand($min = auto, $max = auto)
     {
         global $__dom_rand_is_seeded;
 
@@ -1808,8 +1809,8 @@
             $__dom_rand_is_seeded = true;
         }
 
-        if (DOM_AUTO === $min) $min = 0;
-        if (DOM_AUTO === $max) $max = mt_getrandmax();
+        if (auto === $min) $min = 0;
+        if (auto === $max) $max = mt_getrandmax();
 
         return mt_rand($min, $max);
     }
@@ -2023,7 +2024,7 @@
                 $url = call_user_func("dom\\url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
             }
             
-            $hashtag = a('#'.$hashtag, $url, "hashtag", DOM_EXTERNAL_LINK);
+            $hashtag = a('#'.$hashtag, $url, "hashtag", external_link);
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -2430,14 +2431,14 @@
 
         if ($title == "" || !$title) return;
 
-        if ($target == DOM_INTERNAL_LINK)
+        if ($target == internal_link)
         {
             $hook_links[]           = array("title" => $title, "url" => $url);
             $hook_shortcut_links[]  = array("title" => $title, "url" => $url);
             $hook_prefetch_links[]  = array("title" => $title, "url" => $url);
         }
 
-        if ($target == DOM_EXTERNAL_LINK)
+        if ($target == external_link)
         {
             $hook_links[]           = array("title" => $title, "url" => $url);
             $hook_external_links[]  = array("title" => $title, "url" => $url);
@@ -4635,7 +4636,7 @@
             {
                 if (has("cache_reset") && is_dir("/cache")) foreach (array_diff(scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
 
-                $cache_basename         = md5(url(true) . DOM_VERSION);
+                $cache_basename         = md5(url(true) . version);
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
                 $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache_time", 1*60*60)) < filemtime($cache_filename));
@@ -5504,15 +5505,15 @@
 
         foreach ($__generated as &$generated)
         { 
-            if (true == get("generate", DOM_AUTO))
+            if (true == get("generate", auto))
             {
                 $generated["generate"] = true;
             }
-            else if (false == get("generate", DOM_AUTO))
+            else if (false == get("generate", auto))
             {
                 $generated["generate"] = false;
             }
-            else if (DOM_AUTO == get("generate", DOM_AUTO))
+            else if (auto == get("generate", auto))
             {
                 // Unless generation is requested, do not generate each file that is already accessible
                 // Even if it accesses a parent/inherited file
@@ -5713,9 +5714,9 @@
     
     function self($html) { return $html; }
 
-    function include_file($filename, $silent_errors = DOM_AUTO)
+    function include_file($filename, $silent_errors = auto)
     {
-        if ($silent_errors === DOM_AUTO)
+        if ($silent_errors === auto)
         {
             $silent_errors = is_localhost() ? false : true;
         }
@@ -5745,9 +5746,9 @@
     function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify") || !!get("minify_css"  ) || $force_minify) { $css  =   minify_css    ($css);  } return trim($css  ); }
     function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify") || !!get("minify_php"  ) || $force_minify) { $php  =   minify_php    ($php);  } return trim($php  ); }
 
-    function include_html   ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
-    function include_css    ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
-    function include_js     ($filename, $force_minify = false, $silent_errors = DOM_AUTO) { return (has("rss") || !!get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
+    function include_html   ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
+    function include_css    ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
+    function include_js     ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
         
     // DOM powered html transform
 
@@ -5929,8 +5930,8 @@
 
     function css_name($name) { return trim(str_replace("_","-",$name)); }
 
-    function css_var($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { if (DOM_AUTO === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
-    function css_env($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { if (DOM_AUTO === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : get($var)); set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '/*.((false !== stripos($var,"_unitless")) ? "" : css_env($var."_unitless", str_replace(array("px","%","vw","vh","cm","em","rem","pt","deg","rad"), array("","","","","","","","","",""), $val)))*/; }
+    function css_var($var, $val = false, $pre_processing = false, $pan = auto) { if (auto === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return 'var(--'.css_name($var).')';                                                 return pan('--'.css_name($var) . ': ', $pan) . $val . '; '; }
+    function css_env($var, $val = false, $pre_processing = false, $pan = auto) { if (auto === $pan) $pan = get("env_var_default_tab", 32); if (false === $val) return ($pre_processing ? hook_css_env($var) : get($var)); set($var, $val); return pan('--'.css_name($var) . ': ', $pan) . $val . '; '/*.((false !== stripos($var,"_unitless")) ? "" : css_env($var."_unitless", str_replace(array("px","%","vw","vh","cm","em","rem","pt","deg","rad"), array("","","","","","","","","",""), $val)))*/; }
 
     function css_env_add($vars, $pre_processing = false)
     {
@@ -6000,9 +6001,9 @@
         return $res.$unit;
     }
     
-    function env        ($var, $val = false, $pre_processing = false, $pan = DOM_AUTO) { return css_env      ($var, $val, $pre_processing, $pan); }
-    function env_add    ($vars,              $pre_processing = false, $pan = DOM_AUTO) { return css_env_add  ($vars,      $pre_processing, $pan); }
-    function env_mul    ($vars,              $pre_processing = false, $pan = DOM_AUTO) { return css_env_mul  ($vars,      $pre_processing, $pan); }
+    function env        ($var, $val = false, $pre_processing = false, $pan = auto) { return css_env      ($var, $val, $pre_processing, $pan); }
+    function env_add    ($vars,              $pre_processing = false, $pan = auto) { return css_env_add  ($vars,      $pre_processing, $pan); }
+    function env_mul    ($vars,              $pre_processing = false, $pan = auto) { return css_env_mul  ($vars,      $pre_processing, $pan); }
     
     
     /*
@@ -6227,7 +6228,7 @@
 
                 return  raw_html('<!doctype html>'.comment("Welcome my fellow web developer!").'<html'.attributes_as_string($attributes).'>'.' ').
                         $html.eol().$debug_console.
-                        raw_html('</html>'.comment("DOM.PHP ".DOM_VERSION));
+                        raw_html('</html>'.comment("DOM.PHP ".version));
             }
             else
             {
@@ -6439,10 +6440,10 @@
         return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text=$text");
     }
 
-    function a_shareopenly($html = DOM_AUTO, $url = DOM_AUTO, $attributes = false)
+    function a_shareopenly($html = auto, $url = auto, $attributes = false)
     {
-        $html = $html !== DOM_AUTO ? $html : DOM_I18N_SHARE;
-        $url  = $url  !== DOM_AUTO ? $url  : live_url();
+        $html = $html !== auto ? $html : DOM_I18N_SHARE;
+        $url  = $url  !== auto ? $url  : live_url();
 
         $url  = urlencode($url);
         $text = urlencode("Happy to share!");
@@ -7216,11 +7217,11 @@
         }
     }
 
-    function webmentions_send($targetURL, $sourceURL = DOM_AUTO, $on_static_build_only = true)
+    function webmentions_send($targetURL, $sourceURL = auto, $on_static_build_only = true)
     {
         if ($on_static_build_only && !get("static")) return true;
 
-        if ($sourceURL === DOM_AUTO) $sourceURL = live_url();
+        if ($sourceURL === auto) $sourceURL = live_url();
         $client = new MentionClient();
         //$client->enableDebug();
         return $client->sendWebmention($sourceURL, $targetURL);
@@ -7421,10 +7422,10 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function webmentions_url($url = DOM_AUTO)
+    function webmentions_url($url = auto)
     {
-      //if ($url === DOM_AUTO) $url = get("canonical");
-        if ($url === DOM_AUTO)
+      //if ($url === auto) $url = get("canonical");
+        if ($url === auto)
         {
             $url_branch = url_branch();
 
@@ -7444,7 +7445,7 @@
         return $url;
     }
 
-    function webmentions_counter($placeholder = "⧗", $prefix = "Web-Mention(s): ", $suffix = "", $url = DOM_AUTO, $tag = "span")
+    function webmentions_counter($placeholder = "⧗", $prefix = "Web-Mention(s): ", $suffix = "", $url = auto, $tag = "span")
     {
         return tag($tag, $prefix.span($placeholder, [ "data-webmention-count" => true, "data-url" => webmentions_url($url) ]).$suffix);
     }
@@ -7486,7 +7487,7 @@
             , "card");
     }
     
-    function section_webmentions($url = DOM_AUTO)
+    function section_webmentions($url = auto)
     {
         return section(
 
@@ -7524,11 +7525,11 @@
         return link_rel("manifest", $path_manifest, $type, $pan);
     }
 
-    function parse_icons($name = "favicon", $size = false, $media = false, $ext = "png", $type = DOM_AUTO, $alternate = false)
+    function parse_icons($name = "favicon", $size = false, $media = false, $ext = "png", $type = auto, $alternate = false)
     {
-        if ($name === false || $name === DOM_AUTO) $name = "favicon";
-        if ($ext  === false || $ext  === DOM_AUTO) $ext  = "png";
-        if ($type === false || $type === DOM_AUTO) $type = false;
+        if ($name === false || $name === auto) $name = "favicon";
+        if ($ext  === false || $ext  === auto) $ext  = "png";
+        if ($type === false || $type === auto) $type = false;
 
         if (is_array($name)) { $icons = array(); foreach ($name as $i => $_) { $icon = parse_icons($_,    $size, $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
         if (is_array($size)) { $icons = array(); foreach ($size as $i => $_) { $icon = parse_icons($name, $_,    $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
@@ -7595,11 +7596,11 @@
         return array(array("type" => $type, "path" => $path, "attributes" => $attributes));
     }
 
-    function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = DOM_AUTO, $alternate = false)
+    function link_rel_icon($name = "favicon", $size = false, $media = false, $ext = "png", $type = auto, $alternate = false)
     {
-        if ($name === false || $name === DOM_AUTO) $name = "favicon";
-        if ($ext  === false || $ext  === DOM_AUTO) $ext  = "png";
-        if ($type === false || $type === DOM_AUTO) $type = false;
+        if ($name === false || $name === auto) $name = "favicon";
+        if ($ext  === false || $ext  === auto) $ext  = "png";
+        if ($type === false || $type === auto) $type = false;
 
         if (is_array($name)) { $html = ""; foreach ($name as $i => $_) { $html_icon = link_rel_icon($_,    $size, $media, $ext, $type, $alternate); $html .= /*(($i > 0 && $html_icon != "") ? eol() : "").*/$html_icon; } return $html; }
         if (is_array($size)) { $html = ""; foreach ($size as $i => $_) { $html_icon = link_rel_icon($name, $_,    $media, $ext, $type, $alternate); $html .= /*(($i > 0 && $html_icon != "") ? eol() : "").*/$html_icon; } return $html; }
@@ -7693,9 +7694,9 @@
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
             .   meta('description',                         get("description", get("title")))
-            .   meta('author',                              get("author",DOM_AUTHOR))
-            .   meta('copyright',                           get("author",DOM_AUTHOR).' 2000-'.date('Y'))
-            .   meta('generator',                           "DOM ".DOM_VERSION)
+            .   meta('author',                              get("author", author))
+            .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
+            .   meta('generator',                           "DOM ".version)
             .   meta('title',                               get("title"))
             .   meta('theme-color',                         get("theme_color"))
 
@@ -7893,7 +7894,7 @@
         return style_css_as_is(raw_css($css, $force_minify), $attributes);
     }
 
-    function style_file($filename = "", $force_minify = false, $silent_errors = DOM_AUTO, $attributes = false)
+    function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
     {
         $profiler = debug_track_timing();
         if (!$filename || $filename == "") return '';
@@ -7902,7 +7903,7 @@
         return style_css_as_is(include_css($filename, $force_minify, $silent_errors), $attributes);
     }
 
-    function style_css_or_file($filename_or_code = "", $force_minify = false, $silent_errors = DOM_AUTO)
+    function style_css_or_file($filename_or_code = "", $force_minify = false, $silent_errors = auto)
     {
         $profiler = debug_track_timing();
         if (!$filename_or_code || $filename_or_code == "") return '';
@@ -7928,7 +7929,7 @@
         return script_js_as_is(raw_js($js, $force_minify), $type);
     }
 
-    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)
+    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto)
     {
         $profiler = debug_track_timing(); 
         if (!$filename || $filename == "") return ''; 
@@ -7937,7 +7938,7 @@
         return script_js_as_is(include_js($filename, $force_minify, $silent_errors), $type);
     }
 
-    function script_js_or_file($filename_or_code = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = DOM_AUTO)
+    function script_js_or_file($filename_or_code = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto)
     {
         $profiler = debug_track_timing(); 
         
@@ -10824,7 +10825,7 @@
             );
     }
     
-    function body($html = "", $html_post_scripts = "", $dark_theme = DOM_AUTO)
+    function body($html = "", $html_post_scripts = "", $dark_theme = auto)
     {
         $profiler = debug_track_timing();
 
@@ -10931,7 +10932,7 @@
         . ((AMP() && get("support_service_worker", false)) ? (eol().'<amp-install-serviceworker src="'.path('sw.js').'" layout="nodisplay" data-iframe-src="'.path("install-service-worker.html").'"></amp-install-serviceworker>') : "")
         ;
 
-        if (DOM_AUTO === $dark_theme) $dark_theme = get("dark_theme", false);
+        if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
 
         $attributes = array_merge(array(
             "id"    => "!",
@@ -11103,13 +11104,13 @@
         return $class;
     }
         
-    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = DOM_AUTO)
+    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = auto)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
         // TODO replace $classes by $attributes
 
-        if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
+        if (!get("script_images_loading") && $lazy === true) $lazy = auto;
 
         $w = ($w === false) ? "300" : $w;
         $h = ($h === false) ? "200" : $h;
@@ -11123,7 +11124,7 @@
         
         $lazy_attributes = "";
 
-        if ($lazy === DOM_AUTO) $lazy_attributes = ' loading="lazy" decoding="async"';
+        if ($lazy === auto) $lazy_attributes = ' loading="lazy" decoding="async"';
         if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
         
         global $hook_need_lazy_loding;
@@ -11175,9 +11176,9 @@
             .'&amp;'.'ctz'              .'=Europe%2FParis';
         }
         
-        if (AMP()) return a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
+        if (AMP()) return a('https://calendar.google.com', $src, external_link);
         
-        return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, DOM_EXTERNAL_LINK);
+        return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, external_link);
     }
        
     $__dom_lazy_load_index = 0;
@@ -11222,7 +11223,7 @@
         ');
     }
 
-    function codepen($url, $title, $w = false, $h = false, $lazy = DOM_AUTO)
+    function codepen($url, $title, $w = false, $h = false, $lazy = auto)
     {
         return (!!get("no_js") || AMP()) 
         
@@ -11233,12 +11234,12 @@
             );
     }
 
-    function user_codepen($id, $title, $w = false, $h = false, $lazy = DOM_AUTO)
+    function user_codepen($id, $title, $w = false, $h = false, $lazy = auto)
     {
         return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy);
     }
         
-    function google_map($embed_url, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_map($embed_url, $w = false, $h = false, $lazy = auto)
     {
         return (!!get("no_js") || AMP()) 
         
@@ -11249,12 +11250,12 @@
             );
     }
         
-    function google_map_lat_lon($lat, $lon, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_map_lat_lon($lat, $lon, $w = false, $h = false, $lazy = auto)
     {
         return google_map("https://maps.google.com/maps?q=$lat,$lon&hl=fr;&output=embed");
     }
  
-    function google_doc($id, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_doc($id, $w = false, $h = false, $lazy = auto)
     {
         $src = $id;
 
@@ -11266,7 +11267,7 @@
         return iframe($src, "Google Doc", "google-doc", $w, $h, $lazy);
     }
         
-    function google_calc($id, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_calc($id, $w = false, $h = false, $lazy = auto)
     {
         $src = $id;
 
@@ -11283,7 +11284,7 @@
         return iframe($src, "Google Spreadsheet", "google-calc", $w, $h, $lazy);
     }
        
-    function google_video($id, $w = false, $h = false, $lazy = DOM_AUTO)
+    function google_video($id, $w = false, $h = false, $lazy = auto)
     {
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
@@ -11409,7 +11410,7 @@
             $size = cached_getimagesize($photo_url);
             list($w, $h) = (is_array($size) ? array_values($size) : array(false, false));
 
-            $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", DOM_AUTO, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
+            $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", auto, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
         }
 
         if (!is_callable($wrapper)) $wrapper = "dom\\$wrapper";
@@ -11418,7 +11419,7 @@
 
         if ($link_to_google)
         {
-            $album = a($album, $url, DOM_EXTERNAL_LINK);
+            $album = a($album, $url, external_link);
         }
 
         return $album;
@@ -11766,7 +11767,7 @@
     {
         $extended_link = $link;
 
-        if ($target !== DOM_EXTERNAL_LINK
+        if ($target !== external_link
         &&  false === stripos($link, "javascript:"))
         {
             if (!!get("static"))
@@ -11809,8 +11810,8 @@
         &&  $external_attributes === false
         &&  $target              === false) $url = $html;
 
-        if (($external_attributes === DOM_INTERNAL_LINK 
-          || $external_attributes === DOM_EXTERNAL_LINK) && $target === false)
+        if (($external_attributes === internal_link 
+          || $external_attributes === external_link) && $target === false)
         {
             $target = $external_attributes;
             $external_attributes = false;
@@ -11821,20 +11822,20 @@
             $target = ((0 === stripos($url, "http"      ))
                     || (0 === stripos($url, "//"        ))
                     || (0 === stripos($url, "tel:"      ))
-                    || (0 === stripos($url, "mailto:"   )) ) ? DOM_EXTERNAL_LINK : DOM_INTERNAL_LINK;
+                    || (0 === stripos($url, "mailto:"   )) ) ? external_link : internal_link;
         }
         
         $extended_link = href($url, $target);
 
         $internal_attributes = array();
 
-                                                            $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
-                                                            $internal_attributes["target"]              = $target;
-                                                            $internal_attributes["rel"]                 = "";
-        if ($target == DOM_EXTERNAL_LINK && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
-        if ($target == DOM_EXTERNAL_LINK && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
-        if ($target == DOM_EXTERNAL_LINK && !AMP())         $internal_attributes["crossorigin"]         = "anonymous";
-        if (!!get("turbo") && !!get("turbo_links"))         $internal_attributes["data-turbo-action"]   = "replace";
+                                                        $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
+                                                        $internal_attributes["target"]              = $target;
+                                                        $internal_attributes["rel"]                 = "";
+        if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
+        if ($target == external_link && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
+        if ($target == external_link && !AMP())         $internal_attributes["crossorigin"]         = "anonymous";
+        if (!!get("turbo") && !!get("turbo_links"))     $internal_attributes["data-turbo-action"]   = "replace";
 
         if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
 
@@ -11879,7 +11880,7 @@
         
         if (AMP())
         {
-            return a($text, "mailto:" . $email, $attributes, DOM_EXTERNAL_LINK);
+            return a($text, "mailto:" . $email, $attributes, external_link);
         }
         else
         {
@@ -11887,7 +11888,7 @@
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), DOM_EXTERNAL_LINK).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), external_link).script("eval(unescape('".$crypted_script."'))");
         }
     }
     
@@ -11903,9 +11904,9 @@
    
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     
-    function anchor_name($name, $tolower = DOM_AUTO) { return to_classname($name, $tolower); }
+    function anchor_name($name, $tolower = auto) { return to_classname($name, $tolower); }
 
-    function anchor($name, $character = false, $tolower = DOM_AUTO)
+    function anchor($name, $character = false, $tolower = auto)
     {
         $name = str_replace("#", "", $name); // Fix common mistake
         $id   = anchor_name($name, $tolower);
@@ -11956,7 +11957,7 @@
     
     // VIDEOS
     
-    function video($path, $attributes = false, $alt = false, $lazy = DOM_AUTO)
+    function video($path, $attributes = false, $alt = false, $lazy = auto)
     {
         if (is_array($path)) 
         {
@@ -12006,7 +12007,7 @@
     
     // IMAGES
     
-    function picture($html, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = false)
+    function picture($html, $attributes = false, $alt = false, $lazy = auto, $lazy_src = false)
     {
         $attributes = to_attributes($attributes);
 
@@ -12075,14 +12076,14 @@
         return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
     }
     
-    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = DOM_AUTO, $lazy_src = DOM_AUTO, $content = DOM_AUTO, $precompute_size = DOM_AUTO, $src_attribute = DOM_AUTO)
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto)
     {
-        if (!get("script_images_loading") && $lazy === true) $lazy = DOM_AUTO;
+        if (!get("script_images_loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
-        if (DOM_AUTO === $lazy_src)         $lazy_src       = false;
-        if (DOM_AUTO === $content)          $content        = '';
-        if (DOM_AUTO === $src_attribute)    $src_attribute  = 'src';
+        if (auto === $lazy_src)         $lazy_src       = false;
+        if (auto === $content)          $content        = '';
+        if (auto === $src_attribute)    $src_attribute  = 'src';
 
         if (is_array($path)) 
         {
@@ -12095,7 +12096,7 @@
             return img(at($attributes, "src", $path), at($attributes, "width"), at($attributes, "height"), $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size);
         }
 
-        if (DOM_AUTO === $precompute_size)
+        if (auto === $precompute_size)
         {
             $precompute_size = get("img_precompute_size");
         }
@@ -12120,7 +12121,7 @@
         $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : $w0;
         $h = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$h ? $h : $h0;
 
-        if (!!get("no_js") && $lazy === true) $lazy = DOM_AUTO;
+        if (!!get("no_js") && $lazy === true) $lazy = auto;
 
         $img_nth = get("img_nth", 1);
 
@@ -12155,11 +12156,11 @@
         }
         else
         {
-                 if (DOM_AUTO === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", $src_attribute =>                          $path ));
+                 if (auto === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", $src_attribute =>                          $path ));
             else if (true     === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", $src_attribute => $lazy_src, "data-src" => $path ));
             else                          $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", $src_attribute =>                          $path ));
 
-                 if (DOM_AUTO === $lazy)  $attributes = attributes_add_class($attributes, "img");
+                 if (auto === $lazy)  $attributes = attributes_add_class($attributes, "img");
             else if (true     === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
             else                          $attributes = attributes_add_class($attributes, "img");
 
@@ -12361,36 +12362,36 @@
 
     // !TOOD DEPRECATE FUNCTION SIGNATURE AND REMOVE COLOR PARAM
 
-    function svg_flickr         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("flickr");        $class = "brand-flickr";          return svg($label === DOM_AUTO ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_facebook       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("facebook");      $class = "brand-facebook";        return svg($label === DOM_AUTO ? "Facebook"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_discord        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("discord");       $class = "brand-discord";         return svg($label === DOM_AUTO ? "Discord"         : $label,   0,      0,      71,      55,      $align == DOM_AUTO ? false : !!$align, '<g clip-path="url(#clip0)"><path class="'.$class.'" d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/></g><defs><clipPath id="clip0"><rect width="71" height="55" fill="white"/></clipPath>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_twitter        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("twitter");       $class = "brand-twitter";         return svg($label === DOM_AUTO ? "Twitter"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_linkedin       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("linkedin");      $class = "brand-linkedin";        return svg($label === DOM_AUTO ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_github         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("github");        $class = "brand-github";          return svg($label === DOM_AUTO ? "Github"          : $label,   0,      0,      16,      16,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_instagram      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("instagram");     $class = "brand-instagram";       return svg($label === DOM_AUTO ? "Instagram"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_pinterest      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("pinterest");     $class = "brand-pinterest";       return svg($label === DOM_AUTO ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_tumblr         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("tumblr");        $class = "brand-tumblr";          return svg($label === DOM_AUTO ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_rss            ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("rss");           $class = "brand-rss";             return svg($label === DOM_AUTO ? "RSS"             : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_printer        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("printer");       $class = "brand-printer";         return svg($label === DOM_AUTO ? "Printer"         : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_notifications  ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("printer");       $class = "brand-printer";         return svg($label === DOM_AUTO ? "Notifications"   : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_messenger      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("messenger");     $class = "brand-messenger";       return svg($label === DOM_AUTO ? "Messenger"       : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_alert          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("alert");         $class = "brand-alert";           return svg($label === DOM_AUTO ? "Alert"           : $label,   0,      0,      24,      24,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_amp            ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("amp");           $class = "brand-amp";             return svg($label === DOM_AUTO ? "AMP"             : $label, -22,    -22,     300,     300,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_loading        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("loading");       $class = "brand-loading";         return svg($label === DOM_AUTO ? "Loading"         : $label,   0,      0,      96,      96,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_darkandlight   ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("darkandlight");  $class = "brand-darkandlight";    return svg($label === DOM_AUTO ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_google         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("google");        $class = "brand-google";          return svg($label === DOM_AUTO ? "Google"          : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_youtube        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("youtube");       $class = "brand-youtube";         return svg($label === DOM_AUTO ? "YouTube"         : $label,   0,      0,      71,      50,      $align == DOM_AUTO ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_numerama       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("numerama");      $class = "brand-numerama";        return svg($label === DOM_AUTO ? "Numerama"        : $label,   0,      0,      80,      80,      $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_soundcloud     ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("soundcloud");    $class = "brand-soundcloud";      return svg($label === DOM_AUTO ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == DOM_AUTO ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path class="'.$class.'" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); } 
-    function svg_link           ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("link");          $class = "brand-link";            return svg($label === DOM_AUTO ? "Link"            : $label,   0,      0,      48,      48,      $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_leboncoin      ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("leboncoin");     $class = "brand-leboncoin";       return svg($label === DOM_AUTO ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_500px          ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("500px");         $class = "brand-500px";           return svg($label === DOM_AUTO ? "500px"           : $label,   0,      0,     980,      997,     $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_pixelfed       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === DOM_AUTO ? "PixelFed"        : $label,   0,      0,      50,       50,     $align == DOM_AUTO ? false : !!$align, '<defs class="'.$class.'" id="defs56"><linearGradient id="g1" y2="0.60117739" x2="0" y1="0.55806792" x1="1"><stop id="stop2" offset="0" class="'.$class.'-6" /><stop id="stop4" offset="1" class="'.$class.'" /></linearGradient><linearGradient id="g2" y2="0" x2="0.30560157" y1="1.1191301" x1="0.5"><stop id="stop7" offset="0" class="'.$class.'-4" /><stop id="stop9" offset="1" class="'.$class.'-5" /></linearGradient><filter x="-0.266" y="-0.189" width="1.5319999" height="1.472" filterUnits="objectBoundingBox" id="filter-18-3"><feOffset id="feOffset12" dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1" /><feGaussianBlur id="feGaussianBlur14" stdDeviation="1.5" in="shadowOffsetOuter1" result="shadowBlurOuter1" /><feColorMatrix id="feColorMatrix16" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.298686594 0" type="matrix" in="shadowBlurOuter1" /></filter><linearGradient xlink:href="#g4" id="g3" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" /><linearGradient x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" id="g4" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop20" class="'.$class.'-12" offset="0%" /><stop id="stop22" class="'.$class.'-13" offset="100%" /></linearGradient><linearGradient x1="32.778084" y1="31.292349" x2="-5.737164" y2="34.564075" id="g5" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop25" class="'.$class.'-3" offset="0%" /><stop id="stop27" class="'.$class.'-2" offset="100%" /></linearGradient><linearGradient xlink:href="#g1" id="g6" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" /><linearGradient xlink:href="#g1" id="g7" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" gradientTransform="matrix(0.73238181,-0.44005875,0.60279359,1.0032156,-5.4387332,4.178016)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g8" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g10" id="g9" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441984,1.1703848)" x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" /><linearGradient x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" id="g10" gradientTransform="scale(0.85441984,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop34" class="'.$class.'-7" offset="0%" /><stop id="stop36" class="'.$class.'-8" offset="100%" /></linearGradient><linearGradient x1="40.01442" y1="3.0503507" x2="21.610674" y2="22.693472" id="g11" gradientTransform="matrix(0.8028135,0.67363955,-0.61334952,0.73096044,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop39" class="'.$class.'-9" offset="0" /><stop id="stop41" class="'.$class.'-10" offset="1" /></linearGradient><linearGradient x1="31.906258" y1="22.861416" x2="56.143276" y2="28.198187" id="g12" gradientTransform="matrix(0.67306192,0.5647652,-0.7315899,0.87187364,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop44" class="'.$class.'-11" offset="0" /><stop id="stop46" class="'.$class.'-14" offset="1" /></linearGradient><linearGradient x1="18.604218" y1="60.088772" x2="29.551889" y2="34.263325" id="g13" gradientTransform="matrix(0.93316856,0.78302028,-0.52767025,0.62885203,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop49" class="'.$class.'-3" offset="0" /><stop id="stop51" class="'.$class.'-2" offset="1" /></linearGradient><linearGradient xlink:href="#g1" id="g14" x1="30.973358" y1="27.509178" x2="1.1089396" y2="28.796618" gradientTransform="matrix(0.64006516,0.53707767,-0.76930493,0.9168206,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g15" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" /></defs><path id="path58" d="M 24.844501,25.208859 C 20.77843,19.646166 13.002814,18.371306 7.4771766,22.36138 1.9515387,26.351453 0.76832601,34.0955 4.8343958,39.658194 l 0.3076235,0.420851 C -1.4888222,31.406438 -1.8150576,19.240724 4.7952638,10.325752 l 0.1176971,-0.1564 c 4.095389,-5.4421 11.8771861,-6.487086 17.3811281,-2.33404 5.503943,4.153045 6.6458,11.931447 2.550412,17.373547 z" style="fill:url(#g14)" /><path id="path60" d="m 24.844501,25.208859 c -6.472999,2.189353 -9.877881,9.222288 -7.605018,15.708503 2.272862,6.486214 9.362782,9.969509 15.835779,7.780157 L 33.50409,48.552478 C 25.454263,51.432746 16.076124,50.047472 8.9909709,44.102332 7.5339337,42.879734 6.2499668,41.528152 5.1420193,40.079045 L 4.8343958,39.658194 C 0.76832601,34.0955 1.9515387,26.351453 7.4771766,22.36138 13.002814,18.371306 20.77843,19.646166 24.844501,25.208859 Z" style="fill:url(#g13)" /><path id="path62" d="m 24.844501,25.208859 c 0.04163,6.84562 5.636761,12.42884 12.497071,12.470471 6.860311,0.04163 12.387942,-5.47409 12.346311,-12.319709 l -9.53e-4,-0.156747 c 0.07327,5.679151 -1.798009,11.388946 -5.714387,16.056296 -2.883411,3.436311 -6.515801,5.879029 -10.468453,7.293308 l -0.428828,0.145041 C 26.602265,50.886871 19.512345,47.403576 17.239483,40.917362 14.96662,34.431147 18.371502,27.398212 24.844501,25.208859 Z" style="fill:url(#g12)" /><path id="path64" d="M 24.844501,25.208859 C 31.381909,27.363866 38.367988,23.843413 40.448347,17.345706 42.528706,10.848 38.915553,3.83359 32.378144,1.678584 L 31.842952,1.502162 c 3.149862,0.958982 6.167442,2.558035 8.855077,4.813224 5.838829,4.899353 8.898368,11.870026 8.988901,18.887488 l 9.53e-4,0.156747 c 0.04163,6.845619 -5.486,12.361341 -12.346311,12.319709 -6.86031,-0.04163 -12.45544,-5.624851 -12.497071,-12.470471 z" style="fill:url(#g11)" /><path id="path66" style="fill:url(#g15)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><g id="g72" style="opacity:0.54425222;fill:none" transform="matrix(-0.37460713,0.92718385,-0.92718518,-0.37460659,68.842244,2.122857)"><path id="path68" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="fill:url(#g9)" /><path id="path70" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49988679" /></g><path id="path74" style="opacity:0.1;fill:url(#g8)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><path id="path76" style="opacity:0.18013395;fill:url(#g7)" d="M 4.8244748,10.490984 4.946318,10.330719 C 9.112291,4.851089 16.920883,3.718459 22.387296,7.80092 27.853707,11.883381 28.907921,19.634987 24.741947,25.114618 24.177499,24.278959 23.527245,23.535182 22.810409,22.8869 24.7942,19.528843 24.933782,15.24584 22.803609,11.700712 19.69445,6.526212 12.927139,4.883207 7.6883949,8.030957 6.5691013,8.703496 5.6101449,9.540315 4.8244318,10.490984 Z" /><g id="g82" style="opacity:0.18013395;fill:none" transform="matrix(0.85716853,-0.51503807,0.51503881,0.8571673,-5.2722905,4.334214)"><path id="path78" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="fill:url(#g6)" /><path id="path80" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="mix-blend-mode:multiply;fill:#000000;fill-opacity:0.77284307" /></g><g id="g88" style="opacity:0.5841518;fill:none" transform="matrix(-0.22495138,-0.97437006,0.97437146,-0.22495105,-15.913458,55.421439)"><path id="path84" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="fill:url(#g5)" /><path id="path86" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.50308539" /></g><g id="g94" style="opacity:0.56222097;fill:none" transform="matrix(-0.99863096,-0.05233596,0.05233603,-0.99862953,57.15441,72.548735)"><path id="path90" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="fill:url(#g3)" /><path id="path92" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="mix-blend-mode:overlay;fill:#000000" /></g><path id="path96" d="m 32.186954,1.615568 0.191202,0.06303 c 6.537408,2.155006 10.150561,9.169416 8.070202,15.667122 -2.080359,6.497706 -9.066438,10.01816 -15.603846,7.863153 0.606364,-0.805759 1.097919,-1.662736 1.477505,-2.551578 3.820968,0.782433 7.916076,-0.48 10.574561,-3.648255 C 40.776928,14.384625 40.127202,7.451106 35.445374,3.522591 34.445068,2.683237 33.341634,2.048968 32.186954,1.61557 Z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49617866" /><path id="path98" d="m 24.100846,55.523071 h 4.544831 c 4.281413,0 7.752184,-3.36365 7.752184,-7.512922 0,-4.149273 -3.470771,-7.512923 -7.752184,-7.512923 h -6.55954 c -2.470046,0 -4.472413,1.940568 -4.472413,4.334379 v 16.869977 z" style="fill:#000000;filter:url(#filter-18-3)" transform="matrix(1.0000014,0,0,1,-1.2150017,-25)" /><path id="path100" d="m 22.885879,30.523071 h 4.544837 c 4.281419,0 7.752195,-3.36365 7.752195,-7.512922 0,-4.149273 -3.470776,-7.512923 -7.752195,-7.512923 h -6.559549 c -2.47005,0 -4.47242,1.940568 -4.47242,4.334379 v 16.869977 z" style="fill:#ffffff" />', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_mastodon       ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("mastodon");      $class = "brand-mastodon";        return svg($label === DOM_AUTO ? "Mastodon"        : $label,   0,      0,      32,       32,     $align == DOM_AUTO ? false : !!$align, '<g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path class="'.$class.'" d="M 15.9375 4.03125 C 12.917 4.0435 9.9179219 4.4269844 8.3574219 5.1464844 C 8.3574219 5.1464844 5 6.6748594 5 11.880859 C 5 18.077859 4.9955 25.860234 10.5625 27.365234 C 12.6945 27.938234 14.527953 28.061562 16.001953 27.976562 C 18.676953 27.825562 20 27.005859 20 27.005859 L 19.910156 25.029297 C 19.910156 25.029297 18.176297 25.640313 16.029297 25.570312 C 13.902297 25.495313 11.6615 25.335688 11.3125 22.679688 C 11.2805 22.432688 11.264625 22.182594 11.265625 21.933594 C 15.772625 23.052594 19.615828 22.420969 20.673828 22.292969 C 23.627828 21.933969 26.199344 20.081672 26.527344 18.388672 C 27.041344 15.720672 26.998047 11.880859 26.998047 11.880859 C 26.998047 6.6748594 23.646484 5.1464844 23.646484 5.1464844 C 22.000984 4.3779844 18.958 4.019 15.9375 4.03125 z M 12.705078 8.0019531 C 13.739953 8.0297031 14.762578 8.4927031 15.392578 9.4707031 L 16.001953 10.505859 L 16.609375 9.4707031 C 17.874375 7.5037031 20.709594 7.6264375 22.058594 9.1484375 C 23.302594 10.596438 23.025391 11.531 23.025391 18 L 23.025391 18.001953 L 20.578125 18.001953 L 20.578125 12.373047 C 20.578125 9.7380469 17.21875 9.6362812 17.21875 12.738281 L 17.21875 16 L 14.787109 16 L 14.787109 12.738281 C 14.787109 9.6362812 11.429688 9.7360938 11.429688 12.371094 L 11.429688 18 L 8.9765625 18 C 8.9765625 11.526 8.7043594 10.585438 9.9433594 9.1484375 C 10.622859 8.3824375 11.670203 7.9742031 12.705078 8.0019531 z"></path></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_seloger        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("seloger");       $class = "brand-seloger";         return svg($label === DOM_AUTO ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == DOM_AUTO ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_flickr         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("flickr");        $class = "brand-flickr";          return svg($label === auto ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == auto ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_facebook       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("facebook");      $class = "brand-facebook";        return svg($label === auto ? "Facebook"        : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M5,3H19A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3M18,5H15.5A3.5,3.5 0 0,0 12,8.5V11H10V14H12V21H15V14H18V11H15V9A1,1 0 0,1 16,8H18V5Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_discord        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("discord");       $class = "brand-discord";         return svg($label === auto ? "Discord"         : $label,   0,      0,      71,      55,      $align == auto ? false : !!$align, '<g clip-path="url(#clip0)"><path class="'.$class.'" d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3935 44.2785 53.4831 44.2898 53.5502 44.3433C53.9057 44.6363 54.2779 44.9293 54.6529 45.2082C54.7816 45.304 54.7732 45.5041 54.6333 45.5858C52.8646 46.6197 51.0259 47.4931 49.0921 48.2228C48.9662 48.2707 48.9102 48.4172 48.9718 48.5383C50.038 50.6034 51.2554 52.5699 52.5959 54.435C52.6519 54.5139 52.7526 54.5477 52.845 54.5195C58.6464 52.7249 64.529 50.0174 70.6019 45.5576C70.6551 45.5182 70.6887 45.459 70.6943 45.3942C72.1747 30.0791 68.2147 16.7757 60.1968 4.9823C60.1772 4.9429 60.1437 4.9147 60.1045 4.8978ZM23.7259 37.3253C20.2276 37.3253 17.3451 34.1136 17.3451 30.1693C17.3451 26.225 20.1717 23.0133 23.7259 23.0133C27.308 23.0133 30.1626 26.2532 30.1066 30.1693C30.1066 34.1136 27.28 37.3253 23.7259 37.3253ZM47.3178 37.3253C43.8196 37.3253 40.9371 34.1136 40.9371 30.1693C40.9371 26.225 43.7636 23.0133 47.3178 23.0133C50.9 23.0133 53.7545 26.2532 53.6986 30.1693C53.6986 34.1136 50.9 37.3253 47.3178 37.3253Z"/></g><defs><clipPath id="clip0"><rect width="71" height="55" fill="white"/></clipPath>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_twitter        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("twitter");       $class = "brand-twitter";         return svg($label === auto ? "Twitter"         : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M22.46,6C21.69,6.35 20.86,6.58 20,6.69C20.88,6.16 21.56,5.32 21.88,4.31C21.05,4.81 20.13,5.16 19.16,5.36C18.37,4.5 17.26,4 16,4C13.65,4 11.73,5.92 11.73,8.29C11.73,8.63 11.77,8.96 11.84,9.27C8.28,9.09 5.11,7.38 3,4.79C2.63,5.42 2.42,6.16 2.42,6.94C2.42,8.43 3.17,9.75 4.33,10.5C3.62,10.5 2.96,10.3 2.38,10C2.38,10 2.38,10 2.38,10.03C2.38,12.11 3.86,13.85 5.82,14.24C5.46,14.34 5.08,14.39 4.69,14.39C4.42,14.39 4.15,14.36 3.89,14.31C4.43,16 6,17.26 7.89,17.29C6.43,18.45 4.58,19.13 2.56,19.13C2.22,19.13 1.88,19.11 1.54,19.07C3.44,20.29 5.7,21 8.12,21C16,21 20.33,14.46 20.33,8.79C20.33,8.6 20.33,8.42 20.32,8.23C21.16,7.63 21.88,6.87 22.46,6Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_linkedin       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("linkedin");      $class = "brand-linkedin";        return svg($label === auto ? "Linkedin"        : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M19,3A2,2 0 0,1 21,5V19A2,2 0 0,1 19,21H5A2,2 0 0,1 3,19V5A2,2 0 0,1 5,3H19M18.5,18.5V13.2A3.26,3.26 0 0,0 15.24,9.94C14.39,9.94 13.4,10.46 12.92,11.24V10.13H10.13V18.5H12.92V13.57C12.92,12.8 13.54,12.17 14.31,12.17A1.4,1.4 0 0,1 15.71,13.57V18.5H18.5M6.88,8.56A1.68,1.68 0 0,0 8.56,6.88C8.56,5.95 7.81,5.19 6.88,5.19A1.69,1.69 0 0,0 5.19,6.88C5.19,7.81 5.95,8.56 6.88,8.56M8.27,18.5V10.13H5.5V18.5H8.27Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_github         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("github");        $class = "brand-github";          return svg($label === auto ? "Github"          : $label,   0,      0,      16,      16,      $align == auto ? false : !!$align, '<path class="'.$class.'" fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_instagram      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("instagram");     $class = "brand-instagram";       return svg($label === auto ? "Instagram"       : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M7.8,2H16.2C19.4,2 22,4.6 22,7.8V16.2A5.8,5.8 0 0,1 16.2,22H7.8C4.6,22 2,19.4 2,16.2V7.8A5.8,5.8 0 0,1 7.8,2M7.6,4A3.6,3.6 0 0,0 4,7.6V16.4C4,18.39 5.61,20 7.6,20H16.4A3.6,3.6 0 0,0 20,16.4V7.6C20,5.61 18.39,4 16.4,4H7.6M17.25,5.5A1.25,1.25 0 0,1 18.5,6.75A1.25,1.25 0 0,1 17.25,8A1.25,1.25 0 0,1 16,6.75A1.25,1.25 0 0,1 17.25,5.5M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_pinterest      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("pinterest");     $class = "brand-pinterest";       return svg($label === auto ? "Pinterest"       : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M13,16.2C12.2,16.2 11.43,15.86 10.88,15.28L9.93,18.5L9.86,18.69L9.83,18.67C9.64,19 9.29,19.2 8.9,19.2C8.29,19.2 7.8,18.71 7.8,18.1C7.8,18.05 7.81,18 7.81,17.95H7.8L7.85,17.77L9.7,12.21C9.7,12.21 9.5,11.59 9.5,10.73C9.5,9 10.42,8.5 11.16,8.5C11.91,8.5 12.58,8.76 12.58,9.81C12.58,11.15 11.69,11.84 11.69,12.81C11.69,13.55 12.29,14.16 13.03,14.16C15.37,14.16 16.2,12.4 16.2,10.75C16.2,8.57 14.32,6.8 12,6.8C9.68,6.8 7.8,8.57 7.8,10.75C7.8,11.42 8,12.09 8.34,12.68C8.43,12.84 8.5,13 8.5,13.2A1,1 0 0,1 7.5,14.2C7.13,14.2 6.79,14 6.62,13.7C6.08,12.81 5.8,11.79 5.8,10.75C5.8,7.47 8.58,4.8 12,4.8C15.42,4.8 18.2,7.47 18.2,10.75C18.2,13.37 16.57,16.2 13,16.2M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_tumblr         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("tumblr");        $class = "brand-tumblr";          return svg($label === auto ? "Tumblr"          : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M16,11H13V14.9C13,15.63 13.14,16 14.1,16H16V19C16,19 14.97,19.1 13.9,19.1C11.25,19.1 10,17.5 10,15.7V11H8V8.2C10.41,8 10.62,6.16 10.8,5H13V8H16M20,2H4C2.89,2 2,2.89 2,4V20A2,2 0 0,0 4,22H20A2,2 0 0,0 22,20V4C22,2.89 21.1,2 20,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_rss            ($label = auto, $align = auto, $add_wrapper = auto) { import_color("rss");           $class = "brand-rss";             return svg($label === auto ? "RSS"             : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M6.18,15.64A2.18,2.18 0 0,1 8.36,17.82C8.36,19 7.38,20 6.18,20C5,20 4,19 4,17.82A2.18,2.18 0 0,1 6.18,15.64M4,4.44A15.56,15.56 0 0,1 19.56,20H16.73A12.73,12.73 0 0,0 4,7.27V4.44M4,10.1A9.9,9.9 0 0,1 13.9,20H11.07A7.07,7.07 0 0,0 4,12.93V10.1Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_printer        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Printer"         : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_notifications  ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Notifications"   : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_messenger      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("messenger");     $class = "brand-messenger";       return svg($label === auto ? "Messenger"       : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_alert          ($label = auto, $align = auto, $add_wrapper = auto) { import_color("alert");         $class = "brand-alert";           return svg($label === auto ? "Alert"           : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_amp            ($label = auto, $align = auto, $add_wrapper = auto) { import_color("amp");           $class = "brand-amp";             return svg($label === auto ? "AMP"             : $label, -22,    -22,     300,     300,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_loading        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("loading");       $class = "brand-loading";         return svg($label === auto ? "Loading"         : $label,   0,      0,      96,      96,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_darkandlight   ($label = auto, $align = auto, $add_wrapper = auto) { import_color("darkandlight");  $class = "brand-darkandlight";    return svg($label === auto ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_google         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("google");        $class = "brand-google";          return svg($label === auto ? "Google"          : $label,   0,      0,      48,      48,      $align == auto ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_youtube        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("youtube");       $class = "brand-youtube";         return svg($label === auto ? "YouTube"         : $label,   0,      0,      71,      50,      $align == auto ? false : !!$align, '<defs id="defs31" /><sodipodi:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" inkscape:pageopacity="0" inkscape:pageshadow="2" inkscape:window-width="1366" inkscape:window-height="715" id="namedview29" showgrid="false" fit-margin-top="0" fit-margin-left="0" fit-margin-right="0" fit-margin-bottom="0" inkscape:zoom="1.3588925" inkscape:cx="-71.668263" inkscape:cy="39.237696" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:window-maximized="1" inkscape:current-layer="Layer_1" /><style type="text/css" id="style3">.st1{fill:#FFFFFF;} </style><g id="g5" transform="scale(0.58823529,0.58823529)"><path class="'.$class.'" d="M 118.9,13.3 C 117.5,8.1 113.4,4 108.2,2.6 98.7,0 60.7,0 60.7,0 60.7,0 22.7,0 13.2,2.5 8.1,3.9 3.9,8.1 2.5,13.3 0,22.8 0,42.5 0,42.5 0,42.5 0,62.3 2.5,71.7 3.9,76.9 8,81 13.2,82.4 22.8,85 60.7,85 60.7,85 c 0,0 38,0 47.5,-2.5 5.2,-1.4 9.3,-5.5 10.7,-10.7 2.5,-9.5 2.5,-29.2 2.5,-29.2 0,0 0.1,-19.8 -2.5,-29.3 z" id="path7" inkscape:connector-curvature="0"/><polygon class="st1" points="80.2,42.5 48.6,24.3 48.6,60.7 " id="polygon9" style="fill:#ffffff" /></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_numerama       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("numerama");      $class = "brand-numerama";        return svg($label === auto ? "Numerama"        : $label,   0,      0,      80,      80,      $align == auto ? false : !!$align, '<g transform="translate(0.000000,80.000000) scale(0.100000,-0.100000)">'.'<path class="'.$class.'" d="M0 505 l0 -275 75 0 75 0 0 200 0 200 140 0 140 0 0 -200 0 -200 80 0 80 0 0 275 0 275 -295 0 -295 0 0 -275z"/><path class="'.$class.'-2" d="M210 285 l0 -275 295 0 295 0 0 275 0 275 -75 0 -75 0 0 -200 0 -200 -140 0 -140 0 0 200 0 200 -80 0 -80 0 0 -275z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_soundcloud     ($label = auto, $align = auto, $add_wrapper = auto) { import_color("soundcloud");    $class = "brand-soundcloud";      return svg($label === auto ? "Soundcloud"      : $label,   0,      0,     291.319, 291.319,  $align == auto ? false : !!$align, '<g xmlns="http://www.w3.org/2000/svg"><path class="'.$class.'" d="M72.83,218.485h18.207V103.832c-6.828,1.93-12.982,5.435-18.207,10.041   C72.83,113.874,72.83,218.485,72.83,218.485z M36.415,140.921v77.436l1.174,0.127h17.033v-77.682H37.589   C37.589,140.803,36.415,140.921,36.415,140.921z M0,179.63c0,14.102,7.338,26.328,18.207,33.147V146.52   C7.338,153.329,0,165.556,0,179.63z M109.245,218.485h18.207v-109.6c-5.444-3.396-11.607-5.635-18.207-6.5V218.485z    M253.73,140.803h-10.242c0.519-3.168,0.847-6.382,0.847-9.705c0-32.182-25.245-58.264-56.388-58.264   c-16.896,0-31.954,7.775-42.287,19.955v125.695h108.07c20.747,0,37.589-17.388,37.589-38.855   C291.319,158.182,274.477,140.803,253.73,140.803z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); } 
+    function svg_link           ($label = auto, $align = auto, $add_wrapper = auto) { import_color("link");          $class = "brand-link";            return svg($label === auto ? "Link"            : $label,   0,      0,      48,      48,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M36 24c-1.2 0-2 0.8-2 2v12c0 1.2-0.8 2-2 2h-22c-1.2 0-2-0.8-2-2v-22c0-1.2 0.8-2 2-2h12c1.2 0 2-0.8 2-2s-0.8-2-2-2h-12c-3.4 0-6 2.6-6 6v22c0 3.4 2.6 6 6 6h22c3.4 0 6-2.6 6-6v-12c0-1.2-0.8-2-2-2z"></path><path class="'.$class.'" d="M43.8 5.2c-0.2-0.4-0.6-0.8-1-1-0.2-0.2-0.6-0.2-0.8-0.2h-12c-1.2 0-2 0.8-2 2s0.8 2 2 2h7.2l-18.6 18.6c-0.8 0.8-0.8 2 0 2.8 0.4 0.4 0.8 0.6 1.4 0.6s1-0.2 1.4-0.6l18.6-18.6v7.2c0 1.2 0.8 2 2 2s2-0.8 2-2v-12c0-0.2 0-0.6-0.2-0.8z"></path>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_leboncoin      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("leboncoin");     $class = "brand-leboncoin";       return svg($label === auto ? "Leboncoin"       : $label,   0,      0,     151.0,    151.0,   $align == auto ? false : !!$align, '<g transform="translate(0.000000,151.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M174 1484 c-59 -21 -123 -80 -150 -138 l-24 -51 0 -555 c0 -516 2 -558 19 -595 25 -56 67 -102 112 -125 37 -19 62 -20 624 -20 557 0 588 1 623 19 49 25 86 66 111 121 20 44 21 63 21 600 l0 555 -24 51 c-28 60 -91 117 -154 138 -66 23 -1095 22 -1158 0z m867 -244 c145 -83 270 -158 277 -167 9 -13 12 -95 12 -329 0 -172 -3 -319 -6 -328 -8 -20 -542 -326 -569 -326 -11 0 -142 70 -291 155 -203 116 -273 161 -278 177 -10 38 -7 632 4 648 15 24 532 318 561 319 17 1 123 -54 290 -149z"/><path class="'.$class.'" d="M530 1187 c-118 -67 -213 -126 -213 -132 1 -5 100 -67 220 -137 l218 -126 65 36 c36 20 139 78 228 127 89 50 161 92 162 95 0 8 -439 260 -453 260 -6 -1 -109 -56 -227 -123z"/><path class="'.$class.'" d="M260 721 l0 -269 228 -131 227 -130 3 266 c1 147 -1 270 -5 274 -11 10 -441 259 -447 259 -4 0 -6 -121 -6 -269z"/><path class="'.$class.'" d="M1018 859 l-228 -130 0 -270 c0 -148 3 -269 7 -269 3 0 107 57 230 126 l223 126 0 274 c0 151 -1 274 -2 273 -2 0 -105 -59 -230 -130z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_500px          ($label = auto, $align = auto, $add_wrapper = auto) { import_color("500px");         $class = "brand-500px";           return svg($label === auto ? "500px"           : $label,   0,      0,     980,      997,     $align == auto ? false : !!$align, '<path class="'.$class.'" d="M415.7,462.1c-8.1-6.1-16.6-11.1-25.4-15c-8.9-4-17.7-6-26.5-6c-16.3,0-29.1,6.2-38.6,18.4c-9.6,12.4-14.3,26.2-14.3,41.4c0,16.7,4.9,30.4,14.6,41.1c9.7,10.7,23.2,16,40.4,16c8.8,0,17.6-1.8,26.5-5.3c8.8-3.5,17.2-7.9,25.1-13.2c7.9-5.3,15.4-11.3,22.3-18.1c7-6.7,13.2-13.4,18.8-19.9c-5.6-5.9-12.1-12.6-19.5-19.8S423.8,468.1,415.7,462.1L415.7,462.1z M634.1,441.1c-9.3,0-18.3,2-26.8,6c-8.6,3.9-16.7,8.9-24.4,15c-7.7,6-15,12.7-21.9,19.9s-13.3,13.8-18.8,19.9c6,7,12.5,13.9,19.5,20.5c7,6.8,14.3,12.8,22.4,18.1c7.8,5.3,16,9.6,24.7,12.9c8.6,3.3,17.8,4.9,27.5,4.9c17.2,0,30.4-5.6,39.7-16.7c9.3-11.2,13.9-24.8,13.9-41.1c0-16.2-5.1-30.2-15-41.8C664.8,447,651.2,441.1,634.1,441.1L634.1,441.1z M500,10C229.4,10,10,229.4,10,500c0,270.6,219.4,490,490,490c270.6,0,490-219.4,490-490C990,229.4,770.6,10,500,10z M746.8,549.1c-5.5,15.8-13.4,29.6-23.6,41.4c-10.2,11.9-22.9,21.1-37.9,27.9c-15.1,6.7-31.9,10.1-50.5,10.1c-14.4,0-27.9-2.2-40.4-6.6c-12.6-4.4-24.3-10.2-35.2-17.5c-10.9-7.2-21.2-15.5-31-25c-9.7-9.6-19-19.4-27.9-29.6c-9.7,10.2-19.2,20.1-28.5,29.6c-9.3,9.5-19.1,17.9-29.7,25c-10.4,7.2-21.8,13-34.1,17.5c-12.3,4.4-26.1,6.6-41.4,6.6c-19,0-35.9-3.3-50.8-10.1c-14.9-6.7-27.7-15.8-38.3-27.2c-10.7-11.4-18.8-25-24.4-40.7c-5.5-15.8-8.3-32.7-8.3-50.8c0-18.1,2.7-34.9,8-50.5c5.4-15.6,13.2-29,23.3-40.4c10.2-11.4,22.7-20.4,37.6-27.2c14.8-6.7,31.5-10.1,50.1-10.1c15.3,0,29.3,2.3,42.1,7c12.8,4.6,24.6,10.8,35.5,18.4c11,7.6,21.2,16.4,30.7,26.4s18.9,20.5,28.2,31.7c8.9-10.7,18.1-21.1,27.5-31.3c9.6-10.3,19.8-19.2,30.7-26.8c10.9-7.7,22.7-13.8,35.5-18.4c12.8-4.7,26.6-7,41.3-7c18.6,0,35.3,3.2,50.2,9.7c14.9,6.5,27.4,15.4,37.6,26.7c10.2,11.4,18.1,24.7,23.6,40c5.6,15.4,8.4,32,8.4,50.1C755.2,516.4,752.4,533.4,746.8,549.1L746.8,549.1z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_pixelfed       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === auto ? "PixelFed"        : $label,   0,      0,      50,       50,     $align == auto ? false : !!$align, '<defs class="'.$class.'" id="defs56"><linearGradient id="g1" y2="0.60117739" x2="0" y1="0.55806792" x1="1"><stop id="stop2" offset="0" class="'.$class.'-6" /><stop id="stop4" offset="1" class="'.$class.'" /></linearGradient><linearGradient id="g2" y2="0" x2="0.30560157" y1="1.1191301" x1="0.5"><stop id="stop7" offset="0" class="'.$class.'-4" /><stop id="stop9" offset="1" class="'.$class.'-5" /></linearGradient><filter x="-0.266" y="-0.189" width="1.5319999" height="1.472" filterUnits="objectBoundingBox" id="filter-18-3"><feOffset id="feOffset12" dx="0" dy="1" in="SourceAlpha" result="shadowOffsetOuter1" /><feGaussianBlur id="feGaussianBlur14" stdDeviation="1.5" in="shadowOffsetOuter1" result="shadowBlurOuter1" /><feColorMatrix id="feColorMatrix16" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0  0 0 0 0.298686594 0" type="matrix" in="shadowBlurOuter1" /></filter><linearGradient xlink:href="#g4" id="g3" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" /><linearGradient x1="38.66045" y1="42.313534" x2="29.417906" y2="17.769199" id="g4" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop20" class="'.$class.'-12" offset="0%" /><stop id="stop22" class="'.$class.'-13" offset="100%" /></linearGradient><linearGradient x1="32.778084" y1="31.292349" x2="-5.737164" y2="34.564075" id="g5" gradientTransform="scale(0.85441985,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop25" class="'.$class.'-3" offset="0%" /><stop id="stop27" class="'.$class.'-2" offset="100%" /></linearGradient><linearGradient xlink:href="#g1" id="g6" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441985,1.1703848)" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" /><linearGradient xlink:href="#g1" id="g7" x1="26.799479" y1="19.639755" x2="6.4907837" y2="20.515251" gradientTransform="matrix(0.73238181,-0.44005875,0.60279359,1.0032156,-5.4387332,4.178016)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g8" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g10" id="g9" gradientUnits="userSpaceOnUse" gradientTransform="scale(0.85441984,1.1703848)" x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" /><linearGradient x1="16.690788" y1="19.195547" x2="57.873302" y2="21.720842" id="g10" gradientTransform="scale(0.85441984,1.1703848)" gradientUnits="userSpaceOnUse"><stop id="stop34" class="'.$class.'-7" offset="0%" /><stop id="stop36" class="'.$class.'-8" offset="100%" /></linearGradient><linearGradient x1="40.01442" y1="3.0503507" x2="21.610674" y2="22.693472" id="g11" gradientTransform="matrix(0.8028135,0.67363955,-0.61334952,0.73096044,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop39" class="'.$class.'-9" offset="0" /><stop id="stop41" class="'.$class.'-10" offset="1" /></linearGradient><linearGradient x1="31.906258" y1="22.861416" x2="56.143276" y2="28.198187" id="g12" gradientTransform="matrix(0.67306192,0.5647652,-0.7315899,0.87187364,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop44" class="'.$class.'-11" offset="0" /><stop id="stop46" class="'.$class.'-14" offset="1" /></linearGradient><linearGradient x1="18.604218" y1="60.088772" x2="29.551889" y2="34.263325" id="g13" gradientTransform="matrix(0.93316856,0.78302028,-0.52767025,0.62885203,20.873061,-10.319713)" gradientUnits="userSpaceOnUse"><stop id="stop49" class="'.$class.'-3" offset="0" /><stop id="stop51" class="'.$class.'-2" offset="1" /></linearGradient><linearGradient xlink:href="#g1" id="g14" x1="30.973358" y1="27.509178" x2="1.1089396" y2="28.796618" gradientTransform="matrix(0.64006516,0.53707767,-0.76930493,0.9168206,20.873061,-10.319713)" gradientUnits="userSpaceOnUse" /><linearGradient xlink:href="#g2" id="g15" gradientUnits="userSpaceOnUse" gradientTransform="matrix(0.87275201,0.73232484,-0.56419841,0.67238452,20.873061,-10.319713)" x1="15.185128" y1="33.220253" x2="9.5916662" y2="1.0193164" /></defs><path id="path58" d="M 24.844501,25.208859 C 20.77843,19.646166 13.002814,18.371306 7.4771766,22.36138 1.9515387,26.351453 0.76832601,34.0955 4.8343958,39.658194 l 0.3076235,0.420851 C -1.4888222,31.406438 -1.8150576,19.240724 4.7952638,10.325752 l 0.1176971,-0.1564 c 4.095389,-5.4421 11.8771861,-6.487086 17.3811281,-2.33404 5.503943,4.153045 6.6458,11.931447 2.550412,17.373547 z" style="fill:url(#g14)" /><path id="path60" d="m 24.844501,25.208859 c -6.472999,2.189353 -9.877881,9.222288 -7.605018,15.708503 2.272862,6.486214 9.362782,9.969509 15.835779,7.780157 L 33.50409,48.552478 C 25.454263,51.432746 16.076124,50.047472 8.9909709,44.102332 7.5339337,42.879734 6.2499668,41.528152 5.1420193,40.079045 L 4.8343958,39.658194 C 0.76832601,34.0955 1.9515387,26.351453 7.4771766,22.36138 13.002814,18.371306 20.77843,19.646166 24.844501,25.208859 Z" style="fill:url(#g13)" /><path id="path62" d="m 24.844501,25.208859 c 0.04163,6.84562 5.636761,12.42884 12.497071,12.470471 6.860311,0.04163 12.387942,-5.47409 12.346311,-12.319709 l -9.53e-4,-0.156747 c 0.07327,5.679151 -1.798009,11.388946 -5.714387,16.056296 -2.883411,3.436311 -6.515801,5.879029 -10.468453,7.293308 l -0.428828,0.145041 C 26.602265,50.886871 19.512345,47.403576 17.239483,40.917362 14.96662,34.431147 18.371502,27.398212 24.844501,25.208859 Z" style="fill:url(#g12)" /><path id="path64" d="M 24.844501,25.208859 C 31.381909,27.363866 38.367988,23.843413 40.448347,17.345706 42.528706,10.848 38.915553,3.83359 32.378144,1.678584 L 31.842952,1.502162 c 3.149862,0.958982 6.167442,2.558035 8.855077,4.813224 5.838829,4.899353 8.898368,11.870026 8.988901,18.887488 l 9.53e-4,0.156747 c 0.04163,6.845619 -5.486,12.361341 -12.346311,12.319709 -6.86031,-0.04163 -12.45544,-5.624851 -12.497071,-12.470471 z" style="fill:url(#g11)" /><path id="path66" style="fill:url(#g15)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><g id="g72" style="opacity:0.54425222;fill:none" transform="matrix(-0.37460713,0.92718385,-0.92718518,-0.37460659,68.842244,2.122857)"><path id="path68" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="fill:url(#g9)" /><path id="path70" d="m 28.379451,9.2701483 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.4995351 16.252757,6.8142937 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.9304939 -11.066184,-10.9304939 -1.305803,0 -2.558782,0.223396 -3.7219,0.6336062 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49988679" /></g><path id="path74" style="opacity:0.1;fill:url(#g8)" d="M 24.844501,25.208859 C 28.939889,19.766759 27.798032,11.988357 22.294089,7.835312 16.790147,3.682266 9.0083499,4.727252 4.9129609,10.169352 L 4.7952628,10.325753 C 5.0886452,9.930085 5.3956916,9.54082 5.7164561,9.158548 12.244579,1.378645 22.61183,-1.308273 31.842952,1.502162 l 0.535192,0.176422 c 6.537409,2.155006 10.150562,9.169416 8.070203,15.667122 -2.080359,6.497707 -9.066438,10.01816 -15.603846,7.863153 z" /><path id="path76" style="opacity:0.18013395;fill:url(#g7)" d="M 4.8244748,10.490984 4.946318,10.330719 C 9.112291,4.851089 16.920883,3.718459 22.387296,7.80092 27.853707,11.883381 28.907921,19.634987 24.741947,25.114618 24.177499,24.278959 23.527245,23.535182 22.810409,22.8869 24.7942,19.528843 24.933782,15.24584 22.803609,11.700712 19.69445,6.526212 12.927139,4.883207 7.6883949,8.030957 6.5691013,8.703496 5.6101449,9.540315 4.8244318,10.490984 Z" /><g id="g82" style="opacity:0.18013395;fill:none" transform="matrix(0.85716853,-0.51503807,0.51503881,0.8571673,-5.2722905,4.334214)"><path id="path78" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="fill:url(#g6)" /><path id="path80" d="m 5.5458544,10.697205 0.1869826,-0.07462 c 6.39315,-2.5513278 13.669757,0.499535 16.252757,6.814294 2.583,6.314758 -0.505736,13.502141 -6.898886,16.053469 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904342 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591914 0,-6.036745 -4.9545,-10.930493 -11.0661847,-10.930493 -1.3058034,0 -2.5587821,0.223396 -3.7218999,0.633606 z" style="mix-blend-mode:multiply;fill:#000000;fill-opacity:0.77284307" /></g><g id="g88" style="opacity:0.5841518;fill:none" transform="matrix(-0.22495138,-0.97437006,0.97437146,-0.22495105,-15.913458,55.421439)"><path id="path84" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="fill:url(#g5)" /><path id="path86" d="m 10.654093,23.764822 0.186983,-0.07462 c 6.393149,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227732,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.75552,-5.45605 5.75552,-9.591913 0,-6.036745 -4.954499,-10.930493 -11.066184,-10.930493 -1.305803,0 -2.558782,0.223396 -3.7219,0.633606 z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.50308539" /></g><g id="g94" style="opacity:0.56222097;fill:none" transform="matrix(-0.99863096,-0.05233596,0.05233603,-0.99862953,57.15441,72.548735)"><path id="path90" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="fill:url(#g3)" /><path id="path92" d="m 25.135241,22.73235 0.186983,-0.07462 c 6.39315,-2.551328 13.669757,0.499535 16.252757,6.814293 2.583001,6.314759 -0.505736,13.502142 -6.898886,16.05347 -0.05343,-1.007011 -0.227731,-1.979458 -0.50829,-2.904343 3.429966,-1.856689 5.755521,-5.45605 5.755521,-9.591913 0,-6.036745 -4.9545,-10.930494 -11.066185,-10.930494 -1.305803,0 -2.558782,0.223396 -3.7219,0.633607 z" style="mix-blend-mode:overlay;fill:#000000" /></g><path id="path96" d="m 32.186954,1.615568 0.191202,0.06303 c 6.537408,2.155006 10.150561,9.169416 8.070202,15.667122 -2.080359,6.497706 -9.066438,10.01816 -15.603846,7.863153 0.606364,-0.805759 1.097919,-1.662736 1.477505,-2.551578 3.820968,0.782433 7.916076,-0.48 10.574561,-3.648255 C 40.776928,14.384625 40.127202,7.451106 35.445374,3.522591 34.445068,2.683237 33.341634,2.048968 32.186954,1.61557 Z" style="mix-blend-mode:overlay;fill:#000000;fill-opacity:0.49617866" /><path id="path98" d="m 24.100846,55.523071 h 4.544831 c 4.281413,0 7.752184,-3.36365 7.752184,-7.512922 0,-4.149273 -3.470771,-7.512923 -7.752184,-7.512923 h -6.55954 c -2.470046,0 -4.472413,1.940568 -4.472413,4.334379 v 16.869977 z" style="fill:#000000;filter:url(#filter-18-3)" transform="matrix(1.0000014,0,0,1,-1.2150017,-25)" /><path id="path100" d="m 22.885879,30.523071 h 4.544837 c 4.281419,0 7.752195,-3.36365 7.752195,-7.512922 0,-4.149273 -3.470776,-7.512923 -7.752195,-7.512923 h -6.559549 c -2.47005,0 -4.47242,1.940568 -4.47242,4.334379 v 16.869977 z" style="fill:#ffffff" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_mastodon       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("mastodon");      $class = "brand-mastodon";        return svg($label === auto ? "Mastodon"        : $label,   0,      0,      32,       32,     $align == auto ? false : !!$align, '<g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path class="'.$class.'" d="M 15.9375 4.03125 C 12.917 4.0435 9.9179219 4.4269844 8.3574219 5.1464844 C 8.3574219 5.1464844 5 6.6748594 5 11.880859 C 5 18.077859 4.9955 25.860234 10.5625 27.365234 C 12.6945 27.938234 14.527953 28.061562 16.001953 27.976562 C 18.676953 27.825562 20 27.005859 20 27.005859 L 19.910156 25.029297 C 19.910156 25.029297 18.176297 25.640313 16.029297 25.570312 C 13.902297 25.495313 11.6615 25.335688 11.3125 22.679688 C 11.2805 22.432688 11.264625 22.182594 11.265625 21.933594 C 15.772625 23.052594 19.615828 22.420969 20.673828 22.292969 C 23.627828 21.933969 26.199344 20.081672 26.527344 18.388672 C 27.041344 15.720672 26.998047 11.880859 26.998047 11.880859 C 26.998047 6.6748594 23.646484 5.1464844 23.646484 5.1464844 C 22.000984 4.3779844 18.958 4.019 15.9375 4.03125 z M 12.705078 8.0019531 C 13.739953 8.0297031 14.762578 8.4927031 15.392578 9.4707031 L 16.001953 10.505859 L 16.609375 9.4707031 C 17.874375 7.5037031 20.709594 7.6264375 22.058594 9.1484375 C 23.302594 10.596438 23.025391 11.531 23.025391 18 L 23.025391 18.001953 L 20.578125 18.001953 L 20.578125 12.373047 C 20.578125 9.7380469 17.21875 9.6362812 17.21875 12.738281 L 17.21875 16 L 14.787109 16 L 14.787109 12.738281 C 14.787109 9.6362812 11.429688 9.7360938 11.429688 12.371094 L 11.429688 18 L 8.9765625 18 C 8.9765625 11.526 8.7043594 10.585438 9.9433594 9.1484375 C 10.622859 8.3824375 11.670203 7.9742031 12.705078 8.0019531 z"></path></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_seloger        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("seloger");       $class = "brand-seloger";         return svg($label === auto ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == auto ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
 
-    function svg_deezer         ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("deezer");        $class = "brand-deezer";          return svg($label === DOM_AUTO ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
-    function svg_spotify        ($label = DOM_AUTO, $align = DOM_AUTO, $add_wrapper = DOM_AUTO) { import_color("spotify");       $class = "brand-spotify";         return svg($label === DOM_AUTO ? "Spotify"         : $label,   0,      0,     192.1,    192.1,   $align == DOM_AUTO ? false : !!$align, '<path class="'.$class.'" fill="<?= $color ?>" d="m83.996 0.277c-46.249 0-83.743 37.493-83.743 83.742 0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l0.001-0.004zm38.404 120.78c-1.5 2.46-4.72 3.24-7.18 1.73-19.662-12.01-44.414-14.73-73.564-8.07-2.809 0.64-5.609-1.12-6.249-3.93-0.643-2.81 1.11-5.61 3.926-6.25 31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-0.903-8.148-4.35-1.04-3.453 0.907-7.093 4.354-8.143 30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-0.001zm0.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219-1.254-4.14 1.08-8.513 5.221-9.771 29.581-8.98 78.756-7.245 109.83 11.202 3.73 2.209 4.95 7.016 2.74 10.733-2.2 3.722-7.02 4.949-10.73 2.739z"/>', $add_wrapper == DOM_AUTO ? true : !!$add_wrapper); }
+    function svg_deezer         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("deezer");        $class = "brand-deezer";          return svg($label === auto ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == auto ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g id="g8252" transform="translate(0,86.843818)"><rect id="rect8185" x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect id="rect8192" x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect id="rect8206" x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect id="rect8213" x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8220" x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect id="rect8227" x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect id="rect8234" x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect id="rect8241" x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect id="rect8248" x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_spotify        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("spotify");       $class = "brand-spotify";         return svg($label === auto ? "Spotify"         : $label,   0,      0,     192.1,    192.1,   $align == auto ? false : !!$align, '<path class="'.$class.'" fill="<?= $color ?>" d="m83.996 0.277c-46.249 0-83.743 37.493-83.743 83.742 0 46.251 37.494 83.741 83.743 83.741 46.254 0 83.744-37.49 83.744-83.741 0-46.246-37.49-83.738-83.745-83.738l0.001-0.004zm38.404 120.78c-1.5 2.46-4.72 3.24-7.18 1.73-19.662-12.01-44.414-14.73-73.564-8.07-2.809 0.64-5.609-1.12-6.249-3.93-0.643-2.81 1.11-5.61 3.926-6.25 31.9-7.291 59.263-4.15 81.337 9.34 2.46 1.51 3.24 4.72 1.73 7.18zm10.25-22.805c-1.89 3.075-5.91 4.045-8.98 2.155-22.51-13.839-56.823-17.846-83.448-9.764-3.453 1.043-7.1-0.903-8.148-4.35-1.04-3.453 0.907-7.093 4.354-8.143 30.413-9.228 68.222-4.758 94.072 11.127 3.07 1.89 4.04 5.91 2.15 8.976v-0.001zm0.88-23.744c-26.99-16.031-71.52-17.505-97.289-9.684-4.138 1.255-8.514-1.081-9.768-5.219-1.254-4.14 1.08-8.513 5.221-9.771 29.581-8.98 78.756-7.245 109.83 11.202 3.73 2.209 4.95 7.016 2.74 10.733-2.2 3.722-7.02 4.949-10.73 2.739z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
 
     function img_instagram      ($short_code = false, $size_code = "m")     { return img(url_img_instagram  ($short_code, $size_code), false, false, "img-instagram" ); }
     function img_pinterest      ($pin        = false, $size_code = false)   { return img(url_img_pinterest  ($pin),                    false, false, "img-pinterest" ); }
@@ -12411,9 +12412,9 @@
     function unsplash_url()             { return "https://unsplash.com";        }
     function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
     
-    function unsplash_url_img_random($search,$w,$h,$random = DOM_AUTO) {
+    function unsplash_url_img_random($search,$w,$h,$random = auto) {
 
-             if ($random === DOM_AUTO)  $random = "&".rand(1111,9999);
+             if ($random === auto)  $random = "&".rand(1111,9999);
         else if ($random === true)      $random = "&".rand(1111,9999);
         else if ($random === false)     $random = "&";
         else                            $random = "&$random";
@@ -12446,7 +12447,7 @@
         return "https://source.unsplash.com/".$id."/".$w."x".$h."?.jpg";
     }
 
-    function unsplash_img($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = DOM_AUTO, $lazy_src = false, $content = '', $precompute_size = DOM_AUTO)
+    function unsplash_img($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = auto, $lazy_src = false, $content = '', $precompute_size = auto)
     {
         $alt        = $alt.(!!$author ? " (by $author on Unsplash)" : " (on Unsplash)");
         $attributes = attributes_add($attributes, array("title" => $alt));
@@ -12454,7 +12455,7 @@
         return img(unsplash_url_img($id, $w, $h, $author), $w, $h, $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size);
     }
 
-    function unsplash_picture($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = DOM_AUTO, $lazy_src = false)
+    function unsplash_picture($id, $w = false, $h = false, $author = false, $alt = false, $attributes = false, $lazy = auto, $lazy_src = false)
     {
         $alt        = $alt.(!!$author ? " (by $author on Unsplash)" : " (on Unsplash)");
         $attributes = attributes_add($attributes, array("title" => $alt));
@@ -12623,7 +12624,7 @@
         
         if ($title_icon !== false && false === stripos($title_icon, "<img")
                                   && false === stripos($title_icon, "<amp-img")) $title  = img($title_icon, false, false, array("class" => component_class("img", 'card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    component_class("a",   'card-title-link'), DOM_EXTERNAL_LINK);
+        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    component_class("a",   'card-title-link'), external_link);
         if ($title_main !== false && false === stripos($title_main, "<h")
                                   && false === stripos($title_main, "#"))        $title .= h($h,           $title_main,   array("class" => component_class("h$h", 'card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
         if ($title_main !== false &&(false !== stripos($title_main, "<h") ||
@@ -12703,7 +12704,7 @@
         // CARD INFO FROM METADATA
 
         $source   = at($metadata, "TYPE",     "instagram");
-        $lazy     = at($metadata, "LAZY",     DOM_AUTO);
+        $lazy     = at($metadata, "LAZY",     auto);
         $userdata = at($metadata, "userdata", false);
 
         $short_label = extract_start(at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
@@ -12736,7 +12737,7 @@
             }
         }
 
-        $data["content"]        = (has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, DOM_EXTERNAL_LINK)                                  : $data["content"];
+        $data["content"]        = (has($metadata, "post_url") && $data["content"] != "")    ?   a($data["content"], $metadata["post_url"], false, external_link)           : $data["content"];
         $data["content"]        =  has($metadata, "post_figcaption")                        ? cat($data["content"], wrap_each($metadata["post_figcaption"], eol(), "div")) : $data["content"];
 
         $data["title_main"]     = at($metadata, "post_title");
@@ -12749,7 +12750,7 @@
                                 : (has($metadata, "post_date")      ? time_datepublished(              at($metadata, "post_date", ''  ), strtotime(at($metadata, "post_date"))      ) : '');
 
         $data["title_sub"]      = has($metadata, "user_name")       ? cat($data["title_sub"],' ',a_author(span_name($metadata["user_name"]))) : $data["title_sub"];
-        $data["title_sub"]      = has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, DOM_EXTERNAL_LINK)                              : $data["title_sub"];
+        $data["title_sub"]      = has($metadata, "user_url")        ?   a($data["title_sub"], $metadata["user_url"], false, external_link)    : $data["title_sub"];
 
         $data["title_sub"]      = ($data["title_sub"] != "") ? cat((is_callable("svg_$source") ? call_user_func("svg_$source") : ''), $data["title_sub"]) : false;
 
@@ -12804,7 +12805,7 @@
             );
 
             if (get("genre")                    !== false) $properties["genre"]         = get("genre", "Website");
-            if (get("publisher")                !== false) $properties["publisher"]     = array("@type" => "Organization","name" => get("publisher", DOM_AUTHOR), "logo" => array("@type" => "ImageObject", "url"=> get("canonical").'/'.get("image")));
+            if (get("publisher")                !== false) $properties["publisher"]     = array("@type" => "Organization","name" => get("publisher", author), "logo" => array("@type" => "ImageObject", "url"=> get("canonical").'/'.get("image")));
             
             if (at($metadata, "post_text")      !== false) $properties["keywords"]      = implode(' ', array_hashtags(          at($metadata, "post_text")));
             if (at($metadata, "post_text")      !== false) $properties["articleBody"]   =                                       at($metadata, "post_text");
@@ -12848,7 +12849,7 @@
     {
     //  IMG INFO FROM METADATA
     
-        $lazy        = at($metadata, "LAZY", DOM_AUTO);        
+        $lazy        = at($metadata, "LAZY", auto);        
         $short_label = extract_start(at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
         
         return img($metadata["post_img_url"], false, false, $attributes, $short_label, $lazy);
@@ -13052,7 +13053,7 @@
     function rss_lastbuilddate  ($date = false)                     { return tag('lastBuildDate', (false === $date) ? (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
     function rss_pubDate        ($date = false)                     { return tag('pubDate',       (false === $date) ? (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
 
-    function rss_copyright      ($author = false)                   { return tag('copyright', "Copyright " . ((false === $author) ? get("author", DOM_AUTHOR) : $author), false, true); }
+    function rss_copyright      ($author = false)                   { return tag('copyright', "Copyright " . ((false === $author) ? get("author", author) : $author), false, true); }
     
     #endregion
     #region WIP API : DOM : TILE
@@ -13665,12 +13666,12 @@
 
     $__img_fakeface_index = 0;
 
-    function img_fakeface($gender = "female" /* male|female */, $age_min = 18, $age_max = 66, $type = "face" /* face|thumb */, $rand = DOM_AUTO)
+    function img_fakeface($gender = "female" /* male|female */, $age_min = 18, $age_max = 66, $type = "face" /* face|thumb */, $rand = auto)
     {
         global $__img_fakeface_index;
         ++$__img_fakeface_index;
 
-        $rand = ($rand != DOM_AUTO ? $rand : md5("$__img_fakeface_index".microtime().rand(0, PHP_INT_MAX-1))).".jpg";
+        $rand = ($rand != auto ? $rand : md5("$__img_fakeface_index".microtime().rand(0, PHP_INT_MAX-1))).".jpg";
         $size = $type == "thumb" ? 350 : 731;
       //$url  = "https://fakeface.rest/$type/view/$rand?gender=$gender&minimum_age=$age_min&maximum_age=$age_max";
         $url  = "https://thispersondoesnotexist.com/";
@@ -13696,7 +13697,7 @@
         }
     }
      
-    function a_footnote($html, $index = false, $async = false, $title = DOM_AUTO)
+    function a_footnote($html, $index = false, $async = false, $title = auto)
     {
         $footnotes = get("footnotes", array());
 
@@ -13714,7 +13715,7 @@
             
             "id"    => "footnote-".($footnote_index + 1), 
             "class" => "footnote",
-            "title" => (DOM_AUTO === $title ? strip_tags($html) : $title)
+            "title" => (auto === $title ? strip_tags($html) : $title)
         
             ));
     }
@@ -13738,16 +13739,16 @@
     function address($html)     { return tag("address", $html); }
     function author($author)    { return address(a($author, "#!", array("rel" => "author")), array("class" => "author")); }
 
-    function h_card($photo = DOM_AUTO, $bio = DOM_AUTO, $name = DOM_AUTO, $url = DOM_AUTO, $attributes = false, $me = false)
+    function h_card($photo = auto, $bio = auto, $name = auto, $url = auto, $attributes = false, $me = false)
     {
         if (!!get("gemini")) return "";
 
         // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
 
-        $photo  = DOM_AUTO !== $photo ? $photo : "me.png";
-        $name   = DOM_AUTO !== $name  ? $name  : get("author", DOM_AUTHOR);
-        $bio    = DOM_AUTO !== $bio   ? $bio   : false;
-        $url    = DOM_AUTO !== $url   ? $url   : get("canonical");
+        $photo  = auto !== $photo ? $photo : "me.png";
+        $name   = auto !== $name  ? $name  : get("author", author);
+        $bio    = auto !== $bio   ? $bio   : false;
+        $url    = auto !== $url   ? $url   : get("canonical");
 
         $names = is_array($name) ? $name : explode(" ", $name);
 
@@ -13787,10 +13788,10 @@
                         $w                  = at($photo, "width",    at($photo, "w", at($photo, 2, 300            ))), 
                         $h                  = at($photo, "height",   at($photo, "h", at($photo, 3, 400            ))), $attr = false, 
                         $alt                = at($photo, "alt",                      at($photo, 4, "Author photo" ) ), 
-                        $lazy               = DOM_AUTO, 
-                        $lazy_src           = DOM_AUTO, 
-                        $content            = DOM_AUTO, 
-                        $precompute_size    = DOM_AUTO, 
+                        $lazy               = auto, 
+                        $lazy_src           = auto, 
+                        $content            = auto, 
+                        $precompute_size    = auto, 
                         $src_attribute      = "srcset"
                         )
                     );

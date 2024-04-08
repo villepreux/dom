@@ -563,13 +563,13 @@
     {
         $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
         
-        if (($attributes === DOM_INTERNAL_LINK || $attributes === DOM_EXTERNAL_LINK) && $target === false) { $target = $attributes; $attributes = false; }
-        if ($target === false) { $target = DOM_INTERNAL_LINK; }
+        if (($attributes === internal_link || $attributes === external_link) && $target === false) { $target = $attributes; $attributes = false; }
+        if ($target === false) { $target = internal_link; }
         
         return array($icon, $label, $link, $id, $target, $attributes);
     }
 
-    function icon_entry_to_link($icon_entry, $default_target = DOM_INTERNAL_LINK)
+    function icon_entry_to_link($icon_entry, $default_target = internal_link)
     {
         if (!is_array($icon_entry)) return $icon_entry;
 
@@ -589,7 +589,7 @@
         return a($icon, $link, $attributes, $target);
     }
 
-    function icon_entries($icon_entries, $default_target = DOM_INTERNAL_LINK)
+    function icon_entries($icon_entries, $default_target = internal_link)
     {
         if (is_array($icon_entries))
         {
@@ -611,23 +611,23 @@
 
         return array(
             
-            "item"       => ((!!$text       && DOM_AUTO !== $text       ) ? $text       : ""                        ), 
-            "link"       => ((!!$link       && DOM_AUTO !== $link       ) ? $link       : ("#".anchor_name($text))  ),
-            "target"     => ((!!$target     && DOM_AUTO !== $target     ) ? $target     : DOM_INTERNAL_LINK         ), 
-            "attributes" => ((!!$attributes && DOM_AUTO !== $attributes ) ? $attributes : false                     ), 
+            "item"       => ((!!$text       && auto !== $text       ) ? $text       : ""                        ), 
+            "link"       => ((!!$link       && auto !== $link       ) ? $link       : ("#".anchor_name($text))  ),
+            "target"     => ((!!$target     && auto !== $target     ) ? $target     : internal_link             ), 
+            "attributes" => ((!!$attributes && auto !== $attributes ) ? $attributes : false                     ), 
         );
     }
 
     $__ul_menu_index = -1;
 
-    function ul_menu($menu_entries = array(), $default_target = DOM_INTERNAL_LINK, $sidebar = DOM_AUTO)
+    function ul_menu($menu_entries = array(), $default_target = internal_link, $sidebar = auto)
     {
         if (!!get("gemini")) return "";
         
         global $__ul_menu_index;
         ++$__ul_menu_index;
 
-        if ($sidebar === DOM_AUTO) $sidebar = (0 == $__ul_menu_index);
+        if ($sidebar === auto) $sidebar = (0 == $__ul_menu_index);
 
         $menu_lis = "";
         {
@@ -750,15 +750,15 @@
             );
     }
 
-    function menu_entries($html, $sidebar = DOM_AUTO)
+    function menu_entries($html, $sidebar = auto)
     {
         if (false === stripos($html, "menu-list") 
-        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, DOM_INTERNAL_LINK, $sidebar);
+        &&  false === stripos($html, "_ul_menu_auto")) $html = ul_menu($html, internal_link, $sidebar);
 
         return (get("framework") != "bootstrap" ? div($html, array("class" => ("menu-entries"." ".component_class("div", "menu")), "hidden" => "hidden")) : $html);
     }
 
-    function menu_toggle($html, $sidebar = DOM_AUTO)
+    function menu_toggle($html, $sidebar = auto)
     {
         if (!!get("no_css")) return ""; // No css == no responsiveness toggle between navbar & navdropmenu
 
@@ -781,12 +781,12 @@
                         component_class("div", "toolbar-cell-right-shrink"))));
     }
 
-    function  ul_menu_auto($sidebar = DOM_AUTO) { return delayed_component("_".__FUNCTION__, $sidebar); }
-    function _ul_menu_auto($sidebar = DOM_AUTO) { $sections = get("hook_sections"); return (!is_array($sections) || count($sections) < 2) ? "" : ul_menu($sections, DOM_INTERNAL_LINK, $sidebar); }
+    function  ul_menu_auto($sidebar = auto) { return delayed_component("_".__FUNCTION__, $sidebar); }
+    function _ul_menu_auto($sidebar = auto) { $sections = get("hook_sections"); return (!is_array($sections) || count($sections) < 2) ? "" : ul_menu($sections, internal_link, $sidebar); }
 
-    function  menu_toggle_auto($sidebar = DOM_AUTO) { return menu_toggle(ul_menu_auto(), $sidebar); }
+    function  menu_toggle_auto($sidebar = auto) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
-    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = DOM_AUTO)
+    function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = auto)
     {
         if (!!get("gemini")) return "";
         
