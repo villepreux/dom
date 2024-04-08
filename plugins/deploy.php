@@ -13,14 +13,14 @@ $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
 $cmdline_option_static                  = arg_state("static", 1, arg_state("gemini", 1, arg_state("netlify")));
 $cmdline_option_output                  = arg_value("output", arg_state("gemini") ? "gemini" : "static");
-$cmdline_option_dom_fast                = arg_state("dom-fast", arg_state("fast"));
-$cmdline_option_dom_profiling           = arg_state("dom-profiling");
-$cmdline_option_dom_debug               = arg_state("dom-debug", 1, arg_state("dom-profiling"));
+$cmdline_option_fast                    = arg_state("fast");
+$cmdline_option_profiling               = arg_state("profiling");
+$cmdline_option_debug                   = arg_state("debug", 1, arg_state("profiling"));
 $cmdline_option_verbose                 = arg_state("verbose");
 $cmdline_option_test                    = arg_state("test");
 $cmdline_option_github_action           = arg_state("github-action");
 $cmdline_option_scrap                   = arg_state("scrap");
-$cmdline_option_beautify                = arg_state("beautify", 1, arg_state("dom-debug"));
+$cmdline_option_beautify                = arg_state("beautify", 1, arg_state("debug"));
 $cmdline_option_os                      = arg_state("unix", "unix", "win");
 $cmdline_option_copy                    = arg_state("copy");
 $cmdline_option_compile                 = arg_state("compile");
@@ -443,9 +443,9 @@ $php_args_common =
 
     "";
 
-if (!!$cmdline_option_dom_debug)            $php_args_common .= " debug=1";
-if (!!$cmdline_option_dom_profiling)        $php_args_common .= " profiling=1";
-if (!!$cmdline_option_dom_fast)             $php_args_common .= " fast=1";
+if (!!$cmdline_option_debug)                $php_args_common .= " debug=1";
+if (!!$cmdline_option_profiling)            $php_args_common .= " profiling=1";
+if (!!$cmdline_option_fast)                 $php_args_common .= " fast=1";
 if (!!$cmdline_option_output
 &&    $cmdline_option_output != "static")   $php_args_common .= " $cmdline_option_output=1";
 

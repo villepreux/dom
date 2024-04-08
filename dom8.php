@@ -238,6 +238,7 @@
     }
 
     $__dom_t0 = microtime(true);
+    $__debug_track_delta_scope_use_dummy = 0;
 
     class debug_track_delta_scope
     {
@@ -331,6 +332,12 @@
                 $this->profiling["tag"] = "";
                 $__profiling[] = $this->profiling;
             }
+        }
+
+        function use()
+        {
+            global $__debug_track_delta_scope_use_dummy;
+            ++$__debug_track_delta_scope_use_dummy;
         }
     };
 
@@ -569,6 +576,8 @@
     #endregion
     #region WIP SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
     ######################################################################################################################################
+
+    const manifest_id = "dom.manifest.id";
 
     function init_options()
     {
@@ -1529,9 +1538,9 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true)
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl"], $profiling_annotation = false)
     {
-        $profiler = debug_track_timing($urls);
+        $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : $urls);
 
         if (is_array($urls))
         {
@@ -1565,60 +1574,62 @@
 
         if (0 == count($header)) $header = false;
 
-        $content = false;
-
-        if (!$content || $content == "")
-        {      
-            if (!!$header)      
-            {
-                if (false === stripos($url, "?")) $url .= "?";
-                if (!!$client_id) $url .= "&client_id=$client_id"; // TODO Remove hardcoded key
-                if (!!$token) $url     .= "&access_token=$token";  // TODO Remove hardcoded key
-
-                $steam_header  = implode("\r\n", array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header)));
-                $steam_options = array('http' => array('method' => "GET", 'header' => $steam_header));    
-                $steam_context = @stream_context_create($steam_options);    
-
-                $content = @file_get_contents($url, FILE_USE_INCLUDE_PATH, $steam_context);
-            }
-            else
-            {
-                $content = @file_get_contents($url);
-            }
-        }
-
+        $content           = false;
         $curl_debug_errors = array();
-        
-        if (!$content || $content == "")
-        {
-            $curl = @curl_init();
-            
-            if (false !== $curl)
-            {
-                if (!!$header)
+
+        foreach ($methods_order as $method)
+        {        
+            if ($method == "file_get_contents" && (!$content || $content == ""))
+            {      
+                if (!!$header)      
                 {
-                    $curl_header = array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
+                    if (false === stripos($url, "?")) $url .= "?";
+                    if (!!$client_id) $url .= "&client_id=$client_id"; // TODO Remove hardcoded key
+                    if (!!$token) $url     .= "&access_token=$token";  // TODO Remove hardcoded key
 
-                    curl_setopt($curl, CURLOPT_HTTPHEADER, $curl_header);
+                    $steam_header  = implode("\r\n", array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header)));
+                    $steam_options = array('http' => array('method' => "GET", 'header' => $steam_header));    
+                    $steam_context = @stream_context_create($steam_options);    
+
+                    $content = @file_get_contents($url, FILE_USE_INCLUDE_PATH, $steam_context);
                 }
+                else
+                {
+                    $content = @file_get_contents($url);
+                }
+            }
 
-                curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
-                curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
-                curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
-                curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
-                curl_setopt($curl, CURLOPT_URL,             $url);
-                curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
-                curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
+            if ($method == "curl" && (!$content || $content == ""))
+            {   
+                $curl = @curl_init();
                 
-                $content = curl_exec($curl);
-
-                if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""))
+                if (false !== $curl)
                 {
-                    $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result");
-                    $curl_debug_errors[] = to_string(curl_getinfo($curl));
-                }
+                    if (!!$header)
+                    {
+                        $curl_header = array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
 
-                curl_close($curl);
+                        curl_setopt($curl, CURLOPT_HTTPHEADER, $curl_header);
+                    }
+
+                    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
+                    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
+                    curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                    curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
+                    curl_setopt($curl, CURLOPT_URL,             $url);
+                    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
+                    curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
+                    
+                    $content = curl_exec($curl);
+
+                    if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""))
+                    {
+                        $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result");
+                        $curl_debug_errors[] = to_string(curl_getinfo($curl));
+                    }
+
+                    curl_close($curl);
+                }
             }
         }
 
@@ -5166,9 +5177,9 @@
 
         $json = array();
 
-        if (!!get("id"))
+        if (!!get(\dom\manifest_id))
         {
-            $json = array_merge($json, array("id" => get("id")));    
+            $json = array_merge($json, array("id" => get(\dom\manifest_id)));
         }
 
         $json = array_merge($json, array(
