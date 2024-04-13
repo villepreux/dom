@@ -1450,22 +1450,41 @@
 
         if (func_num_args() == 2)
         {
-            list($lang, $text) = func_get_args();
-            debug_log("i18n-$lang / $text");
-            return (strtolower(server_language_short()) == strtolower($lang)) ? $text : "";
+            if (is_array(at(func_get_args(), 1)))
+            {
+                list($label, $lang_texts) = func_get_args();
+                foreach ($lang_texts as $lang => $text) T($label, $lang, $text);
+                return "";
+            }
+            else
+            {
+                list($lang, $text) = func_get_args();
+                debug_log("i18n-$lang / $text");
+                return (strtolower(server_language_short()) == strtolower($lang)) ? $text : "";
+            }
         }
 
         if (func_num_args() == 1)
         {
-            list($label) = func_get_args();
-            foreach (array(server_language_short(), "en") as $lang) {
-                $key = strtolower("i18n-$lang-$label");
-                if (has($key)) {
-                    debug_log("i18n / $label -> $key -> ".get($key, ""));
-                    return get($key, "");
-                }
+            if (is_array(at(func_get_args(), 0)))
+            {
+                list($lang_texts) = func_get_args();
+                foreach ($lang_texts as $lang => $text) 
+                    if (strtolower(server_language_short()) == strtolower($lang)) return $text;
+                return at($lang_texts, 0, "");
             }
-            return $label;
+            else
+            {
+                list($label) = func_get_args();
+                foreach (array(server_language_short(), "en") as $lang) {
+                    $key = strtolower("i18n-$lang-$label");
+                    if (has($key)) {
+                        debug_log("i18n / $label -> $key -> ".get($key, ""));
+                        return get($key, "");
+                    }
+                }
+                return $label;
+            }
         }
 
         return "";
@@ -6282,10 +6301,10 @@
     }
 
     /* 8 */
-    function head_asynchronous_scripts()
+    function head_asynchronous_scripts($scripts = true)
     {
         return  (AMP() ? "" : (eol().comment("DOM Head Asynchronous scripts"))). 
-                scripts_head();
+                scripts_head($scripts);
     }
 
     /* 7 */
@@ -6295,7 +6314,7 @@
     }
 
     /* 6 */
-    function head_synchronous_scripts()
+    function head_synchronous_scripts($scripts = true)
     {
         return eol().comment("DOM Head Synchronous scripts");
     }
@@ -6334,10 +6353,11 @@
     }
 
     /* 3 */
-    function head_deferred_scripts()
+    function head_deferred_scripts($scripts = true)
     {
+        if (!$scripts) return "";
+
         return  eol().comment("DOM Head Deferred scripts").
-                //head_deferred_scripts().
                 //script_google_analytics should be call here if needed
                 "";
     }
@@ -6351,7 +6371,7 @@
     }
 
     /* 1 */
-    function head_everything_else()
+    function head_everything_else($scripts = true)
     {
         return  eol().comment("DOM Head Metadata").
                       metas().
@@ -6363,7 +6383,7 @@
                 "";
     }
     
-    function head_boilerplate($async_css = false, $styles = true)
+    function head_boilerplate($async_css = false, $styles = true, $scripts = true)
     {
         $profiler = debug_track_timing();
 
@@ -6372,24 +6392,24 @@
             eol().head_pragma_directives().
             eol().head_title(). 
             eol().head_preconnect_hints().
-            eol().head_asynchronous_scripts().
+            eol().head_asynchronous_scripts($scripts).
             eol().head_import_styles().
-            eol().head_synchronous_scripts().
+            eol().head_synchronous_scripts($scripts).
             eol().head_synchronous_styles($async_css, $styles).
             eol().head_preload_hints().
-            eol().head_deferred_scripts().
+            eol().head_deferred_scripts($scripts).
             eol().head_prefetch_and_prerender_hints().
-            eol().head_everything_else().            
+            eol().head_everything_else($scripts).            
             "";
     }
 
-    function head($html = false, $async_css = false)
+    function head($html = false, $async_css = false, $styles = true, $scripts = true)
     { 
         $profiler = debug_track_timing();
 
         if (false === $html)
         {
-            $html = head_boilerplate($async_css);
+            $html = head_boilerplate($async_css, $styles, $scripts);
         }
 
         $html = css_postprocess($html);
@@ -7490,6 +7510,8 @@
     
     function section_webmentions($url = auto)
     {
+        if (!!get("no_js")) return "";
+
         return section(
 
             p("These are ".a("webmentions", "https://indieweb.org/Webmention")." via the ".a("IndieWeb", "https://indieweb.org/")." and ".a("webmention.io", "https://webmention.io")).
@@ -7505,7 +7527,7 @@
                 input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]),
                 [ "action" => "https://webmention.io/villapirorum.netlify.app/webmention", "method" => "post" ]
                 )).
-            "", [ "style" => "padding-bottom: var(--gap)" ]);
+            "", [ "style" => "padding-bottom: var(--gap)", "class" => "webmentions requires-js" ]);
     }
 
     /**
@@ -7915,12 +7937,16 @@
             );
     }
 
-    function script_js_as_is($js = "", $type = "text/javascript")
+    function script_js_as_is($js = "", $type = "text/javascript", $attributes = false)
     {
+        if (!!get("no_js"))    return '';
         if (!$js || $js == "") return ''; 
         $js  = eol().$js.eol();
         if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
-        return tag('script', $js, array("type" => $type));
+
+        $attributes = attributes_add($attributes, array("type" => $type));
+
+        return tag('script', $js, $attributes);
     }
 
     function script($js = "", $type = "text/javascript",  $force_minify = false)
@@ -7930,18 +7956,21 @@
         return script_js_as_is(raw_js($js, $force_minify), $type);
     }
 
-    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto)
+    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto, $attributes = false)
     {
         $profiler = debug_track_timing(); 
+
         if (!$filename || $filename == "") return ''; 
         $filename = path($filename);
         if (!$filename || $filename == "") return ''; 
-        return script_js_as_is(include_js($filename, $force_minify, $silent_errors), $type);
+        return script_js_as_is(include_js($filename, $force_minify, $silent_errors), $type, $attributes);
     }
 
     function script_js_or_file($filename_or_code = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto)
     {
         $profiler = debug_track_timing(); 
+
+        if (!!get("no_js")) return '';
         
         if (!$filename_or_code || $filename_or_code == "") return ''; 
         $filename = path($filename_or_code);
@@ -9840,11 +9869,13 @@
             "";
     }
 
-    function scripts_head()
+    function scripts_head($scripts)
     {   
-        $profiler = debug_track_timing(); 
+        $profiler = debug_track_timing();
 
-        return  script_common_head().
+        if (!$scripts) return ""; // TODO while no test of no_js here ?
+
+        return  script_common_head($scripts).
                 script_ajax_head().
                 script_inside_iframe().
 
@@ -10404,27 +10435,36 @@
             var event_ready  = false;
             var event_loaded = false;
 
-            var ready_callbacks  = Array();
-            var loaded_callbacks = Array();
-            var scroll_callbacks = Array();
-            var resize_callbacks = Array();
-            var ajax_callbacks   = Array();
+            dom.ready_callbacks  = Array();
+            dom.loaded_callbacks = Array();
+            dom.scroll_callbacks = Array();
+            dom.resize_callbacks = Array();
+            dom.ajax_callbacks   = Array();
 
             function process_callbacks(callbacks, log, clear)
             {
                 if (typeof log != "undefined" && log) dom.log("DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
-                callbacks.forEach(function(callback) { callback(); });
+                callbacks.every(function(callback) { return (false !== callback()); });
                 if (typeof log != "undefined" && clear) callbacks = [];
             }
 
-            function process_ready_callbacks()  { process_callbacks(ready_callbacks,  "READY",  true); }
-            function process_loaded_callbacks() { process_callbacks(loaded_callbacks, "LOADED", true); }
+            dom.clear_callbacks = function ()
+            {
+                dom.ready_callbacks  = Array();
+                dom.loaded_callbacks = Array();
+                dom.scroll_callbacks = Array();
+                dom.resize_callbacks = Array();
+                dom.ajax_callbacks   = Array();
+            };
 
-            function on_ready(callback)         {  ready_callbacks.push(callback); if (event_ready)                 { process_ready_callbacks();  } }
-            function on_loaded(callback)        { loaded_callbacks.push(callback); if (event_ready && event_loaded) { process_loaded_callbacks(); } }
-            function on_scroll(callback)        { scroll_callbacks.push(callback); }
-            function on_resize(callback)        { resize_callbacks.push(callback); }
-            function on_ajax(callback)          {   ajax_callbacks.push(callback); }
+            function process_ready_callbacks()  { process_callbacks(dom.ready_callbacks,  "READY",  true); }
+            function process_loaded_callbacks() { process_callbacks(dom.loaded_callbacks, "LOADED", true); }
+
+            function on_ready(callback,  first) { /*                       */   if (!!first)  dom.ready_callbacks.unshift(callback); else  dom.ready_callbacks.push(callback); if (event_ready)                 { process_ready_callbacks();  }   /*    */ }
+            function on_loaded(callback, first) { /*  on_ready(function () */ { if (!!first) dom.loaded_callbacks.unshift(callback); else dom.loaded_callbacks.push(callback); if (event_ready && event_loaded) { process_loaded_callbacks(); } } /* ); */ }
+            function on_scroll(callback, first) { /* on_loaded(function () */ { if (!!first) dom.scroll_callbacks.unshift(callback); else dom.scroll_callbacks.push(callback);                                                                  } /* ); */ }
+            function on_resize(callback, first) { /* on_loaded(function () */ { if (!!first) dom.resize_callbacks.unshift(callback); else dom.resize_callbacks.push(callback);                                                                  } /* ); */ }
+            function on_ajax(callback,   first) { /*  on_ready(function () */ { if (!!first)   dom.ajax_callbacks.unshift(callback); else   dom.ajax_callbacks.push(callback);                                                                  } /* ); */ }
             
             function on_first_interraction(callback)
             {
@@ -10460,7 +10500,7 @@
                 if (was_not_ready_and_loaded && event_ready && event_loaded) { process_loaded_callbacks(); }
             }
 
-            function on_ajax_reception() { process_callbacks(ajax_callbacks); }
+            function on_ajax_reception() { process_callbacks(dom.ajax_callbacks); }
 
             dom.on_ready                = on_ready;
             dom.on_loaded               = on_loaded;
@@ -10483,8 +10523,8 @@
             if (document.readyState != "loading")                         { on_init_event("ready");  }
             else document.addEventListener("DOMContentLoaded", function() { on_init_event("ready");  } );
         
-            window.addEventListener("scroll", function() { if (event_ready && event_loaded) { process_callbacks(scroll_callbacks); } });
-            window.addEventListener("resize", function() { if (event_ready && event_loaded) { process_callbacks(resize_callbacks); } });
+            window.addEventListener("scroll", function() { if (event_ready && event_loaded) { process_callbacks(dom.scroll_callbacks); } });
+            window.addEventListener("resize", function() { if (event_ready && event_loaded) { process_callbacks(dom.resize_callbacks); } });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }

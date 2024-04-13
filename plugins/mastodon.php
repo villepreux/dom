@@ -562,6 +562,11 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
 
 function section_mastodon_comments($post_id = auto, $host = false, $username = false, $user_id = false)
 {
+    if (!!get("no_js"))
+    {
+        return "";
+    }
+
     if (auto === $post_id)
     {
         $post_id = get("mastodon-post-id", get("mastodon-post"));
@@ -580,7 +585,7 @@ function section_mastodon_comments($post_id = auto, $host = false, $username = f
                 p("No known comments, yet. Reply to ".a("this Mastodon post", $post_url)." to add your own!").
                 noscript(p("Loading comments relies on JavaScript. Try enabling JavaScript and reloading, or visit ".a("the original post", $post_url)." on Mastodon.")), 
                 [ "id" => "mastodon-comments-wrapper", "class" => "mastodon-comments-wrapper" ]),
-            [ "id" => "mastodon-comments", "class" => "mastodon-comments" ]).
+            [ "id" => "mastodon-comments", "class" => "mastodon-comments requires-js" ]).
         script(js_comments($post_id, $host, $username, $user_id));
 }
 
