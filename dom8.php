@@ -5759,11 +5759,11 @@
     
     function raw            ($html, $force_minify = false)  { return $html; }
 
-    function raw_svg        ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html =   minify_html   ($html); } return trim($html ); }
-    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if (!!get("minify") || !!get("minify_html" ) || $force_minify) { $html = /*minify_html*/ ($html); } return trim($html ); }
-    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if (!!get("minify") || !!get("minify_js"   ) || $force_minify) { $js   =   minify_js     ($js);   } return trim($js   ); }
-    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if (!!get("minify") || !!get("minify_css"  ) || $force_minify) { $css  =   minify_css    ($css);  } return trim($css  ); }
-    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if (!!get("minify") || !!get("minify_php"  ) || $force_minify) { $php  =   minify_php    ($php);  } return trim($php  ); }
+    function raw_svg        ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify") { $html =   minify_html   ($html); } return trim($html ); }
+    function raw_html       ($html, $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify") { $html = /*minify_html*/ ($html); } return trim($html ); }
+    function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if ((!!get("minify") || !!get("minify_js"   ) || $force_minify) && $force_minify != "unminify") { $js   =   minify_js     ($js);   } return trim($js   ); }
+    function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if ((!!get("minify") || !!get("minify_css"  ) || $force_minify) && $force_minify != "unminify") { $css  =   minify_css    ($css);  } return trim($css  ); }
+    function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if ((!!get("minify") || !!get("minify_php"  ) || $force_minify) && $force_minify != "unminify") { $php  =   minify_php    ($php);  } return trim($php  ); }
 
     function include_html   ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
