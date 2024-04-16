@@ -9513,7 +9513,7 @@
 
             html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-            body                    { text-underline-offset: 0.25em; }
+            body                    { text-underline-offset: 0.24em; } /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
     
             body                    { word-break: break-word; text-wrap: balance; }
             .grid *                 { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
@@ -11145,7 +11145,7 @@
         return $class;
     }
         
-    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = auto)
+    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = auto, $extra_styles = false, $extra_attributes = false)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
@@ -11166,7 +11166,7 @@
         $lazy_attributes = "";
 
         if ($lazy === auto) $lazy_attributes = ' loading="lazy" decoding="async"';
-        if ($lazy === true)     $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
+        if ($lazy === true) $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
         
         global $hook_need_lazy_loding;
         if ($lazy === true) $hook_need_lazy_loding[] = $url;
@@ -11187,7 +11187,9 @@
                             ' frameborder'      .'="'.'0'           .'"'.
                             ' overflow'         .'="'.'hidden'      .'"'.
                             ' allowfullscreen'  .'="'.''            .'"'.
-                            ' style'            .'="'."border: 0; max-width: 100%; --width: $w; --height: $h"    .'"'.
+                            ' style'            .'="'."border: 0; max-width: 100%; --width: $w; --height: $h;".(!$extra_styles ? "" : " $extra_styles") .'"'.
+
+                            (!$extra_attributes ? "" : " $extra_attributes").
 
                             '>'.
 
