@@ -9744,9 +9744,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
-            a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
-            a:not(:has(img,picture,video,audio,svg)).external:after {
+            a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
+            a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
+            a:not(:has(img,picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -9765,18 +9765,18 @@
                 
                 opacity: .4;
             }    
-            a:not(:has(img,picture,video,audio,svg))[href^="//"]:hover:after, 
-            a:not(:has(img,picture,video,audio,svg))[href^="http"]:hover:after, 
-            a:not(:has(img,picture,video,audio,svg)).external:hover:after {
+            a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
+            a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
+            a:not(:has(img,picture,video,audio,svg,iframe)).external:hover:after {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a:not(:has(img,picture,video,audio,svg))[href^="//"]:after, 
-                a:not(:has(img,picture,video,audio,svg))[href^="http"]:after, 
-                a:not(:has(img,picture,video,audio,svg)).external:after {
+                a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
+                a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
+                a:not(:has(img,picture,video,audio,svg,iframe)).external:after {
 
                     content: attr(href);
                 }
