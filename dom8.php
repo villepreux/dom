@@ -10653,9 +10653,7 @@
 
     function gemini_tag($tag, $html, $attributes)
     {
-        $WIP =  PHP_EOL."THIS PAGE IS WORK IN PROGRESS! ".
-                PHP_EOL."(Pages are generated from DOM.PHP lib. And hosting disk space is very limited here)".
-                "";
+        $WIP =  "";//PHP_EOL."THIS PAGE IS WORK IN PROGRESS! ";
 
         $attributes = to_attributes($attributes);
 
