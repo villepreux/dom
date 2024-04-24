@@ -24,6 +24,7 @@ $cmdline_option_beautify                = arg_state("beautify", 1, arg_state("de
 $cmdline_option_os                      = arg_state("unix", "unix", "win");
 $cmdline_option_copy                    = arg_state("copy");
 $cmdline_option_compile                 = arg_state("compile");
+$cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
@@ -81,6 +82,9 @@ $__static_log_progressbar_size = 0;
 
 function static_log()
 {
+    global $cmdline_option_compile_one;
+    if (!!$cmdline_option_compile_one) return;
+
     $args = func_get_args();
     if (0 == count($args)) return static_log(0.0, "");
     $progress_percent = 0;
@@ -358,14 +362,14 @@ function static_diff($str1, $str2, $diff_chunk_length = 16, $prefix = "")
 
 function static_init_terminal() 
 { 
-    global $cmdline_option_github_action;
+    global $cmdline_option_github_action, $cmdline_option_compile_one;
 
     if (!$cmdline_option_github_action && STATIC_CLI)
     {
         DIRECTORY_SEPARATOR === '\\' ? popen('cls', 'w') : exec('clear');
     }
 
-    if (!$cmdline_option_github_action && !STATIC_CLI)
+    if (!$cmdline_option_github_action && !STATIC_CLI && !$cmdline_option_compile_one)
     {
         echo "<html><head><title>DOM CLI</title><style> html { background-color: #0E0E0E; color: #F2FFF2; font-size: 15px; font-family: monospace; } </style><script>const resizeObserver = new ResizeObserver(function(entries) { window.scrollTo(0,document.body.scrollHeight); }); resizeObserver.observe(document.body);</script><body><pre>";
     }
@@ -380,18 +384,22 @@ function static_compile_error_check($html, $src)
         ||  (false !== stripos($html, "Warning:" ) && false !== stripos($html, "Call Stack:"))
         ||  (false !== stripos($html, "Error:"   ) && false !== stripos($html, "Call Stack:")))
         { 
-            
-            error_log(PHP_EOL."-----------------------");
-            error_log(PHP_EOL.$html);
-            error_log(PHP_EOL."-----------------------");
-            error_log(PHP_EOL."Error while compiling $src");
-            error_log(PHP_EOL."-----------------------");
-            
-            echo(PHP_EOL."-----------------------");
-            echo(PHP_EOL."Error while compiling $src");
-            echo(PHP_EOL."-----------------------");
-            echo(PHP_EOL.$html);
-            echo(PHP_EOL."-----------------------");
+          
+            global $cmdline_option_compile_one;
+            if (!$cmdline_option_compile_one)
+            {
+                error_log(PHP_EOL."-----------------------");
+                error_log(PHP_EOL.$html);
+                error_log(PHP_EOL."-----------------------");
+                error_log(PHP_EOL."Error while compiling $src");
+                error_log(PHP_EOL."-----------------------");
+                
+                echo(PHP_EOL."-----------------------");
+                echo(PHP_EOL."Error while compiling $src");
+                echo(PHP_EOL."-----------------------");
+                echo(PHP_EOL.$html);
+                echo(PHP_EOL."-----------------------");
+            }
             
             die();
         }
@@ -630,15 +638,51 @@ if (!!$cmdline_option_copy)
     static_log("[i] Mirroring... OK");
 }
 
+if (!!$cmdline_option_compile_one)
+{
+    $exec = array_values(json_decode(base64_decode($cmdline_option_compile_one), true));
+
+    list($cwd, $loc, $cmd, $prev_loc) = $exec;
+
+    static_log("[i] Pre-compiling: $cmd");
+
+    if (!!$loc) chdir($loc);
+    if (!!$cmd) $html = static_exec($cmd);
+    if (!!$prev_loc) chdir($prev_loc);
+
+    if (!is_dir("$main_src/.cache")) 
+    {
+        static_log("[i] Pre-compiling: Creating .cache folder $main_src/.cache");
+
+        $cwd = getcwd();
+        chdir($main_src);
+        static_exec("mkdir .cache");
+        chdir($cwd);
+    }
+
+    if (!is_dir("$main_src/.cache")) 
+    {
+        static_log("[i] Pre-compiling: COULD NOT create .cache folder $main_src/.cache");
+        return; die;
+    }
+
+    file_put_contents("$main_src/.cache/".md5($cmdline_option_compile_one).".html", $html);
+
+    static_log("[i] Pre-compiling: DONE!");
+    return; die;
+}
+
 if (!!$cmdline_option_compile)
 {
     static_log("[i] Compiling...");
 
     $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile", "amp") : array();
 
-    $nb_files = 0;
-    $dependencies_could_have_been_modified = false;
+    // PASS #1 - Compute amount of files to process. So we can track progression
 
+    $dependencies_could_have_been_modified = false;
+    
+    $nb_files = 0;
     $roots = array(array($main_src, $main_dst));
 
     while (count($roots) > 0)
@@ -673,34 +717,20 @@ if (!!$cmdline_option_compile)
                         if ($name != "index.php" || !in_array($src, $root_sources))
                         {   
                             static_log("$dst/$static_name ".date ("Y-m-d H:i:s.", $t_to)." < $src/$name ".date ("Y-m-d H:i:s.", $t_from)."))");
-                            
-                          /*if ($extension == "php" || ($content_dst = static_content_file("$dst/$static_name")) != ($content_src = static_content_file("$src/$name")))
-                          */{/*
-                                if ($extension != "php")
-                                {
-                                    static_log("NOT INDEX MODIFIED FILE FOUND : $name");
-                                    static_log("DST content: $dst/$static_name");
-                                    static_log($content_dst);
-                                    static_log("SRC content: $src/$name");
-                                    static_log($content_src);
-                                    static_log("DIFF");
-                                    static_log(static_diff($content_dst, $content_src, 80));
 
-                                    die();
-                                }*/
-
-                                $dependencies_could_have_been_modified = true;
-                            }
+                            $dependencies_could_have_been_modified = true;
                         }
                     }
                 }
-
             }        
         }
     }
 
-    $file_index = 0;
+    // PASS #2 - Run all php commands / idealy in parallel
 
+    $execs = [];
+
+    $file_index = 0;
     $roots = array(array($main_src, $main_dst));
 
     while (count($roots) > 0)
@@ -723,8 +753,142 @@ if (!!$cmdline_option_compile)
             {
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
+                $static_name = str_replace(".php", ".$target_ext", $name);  
+                static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
+
+                if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
+                {
+                    $t_from = filemtime("$src/$name");
+                    $t_to   = is_file("$dst/$static_name") ? ("$dst/$static_name") : 0;
+                    
+                    if ($t_to >= $t_from) 
+                    {
+                        static_log($file_index, $nb_files);
+                        ++$file_index;
+                        continue;
+                    }
+                }
+    
+                if (!!$cmdline_option_verbose)
+                {
+                    $static_name = str_replace(".php", ".$target_ext", $name);            
+                    static_log($file_index, $nb_files, "[i] $dst/$static_name", "$file_index / $nb_files: $name -> COMPILE");
+                }
+                
                 $html = false;
                 $derivative_outputs = array();
+
+                if ($name == "index.php")
+                {
+                    $execs[] = [ getcwd(), $src, "php -f $name -- $php_args", getcwd() ];
+
+                    foreach ($derivatives as $type)
+                    {
+                        $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
+                        $execs[] = [ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ];
+                    }
+                }
+                else
+                {
+                    $execs[] = [ getcwd(), false, "php -f $src/$name -- $php_args", false ];
+                }
+            }        
+        }
+    }
+
+    function async_exec($cmd) 
+    {
+        if (DIRECTORY_SEPARATOR === '\\')
+      //if (substr(php_uname(), 0, 7) == "Windows")
+        {
+            /*pclose*/(popen("start /b $cmd >nul", "r")); 
+            //static_exec($cmd);
+        }
+        else 
+        {
+            @exec($cmd . " > /dev/null &");  
+        }
+    }
+
+    if (is_dir("$main_src/.cache")) 
+    {   
+        static_log("[i] Async compile: Wipe .cache folder $main_src/.cache");
+    
+        $cwd = getcwd();
+        chdir($main_src);
+        static_exec("rmdir /s /q .cache");
+        chdir($cwd);    
+    }
+    
+    static_log("[i] Async compile: Creating .cache folder $main_src/.cache");
+
+    $cwd = getcwd();
+    chdir($main_src);
+    static_exec("mkdir .cache");
+    chdir($cwd);
+
+    foreach ($execs as $exec)
+    {
+        list($cwd, $loc, $cmd, $prev_loc) = $exec;
+        $exec_base64 = base64_encode(json_encode($exec));
+        static_log("[i] Async compile: ".(!!$loc ? $loc : $cwd)."> $cmd");
+        async_exec("php static.php --compile-one=$exec_base64");
+    }
+
+    static_log("[i] Async compile: Wait for all processes to be completed");
+
+    $compiled = 0;
+    $nb_compilations = count($execs);
+    
+    while ($compiled < $nb_compilations)
+    {
+        $new_compiled = 0;
+        $current_cmd  = "";
+
+        foreach ($execs as $exec)
+        {
+            list($cwd, $loc, $cmd, $prev_loc) = $exec;
+            $exec_base64 = base64_encode(json_encode($exec));
+            $cache_filename = "$main_src/.cache/".md5($exec_base64).".html";
+
+            if (is_file($cache_filename)) ++$new_compiled;
+            else $current_cmd = "".(!!$loc ? $loc : $cwd)."> $cmd";
+        }
+
+        if ($new_compiled > $compiled)
+        {
+            $compiled = $new_compiled;
+            static_log($compiled, $nb_compilations, "[i] Async compile: $current_cmd");
+        }
+    }
+
+    sleep(1);
+    static_log("[i] Async compile: DONE!");
+
+    // PASS #3 - Do all our logic
+
+    $file_index = 0;
+    $roots = array(array($main_src, $main_dst));
+
+    while (count($roots) > 0)
+    {
+        $dir = array_shift($roots);
+
+        $src = $dir[0];
+        $dst = $dir[1];
+
+        foreach (static_scan($src) as $name)
+        {
+            if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
+
+            $pathinfo  = pathinfo("$src/$name");
+            $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
+            
+            if ($extension == "php"
+            ||  $extension == "css"
+            ||  $extension == "js")
+            {
+                $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
                 $static_name = str_replace(".php", ".$target_ext", $name);  
                 static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
@@ -747,19 +911,27 @@ if (!!$cmdline_option_compile)
                     $static_name = str_replace(".php", ".$target_ext", $name);            
                     static_log($file_index, $nb_files, "[i] $dst/$static_name", "$file_index / $nb_files: $name -> COMPILE");
                 }
+                
+                $html = false;
+                $derivative_outputs = array();
 
                 if ($name == "index.php")
                 {
                     // Assumes index.php are implicitely included from their directory
+                                       
+                    $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args", getcwd() ]))).".html");
 
-                    $cwd = getcwd();
-                    chdir($src);
+                    if (!$html)
                     {
-                        $html = static_exec("php -f $name -- $php_args");
+                        $cwd = getcwd();
+                        chdir($src);
+                        {
+                            $html = static_exec("php -f $name -- $php_args");
 
-                        static_compile_error_check($html, "$src/$name");
+                            static_compile_error_check($html, "$src/$name");
+                        }
+                        chdir($cwd);
                     }
-                    chdir($cwd);
 
                     foreach ($derivatives as $type)
                     {
@@ -768,17 +940,22 @@ if (!!$cmdline_option_compile)
                             $static_name = str_replace(".php", ".$target_ext", $name);
                             static_log($file_index, $nb_files, "[i] $dst/$static_name -> $type", "$file_index / $nb_files: $name -> COMPILE $type");
                         }
-        
-                        $cwd = getcwd();
-                        chdir($src);
-                        {
-                            $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
-           
-                            $derivative_outputs[$type] = static_exec("php -f $name -- $php_args $type_arg".  " rss_date_granularity_daily=1");
+            
+                        $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
+                          
+                        $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ]))).".html");
 
-                            static_compile_error_check($derivative_outputs[$type], "$src/$name $type");
+                        if (!$html)
+                        {
+                            $cwd = getcwd();
+                            chdir($src);
+                            {
+                                $derivative_outputs[$type] = static_exec("php -f $name -- $php_args $type_arg rss_date_granularity_daily=1");
+
+                                static_compile_error_check($derivative_outputs[$type], "$src/$name $type");
+                            }
+                            chdir($cwd);
                         }
-                        chdir($cwd);
                     }
                 }
                 else
@@ -788,12 +965,18 @@ if (!!$cmdline_option_compile)
                         static_log($file_index, $nb_files, "[i] $dst/$name", "$file_index / $nb_files: $name -> COMPILE");
                     }
     
-                  //Assumes other php files have to be able to be included from anywhere
-                    $html = static_exec("php -f $src/$name -- $php_args");
+                    // Assumes other php files have to be able to be included from anywhere
+                                              
+                    $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), false, "php -f $src/$name -- $php_args", false ]))).".html");
+
+                    if (!$html)
+                    {
+                        $html = static_exec("php -f $src/$name -- $php_args");
+                    }
 
                     if ($extension == "js" && !$html || $html == "")
                     {
-                        $html = '/* empty */';
+                        $html = '/'.'* empty *'.'/';
                     }
                     
                     static_compile_error_check($html, "$src/$name html");
@@ -885,6 +1068,8 @@ if (!!$cmdline_option_compile)
             }        
         }
     }
+
+    // DONE
     
     static_log("[i] Compiling... OK");
 }

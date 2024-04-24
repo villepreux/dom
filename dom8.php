@@ -12997,7 +12997,7 @@
         }
     
         register_async($f);
-        
+
         return ajax_call_with_args($f, $async_params, $args, $get, $post, $session);
     }
     
