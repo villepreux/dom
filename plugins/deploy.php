@@ -24,6 +24,7 @@ $cmdline_option_beautify                = arg_state("beautify", 1, arg_state("de
 $cmdline_option_os                      = arg_state("unix", "unix", "win");
 $cmdline_option_copy                    = arg_state("copy");
 $cmdline_option_compile                 = arg_state("compile");
+$cmdline_option_mt                      = arg_state("mt");
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
@@ -810,60 +811,79 @@ if (!!$cmdline_option_compile)
         }
     }
 
+    $sync_async = $cmdline_option_mt ? "ASync" : "Sync";
+
     if (is_dir("$main_src/.cache")) 
     {   
-        static_log("[i] Async compile: Wipe .cache folder $main_src/.cache");
+        static_log("[i] $sync_async compile: Wipe .cache folder $main_src/.cache");
     
         $cwd = getcwd();
         chdir($main_src);
         static_exec("rmdir /s /q .cache");
         chdir($cwd);    
     }
-    
-    static_log("[i] Async compile: Creating .cache folder $main_src/.cache");
 
-    $cwd = getcwd();
-    chdir($main_src);
-    static_exec("mkdir .cache");
-    chdir($cwd);
+    if ($cmdline_option_mt)
+    {    
+        static_log("[i] $sync_async compile: Creating .cache folder $main_src/.cache");
 
-    foreach ($execs as $exec)
-    {
-        list($cwd, $loc, $cmd, $prev_loc) = $exec;
-        $exec_base64 = base64_encode(json_encode($exec));
-        static_log("[i] Async compile: ".(!!$loc ? $loc : $cwd)."> $cmd");
-        async_exec("php static.php --compile-one=$exec_base64");
-    }
-
-    static_log("[i] Async compile: Wait for all processes to be completed");
-
-    $compiled = 0;
-    $nb_compilations = count($execs);
-    
-    while ($compiled < $nb_compilations)
-    {
-        $new_compiled = 0;
-        $current_cmd  = "";
+        $cwd = getcwd();
+        chdir($main_src);
+        static_exec("mkdir .cache");
+        chdir($cwd);
 
         foreach ($execs as $exec)
         {
             list($cwd, $loc, $cmd, $prev_loc) = $exec;
             $exec_base64 = base64_encode(json_encode($exec));
-            $cache_filename = "$main_src/.cache/".md5($exec_base64).".html";
 
-            if (is_file($cache_filename)) ++$new_compiled;
-            else $current_cmd = "".(!!$loc ? $loc : $cwd)."> $cmd";
+            static_log("[i] $sync_async compile: ".(!!$loc ? $loc : $cwd)."> $cmd");
+
+            if ($cmdline_option_mt)
+            {
+                async_exec("php static.php --compile-one=$exec_base64");
+            }
+            else
+            {
+                $html = "";
+                if (!!$loc) chdir($loc);
+                if (!!$cmd) $html = static_exec($cmd);
+                if (!!$prev_loc) chdir($prev_loc);
+                $cache_filename = "$main_src/.cache/".md5($exec_base64).".html";
+                file_put_contents($cache_filename, $html);
+            }
         }
 
-        if ($new_compiled > $compiled)
+        static_log("[i] $sync_async compile: Wait for all processes to be completed");
+
+        $compiled = 0;
+        $nb_compilations = count($execs);
+        
+        while ($compiled < $nb_compilations)
         {
-            $compiled = $new_compiled;
-            static_log($compiled, $nb_compilations, "[i] Async compile: $current_cmd");
-        }
-    }
+            $new_compiled = 0;
+            $current_cmd  = "";
 
-    sleep(1);
-    static_log("[i] Async compile: DONE!");
+            foreach ($execs as $exec)
+            {
+                list($cwd, $loc, $cmd, $prev_loc) = $exec;
+                $exec_base64 = base64_encode(json_encode($exec));
+                $cache_filename = "$main_src/.cache/".md5($exec_base64).".html";
+
+                if (is_file($cache_filename)) ++$new_compiled;
+                else $current_cmd = "".(!!$loc ? $loc : $cwd)."> $cmd";
+            }
+
+            if ($new_compiled > $compiled)
+            {
+                $compiled = $new_compiled;
+                static_log($compiled, $nb_compilations, "[i] $sync_async compile: $current_cmd");
+            }
+        }
+
+        sleep(1);
+        static_log("[i] $sync_async compile: DONE!");
+    }
 
     // PASS #3 - Do all our logic
 
@@ -918,8 +938,11 @@ if (!!$cmdline_option_compile)
                 if ($name == "index.php")
                 {
                     // Assumes index.php are implicitely included from their directory
-                                       
-                    $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args", getcwd() ]))).".html");
+                
+                    if ($cmdline_option_mt)
+                    {
+                        $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args", getcwd() ]))).".html");
+                    }
 
                     if (!$html)
                     {
@@ -942,10 +965,15 @@ if (!!$cmdline_option_compile)
                         }
             
                         $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
-                          
-                        $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ]))).".html");
 
-                        if (!$html)
+                        $derivative_outputs[$type] = false;
+                          
+                        if ($cmdline_option_mt)
+                        {
+                            $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ]))).".html");
+                        }
+
+                        if (!$derivative_outputs[$type])
                         {
                             $cwd = getcwd();
                             chdir($src);
@@ -955,6 +983,11 @@ if (!!$cmdline_option_compile)
                                 static_compile_error_check($derivative_outputs[$type], "$src/$name $type");
                             }
                             chdir($cwd);
+                        }
+
+                        if (false === $derivative_outputs[$type])
+                        {
+                            unset($derivative_outputs[$type]);
                         }
                     }
                 }
@@ -967,7 +1000,10 @@ if (!!$cmdline_option_compile)
     
                     // Assumes other php files have to be able to be included from anywhere
                                               
-                    $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), false, "php -f $src/$name -- $php_args", false ]))).".html");
+                    if ($cmdline_option_mt)
+                    {
+                        $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), false, "php -f $src/$name -- $php_args", false ]))).".html");
+                    }
 
                     if (!$html)
                     {
