@@ -10280,7 +10280,7 @@
 
                             change.target.removeAttribute("src");
                             change.target.removeAttribute("data-src");
-                                                                                <?php if (!get("lazy_unload")) { ?> 
+                                                                                <?php if (!get("lazy-unload")) { ?> 
                             change.target.classList.remove("lazy-observed"); 
                             change.target.classList.remove("lazy");            <?php } ?> 
                             change.target.classList.remove("loading"); 
@@ -10291,12 +10291,12 @@
 
                             change.target.setAttribute("src", datasrc);
                         
-                        };                                          <?php if (!get("lazy_unload")) { ?> 
+                        };                                          <?php if (!get("lazy-unload")) { ?> 
                         
                         observer.unobserve(change.target);          <?php } ?> 
                     }                                           
                     else
-                    {                                                                       <?php if (!!get("lazy_unload")) { ?>
+                    {                                                                       <?php if (!!get("lazy-unload")) { ?>
                         if (change.target.classList.contains("lazy-loaded")) {
     
                             change.target.parentElement.querySelectorAll("source[srcset]").forEach(function (source) {
@@ -10546,7 +10546,7 @@
         if (has("ajax")) return "";
 
         global $hook_need_lazy_loding;
-        $images_loading = !!get("script_images_loading", true) && count($hook_need_lazy_loding) > 0;
+        $images_loading = !!get("script-images-loading", true) && count($hook_need_lazy_loding) > 0;
 
         return  script_third_parties              ().
                 script_ajax_body                  ().
@@ -11149,7 +11149,7 @@
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
         // TODO replace $classes by $attributes
 
-        if (!get("script_images_loading") && $lazy === true) $lazy = auto;
+        if (!get("script-images-loading") && $lazy === true) $lazy = auto;
 
         $w = ($w === false) ? "300" : $w;
         $h = ($h === false) ? "200" : $h;
@@ -12119,7 +12119,7 @@
     
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto)
     {
-        if (!get("script_images_loading") && $lazy === true) $lazy = auto;
+        if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
         if (auto === $lazy_src)         $lazy_src       = false;
