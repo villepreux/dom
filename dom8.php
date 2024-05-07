@@ -2300,10 +2300,12 @@
         global $__last_headline_level;
         $__last_headline_level = (int)$h;
 
-        if ($h == 1) hook_title($title);
-        if ($h == 2) hook_section($title, $section);
+        if ($h == 1) $title = hook_title($title);
+        if ($h == 2) list($title, $section) = hook_section($title, $section);
 
         call_user_hook("headline", $title);
+
+        return [ $h, $title, $section ];
     }
 
     function get_last_headline_level()
@@ -2332,35 +2334,36 @@
             $title = trim(clean_from_tags($title));
             set("title", $title);
         }        
+
+        return $title;
     }
 
     function hook_section($title, $section = false)
-    {
-        if (false === $section) $section = $title;
+    {   
+        $f = get("hook_section_filter");
 
-        $title   = trim(clean_from_tags($title));
-        $section = trim(clean_from_tags($section));
-
-        $title_and_link = array($section, "#".anchor_name($title));
-        
-        if (!!get("hook_section_filter"))
+        if (!!$f && is_callable($f))
         {
-            $f = get("hook_section_filter");
-
-            if (is_callable($f))
+            $hook_result = $f(false === $section ? $title : $section);
+            
+            if (false === $hook_result)
             {
-                $modified_title = $f($title);
+                return [ $title, $section ];
+            }
 
-                if (false === $modified_title)
-                {
-                    return "";
-                }
-
-                $title_and_link = array($modified_title, "#".anchor_name($title));
+            if (is_array($hook_result))
+            {
+                list($title, $section) = $hook_result;
+            }
+            else
+            {
+                $section = $hook_result;
             }
         }
 
-        set("hook_sections", array_merge(get("hook_sections", array()), array($title_and_link)));
+        set("hook_sections", array_merge(get("hook_sections", array()), array(array(trim(clean_from_tags($section)), "#".anchor_name(trim(clean_from_tags($section)))))));
+
+        return [ $title, $section ];
     }
     
     function hook_heading($heading)
@@ -11001,7 +11004,7 @@
         
         if ($headline_hook)
         {
-            hook_headline($h, $html, $anchor);
+            list($h, $html, $anchor) = hook_headline($h, $html, $anchor);
         }
         
         $attributes = attributes_add($attributes, attr("class", component_class("h$h")                   ));
