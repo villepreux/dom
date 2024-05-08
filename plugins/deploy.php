@@ -389,8 +389,15 @@ function static_compile_error_check($html, $src)
             global $cmdline_option_compile_one;
             if (!$cmdline_option_compile_one)
             {
+                if (strlen($html) > 1024*1024)
+                {
+                    $html = substr($html, 0, 1024*1024/2)."[...]".substr($html, 1024*1024/2);
+                }
+
+                $html_lines = explode(PHP_EOL, $html);
+
                 error_log(PHP_EOL."-----------------------");
-                error_log(PHP_EOL.$html);
+                foreach ($html_lines as $html) error_log(PHP_EOL.$html);
                 error_log(PHP_EOL."-----------------------");
                 error_log(PHP_EOL."Error while compiling $src");
                 error_log(PHP_EOL."-----------------------");
@@ -398,7 +405,7 @@ function static_compile_error_check($html, $src)
                 echo(PHP_EOL."-----------------------");
                 echo(PHP_EOL."Error while compiling $src");
                 echo(PHP_EOL."-----------------------");
-                echo(PHP_EOL.$html);
+                foreach ($html_lines as $html) echo(PHP_EOL.$html);
                 echo(PHP_EOL."-----------------------");
             }
             
@@ -755,7 +762,7 @@ if (!!$cmdline_option_compile)
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
                 $static_name = str_replace(".php", ".$target_ext", $name);  
-                static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
+                //static_log($file_index, $nb_files, "[i] $dst/$static_name", "");
 
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {
@@ -764,7 +771,7 @@ if (!!$cmdline_option_compile)
                     
                     if ($t_to >= $t_from) 
                     {
-                        static_log($file_index, $nb_files);
+                        //static_log($file_index, $nb_files);
                         ++$file_index;
                         continue;
                     }
@@ -773,7 +780,7 @@ if (!!$cmdline_option_compile)
                 if (!!$cmdline_option_verbose)
                 {
                     $static_name = str_replace(".php", ".$target_ext", $name);            
-                    static_log($file_index, $nb_files, "[i] $dst/$static_name", "$file_index / $nb_files: $name -> COMPILE");
+                    //static_log($file_index, $nb_files, "[i] $dst/$static_name", "$file_index / $nb_files: $name -> COMPILE");
                 }
                 
                 $html = false;
@@ -961,7 +968,7 @@ if (!!$cmdline_option_compile)
                         if (!!$cmdline_option_verbose)
                         {
                             $static_name = str_replace(".php", ".$target_ext", $name);
-                            static_log($file_index, $nb_files, "[i] $dst/$static_name -> $type", "$file_index / $nb_files: $name -> COMPILE $type");
+                            static_log($file_index, $nb_files, "[i] $dst/$static_name -> $type", "$file_index / $nb_files: $name -> $type COMPILE");
                         }
             
                         $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";

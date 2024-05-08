@@ -5560,7 +5560,7 @@
                     $dst_path = get("generate_dst")."/".$generated["path"];
                 }
 
-                $old_content = file_get_contents($dst_path);
+                $old_content = @file_get_contents($dst_path);
 
                 $fn = $generated["function"];
                 if (!is_callable($fn)) $fn = "dom\\$fn";
@@ -5570,6 +5570,24 @@
 
                 if ($new_content != $old_content)
                 {
+                    $dst_path = str_replace("\\", "/", $dst_path);
+                    
+                    // Build intermediate folders if needed
+                    {
+                        $intermediate_folders = explode("/", $dst_path);
+
+                        $cwd = getcwd();
+                        
+                        while (count($intermediate_folders) > 1)
+                        {
+                            $dir = array_shift($intermediate_folders);
+                            if (!is_dir($dir)) @mkdir($dir);
+                            @chdir($dir);
+                        }
+
+                        chdir($cwd);
+                    }
+
                     //die(print_r(["666" => [ "generated" => $generated, "new_content" => $new_content,  "old_content" => $old_content ] ], true));
                     file_put_contents($dst_path, $new_content);
                 }
@@ -10355,7 +10373,9 @@
                 setTimeout(scan_images, 0);
 
                 /* Images lookup after any ajax query result (that might have modified the DOM and inserted new images */
+                <?php if (get("script-images-loading-auto-scan-on-ajax", true)) { ?>
                 on_ajax(scan_images);
+                <?php } ?>
             
                 });
 
