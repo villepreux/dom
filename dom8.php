@@ -2300,7 +2300,7 @@
         global $__last_headline_level;
         $__last_headline_level = (int)$h;
 
-        if ($h == 1) $title = hook_title($title);
+        if ($h == 1)      $title            = hook_title($title);
         if ($h == 2) list($title, $section) = hook_section($title, $section);
 
         call_user_hook("headline", $title);
@@ -2339,7 +2339,9 @@
     }
 
     function hook_section($title, $section = false)
-    {   
+    {           
+        if (false === $section) $section = $title;
+
         $f = get("hook_section_filter");
 
         if (!!$f && is_callable($f))
