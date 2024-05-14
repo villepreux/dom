@@ -7764,16 +7764,16 @@
             .   meta('ICBM',                                get("geo_position_x").', '.get("geo_position_y"))              
             
             .   eol()       
-            .   meta('twitter:card',                        'summary')                  . (has('twitter_page') ? (""
-            .   meta('twitter:site',                        get("twitter_page"))    ) : "")
+            .   meta('twitter:card',                        'summary_large_image')      . (has('twitter_page') ? (""
+            .   meta('twitter:site',                        get("twitter_page"))        ) : "")
             .   meta('twitter:url',                         get("canonical"))
             .   meta('twitter:title',                       get("title"))
             .   meta('twitter:description',                 get("description", get("title")))
-            .   meta('twitter:image',                       path(get("image")))
+            .   meta('twitter:image',                       path(get("canonical").'/'.get("image")))
             
             .   eol()       
             .   meta_property('og:site_name',               get("og_site_name", get("title")))
-            .   meta_property('og:image',                   path(get("image")))
+            .   meta_property('og:image',                   path(get("canonical").'/'.get("image")))
             .   meta_property('og:title',                   get("title"))
             .   meta_property('og:description',             get("description", get("title")))
             .   meta_property('og:url',                     get("canonical"))            
@@ -10466,11 +10466,11 @@
             dom.resize_callbacks = Array();
             dom.ajax_callbacks   = Array();
 
-            function process_callbacks(callbacks, log, clear)
+            function process_callbacks(callbacks, log, clear, event)
             {
-                if (typeof log != "undefined" && log) dom.log("DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
-                callbacks.every(function(callback) { return (false !== callback()); });
-                if (typeof log != "undefined" && clear) callbacks = [];
+                if (typeof log != "undefined" && !!log) dom.log("DOCUMENT " + log + " : Processing " + callbacks.length + " CALLBACKS");
+                callbacks.every(function(callback) { return (false !== callback(event)); });
+                if (typeof clear != "undefined" && !!clear) callbacks = [];
             }
 
             dom.clear_callbacks = function ()
@@ -10525,7 +10525,7 @@
                 if (was_not_ready_and_loaded && event_ready && event_loaded) { process_loaded_callbacks(); }
             }
 
-            function on_ajax_reception() { process_callbacks(dom.ajax_callbacks); }
+            function on_ajax_reception(event) { process_callbacks(dom.ajax_callbacks, undefined, undefined, event); }
 
             dom.on_ready                = on_ready;
             dom.on_loaded               = on_loaded;
@@ -10548,8 +10548,8 @@
             if (document.readyState != "loading")                         { on_init_event("ready");  }
             else document.addEventListener("DOMContentLoaded", function() { on_init_event("ready");  } );
         
-            window.addEventListener("scroll", function() { if (event_ready && event_loaded) { process_callbacks(dom.scroll_callbacks); } });
-            window.addEventListener("resize", function() { if (event_ready && event_loaded) { process_callbacks(dom.resize_callbacks); } });
+            window.addEventListener("scroll", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.scroll_callbacks, undefined, undefined, event); } });
+            window.addEventListener("resize", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.resize_callbacks, undefined, undefined, event); } });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
