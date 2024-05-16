@@ -383,15 +383,16 @@ function static_compile_error_check($html, $src)
         if ((false !== stripos($html, "127.0.0.1"))
         ||  (false !== stripos($html, "Notice:"  ) && false !== stripos($html, "Call Stack:"))
         ||  (false !== stripos($html, "Warning:" ) && false !== stripos($html, "Call Stack:"))
-        ||  (false !== stripos($html, "Error:"   ) && false !== stripos($html, "Call Stack:")))
+        ||  (false !== stripos($html, "Error:"   ) && false !== stripos($html, "Call Stack:"))
+        ||  (false !== stripos($html, "[COMPILE ERROR]"  )))
         { 
           
             global $cmdline_option_compile_one;
             if (!$cmdline_option_compile_one)
             {
-                if (strlen($html) > 1024*1024)
+                if (strlen($html) > 1024*160)
                 {
-                    $html = substr($html, 0, 1024*1024/2)."[...]".substr($html, 1024*1024/2);
+                    $html = substr($html, 0, 1024*160/2)."[...]".substr($html, 1024*160/2);
                 }
 
                 $html_lines = explode(PHP_EOL, $html);
