@@ -11076,8 +11076,11 @@
 
     function form           ($html = "", $attributes = false) { hook_amp_require("form");   return  tag('form',                       $html,                                                $attributes                                                         );                      }
 
-    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),        attr("id" , $id), attr("type", "checkbox") ) ));  }
-    function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')), attr("for", $id)                           ) ));  }
+    function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),                attr("id" , $id), attr("type", "checkbox") ) ));  }
+    function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')),  attr("for", $id)                           ) ));  }
+
+    function radio          ($group, $id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('radio')),               attr("name" , $group), attr("id" , $id), attr("type", "radio") ) ));  }
+    function radio_label    ($group, $id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','radio-label')), attr("for", $id)                           ) ));  }
 
     function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes_add_class(  $attributes, component_class('button'))                             );                      }
     function button_label   ($html = "", $attributes = false) {                             return  tag('span',                       $html,                     attributes_add_class(  $attributes, component_class('label','button-label'))                       );                      }
