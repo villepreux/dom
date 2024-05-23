@@ -31,6 +31,7 @@ $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
 $cmdline_option_spa                     = arg_state("spa");
 $cmdline_option_lunr                    = arg_state("lunr");
+$cmdline_option_blogroll                = arg_state("blogroll");
 $cmdline_option_minify                  = arg_state("minify", 1, !arg_state("beautify"));
 $cmdline_option_include                 = arg_array("include");
 $cmdline_option_exclude                 = array_merge(arg_array("exclude"), array("netlify", "static", "gemini"));
@@ -478,6 +479,7 @@ $cmdline_values = [
     "cmdline_option_netlify"       ,
     "cmdline_option_spa"           ,
     "cmdline_option_lunr"          ,
+    "cmdline_option_blogroll"      ,
     "cmdline_option_minify"        ,
     "cmdline_option_include"       ,
     "cmdline_option_exclude"       ,
@@ -1283,6 +1285,24 @@ if (!!$cmdline_option_lunr)
     chdir($cwd);
 
     static_log("[i] generating files - LUNR index... OK");
+}
+
+if (!!$cmdline_option_blogroll)
+{
+    static_log("[i] generating files - blogroll opml...");
+
+    $cwd = getcwd();
+    chdir($main_src);
+    {
+        $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst));
+
+        $xml = static_exec("php -f ./blogroll/opml/index.php -- $php_args static=0", false);
+        file_put_contents("$main_src/blogroll.opml", $xml);
+        static_log("[+] $main_src/blogroll.opml");
+    }
+    chdir($cwd);
+
+    static_log("[i] generating files - blogroll opml... OK");
 }
 
 if (!!$cmdline_option_netlify)
