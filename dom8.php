@@ -2300,9 +2300,30 @@
         global $__last_headline_level;
         $__last_headline_level = (int)$h;
 
+        $f = get("hook_headline_filter");
+
+        if (!!$f && is_callable($f))
+        {
+            $hook_result = $f(false === $section ? $title : $section);
+            
+            if (false === $hook_result)
+            {
+                return [ $title, $section ];
+            }
+
+            if (is_array($hook_result))
+            {
+                list($title, $section) = $hook_result;
+            }
+            else
+            {
+                $section = $hook_result;
+            }
+        }
+
         if ($h == 1)      $title            = hook_title($title);
         if ($h == 2) list($title, $section) = hook_section($title, $section);
-
+        
         call_user_hook("headline", $title);
 
         return [ $h, $title, $section ];
@@ -5700,7 +5721,8 @@
     function url_leboncoin                  ($url = false)                      { return ($url === false) ? get("leboncoin_url", get("leboncoin", "https://www.leboncoin.fr")) : $url; }
     function url_seloger                    ($url = false)                      { return ($url === false) ? get("seloger_url",   get("seloger",   "https://www.seloger.com"))  : $url; }
         
-    function url_void                       ()                                  { return "#!"; }
+  //function url_void                       ()                                  { return "#!"; }
+    function url_void                       ()                                  { return "javascript:void(0)"; } // As #! jumps on the page.
     function url_print                      ()                                  { return AMP() ? url_void() : "javascript:scan_and_print();"; }
     
     #endregion
@@ -5848,7 +5870,7 @@
             $children           = $tree["children"];
 
             $func_name = str_replace("-", "_", $node_name);
-
+            
             $children_html = "";
 
             foreach ($children as $child)
@@ -8178,6 +8200,7 @@
             /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
             input, textarea {
                 -webkit-user-select: auto;
+                user-select: auto;
             }
 
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -8216,7 +8239,9 @@
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
+                line-break: after-white-space;
                 -webkit-user-select: auto;
+                user-select: auto;
             }
 
             /* apply back the draggable feature - exist only in Chromium and Safari */
@@ -8280,7 +8305,7 @@
             
             category: global
             */
-            html { line-sizing: normal; }
+            <?= "html { line-sizing: normal; }" /* Inside phh string as this draft property is currently a VS-CODE WARNING */ ?> 
             
             
             /* @docs
@@ -8396,9 +8421,11 @@
             category: embedded elements
             */
             img, svg, video, canvas, audio, iframe, embed, object {
-            display: block;
-            vertical-align: middle;
-            max-width: 100%;
+                display: block;
+                max-width: 100%;
+            }
+            img, svg, video, canvas, audio, iframe, embed, object {
+                vertical-align: middle;
             }
             audio:not([controls]) { display:none; }
             
@@ -9007,21 +9034,21 @@
             --light-link-color:                         <?= user_color("light", [                      "link_color", "theme_color"  ], "var(--light-theme-color,  var(--theme-color,  #aa4455))") ?>;
             --light-link-color-accent:                  <?= user_color("light", [ "link_color_accent", "link_color", "accent_color" ], "var(--light-accent-color, var(--accent-color, #cc1133))") ?>;
 
-            --light-text-on-background-darker-color:    #000000;
-            --light-text-on-background-color:           #0d0d0d;
-            --light-text-on-background-lighter-color:   #1a1a1a;
+            --light-text-on-background-darker-color:    <?= "#000000" ?>;
+            --light-text-on-background-color:           <?= "#0d0d0d" ?>;
+            --light-text-on-background-lighter-color:   <?= "#1a1a1a" ?>;
 
-            --light-background-darker-color:            #e5e5e5;
-            --light-background-color:                   #f2f2f2;
-            --light-background-lighter-color:           #ffffff;
+            --light-background-darker-color:            <?= "#e5e5e5" ?>;
+            --light-background-color:                   <?= "#f2f2f2" ?>;
+            --light-background-lighter-color:           <?= "#ffffff" ?>;
             
-            --light-text-on-theme-darker-color:         #e5e5e5;
-            --light-text-on-theme-color:                #f2f2f2;
-            --light-text-on-theme-lighter-color:        #ffffff;
+            --light-text-on-theme-darker-color:         <?= "#e5e5e5" ?>;
+            --light-text-on-theme-color:                <?= "#f2f2f2" ?>;
+            --light-text-on-theme-lighter-color:        <?= "#ffffff" ?>;
 
-            --light-text-on-accent-darker-color:        #e5e5e5;
-            --light-text-on-accent-color:               #f2f2f2;
-            --light-text-on-accent-lighter-color:       #ffffff;
+            --light-text-on-accent-darker-color:        <?= "#e5e5e5" ?>;
+            --light-text-on-accent-color:               <?= "#f2f2f2" ?>;
+            --light-text-on-accent-lighter-color:       <?= "#ffffff" ?>;
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -9036,21 +9063,21 @@
             --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #cb9ecb))") ?>;
             --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #ff77e0))") ?>;
 
-            --dark-text-on-background-darker-color:     #e5e5e5;
-            --dark-text-on-background-color:            #f2f2f2;
-            --dark-text-on-background-lighter-color:    #ffffff;
+            --dark-text-on-background-darker-color:     <?= "#e5e5e5" ?>;
+            --dark-text-on-background-color:            <?= "#f2f2f2" ?>;
+            --dark-text-on-background-lighter-color:    <?= "#ffffff" ?>;
             
-            --dark-background-darker-color:             #101012; /* #000000 no need to be that dark anymore with new default font sizez */
-            --dark-background-color:                    #161618; /* #0d0d0d no need to be that dark anymore with new default font sizez */
-            --dark-background-lighter-color:            #191920; /* #1a1a1a no need to be that dark anymore with new default font sizez */
+            --dark-background-darker-color:             <?= "#101012" ?>; /* #000000 no need to be that dark anymore with new default font sizez */
+            --dark-background-color:                    <?= "#161618" ?>; /* #0d0d0d no need to be that dark anymore with new default font sizez */
+            --dark-background-lighter-color:            <?= "#191920" ?>; /* #1a1a1a no need to be that dark anymore with new default font sizez */
             
-            --dark-text-on-theme-darker-color:          #000000;
-            --dark-text-on-theme-color:                 #0d0d0d;
-            --dark-text-on-theme-lighter-color:         #1a1a1a;
+            --dark-text-on-theme-darker-color:          <?= "#000000" ?>;
+            --dark-text-on-theme-color:                 <?= "#0d0d0d" ?>;
+            --dark-text-on-theme-lighter-color:         <?= "#1a1a1a" ?>;
             
-            --dark-text-on-accent-darker-color:         #000000;
-            --dark-text-on-accent-color:                #0d0d0d;
-            --dark-text-on-accent-lighter-color:        #1a1a1a;
+            --dark-text-on-accent-darker-color:         <?= "#000000" ?>;
+            --dark-text-on-accent-color:                <?= "#0d0d0d" ?>;
+            --dark-text-on-accent-lighter-color:        <?= "#1a1a1a" ?>;
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -9059,27 +9086,27 @@
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
     
-            --print-theme-color:                        #222222;
-            --print-accent-color:                       #000000;
+            --print-theme-color:                        <?= "#222222" ?>;
+            --print-accent-color:                       <?= "#000000" ?>;
 
-            --print-link-color:                         #1b35ff;
-            --print-link-color-accent:                  #0000ff;
+            --print-link-color:                         <?= "#1b35ff" ?>;
+            --print-link-color-accent:                  <?= "#0000ff" ?>;
 
-            --print-text-on-background-darker-color:    #eeeeee;
-            --print-text-on-background-color:           #f7f7f7;
-            --print-text-on-background-lighter-color:   #ffffff;
+            --print-text-on-background-darker-color:    <?= "#eeeeee" ?>;
+            --print-text-on-background-color:           <?= "#f7f7f7" ?>;
+            --print-text-on-background-lighter-color:   <?= "#ffffff" ?>;
             
-            --print-background-darker-color:            #dddddd;
-            --print-background-color:                   #eeeeee;
-            --print-background-lighter-color:           #ffffff;
+            --print-background-darker-color:            <?= "#dddddd" ?>;
+            --print-background-color:                   <?= "#eeeeee" ?>;
+            --print-background-lighter-color:           <?= "#ffffff" ?>;
             
-            --print-text-on-theme-darker-color:         #dddddd;
-            --print-text-on-theme-color:                #eeeeee;
-            --print-text-on-theme-lighter-color:        #ffffff;
+            --print-text-on-theme-darker-color:         <?= "#dddddd" ?>;
+            --print-text-on-theme-color:                <?= "#eeeeee" ?>;
+            --print-text-on-theme-lighter-color:        <?= "#ffffff" ?>;
             
-            --print-text-on-accent-darker-color:        #dddddd;
-            --print-text-on-accent-color:               #eeeeee;
-            --print-text-on-accent-lighter-color:       #ffffff;
+            --print-text-on-accent-darker-color:        <?= "#dddddd" ?>;
+            --print-text-on-accent-color:               <?= "#eeeeee" ?>;
+            --print-text-on-accent-lighter-color:       <?= "#ffffff" ?>;
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -9156,9 +9183,9 @@
             --text-on-accent-color:             var(--<?= $theme ?>-text-on-accent-color,                   #f2f2f2);
             --text-on-accent-color-accent:      var(--<?= $theme ?>-text-on-accent-<?= $theme ?>er-color,   #ffffff);
 
-            --text-darker-color:                var(--text-on-background-darker-color   );
-            --text-color:                       var(--text-on-background-color          );
-            --text-lighter-color:               var(--text-on-background-lighter-color  );
+            --text-darker-color:                <?= "var(--text-on-background-darker-color   );" ?>
+            --text-color:                       <?= "var(--text-on-background-color          );" ?>
+            --text-lighter-color:               <?= "var(--text-on-background-lighter-color  );" ?>
 
             --transparent-fill-color:       transparent;
 
@@ -9211,19 +9238,25 @@
             /* Provide a way to dynamically change theme via a data-colorscheme attribute */
 
             [data-colorscheme='light'] {
+                --theme: "light";
                 <?= css_vars_color_scheme("light", 1) ?> 
             }
 
             [data-colorscheme='dark'] {
+                --theme: "dark";
                 <?= css_vars_color_scheme("dark", 1) ?> 
             }
 
             /* Print */
 
+            :root {
+                --style-media: "screen";
+            }
+
             @media print {
 
                 :root {
-
+                    --style-media: "print";
                     <?= css_vars_color_scheme("print", 2) ?> 
                 }
             }
@@ -9244,11 +9277,13 @@
 
             [data-colorscheme="light"] {
 
+                --theme: "light";
                 <?= $css_light ?> 
             }
 
             [data-colorscheme="dark"] {
 
+                --theme: "dark";
                 <?= $css_dark ?> 
             }
 
@@ -9343,8 +9378,8 @@
             u, del          { text-decoration-color: red; }
             
             kbd {
-                border-color:       var(--background-darker-color, var(--border-color, currentColor));
-                box-shadow-color:   var(--background-darker-color);
+                border-color:       var(--background-darker-color, var(--border-color, currentColor));/*
+                box-shadow-color:   var(--background-darker-color);*/
                 box-shadow:         var(--background-darker-color);
                 box-shadow:         inset 0 -1px 0 0 var(--background-darker-color);
             }
@@ -9401,6 +9436,18 @@
             style[contenteditable="true"] {
                 background-color: var(--background-lighter-color);
                 border-color: var(--border-color);
+            }
+
+            /* Utilities */
+
+            .visually-hidden:not(:focus):not(:active) {
+                clip:           rect(0 0 0 0);
+                clip-path:      inset(50%);
+                height:         1px;
+                overflow:       hidden;
+                position:       absolute;
+                white-space:    nowrap;
+                width:          1px;
             }
 
             /* CD-TOP */
@@ -9548,7 +9595,7 @@
             a:not(nav a, [role="navigation"] a)         { text-decoration-thickness: 0.5px }
             a:not(nav a, [role="navigation"] a):hover   { text-decoration-thickness: 1.5px }
 
-            ins, abbr, acronym      { }    
+          /*ins, abbr, acronym      { } */
             u                       { text-decoration-style: wavy; }
     
             kbd {
@@ -11022,8 +11069,8 @@
         
     function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true)
     {
-        $h += get("main",         0);
-        $h += get("main-include", 0);
+        $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
+        $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
         
         if ($headline_hook)
         {
@@ -11132,7 +11179,7 @@
             $attributes = attributes_add($attributes, attr("id", "main"));
         }
 
-        return  tag("main", cosmetic(eol(1)).$html.cosmetic(eol(1)), $attributes); 
+        return tag("main", cosmetic(eol(1)).$html.cosmetic(eol(1)), $attributes); 
     }       
 
     function footer     ($html = "", $attributes = false) { $profiler = debug_track_timing(); return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
@@ -12310,6 +12357,8 @@
 
     function import_color($color)
     {
+        if (is_array($color)) { foreach ($color as $c) import_color($c); return; }
+
         global $used_colors;
         if (!in_array($color, $used_colors)) $used_colors[] = $color;
     }
@@ -12487,12 +12536,46 @@
     
     function unsplash_url_img_random($search,$w,$h,$random = auto) {
 
-             if ($random === auto)  $random = "&".rand(1111,9999);
-        else if ($random === true)      $random = "&".rand(1111,9999);
-        else if ($random === false)     $random = "&";
-        else                            $random = "&$random";
+        if ($random === false)
+        {
+            $seed = 0;
+        }
+        else if ($random === auto || $random == true)
+        {
+            $seed = rand(1111,9999);
+        }
+        else 
+        {
+            $seed = "$random";
+        }
 
-        return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search")))."$random.jpg";
+        $info = @json_decode(@file_get_contents("https://picsum.photos/seed/$seed/info"), true);
+
+        if (!!$info)
+        {
+            $id     = false;
+            $author = at($info, "author");
+            $url    = at($info, "url");
+
+            $copyright  = array("id" => $id, "author" => $author, "url" => $url);
+            $copyrights = get("unsplash_copyrights", array());
+
+            if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
+
+            if (!in_array($copyright, $copyrights))
+                set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
+        }
+
+        return "https://picsum.photos/seed/$seed/$w/$h.webp";
+        
+        
+        /*
+             if ($random === auto)  $random = "&".rand(1111,9999);
+        else if ($random === true)  $random = "&".rand(1111,9999);
+        else if ($random === false) $random = "&";
+        else                        $random = "&$random";
+
+        return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search")))."$random.jpg";*/
     }
 
     function unsplash_url_img($id, $w = false, $h = false, $author = false)
@@ -12508,8 +12591,7 @@
         $copyright  = array($id, $author);
         $copyrights = get("unsplash_copyrights", array());
 
-        if (is_localhost() && !!get("debug"))
-            $copyright [] = debug_backtrace();
+        if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
 
         if (!in_array($copyright, $copyrights))
             set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
