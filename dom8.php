@@ -884,6 +884,8 @@
                  if ($output == "<style>"  ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_css";
             else if ($output == "<script>" ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_js";
             else if ($output == "<html>"   ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_html";
+            else if ($output == "<xml>"    ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_xml";
+            else if ($output == "<opml>"   ) $heredoc_stack[count($heredoc_stack)-1]["next_transform"] = "raw_xml";
         }
 
         if (null !== $transform)
@@ -5810,7 +5812,8 @@
     function raw_js         ($js,   $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if ((!!get("minify") || !!get("minify_js"   ) || $force_minify) && $force_minify != "unminify") { $js   =   minify_js     ($js);   } return trim($js   ); }
     function raw_css        ($css,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if ((!!get("minify") || !!get("minify_css"  ) || $force_minify) && $force_minify != "unminify") { $css  =   minify_css    ($css);  } return trim($css  ); }
     function raw_php        ($php,  $force_minify = false)  { if (!!get("gemini")) return "";                                  if ((!!get("minify") || !!get("minify_php"  ) || $force_minify) && $force_minify != "unminify") { $php  =   minify_php    ($php);  } return trim($php  ); }
-
+    function raw_xml        ($xml,  $force_minify = false)  { if (!!get("gemini")) return ""; if (!!get("no_xml"))  return ''; if ((!!get("minify") || !!get("minify_xml"  ) || $force_minify) && $force_minify != "unminify") { $xml  = /*minify_xml*/  ($xml);  } return trim($xml  ); }
+    
     function include_html   ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify); }
     function include_css    ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify); }
     function include_js     ($filename, $force_minify = false, $silent_errors = auto) { return (has("rss") || !!get("no_js"))   ? '' : raw_js     (include_file($filename, $silent_errors), $force_minify); }
