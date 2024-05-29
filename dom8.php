@@ -1557,7 +1557,7 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl"], $profiling_annotation = false)
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false)
     {
         $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : $urls);
 
@@ -6180,6 +6180,39 @@
             . eol();
         }
     }
+    function diff($old, $new){
+        $matrix = array();
+        $maxlen = 0;
+        foreach($old as $oindex => $ovalue){
+            $nkeys = array_keys($new, $ovalue);
+            foreach($nkeys as $nindex){
+                $matrix[$oindex][$nindex] = isset($matrix[$oindex - 1][$nindex - 1]) ?
+                    $matrix[$oindex - 1][$nindex - 1] + 1 : 1;
+                if($matrix[$oindex][$nindex] > $maxlen){
+                    $maxlen = $matrix[$oindex][$nindex];
+                    $omax = $oindex + 1 - $maxlen;
+                    $nmax = $nindex + 1 - $maxlen;
+                }
+            }   
+        }
+        if($maxlen == 0) return array(array('d'=>$old, 'i'=>$new));
+        return array_merge(
+            diff(array_slice($old, 0, $omax), array_slice($new, 0, $nmax)),
+            array_slice($new, $nmax, $maxlen),
+            diff(array_slice($old, $omax + $maxlen), array_slice($new, $nmax + $maxlen)));
+    }
+    
+    function html_diff($old, $new){
+        $ret = '';
+        $diff = diff(preg_split("/[\s]+/", $old), preg_split("/[\s]+/", $new));
+        foreach($diff as $k){
+            if(is_array($k))
+                $ret .= (!empty($k['d'])?"<del>".implode(' ',$k['d'])."</del> ":'').
+                    (!empty($k['i'])?"<ins>".implode(' ',$k['i'])."</ins> ":'');
+            else $ret .= $k . ' ';
+        }
+        return $ret;
+    }
 
     function parse_delayed_components($html)
     {
@@ -6217,6 +6250,8 @@
                         $fn_delayed_component = $delayed_component;
                         if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
 
+                        $iterations = 0;
+
                         while (true)
                         {
                             $fn_get_placeholder_content_cb = function() use ($fn_delayed_component, $param, $html)
@@ -6242,6 +6277,13 @@
 
                             $new_html = placeholder_replace_once($delayed_component.$index, $fn_get_placeholder_content_cb, $html, "div");
                             if ($new_html == $html) break;
+
+                            if (++$iterations > 99)
+                            {
+                                ob_clean();
+                                die("<pre> DIFF ".html_diff($new_html, $html)."</pre>");
+                            }
+
                             $html = $new_html;
                         }
                     }
@@ -9350,9 +9392,11 @@
             .card                       { box-shadow:    2px 2px 8px 4px #00000033;     } /*
             .card-title                 { border-bottom: 1px solid var(--border-color); } */
 
-            .card                       {             border-radius: var(--border-radius) } /* card has no overflow hidden, so we need children to have round radius */
-            .card > *:first-child       {    border-top-left-radius: var(--border-radius);    border-top-right-radius: var(--border-radius); }
-            .card > *:last-child        { border-bottom-left-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); }
+            .card                           {             border-radius: var(--border-radius) } /* card has no overflow hidden, so we need children to have round radius */
+            .card:not(.hz) > *:first-child  {    border-top-left-radius: var(--border-radius);    border-top-right-radius: var(--border-radius); }
+            .card.hz       > *:first-child  {    border-top-left-radius: var(--border-radius);  border-bottom-left-radius: var(--border-radius); }
+            .card:not(.hz) > *:last-child   { border-bottom-left-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); }
+            .card.hz       > *:last-child   {   border-top-right-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); }
 
             /* Cards inside articles */
 
@@ -12599,9 +12643,13 @@
         if (!in_array($copyright, $copyrights))
             set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
 
-        $local_path = path("img/unsplash/$id.jpg");
-        if (!!$local_path) return $local_path;
+        foreach ([ "avif", "webp", "jpg", "png"] as $ext)
+        {
+            $local_path = path("img/unsplash/$id.$ext");
+            if (!!$local_path) return $local_path;
+        }
 
+        //! THIS DIRECT API DOES NOT WORK ANYMORE
         return "https://source.unsplash.com/".$id."/".$w."x".$h."?.jpg";
     }
 
