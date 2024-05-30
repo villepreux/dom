@@ -498,7 +498,7 @@ if (!!$cmdline_option_test)
 {
     static_log("[i] Testing");
 
-    $text = "Bienvenu à la scène musicale!";
+    /*$text = "Bienvenu à la scène musicale!";
     $l0 = 29;
     $l1 = strlen($text);
     $l2 = iconv_strlen($text);
@@ -520,7 +520,135 @@ if (!!$cmdline_option_test)
         {
             static_log($i, 100);
         }        
+    }*/
+
+    $nb_files = 0;
+
+    $roots = array(array($main_src, $main_dst));
+
+    while (count($roots) > 0)
+    {
+        $dir = array_shift($roots);
+
+        $src = $dir[0];
+        $dst = $dir[1];
+
+        foreach (static_scan($src) as $name)
+        {
+            if (is_dir("$src/$name"))
+            {
+                $roots[] = array("$src/$name", "$dst/$name");
+                continue;
+            }
+            
+            ++$nb_files;
+        }
     }
+
+    $dependency_graph = [];
+
+    $file_index = 0;
+
+    $roots = array(array($main_src, $main_dst));
+
+    while (count($roots) > 0)
+    {
+        $dir = array_shift($roots);
+
+        $src = $dir[0];
+        $dst = $dir[1];
+
+        foreach (static_scan($src) as $name)
+        {
+            if (is_dir("$src/$name"))
+            {
+                $roots[] = array("$src/$name", "$dst/$name");
+                continue;
+            }
+
+            $pathinfo  = pathinfo("$src/$name");
+            $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
+            
+            if ($extension == "php"
+            ||  $extension == "css"
+            ||  $extension == "js")
+            {
+                $cwd = getcwd();
+                chdir($src);
+                {
+                    $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
+    
+                    $json = static_exec("php -f $name -- $php_args doctype=dependency-graph");
+                    $dependencies = json_decode($json, true);
+                    
+                    if (is_array($dependencies) && count($dependencies) > 0) 
+                    {
+                        $dependency_graph[] = [ "file" => "$src/$name", "dependencies" => $dependencies ];
+                    }
+                }
+                chdir($cwd);
+            }    
+            
+            static_log($file_index, $nb_files);
+            ++$file_index;
+        }
+    }
+
+    $impact_graph = [];
+
+    foreach ($dependency_graph as $d)
+    {
+        list($file, $file_dependency_graph) = array_values($d);
+
+        $file = array_shift($file_dependency_graph);
+
+        foreach ($file_dependency_graph as $dependency_file)
+        {
+            if (!dom\at($impact_graph, $dependency_file)) $impact_graph[$dependency_file] = [];
+            $impact_graph[$dependency_file][$file] = true;
+        }
+    }
+
+    $impact_graph_tmp = $impact_graph;
+    $impact_graph = [];
+
+    foreach ($impact_graph_tmp as $file => $impacts)
+    {
+        if (false !== stripos($file, "\\vendor\\")) continue;
+        $impact_graph[$file] = $impacts;        
+    }
+
+    $stable = false;
+
+    while (!$stable)
+    {
+        $stable = true;
+
+        foreach ($impact_graph as $file => $impacts)
+        {
+            $n = count($impact_graph[$file]);
+
+            foreach ($impacts as $impact => $_)
+            {
+                foreach (dom\at($impact_graph, $impact, []) as $sub_impact => $_)
+                {
+                    $impact_graph[$file][$sub_impact] = true;
+                }
+            }
+
+            if ($n != count($impact_graph[$file]))
+            {
+                $stable = false;
+            }
+        }
+    }
+
+    foreach ($impact_graph as $file => &$impacts)
+    {
+        $impacts = array_keys($impacts);
+    }
+
+    dom\bye($impact_graph);
 
     static_log("[i] Testing OK");
 

@@ -12,6 +12,8 @@
     const author        = "Antoine Villepreux";
     const version       = "0.8.5";
 
+    define("DOM_CLI", isset($argv));
+
     #endregion
     #region HELPERS : CONFIG
     ######################################################################################################################################
@@ -4763,6 +4765,7 @@
 
     function redirect($url)
     {   
+        if ("dependency-graph" == get("doctype")) die("[]");
         if (!!get("static")) die(html_refresh_page($url));
         \header("Location: ".href($url));
         exit;
@@ -4791,6 +4794,11 @@
         init_internals();
     }
 
+    if ("dependency-graph" == get("doctype", false))
+    {
+        bye(json_encode(get_included_files()));
+    }
+    
     function init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
         if (has("main") || has("main-include")) return;
@@ -14079,7 +14087,7 @@
 
     function bye()
     {
-        ob_end_clean();
+        @ob_end_clean();
 
         $args = func_get_args();
 
@@ -14088,14 +14096,21 @@
             die();
         }
 
-        $boilerplate = '<style>:root { color-scheme: light dark; } </style><pre>';
+        $boilerplate_prefix = '';
+        $boilerplate_suffix = '';
+
+        if (!DOM_CLI)
+        {
+            $boilerplate_prefix = '<style> :root { color-scheme: light dark; } </style><pre>';
+            $boilerplate_suffix = '</pre>';    
+        }
 
         if (count($args) == 1)
         {
-            die($boilerplate.print_r($args[0], true)."</pre>");
+            die($boilerplate_prefix.print_r($args[0], true).$boilerplate_suffix);
         }
 
-        die($boilerplate.$args[0].print_r($args[1], true)."</pre>");
+        die($boilerplate_prefix.$args[0].print_r($args[1], true).$boilerplate_suffix);
     }
 
     ######################################################################################################################################
