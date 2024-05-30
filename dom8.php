@@ -5690,16 +5690,16 @@
     function url_flickr_user                ($username = false)                 { $username = ($username === false) ? get("flickr_user")        : $username;   return "https://www.flickr.com/photos/$username/";                         }
     function url_500px_user                 ($username = false)                 { $username = ($username === false) ? get("500px_user")         : $username;   return "https://www.500px.com/$username/";                                 }
     function url_pixelfed_user              ($username = false)                 { $username = ($username === false) ? get("pixelfed_user")      : $username;   return "https://pixelfed.social/$username/";                               }
-    function url_mastodon_user              ($username = false, 
+    function url_mastodon_user              ($username = false,     
                                              $instance = "mastodon.social")     { $username = ($username === false) ? get("mastodon_user")      : $username;
                                                                                   $instance = ($instance === false) ? get("mastodon_domain")    : $instance;   return "https://$instance/@$username/";                                    }
     function url_github_user                ($username = false)                 { $username = ($username === false) ? get("github_user")        : $username;   return "https://github.com/$username";                                     }
     function url_lastfm_user                ($username = false)                 { $username = ($username === false) ? get("lastfm_user")        : $username;   return "https://last.fm/user/$username";                                   }
     function url_codepen_user               ($username = false)                 { $username = ($username === false) ? get("codepen_user")       : $username;   return "https://codepen.io/$username";                                     }
-    
+                                                
     function url_twitter_user               ($username = false)                 { $username = ($username === false) ? get("twitter_user")       : $username;   return "https://twitter.com/$username";                                    }
     function url_facebook_user              ($username = false)                 { $username = ($username === false) ? get("facebook_user")      : $username;   return "https://www.facebook.com/$username";                               }
-    
+                                                
     function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? get("flickr_page")        : $page;       return "https://www.flickr.com/photos/$page/";                             }
     function url_pinterest_pin              ($pin)                              {                                                                              return "https://www.pinterest.com/pin/$pin/";                              }    
     function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page";                                   }
@@ -5711,8 +5711,9 @@
     function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
     function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
     function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
+    function url_whatsapp                   ($phone    = false)                 { $phone    = ($phone    === false) ? get("phone")              : $phone;      return "https://wa.me/".trim(str_replace([" ","+","(",")"], "", $phone));  }
     
-    function url_amp                    ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(is_localhost()?"#development=1":"");   }
+    function url_amp                        ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(is_localhost()?"#development=1":"");   }
 
     function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
     function url_pinterest_search_by_tags   ($tags, $userdata = false)          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
@@ -12038,13 +12039,31 @@
         return tag('a', $html, $attributes);
     }
 
-    function a_email($email, $text = false, $attributes = false)
+    function a_encrypted($url, $text = false, $attributes = false, $target = external_link)
+    {
+        $text = ($text === false) ? $url : $text;
+        
+        if (AMP())
+        {
+            return a($text, $url, $attributes, $target);
+        }
+        else
+        {
+            $script  = "document.getElementById('".md5($text)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('".md5($text)."').innerHTML = '".$text."';";
+            
+            $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
+
+            return a("", "", array(/*"aria-label" => "?",*/ "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
+        }
+    }
+
+    function a_email($email, $text = false, $attributes = false, $target = external_link)
     {
         $text = ($text === false) ? $email : $text;
         
         if (AMP())
         {
-            return a($text, "mailto:" . $email, $attributes, external_link);
+            return a($text, "mailto:" . $email, $attributes, $target);
         }
         else
         {
@@ -12052,7 +12071,7 @@
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("aria-label" => "$text email", "id" => md5($text)), external_link).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", array("aria-label" => "E-mail", "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
     
@@ -12541,6 +12560,7 @@
     function svg_printer        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Printer"         : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_notifications  ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Notifications"   : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_messenger      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("messenger");     $class = "brand-messenger";       return svg($label === auto ? "Messenger"       : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_whatsapp       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("whatsapp");      $class = "brand-whatsapp";        return svg($label === auto ? "Whatsapp"        : $label,   0,      0,     293.5,   293.5,    $align == auto ? false : !!$align, '<g id="background_1_" enable-background="new    "></g><g id="WhatsApp_Logo_Icon_1_"><g id="WA_Logo"><g><path class="'.$class.'" fill-rule="evenodd" clip-rule="evenodd" fill="#ffffff" d="M223.777,70.979c-19.623-19.646-45.719-30.47-73.522-30.482 c-57.288,0-103.914,46.623-103.937,103.929c-0.007,18.318,4.778,36.198,13.874,51.961l-14.745,53.858l55.098-14.453 c15.181,8.28,32.273,12.645,49.668,12.651h0.043c57.282,0,103.912-46.629,103.936-103.936 C254.202,116.737,243.4,90.624,223.777,70.979z M150.256,230.89h-0.035c-15.501-0.006-30.705-4.171-43.968-12.042l-3.155-1.871 l-32.696,8.576l8.727-31.878l-2.054-3.27c-8.647-13.753-13.215-29.65-13.208-45.974c0.019-47.63,38.772-86.38,86.424-86.38 c23.073,0.008,44.764,9.005,61.074,25.335c16.31,16.329,25.286,38.033,25.277,61.116 C236.623,192.136,197.87,230.89,150.256,230.89z M197.641,166.189c-2.597-1.299-15.364-7.582-17.745-8.449 c-2.38-0.865-4.112-1.299-5.843,1.301c-1.731,2.6-6.709,8.449-8.224,10.183c-1.515,1.732-3.03,1.95-5.626,0.649 c-2.598-1.299-10.965-4.042-20.885-12.89c-7.72-6.886-12.932-15.39-14.447-17.991c-1.515-2.6-0.162-4.005,1.139-5.3 c1.168-1.164,2.597-3.034,3.896-4.55s1.731-2.6,2.597-4.333s0.433-3.25-0.217-4.549c-0.649-1.301-5.843-14.084-8.007-19.284 c-2.108-5.063-4.249-4.378-5.843-4.458c-1.513-0.075-3.246-0.092-4.978-0.092c-1.731,0-4.544,0.65-6.925,3.25 c-2.38,2.6-9.089,8.883-9.089,21.666c0,12.783,9.305,25.131,10.604,26.865c1.298,1.733,18.313,27.964,44.364,39.214 c6.195,2.676,11.033,4.273,14.805,5.471c6.222,1.977,11.883,1.697,16.357,1.029c4.99-0.746,15.365-6.283,17.529-12.349 c2.164-6.067,2.164-11.267,1.515-12.35C201.969,168.14,200.238,167.49,197.641,166.189z"/></g></g></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_alert          ($label = auto, $align = auto, $add_wrapper = auto) { import_color("alert");         $class = "brand-alert";           return svg($label === auto ? "Alert"           : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_amp            ($label = auto, $align = auto, $add_wrapper = auto) { import_color("amp");           $class = "brand-amp";             return svg($label === auto ? "AMP"             : $label, -22,    -22,     300,     300,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_loading        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("loading");       $class = "brand-loading";         return svg($label === auto ? "Loading"         : $label,   0,      0,      96,      96,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>', $add_wrapper == auto ? true : !!$add_wrapper); }

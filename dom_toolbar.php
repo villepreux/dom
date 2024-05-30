@@ -559,14 +559,14 @@
 
     // ICONS
     
-    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false)
+    function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false, $encrypted = false)
     {
         $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
         
         if (($attributes === internal_link || $attributes === external_link) && $target === false) { $target = $attributes; $attributes = false; }
         if ($target === false) { $target = internal_link; }
         
-        return array($icon, $label, $link, $id, $target, $attributes);
+        return array($icon, $label, $link, $id, $target, $attributes, $encrypted);
     }
 
     function icon_entry_to_link($icon_entry, $default_target = internal_link)
@@ -579,6 +579,7 @@
         $id         = get($icon_entry, "id",                            get($icon_entry, 3, false));
         $target     = get($icon_entry, "target",                        get($icon_entry, 4, $default_target));
         $attributes = get($icon_entry, "attributes",                    get($icon_entry, 5, false));
+        $encrypted  = get($icon_entry, "encrypted",                     get($icon_entry, 6, false));
 
         if (false === $attributes) $attributes = array();
         
@@ -586,7 +587,14 @@
         if (!in_array("alt",        $attributes) && !AMP()          ) $attributes["alt"         ] = $label;
         if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
 
-        return a($icon, $link, $attributes, $target);
+        if ($encrypted)
+        {
+            return a_encrypted($link, $icon, $attributes, $target);
+        }
+        else
+        {
+            return a($icon, $link, $attributes, $target);
+        }        
     }
 
     function icon_entries($icon_entries, $default_target = internal_link)
