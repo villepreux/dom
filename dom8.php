@@ -6484,7 +6484,7 @@
                 eol().link_rel_webmentions().   "")).
                 eol().link_rel_webauth().
                 eol().link_rel_shareopenly().
-                eol().link_rel("sitemap", "/sitemap/", "application/xml").
+                eol().link_rel("sitemap", path_coalesce("sitemap.xml", "/sitemap.xml", "sitemap", "/sitemap/"), "application/xml").
                 "";
     }
     
