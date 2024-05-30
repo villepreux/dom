@@ -371,9 +371,20 @@
 
         return false;
     }
+
+    $__reentrant_path_guard = false;
         
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {
+        global $__reentrant_path_guard;
+
+        if ($__reentrant_path_guard)
+        {
+            bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack());
+        }
+
+        $__reentrant_path_guard = true;
+
         $profiler = debug_track_timing();
 
         if ($depth0    === auto) $depth0    = get("path_max_depth", 8);
@@ -391,39 +402,42 @@
 
         $searches = array(array($path0, $depth0, $offset_path0));
 
-        while (count($searches) > 0)
+        $iterations = 0;
+
+        while (count($searches) > 0 && ++$iterations < 99)
         {
             $path = $searches[0][0]; $depth = $searches[0][1]; $offset_path = $searches[0][2];
             array_shift($searches);
     
             // Minimal early validation for when user is not providing a real url or path but some random text content
 
-            if (false !== stripos($path, "\n") ) return $default;
-            if (false !== stripos($path, "{")  ) return $default;
-            if (false !== stripos($path, "\"") ) return $default;
+            if (false !== stripos($path, "\n") ) { $__reentrant_path_guard = false; return $default; }
+            if (false !== stripos($path, "{")  ) { $__reentrant_path_guard = false; return $default; }
+            if (false !== stripos($path, "\"") ) { $__reentrant_path_guard = false; return $default; }
         
             // If URL format then keep it as-is
 
-            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") return $path.$param;
-            if (0 === stripos($path, "http"))                             return $path.$param;
+            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") { $__reentrant_path_guard = false; return $path.$param; }
+            if (0 === stripos($path, "http"))                             { $__reentrant_path_guard = false; return $path.$param; }
 
             // If path exists then directly return it
 
-          //if (@is_dir($path))                                 return $path.$param;
-            if (@file_exists($path))                            return $path.$param;
-            if (($max_depth == $depth) && url_exists($path))    return $path.$param;
+          //if (@is_dir($path))                                         { $__reentrant_path_guard = false; return $path.$param; }
+            if (@file_exists($path))                                    { $__reentrant_path_guard = false; return $path.$param; }
+            if (($max_depth == $depth) && url_exists($path))            { $__reentrant_path_guard = false; return $path.$param; }
+          //if (($max_depth == $depth) && url_exists(url()."/".$path))  { $__reentrant_path_guard = false; return $path.$param; }
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists("$path.php"))                          return $path.$param;
-                if (($max_depth == $depth) && url_exists("$path.php"))  return $path.$param;
+                if (@file_exists("$path.php"))                          { $__reentrant_path_guard = false; return $path.$param; }
+                if (($max_depth == $depth) && url_exists("$path.php"))  { $__reentrant_path_guard = false; return $path.$param; }
             }
 
             // If we have already searched too many times then return fallback
 
             if ($depth <= 0) 
             {
-                return $default;
+                { $__reentrant_path_guard = false; return $default; }
             }
 
             // If beyond root then stop here
@@ -441,11 +455,10 @@
             }
         }
 
-        //if (false !== stripos($path0, "autoload.php")) { ob_end_clean(); die("PATH = [".$path0."]"); }
+        //if (false !== stripos($path0, "autoload.php"))    bye("PATH = ", $path0);
+        //if ($default == false)                            bye("PATH = ", $path0);
 
-        //if ($default == false) die($path0);
-
-        return $default;
+        { $__reentrant_path_guard = false; return $default; }
     }
 
     function path_coalesce()
@@ -548,9 +561,9 @@
     #region HELPERS : CURRENT URL
     ######################################################################################################################################
 
-    function host_url   ()                  { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
-    function url_branch ($params = false, $get = true, $post = true, $session = false)   { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
-    function url        ($params = false)   { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
+    function host_url   ()                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
+    function url_branch ($params = false, $get = true, $post = true, $session = false)  { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
+    function url        ($params = false)                                               { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
 
     function live_url($params = false)
     {
@@ -12082,10 +12095,12 @@
     function char_email()  { return char_text("✉"); }
     function char_anchor() { return char_text("⚓"); }
     
+    function char_glue()   { return !!get("gemini") ? ""  : "&#8288;"; }
     function char_unsec()  { return !!get("gemini") ? " " : " "/*"&nbsp;"*/; }
     function char_amp()    { return !!get("gemini") ? "&" : "&amp;";  }
    
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
+    function glue() { return char_glue(); }
     
     function anchor_name($name, $tolower = auto) { return to_classname($name, $tolower); }
 
@@ -14058,6 +14073,31 @@
         return a($img.$name.$bio, $url, $attributes);
     }
     
+    ######################################################################################################################################
+    #endregion
+    #region die alternative
+
+    function bye()
+    {
+        ob_end_clean();
+
+        $args = func_get_args();
+
+        if (count($args) == 0)
+        {
+            die();
+        }
+
+        $boilerplate = '<style>:root { color-scheme: light dark; } </style><pre>';
+
+        if (count($args) == 1)
+        {
+            die($boilerplate.print_r($args[0], true)."</pre>");
+        }
+
+        die($boilerplate.$args[0].print_r($args[1], true)."</pre>");
+    }
+
     ######################################################################################################################################
     #endregion
 
