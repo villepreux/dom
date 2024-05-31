@@ -498,6 +498,9 @@
         if (!!$path) @include($path);
         $__dom_internal_included = false;
         if ($no_display) ob_end_clean();
+
+        update_dependency_graph($path);
+
         return "";
     }
 
@@ -506,6 +509,9 @@
         if ($no_display) ob_start();
         if (!!$path) @require($path);
         if ($no_display) ob_end_clean();
+        
+        update_dependency_graph($path);
+
         return "";
     }
 
@@ -1631,6 +1637,8 @@
                 {
                     $content = @file_get_contents($url);
                 }
+
+                update_dependency_graph($url);
             }
 
             if ($method == "curl" && (!$content || $content == ""))
@@ -1655,6 +1663,8 @@
                     curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
                     
                     $content = curl_exec($curl);
+
+                    update_dependency_graph($url);
 
                     if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""))
                     {
@@ -1735,6 +1745,8 @@
         $response   =           curl_exec($curl);
         $code       = (string)  curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $error      =           curl_error($curl);
+
+        update_dependency_graph($curl_url);
     
         return $response;
     }
@@ -3183,6 +3195,8 @@
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
 
+        update_dependency_graph($url);
+
         if ($html)
         {            
             $tag_bgn = '<script>new (require("ServerJS"))().handle(';
@@ -3207,6 +3221,8 @@
         $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
+
+        update_dependency_graph($url);
             
         if ($html)
         {            
@@ -4794,9 +4810,27 @@
         init_internals();
     }
 
+    function update_dependency_graph($files = auto)
+    {
+        $dependency_graph = get("dependency-graph", []);
+
+        if (auto === $files)
+        {
+            $files = get_included_files();
+        }
+        else if (!is_array($files))
+        {
+            $files = [ $files ];
+        }
+
+        $dependency_graph = array_unique(array_merge($dependency_graph, $files));
+
+        set("dependency-graph", $dependency_graph);
+    }
+
     if ("dependency-graph" == get("doctype", false))
     {
-        bye(json_encode(get_included_files()));
+        update_dependency_graph();
     }
     
     function init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
@@ -5611,6 +5645,8 @@
 
                 $old_content = @file_get_contents($dst_path);
 
+                update_dependency_graph($dst_path);
+
                 $fn = $generated["function"];
                 if (!is_callable($fn)) $fn = "dom\\$fn";
 
@@ -5744,9 +5780,12 @@
     
     function url_leboncoin                  ($url = false)                      { return ($url === false) ? get("leboncoin_url", get("leboncoin", "https://www.leboncoin.fr")) : $url; }
     function url_seloger                    ($url = false)                      { return ($url === false) ? get("seloger_url",   get("seloger",   "https://www.seloger.com"))  : $url; }
-        
-  //function url_void                       ()                                  { return "#!"; }
-    function url_void                       ()                                  { return "javascript:void(0)"; } // As #! jumps on the page.
+
+    function top_id                         ()                                  { return "!"; }
+
+    function url_empty                      ()                                  { return ""; }
+    function url_top                        ()                                  { return "#".top_id(); }
+    function url_void                       ()                                  { return "javascript:void(0)"; } // ! As #! jumps on the page. But a without url also triggers warnings
     function url_print                      ()                                  { return AMP() ? url_void() : "javascript:scan_and_print();"; }
     
     #endregion
@@ -5821,6 +5860,8 @@
 
         if ($silent_errors) { $content = @file_get_contents($filename); }
         else                { $content =  file_get_contents($filename); }
+
+        update_dependency_graph($filename);
         
         if (false !== $content) { return $content; }
 
@@ -7206,6 +7247,9 @@
             // ADD ---------------------------------------------->
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
+
+            update_dependency_graph($url);
+
             return array(
                 'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
                 'headers' => self::_parse_headers(trim($response)),
@@ -7235,6 +7279,9 @@
             // ADD ---------------------------------------------->
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
+            
+            update_dependency_graph($url);
+
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             return array(
                 'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
@@ -7268,6 +7315,9 @@
             // ADD ---------------------------------------------->
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
+
+            update_dependency_graph($url);
+
             self::_debug($response);
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             return array(
@@ -8868,7 +8918,7 @@
             * 2. Remove the margin in Firefox and Safari.
             */
             
-            button,
+            button:not(.transparent),
             input,
             optgroup,
             select,
@@ -8903,10 +8953,10 @@
             * Correct the inability to style clickable types in iOS and Safari.
             */
             
-            button,
-            [type="button"],
-            [type="reset"],
-            [type="submit"] {
+            button:not(.transparent),
+            [type="button"]:not(.transparent),
+            [type="reset"]:not(.transparent),
+            [type="submit"]:not(.transparent) {
             -webkit-appearance: button;
             appearance: button;/* added by DOM */
             }
@@ -9436,11 +9486,11 @@
             
             /* Links */
     
-            a               { font-weight: 600; color: var(--link-color,       #990011); }
-            a:visited       { font-weight: 600; color: var(--link-color,       #990011); }
-            a:hover         { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
+            :is(a, button.link)         { font-weight: 600; color: var(--link-color,       #990011); }
+            :is(a, button.link):visited { font-weight: 600; color: var(--link-color,       #990011); }
+            :is(a, button.link):hover   { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
 
-            button          { font-weight: 600; border: none; box-shadow: 2px 2px 4px 2px #00000055; }
+            button:not(.transparent) { font-weight: 600; border: none; box-shadow: 2px 2px 4px 2px #00000055; }
 
             /* Others */
     
@@ -9461,13 +9511,22 @@
     
             strong { color: var(--accent-color) }
     
-            button, [type="button"], [type="submit"] {
+            :is(button, [type="button"], [type="submit"]).transparent {
+                background-color: transparent;
+                border: none;
+                padding: unset;
+                font-size: unset;
+            }   
+            :is(button, [type="button"], [type="submit"]):not(.transparent) {
                 background-color: var(--accent-color);
                 color: var(--text-on-accent-color);
             }    
-            button:hover, [type="button"]:hover, [type="submit"]:hover {
+            :is(button, [type="button"], [type="submit"]):not(.transparent):hover {
                 background-color: var(--accent-color);
                 color: var(--text-on-accent-color-accent);
+            }
+            :is(button, [type="button"], [type="submit"]).transparent:hover {
+                cursor: pointer;
             }
 
             figcaption { color: var(--text-lighter-color) }
@@ -9620,7 +9679,7 @@
 
             /* Inputs */
     
-            input, button {
+            :is(input, button):not(.transparent) {
                 padding: 0.25em 0.5rem;
             }
                 
@@ -9884,9 +9943,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
-            a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
-            a:not(:has(img,picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -10030,7 +10089,7 @@
 
     function back_to_top_link()
     {
-        return eol().a("▲", url_void(), "back-to-top");
+        return eol().a("▲", url_top(), "back-to-top");
     }
 
     function script_google_analytics_snippet()
@@ -11116,7 +11175,7 @@
         if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
 
         $attributes = array_merge(array(
-            "id"    => "!",
+            "id"    => top_id(),
             "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
             ), AMP() ? array() : array(
             "name"  => "!"
@@ -11542,6 +11601,8 @@
         $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
+
+        update_dependency_graph($url);
         
         if ($html)
         {
@@ -12015,7 +12076,7 @@
 
         $internal_attributes = array();
 
-                                                        $internal_attributes["href"]                = ($url === false) ? url_void() : $extended_link; 
+                                                        $internal_attributes["href"]                = ($url === false) ? url_top() : $extended_link; 
                                                         $internal_attributes["target"]              = $target;
                                                         $internal_attributes["rel"]                 = "";
         if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
@@ -12639,7 +12700,11 @@
             $seed = "$random";
         }
 
-        $info = @json_decode(@file_get_contents("https://picsum.photos/seed/$seed/info"), true);
+        $url = "https://picsum.photos/seed/$seed/info";
+
+        $info = @json_decode(@file_get_contents($url), true);
+
+        update_dependency_graph($url);
 
         if (!!$info)
         {
@@ -13986,7 +14051,7 @@
     }
       
     function address($html)     { return tag("address", $html); }
-    function author($author)    { return address(a($author, "#!", array("rel" => "author")), array("class" => "author")); }
+    function author($author)    { return address(a($author, url_top(), array("rel" => "author")), array("class" => "author")); }
 
     function h_card($photo = auto, $bio = auto, $name = auto, $url = auto, $attributes = false, $me = false)
     {

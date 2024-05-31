@@ -593,7 +593,16 @@
         }
         else
         {
-            return a($icon, $link, $attributes, $target);
+            if ($link == false || $link == url_void() || $link == url_empty())
+            {
+                $attributes = \dom\attributes_add_class($attributes, "transparent link");
+
+                return button($icon, $attributes);
+            }
+            else 
+            {
+                return a($icon, $link, $attributes, $target);
+            }
         }        
     }
 
