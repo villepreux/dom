@@ -112,7 +112,9 @@ function comment_card(
     $status_favourites_count, 
     $status_reblogs_count,
     $status_created_at,
-    $status_edited_at = false
+    $status_edited_at = false,
+
+    $filled_with_placeholders = false
     
     )
 {
@@ -203,7 +205,17 @@ function comment_card(
             a(  
                 picture(
                     source($status_account_avatar).
-                    img($status_account_avatar_static, 64, 64, false, "@$status_account_username@$instance avatar")
+                    img(
+                        $status_account_avatar_static, 
+                        64, 64, 
+                        false, 
+                        "@$status_account_username@$instance avatar", 
+                        $lazy                           = auto, 
+                        $lazy_src                       = auto, 
+                        $content                        = auto, 
+                        $precompute_size                = auto, 
+                        $src_attribute                  = auto, 
+                        $preload_if_among_first_images  = !$filled_with_placeholders)
                     ),
                 $status_account_url, 
                 [ 
@@ -522,7 +534,9 @@ function js_comments($post_id, $host = false, $username = false, $user_id = fals
                                 '$status.favourites_count', 
                                 '$status.reblogs_count',
                                 '$status.created_at',
-                                '$status.edited_at'
+                                '$status.edited_at',
+
+                                true
 
                                 ) ?>`.trim();
 

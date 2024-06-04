@@ -76,6 +76,18 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         }
         else /*if ($lang == "php")*/
         {    
+            $lines = [];
+
+            foreach (explode(PHP_EOL, $code) as $line)
+            {
+                if (0     === stripos(trim($line),                       "//"            )) continue;
+                if (false !== stripos(str_replace(["\t",""], "", $line), "/"."/!PRIVATE" )) continue;
+
+                $lines[] = $line;
+            }
+
+            $code  = implode(PHP_EOL, $lines);
+        
             $code = highlight_string($code, true);
             foreach ($functions as $value) $code = preg_replace("/style=\"color: highlight-$value;\"/", "class=\"ide-highlight-$value\"", $code);
             $code = str_replace('style="color: ', 'class="', $code);

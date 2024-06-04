@@ -1791,6 +1791,11 @@
     }
 
     #endregion
+    #region WIP API : UTILITIES : VARIABLES
+
+    function swap(&$x, &$y) { $tmp = $x; $x = $y; $y = $tmp; }
+
+    #endregion
     #region WIP API : UTILITIES : STRINGS MANIPULATION
 
     function dup($html, $n)                 { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
@@ -1814,6 +1819,9 @@
 
     function age($yyyy, $mm, $dd)
     {
+        if ($dd  >    31) swap($yyyy, $dd);
+        if ($yyyy < 1000) $yyyy += 2000;
+
         if (is_integer($mm) && $mm < 10) $mm = "0$mm";
         if (is_integer($dd) && $dd < 10) $dd = "0$dd";
 
@@ -5121,7 +5129,7 @@
             
             if ($size === false)
             {
-                $size = @getimagesize($src);
+                $size = is_localhost() ? getimagesize($src) : @getimagesize($src);
             }
             
             /*if ($size === false)
@@ -7569,7 +7577,9 @@
 
                                     '$mention_data.in-reply-to',
                                     '$mention_data.wm-property',
-                                    '$mention_data.wm-private'
+                                    '$mention_data.wm-private',
+
+                                    true
 
                                     ) ?>`.trim();
                                
@@ -7657,13 +7667,31 @@
 
         $in_reply_to,   /* "https://villapirorum.netlify.app/web" */
         $wm_property,   /* "in-reply-to" */
-        $wm_private     /* false */
+        $wm_private,    /* false */
+
+        $filled_with_placeholders = false
 
         ) 
     {
         return article(
             header(
-                p(img($author_photo, 24, 24, [ "style" => "width: 48px; height: 48px; border-radius: 50%" ]).nbsp().span($author_name).nbsp().span($published), [ "style" => "display: flex; gap: var(--gap); align-items: center;" ])
+                p(
+                    img(
+                        $author_photo, 
+                        24, 24, 
+                        [ "style" => "width: 48px; height: 48px; border-radius: 50%" ],
+                        "Mention author photo", 
+                        $lazy                           = auto, 
+                        $lazy_src                       = auto, 
+                        $content                        = auto, 
+                        $precompute_size                = auto, 
+                        $src_attribute                  = auto, 
+                        $preload_if_among_first_images  = !$filled_with_placeholders
+                        ).
+                    nbsp().span($author_name).
+                    nbsp().span($published), 
+                    
+                    [ "style" => "display: flex; gap: var(--gap); align-items: center;" ])
                 ).
             section(
                 p($content_text)
@@ -8119,13 +8147,19 @@
         return script_js_as_is(raw_js($js, $force_minify), $type);
     }
 
-    function script_file($filename = "", $type = "text/javascript", $force = false,  $force_minify = false, $silent_errors = auto, $attributes = false)
+    function script_file($filename = "", $type = auto, $force = auto,  $force_minify = auto, $silent_errors = auto, $attributes = auto)
     {
         $profiler = debug_track_timing(); 
 
         if (!$filename || $filename == "") return ''; 
         $filename = path($filename);
         if (!$filename || $filename == "") return ''; 
+
+        if (auto === $type)         $type           = "text/javascript";
+        if (auto === $force)        $force          = false;
+        if (auto === $force_minify) $force_minify   = false;
+        if (auto === $attributes)   $attributes     = false;
+
         return script_js_as_is(include_js($filename, $force_minify, $silent_errors), $type, $attributes);
     }
 
@@ -10710,7 +10744,6 @@
             dom.on_ajax                 = on_ajax;
             dom.on_first_interraction   = on_first_interraction;
 
-        
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
@@ -12343,7 +12376,7 @@
         return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
     }
     
-    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto)
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true)
     {
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
@@ -12354,13 +12387,13 @@
 
         if (is_array($path)) 
         {
-            return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy);
+            return wrap_each($path, "", "img", true, $w, $h, $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images);
         }
 
         if (is_array($w))
         {
             $attributes = $w;
-            return img(at($attributes, "src", $path), at($attributes, "width"), at($attributes, "height"), $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size);
+            return img(at($attributes, "src", $path), at($attributes, "width"), at($attributes, "height"), $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images);
         }
 
         if (auto === $precompute_size)
@@ -12394,7 +12427,7 @@
 
         $preload = false;
             
-        if ($img_nth <= get("img_lazy_loading_after"))
+        if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
         {
             $lazy    = false;
             $preload = true;
@@ -12424,12 +12457,12 @@
         else
         {
                  if (auto === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", $src_attribute =>                          $path ));
-            else if (true     === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", $src_attribute => $lazy_src, "data-src" => $path ));
-            else                          $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", $src_attribute =>                          $path ));
+            else if (true === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", $src_attribute => $lazy_src, "data-src" => $path ));
+            else                      $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", $src_attribute =>                          $path ));
 
                  if (auto === $lazy)  $attributes = attributes_add_class($attributes, "img");
-            else if (true     === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
-            else                          $attributes = attributes_add_class($attributes, "img");
+            else if (true === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
+            else                      $attributes = attributes_add_class($attributes, "img");
 
             global $hook_need_lazy_loding;
             if ($lazy === true) $hook_need_lazy_loding[] = $path;
