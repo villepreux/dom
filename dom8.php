@@ -9475,18 +9475,20 @@
     
             /* Colors */
             
-            body    { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
-            header  { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
-            footer  { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
+            body            { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
+            header, .header { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
+            footer, .footer { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
             /* Articles */
 
-            article, blockquote, aside  { background-color: var(--background-color);
+            article, .article, 
+            blockquote, aside           { background-color: var(--background-color);
                                                      color: var(--text-color);
                                               border-color: var(--border-color); }
 
-            article :is(
-                header, footer, 
+            :is(article, .article) :is(
+                header, .header, 
+                footer, .footer, 
                 blockquote, aside)      { background-color: var(--background-lighter-color);        }
 
             /* Cards */
@@ -9506,8 +9508,8 @@
 
             /* Cards inside articles */
 
-            article .card               { background-color: var(--background-lighter-color);   }
-            article .card .card-title   { background-color: var(--background-lighter-color);   }
+            :is(article, .article) .card               { background-color: var(--background-lighter-color);   }
+            :is(article, .article) .card .card-title   { background-color: var(--background-lighter-color);   }
 
             /* Headlines */
          
@@ -9827,7 +9829,7 @@
                 margin-block:   var(--gap); */
             }
 
-            main > :is(header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup) {
+            main > :is(header, .header, footer, .footer, article, .article, aside, blockquote, nav, section, details, figcaption, figure, hgroup) {
 
                 margin-block: var(--gap);
             }
@@ -9871,14 +9873,14 @@
     
             /* Text limited width & heroes full width */
     
-                  :where(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"]) >
-            *:where(:not(main, header, nav, footer, article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"], span, a)) {
+                  :where(main, header, .header, nav, footer, .footer, article, .article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"]) >
+            *:where(:not(main, header, .header, nav, footer, .footer, article, .article, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"], span, a)) {
 
                 --margin-inline: var(--gap);    
                   margin-inline: var(--margin-inline);
             }
     
-            :is(main, header, footer) > * {
+            :is(main, header, .header, footer, .footer) > * {
 
                 --max-text-width-margin-inline: clamp(var(--gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
                                                 clamp(var(--gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
@@ -9889,7 +9891,7 @@
 
             /* Articles */
     
-            body > :is(main, header, footer) > :is(article) {
+            body > :is(main, header, .header, footer, .footer) > :is(article, .article) {
 
                 --mobile-no-margin-breakpoint: 400px;
                 --margin-gap: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), var(--gap));
@@ -9901,7 +9903,7 @@
                   margin-inline: var(--margin-inline);
             }
     
-            body > :is(main, header, footer) > :is(article) > :is(.grid, .flex) {
+            body > :is(main, header, .header, footer, .footer) > :is(article, .article) > :is(.grid, .flex) {
 
                 margin-inline: var(--margin-gap);
                 padding-block: var(--gap);
@@ -9909,7 +9911,7 @@
 
             /* Others */
 
-            :is(main, header, footer, article, section, figure) > :is(img, figure, picture, svg, video, canvas, audio, iframe, embed, object) { 
+            :is(main, header, .header, footer, .footer, article, .article, section, figure) > :is(img, figure, picture, svg, video, canvas, audio, iframe, embed, object) { 
               
                 --margin-inline: 0;    
                   margin-inline: var(--margin-inline);
