@@ -9211,7 +9211,7 @@
             --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff6eff") ?>;
             --dark-accent-color:                        <?= user_color("dark", "accent_color", "#22ccee") ?>;
 
-            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #cb9ecb))") ?>;
+            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #cb9ecb))") /* TODO on  lighter background => #FF91FF; */ ?>;
             --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #ff77e0))") ?>;
 
             --dark-text-on-background-darker-color:     <?= "#e5e5e5" ?>;
@@ -9489,12 +9489,12 @@
             :is(article, .article) :is(
                 header, .header, 
                 footer, .footer, 
-                blockquote, aside)      { background-color: var(--background-lighter-color);        }
+                blockquote, aside)      { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
 
             /* Cards */
 
             .card                       { background-color: var(--background-color);         color: var(--text-color); }
-            .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); }
+            .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); --dark-link-color: #FF91FF; }
 
          /* .card                       { border:        1px solid var(--border-color); } */
             .card                       { box-shadow:    2px 2px 8px 4px #00000033;     } /*
@@ -9508,8 +9508,8 @@
 
             /* Cards inside articles */
 
-            :is(article, .article) .card               { background-color: var(--background-lighter-color);   }
-            :is(article, .article) .card .card-title   { background-color: var(--background-lighter-color);   }
+            :is(article, .article) .card               { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
+            :is(article, .article) .card .card-title   { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
 
             /* Headlines */
          
@@ -9598,6 +9598,7 @@
             /* Editable styles */
             
             style[contenteditable="true"] {
+                --dark-link-color: #FF91FF;
                 background-color: var(--background-lighter-color);
                 border-color: var(--border-color);
             }
@@ -9623,6 +9624,7 @@
                 width: calc(2 * var(--line-height));
                 height: auto;
                 aspect-ratio: 1;
+                --dark-link-color: #FF91FF;
                 background-color: var(--background-lighter-color);
                 border: 3px solid var(--border-color);
                 border-radius: 50%;
@@ -9689,7 +9691,7 @@
                 width: 100%;
                 }
 
-            main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
+            main, header, .header, footer, .footer, article, .article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
                 display: flow-root;
             }
             /*abbr, b, bdi, bdo, br, cite, code, data, del, dfn, em, i, ins,
