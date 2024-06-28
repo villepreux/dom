@@ -9662,6 +9662,34 @@
                 --grid-default-min-width:   calc(var(--line-height) + var(--gap));
 
             }
+
+            /**
+             * Current "standard" hack to get viewport dimentions without unit
+             */
+
+            @property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; } 
+            :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px)); }
+
+            /**
+             * Fluid font size
+             */
+
+            :root { 
+               
+                    --fluid-font-size-min-viewport-width:  320; 
+                    --fluid-font-size-max-viewport-width: 1600;
+
+                    --fluid-font-size-min: 1.0rem; 
+                    --fluid-font-size-max: 1.5rem; 
+
+                    --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
+                    --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
+                    --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
+
+                    --root-font-size: var(--fluid-font-size);
+                }
+
+
     
             /* Sanitize ++ */
 
@@ -10168,6 +10196,11 @@
     function script_google_analytics()
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
+
+        if (do_not_track())
+        {
+            return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
+        }
 
         return  eol(2) . script_google_analytics_snippet().
                 eol(2) . script_src('https://www.google-analytics.com/analytics.js', false, 'async defer');
