@@ -4580,13 +4580,16 @@
         
         foreach (at(array_open_url($url, "xml"), array("channel","item"), array()) as $item)
         {   
+            $cats = at($item, "category", array());
+            if (!is_array($cats)) $cats = [ $cats ];
+
             $metadata = array
             (
                 "TYPE"              => $type
             ,   "post_title"        => extract_start(at($item, "title"))
             ,   "post_url"          => at($item, "link")
             ,   "post_date"         => at($item, "pubDate")
-            ,   "post_text"         => p(at($item, "description", at($item, "title"))).p(implode(" ", array_map(function($cat) { return "#$cat"; }, at($item, "category", array()))))
+            ,   "post_text"         => p(at($item, "description", at($item, "title"))).p(implode(" ", array_map(function($cat) { return "#$cat"; }, $cats)))
             ,   "post_img_url"      => $post_img_url_fallback
             );
 
@@ -10602,8 +10605,8 @@
             }
       
             function scan_images() 
-            {
-                dom.log("Scanning images");
+            {   /*
+                dom.log("Scanning images");*/
 
                 /* Handle images loading errors */
                 document.querySelectorAll("img").forEach(function (e) { e.addEventListener("error", on_img_error); });

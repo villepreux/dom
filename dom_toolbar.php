@@ -599,6 +599,16 @@
 
                 return button($icon, $attributes);
             }
+            else if (0 === stripos($link, "javascript:"))
+            {
+                $js_function = trim(str_replace("javascript:", "", $link), ";");
+              //$js_function = substr($js_function, 0, stripos($js_function, "("));
+
+                $attributes = \dom\attributes_add_class($attributes, "transparent link");
+                $attributes = \dom\attributes_add($attributes, \dom\attributes(\dom\attr("onclick", $js_function) ));
+
+                return button($icon, $attributes);
+            }
             else 
             {
                 return a($icon, $link, $attributes, $target);
