@@ -41,7 +41,8 @@ output(
                         grid(str_repeat(
                             card(
                                 card_title(h4("We love cards")).
-                                card_media(unsplash_img($unsplash_id, 300, 200, $unsplash_author, "Example image")).
+                              //card_media(unsplash_img($unsplash_id, 300, 200, $unsplash_author, "Example image")).
+                                card_media(img(dom\unsplash_url_img_random("Random image", 300, 200))).
                                 card_text(
                                     p("Cards seem to be a popular web component nowadays.").
                                     p("So we got it. And we also got social networks accounts cards pulling."))), 

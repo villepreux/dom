@@ -11,7 +11,8 @@ output(html(head().body(
         grid(str_repeat(card(
             card_title(["Card Title", 3]).
             card_text(p("Blah blah 1")).
-            card_media(img("https://source.unsplash.com/300x200/?chocolate&ext=.jpg")).
+          //card_media(img("https://source.unsplash.com/300x200/?chocolate&ext=.jpg")).
+            card_media(img(dom\unsplash_url_img_random("Random image", 300, 200))).
             card_text(
                 p("Blah blah 2").
                 p("Blah blah 3"))), 5)).

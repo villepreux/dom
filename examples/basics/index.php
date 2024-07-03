@@ -18,7 +18,8 @@ output( // Output
                 lorem_ipsum(1)).
             grid(str_repeat(card(
                 card_title("We love cards").
-                card_media(unsplash_img("Baz9Oss6Hj8", 300, 200, "tylerhendy", "Example image")).
+              //card_media(unsplash_img("Baz9Oss6Hj8", 300, 200, "tylerhendy", "Example image")).
+                card_media(img(dom\unsplash_url_img_random("Random image", 300, 200))).
                 card_text(
                     p("Cards seem to be a popular web component nowadays.").
                     p("So we got it. And we also got social networks accounts cards pulling."))), 4)).
@@ -35,7 +36,7 @@ output( // Output
                 this())).
         footer(
             p(a("Back to examples", "..")).
-            p("Photo ".a("©Tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8")." @ Unsplash.com").
+          //p("Photo ".a("©Tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8")." @ Unsplash.com").
             p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook")))).
     rss(). // I'm also interested in having a RSS feed and json-content from my content
     jsonfeed());

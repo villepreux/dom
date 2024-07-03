@@ -19,8 +19,9 @@
     --header-min-height:       0px;
     --header-toolbar-height:  64px;
 }
-.toolbar-row-banner { 
-    background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); 
+.toolbar-row-banner { /*
+    background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); */
+    background: center/cover url(<?= dom\unsplash_url_img_random("Random image", 1200, 800) ?>);
     background-color: var(--theme-color);
     background-blend-mode: hard-light;
 }
