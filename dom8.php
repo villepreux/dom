@@ -7924,7 +7924,8 @@
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
             .   meta('description',                         get("description", get("title")))
-            .   meta('author',                              get("author", author))
+            .   meta('author',                              get("author", author))                                                      .(!get("mastodon_user") ? "" : (""
+            .   meta('fediverse:creator',                   "@".get("mastodon_user")."@".get("mastodon_domain", "mastodon.social"))     ))
             .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
             .   meta('generator',                           "DOM ".version)
             .   meta('title',                               get("title"))
