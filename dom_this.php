@@ -4,6 +4,32 @@ use function dom\{set,get,eol,card,card_title,card_text,header,div,span,pre,styl
 
 function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = true)
 {
+  //$code = htmlentities($code);
+
+    $code = trim($code);
+    //if (0 === stripos($code, "<?php")) $code = substr($code, 6);
+
+    $lines = [];
+
+    foreach (explode(PHP_EOL, $code) as $line)
+    {
+        if (0     === stripos(trim($line),                       "//"            )) continue;
+        if (false !== stripos(str_replace(["\t",""], "", $line), "/"."/!PRIVATE" )) continue;
+
+        $lines[] = $line;
+    }
+
+    $code  = implode(PHP_EOL, $lines);
+
+    return '<pre class="'.$lang.' code language-'.$lang.'">'.$code.'</pre>';
+
+
+
+
+
+
+    
+
     $profiler = debug_track_timing();
 
     if ($syntax_highlight && !get("gemini"))
