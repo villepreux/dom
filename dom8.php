@@ -2338,26 +2338,27 @@
         $__last_headline_level = (int)$h;
 
         $f = get("hook_headline_filter");
-
+        
         if (!!$f && is_callable($f))
         {
-            $hook_result = $f(false === $section ? $title : $section);
+            $hook_result = $f($title, false === $section ? $title : $section);
             
             if (false === $hook_result)
             {
                 return [ $title, $section ];
             }
-
+            
             if (is_array($hook_result))
             {
                 list($title, $section) = $hook_result;
+                
             }
             else
             {
                 $section = $hook_result;
             }
         }
-
+                
         if ($h == 1)      $title            = hook_title($title);
         if ($h == 2) list($title, $section) = hook_section($title, $section);
         
@@ -2397,11 +2398,11 @@
     }
 
     function hook_section($title, $section = false)
-    {           
+    {   
         if (false === $section) $section = $title;
 
         $f = get("hook_section_filter");
-
+        
         if (!!$f && is_callable($f))
         {
             $hook_result = $f(false === $section ? $title : $section);
@@ -2410,18 +2411,30 @@
             {
                 return [ $title, $section ];
             }
-
+            
             if (is_array($hook_result))
             {
                 list($title, $section) = $hook_result;
+                
             }
             else
             {
                 $section = $hook_result;
             }
         }
-
-        set("hook_sections", array_merge(get("hook_sections", array()), array(array(trim(clean_from_tags($section)), "#".anchor_name(trim(clean_from_tags($section)))))));
+        
+        set(
+            "hook_sections", 
+            array_merge(
+                get("hook_sections", array()), 
+                array(
+                    array(
+                        trim(clean_from_tags($title)), 
+                        "#".anchor_name(trim(clean_from_tags($section)))
+                        )
+                    )
+                )
+            );
 
         return [ $title, $section ];
     }
