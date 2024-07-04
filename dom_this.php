@@ -1,7 +1,10 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{set,get,eol,card,card_title,card_text,header,div,span,pre,style,p,debug_track_timing,nbsp,comment};
+use function dom\{HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent};
 use const dom\auto;
+
+const code_tab_src_size = 4;
+const code_tab_dst_size = 2;
 
 function code_sanitize($code)
 {
@@ -18,7 +21,7 @@ function code_sanitize($code)
     return implode(PHP_EOL, $lines); 
 }
 
-function code_transform_indent($code, $tab_src_size = 4, $tab_dst_size = 2, $tab_space = "&nbsp;")
+function code_transform_indent($code, $tab_src_size = code_tab_src_size, $tab_dst_size = code_tab_dst_size, $tab_space = "&nbsp;")
 {
     $lines = explode(PHP_EOL, $code);
 
@@ -66,74 +69,76 @@ function code_transform_indent($code, $tab_src_size = 4, $tab_dst_size = 2, $tab
     return $code;
 }
 
-function code_section($code, $title, $attributes = false)
+function code_css()
 {
-    $html_header = "";
+    HSTART() ?><style><?= HERE() ?>
 
-    if (!!$title && "" != $title)
-    {
-        if ($attributes == "card")
-        {
-            $html_header = card_title($title);
-        }
-        else
-        {
-            $html_header = header($title);
-        }
-    }
+        /* TODO: CLEANUP CSS */
 
-    $html_code = ($attributes == "card") ? card_text($code) : $code;
-    
+        @layer ide;
+        
+        .ide:not(:is(.card.ide, details .ide)) {
+            width:          fit-content;
+            max-width:      stretch;
+            max-width:      -moz-available;
+            max-width:      -webkit-fill-available;
+            border:         2px dashed var(--theme-color);
+            margin-bottom:  var(--gap);
+        }
+
+        .ide pre {
+            margin-block:   0;
+            padding:        var(--gap);
+        }
+
+        .ide code {
+            display:        block;
+            white-space:    pre;
+            padding:        0;
+            width:          fit-content;
+            max-width:      100%;
+            border:         none;
+            background:     unset;
+        }
+
+        :is(.card, details).ide code {            
+            border: none;
+        }
+
+        /* Horizontal Scroll */
+
+        .card.ide {
+            overflow: hidden;
+        }        
+        .ide:not(:is(.card, details)), .card.ide > :is(.card-text, pre) {
+
+            overflow:   hidden;
+            overflow-x: auto;
+        }
+
+        /* Do not display source code when inside iframe */
+
+        .in-iframe .ide { 
+            display: none 
+        }
+
+    <?= HERE("raw_css") ?></style><?php return HSTOP();
+}
+
+function code_section($code, $title, $attributes = false)
+{   
+    $card = ($attributes == "card");
+   
     $attributes = dom\attributes_add_class($attributes, "ide");
-
-    return 
-
-        style("
-
-            @layer ide;
-        
-            .ide {
-                overflow:       hidden;
-                margin-block:   var(--gap);
-                width:          fit-content;
-                border:         2px dashed var(--border-color, var(--theme-color));
-            }
-            .ide code {
-                border:         unset;
-                background:     unset;
-                color:          unset;
-                display:        block;
-            }
-            .ide pre {
-                white-space:    pre;
-                display:        block;
-                margin-bottom:  0;
-            }
-
-            .in-iframe .ide { 
-                display:        none 
-            }
-
-            /* IDE within a card */
-                        
-            .card.ide {
-                width:          fit-content;
-                max-width:      calc(100vw - 2 * var(--gap));
-                margin-inline:  auto;
-                overflow:       hidden;
-                border:         none;
-            }
-
-            .card.ide .card-text {
-
-                padding:        calc(0.5 * var(--gap));
-            }
-
-            ").
-
-        div($html_header.$html_code, $attributes).
-        
-        "";
+    
+    if ($card)
+    {
+        return style(code_css()).div(((!!$title && "" != $title) ? card_title($title) : "").card_text($code), $attributes);
+    }
+    else
+    {
+        return style(code_css()).div(((!!$title && "" != $title) ? header($title) : "").$code, $attributes);
+    }
 }
 
 function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto)
@@ -175,13 +180,16 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
                     $code = substr($code, 0, $pos_bgn + strlen($tag_bgn)).$placeholder.substr($code, $pos_end);
                     $pos_end = $pos_bgn + strlen($tag_bgn) + strlen($tag_end) + strlen($placeholder);
 
-                    $embeds[] = [ $embed_lang, $embed ];
+                    $indent = 0;
+                    $embed  = unindent($embed, $indent);
+
+                    $embeds[] = [ $embed_lang, $embed, $indent ];
                 }
             }
         }
 
         $code = htmlentities($code);
-        $code = dom\code($code, [ "class" => "language-$lang", "contenteditable" => "contenteditable", "spellcheck" => false ]);
+        $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
     
         if ($lang == "php")
         {
@@ -189,13 +197,15 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             
             foreach ($embeds as $index => $embed)
             {
-                list($embed_lang, $embed) = $embed;
+                list($embed_lang, $embed, $embed_indent) = $embed;
+
+                $embed_indent *= code_tab_dst_size / code_tab_src_size;
                 
                 $embed = htmlentities($embed);
-                $embed = dom\code($embed, "language-$embed_lang");
+                $embed = dom\code($embed, [ "class" => "language-$embed_lang",  "style" => "padding-left: {$embed_indent}ch" ]);
 
                 $placeholder = htmlentities(comment("CODE-EMBED-$index"));
-                $embed = '</code>'.$embed.'<code class="language-'.$lang.'" contenteditable spellcheck=false>';
+                $embed = '</code>'.$embed.'<code class="language-'.$lang.'" spellcheck=false>';
                 $code  = str_replace($placeholder, $embed, $code);
             }
         }
@@ -219,5 +229,3 @@ function this($title = "", $attributes = false)
 
     return code($caller_source_content, $title, $attributes, "php");
 }
-
-?>

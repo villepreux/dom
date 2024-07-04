@@ -1,4 +1,4 @@
-<?php include "dom.php"; use function dom\{init,HSTART,HERE,HSTOP}; init(); HSTART(); ?><html><?= HERE() ?>
+<?php include "dom.php"; use function dom\{init,HSTART,HERE,HSTOP}; init(); HSTART() ?><html><?= HERE() ?>
 <html>
   <head>
     <boilerplate/>

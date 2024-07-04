@@ -26,7 +26,7 @@ output(head().body(
             p(a("Back", "..")." | ".a("More examples", "others"))
             )
         ).
-    style((function () { HSTART(-3); ?><style><?= HERE(); ?>
+    style((function () { HSTART(-3) ?><style><?= HERE() ?>
 
          body { display: flex; flex-direction: row; align-items: center; justify-content: center; }
         .grid { flex-grow: 1; grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr)); padding-block: var(--gap); }
@@ -35,5 +35,5 @@ output(head().body(
         /* To distinguish iframe backgrounds from our parent background surrouding the card */
         .card-media > iframe { --margin-inline: calc(0.5 * var(--gap)); margin-inline: var(--margin-inline); width: calc(100% - calc(2 * var(--margin-inline))); }
         
-        <?php HERE("raw_css"); ?></style><?php return HSTOP(); })())
+        <?php HERE("raw_css") ?></style><?php return HSTOP(); })())
     ));

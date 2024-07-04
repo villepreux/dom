@@ -2105,7 +2105,7 @@
         return trim($text, ".,;: \t\n\r\0\x0B");
     }
 
-    function unindent($raw)
+    function unindent($raw, &$indent = null)
     {
         $lines = explode(PHP_EOL, $raw);
 
@@ -2136,6 +2136,11 @@
             {
                 $line = substr($line, $min_indent);
             }
+        }
+
+        if ($indent !== null && $min_indent > 0)
+        {
+            $indent = $min_indent;
         }
 
         return implode(PHP_EOL, $lines);
@@ -9496,6 +9501,8 @@
             header, .header { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
             footer, .footer { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
+            input { background: var(--background-lighter-color); }
+
             /* Articles */
 
             article, .article, 
