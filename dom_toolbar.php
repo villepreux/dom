@@ -524,6 +524,7 @@
 
                                 if (toolbar_row_banner)
                                 {
+                                    toolbar_row_banner.style.backgroundColor = "var(--theme-color)";
                                     toolbar_row_banner.style.backgroundImage = "var(--linear-gradient), url(" + urls[index_url] + ")";
                                     index_url = (index_url + 1) % urls.length;
                                 }

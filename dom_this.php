@@ -157,12 +157,13 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         {
             // Extract other languages embeded inside php
 
+            foreach ([ "HERE", "dom\HERE", "heredoc_flush", "dom\heredoc_flush"] as $here_func)
             foreach ([
 
-                [ "html",         '<html>'                          .'<?= HERE() ?>', '<?= HERE("raw_html"' ],
-                [ "javascript", '<script>'                          .'<?= HERE() ?>', '<?= HERE("raw_js"'   ],
-                [ "css",         '<style>'                          .'<?= HERE() ?>', '<?= HERE("raw_css"'  ],
-                [ "markdown",    '<code class="language-markdown">' .'<?= HERE() ?>', '<?= HERE("raw"'      ],
+                [ "html",       '<html>'                            .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_html"' ],
+                [ "javascript", '<script>'                          .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_js"'   ],
+                [ "css",        '<style>'                           .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_css"'  ],
+                [ "markdown",   '<code class="language-markdown">'  .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw"'      ],
 
                 ] as $language_embed)
             {
@@ -213,7 +214,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         $code = pre($code, "language-$lang line-numbers");
     }
     
-    $code = code_transform_indent($code);
+  //$code = code_transform_indent($code);
 
     return code_section($code, $title, $attributes);
 }

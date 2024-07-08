@@ -9201,7 +9201,7 @@
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
 
-            --light-theme-color:                        <?= user_color("light", "theme_color",  "#990011") ?>;
+            --light-theme-color:                        <?= user_color("light", "theme_color",  "#8A0009") ?>;
             --light-accent-color:                       <?= user_color("light", "accent_color", "#112299") ?>;
 
             --light-link-color:                         <?= user_color("light", [                      "link_color", "theme_color"  ], "var(--light-theme-color,  var(--theme-color,  #aa4455))") ?>;
@@ -9230,11 +9230,11 @@
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
         
-            --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#ff6eff") ?>;
-            --dark-accent-color:                        <?= user_color("dark", "accent_color", "#22ccee") ?>;
+            --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#FFB7F8") ?>; /* #ff6eff */
+            --dark-accent-color:                        <?= user_color("dark", "accent_color", "#64DEFE") ?>; /* #22ccee */
 
-            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #cb9ecb))") /* TODO on  lighter background => #FF91FF; */ ?>;
-            --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #ff77e0))") ?>;
+            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #FFBEC7))") /* TODO on  lighter background => #FF91FF; */ ?>;
+            --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #64DEFE))") ?>;
 
             --dark-text-on-background-darker-color:     <?= "#e5e5e5" ?>;
             --dark-text-on-background-color:            <?= "#f2f2f2" ?>;
@@ -9242,7 +9242,7 @@
             
             --dark-background-darker-color:             <?= "#101012" ?>; /* #000000 no need to be that dark anymore with new default font sizez */
             --dark-background-color:                    <?= "#161618" ?>; /* #0d0d0d no need to be that dark anymore with new default font sizez */
-            --dark-background-lighter-color:            <?= "#191920" ?>; /* #1a1a1a no need to be that dark anymore with new default font sizez */
+            --dark-background-lighter-color:            <?= "#181819" ?>; /* #1a1a1a no need to be that dark anymore with new default font sizez */
             
             --dark-text-on-theme-darker-color:          <?= "#000000" ?>;
             --dark-text-on-theme-color:                 <?= "#0d0d0d" ?>;
@@ -9501,7 +9501,7 @@
             header, .header { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
             footer, .footer { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
-            input { background: var(--background-lighter-color); }
+            input, select { color: var(--text-color); background: var(--background-lighter-color); }
 
             /* Articles */
 
