@@ -390,13 +390,13 @@ function deploy_compile_error_check($html, $src)
         ||  (false !== stripos($html, "Error:"   ) && false !== stripos($html, "Call Stack:"))
         ||  (false !== stripos($html, "[COMPILE ERROR]"  )))
         { 
-          
             global $cmdline_option_compile_one;
+
             if (!$cmdline_option_compile_one)
             {
-                if (strlen($html) > 1024*160)
+                if (strlen($html) > 200*80) 
                 {
-                    $html = substr($html, 0, 1024*160/2)."[...]".substr($html, 1024*160/2);
+                    $html = substr($html, 0, 200*80/2).PHP_EOL.PHP_EOL."[...]".PHP_EOL.PHP_EOL.substr($html, strlen($html) - (200*80/2));
                 }
 
                 $html_lines = explode(PHP_EOL, $html);
@@ -461,6 +461,7 @@ $php_args_common =
     " "."rand_seed"                     ."=".   "666".
     " "."path_max_depth"                ."=".   "32".
     " "."rss_date_granularity_daily"    ."=".   "1".
+    " "."live_domain"                   ."=".   "$server_name".
 
     "";
 

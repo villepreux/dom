@@ -579,14 +579,14 @@
         {
             if ($url_branch != "")
             {
-                if (0 === stripos($url_branch, get("local_domain"))) $url_branch = substr($url_branch, strlen(get("local_domain")));
-                if (0 === stripos($url_branch, get("live_domain")))  $url_branch = substr($url_branch, strlen(get("live_domain" )));
+                if (0 === stripos($url_branch, get("local_domain", '/'.'/'.'/'.'/'.'/'))) $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, get("live_domain", server_server_name()))) $url_branch = substr($url_branch, strlen(get("live_domain", server_server_name())));
             }
 
             $url_branch = trim($url_branch, "/");
         }
     
-        $url = 'https://'.get("live_domain");
+        $url = 'https://'.get("live_domain", server_server_name());
         if ($url_branch != "") $url .= "/$url_branch";
 
         return $url;
@@ -7646,8 +7646,8 @@
 
             if ($url_branch != "")
             {
-                if (0 === stripos($url_branch, get("local_domain"))) $url_branch = substr($url_branch, strlen(get("local_domain")));
-                if (0 === stripos($url_branch, get("live_domain")))  $url_branch = substr($url_branch, strlen(get("live_domain" )));
+                if (0 === stripos($url_branch, get("local_domain")))                        $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, get("live_domain", server_server_name())))   $url_branch = substr($url_branch, strlen(get("live_domain", server_server_name())));
             }
 
             $url_branch = trim($url_branch, "/");
