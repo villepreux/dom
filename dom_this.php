@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent};
+use function dom\{HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p};
 use const dom\auto;
 
 const code_tab_src_size = 4;
@@ -125,23 +125,50 @@ function code_css()
     <?= HERE("raw_css") ?></style><?php return HSTOP();
 }
 
-function code_section($code, $title, $attributes = false)
+function code_section($code, $client_source_url, $title, $attributes = false)
 {   
-    $card = ($attributes == "card");
+    $is_card   = ($attributes == "card");
+    $has_title = (!!$title && "" != $title);
    
     $attributes = dom\attributes_add_class($attributes, "ide");
-    
-    if ($card)
+
+    $view_compile_source = "";
     {
-        return style(code_css()).div(((!!$title && "" != $title) ? card_title($title) : "").card_text($code), $attributes);
+        if (!!$client_source_url && (!get("minify") || !!get("beautify")))
+        {
+            $source = file_get_contents($client_source_url);
+            {
+                $tag_bgn = '<div class="ide">';
+                $tag_end = "</code></pre></div>";
+
+                $pos_bgn = stripos($source, $tag_bgn);
+                $pos_end = stripos($source, $tag_end, $pos_bgn);
+
+                if ($pos_bgn && $pos_end) $source = substr($source, 0, $pos_bgn).dom\comment("server-side source code").substr($source, $pos_end + strlen($tag_end));
+            }
+
+            if ($is_card)
+            {
+                $view_compile_source = card_title("Client source-code").card_text(pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers"));
+            }
+            else
+            {
+                $view_compile_source = header(p("Client source-code")).pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers");
+            }            
+        }
+    }
+    
+    if ($is_card)
+    {
+        return style(code_css()).div(($has_title ? card_title($title) : "").card_text($code).$view_compile_source, $attributes);
     }
     else
     {
-        return style(code_css()).div(((!!$title && "" != $title) ? header($title) : "").$code, $attributes);
+        return style(code_css()).div(($has_title ? header($title) : "").$code.$view_compile_source, $attributes);
     }
 }
 
-function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto)
+function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false)
 {
     $profiler = debug_track_timing();
 
@@ -216,7 +243,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     
   //$code = code_transform_indent($code);
 
-    return code_section($code, $title, $attributes);
+    return code_section($code, $client_source_url, $title, $attributes);
 }
 
 function this($title = "", $attributes = false)
@@ -228,5 +255,5 @@ function this($title = "", $attributes = false)
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content, $title, $attributes, "php");
+    return code($caller_source_content, $title, $attributes, "php", auto, dom\live_url());
 }
