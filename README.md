@@ -20,11 +20,11 @@ Proof Of Concept
   * Mainly semanticaly
   * Without having to worry about latest, state of the art, boilerplate code
   * Automaticaly generating derived content (jsonfeed, RSS, sitemap, favicons, service worker...)
-  * Independently of chooosen component/styling/whatever framework (normalize vs sanitize vs reset, material vs bootstrap vs spectre vs..., react vs 11ty vs..., AMP or not,...)
+  * Independently of chooosen component/styling/whatever framework (normalize vs sanitize vs reset, material vs bootstrap vs spectre vs..., react vs 11ty vs..., ~~AMP or not,~~...)
   * Having access to comonly used predefined components (videos, social-media cards, maps, ...)
   * Being able to create and/or compose new components with ease
   * Compiling into fast code
-  * Compiling into valid markup (HTML, CSS, JSON, AMP...)
+  * Compiling into valid markup (HTML, CSS, JSON~~, AMP~~...)
   * Compiling into good SEO
   * Rendering well without CSS nor JS
   * Not needed JS at all if wanted or when disabled
