@@ -378,6 +378,11 @@
         
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {
+        if (is_string($path0) && strlen($path0) > 0 && $path0[0] == '#')
+        {
+            return $path0;
+        }
+
         global $__reentrant_path_guard;
 
         if ($__reentrant_path_guard)
@@ -9963,6 +9968,12 @@
                   margin-inline: var(--margin-inline);
             }
     
+            body > :is(main, header, .header, footer, .footer) > :is(article, .article) > :is(article, .article) {
+
+                margin-inline: var(--margin-gap);
+                margin-block: var(--gap);
+            }
+    
             body > :is(main, header, .header, footer, .footer) > :is(article, .article) > :is(.grid, .flex) {
 
                 margin-inline: var(--margin-gap);
@@ -12245,7 +12256,7 @@
     {
         if ($email      === false
         &&  $attributes === false
-        &&  $target     === external_link) $email = $html;
+        &&  $target     === external_link) $email = $text;
 
         if (AMP())
         {
@@ -14284,5 +14295,5 @@
 
     ######################################################################################################################################
     #endregion
-
+    
 ?>
