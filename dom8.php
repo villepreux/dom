@@ -1677,6 +1677,12 @@
             }
         }
 
+        if (!!$content && "" != $content && false !== stripos($content, '<title>403 Forbidden</title>'              )) $content = false;
+        if (!!$content && "" != $content && false !== stripos($content, '<title>404 Not found</title>'              )) $content = false;
+        if (!!$content && "" != $content && false !== stripos($content, '<title>401 Unauthorized</title>'           )) $content = false;
+        if (!!$content && "" != $content && false !== stripos($content, '<title>500 Interval server error</title>'  )) $content = false;
+        if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
+
         if ($auto_fix)
         {    
             if (!$content || $content == "") $content = content(url()."/".$url,  $options, false, false);
@@ -12215,28 +12221,32 @@
         return tag('a', $html, $attributes);
     }
 
-    function a_encrypted($url, $text = false, $attributes = false, $target = external_link)
+    function a_encrypted($html, $url = false, $attributes = false, $target = external_link)
     {
-        $text = ($text === false) ? $url : $text;
-        
+        if ($url        === false
+        &&  $attributes === false
+        &&  $target     === external_link) $url = $html;
+
         if (AMP())
         {
-            return a($text, $url, $attributes, $target);
+            return a($html, $url, $attributes, $target);
         }
         else
         {
-            $script  = "document.getElementById('".md5($text)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('".md5($text)."').innerHTML = '".$text."';";
-            
+            $script         = "document.getElementById('".md5($html)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('".md5($html)."').innerHTML = '".$html."';";
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
+            $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
 
-            return a("", "", array(/*"aria-label" => "?",*/ "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
+            return a("", "", $attributes, $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
-    function a_email($email, $text = false, $attributes = false, $target = external_link)
+    function a_email($text = false, $email = false, $attributes = false, $target = external_link)
     {
-        $text = ($text === false) ? $email : $text;
-        
+        if ($email      === false
+        &&  $attributes === false
+        &&  $target     === external_link) $email = $html;
+
         if (AMP())
         {
             return a($text, "mailto:" . $email, $attributes, $target);

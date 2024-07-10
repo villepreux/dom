@@ -590,7 +590,7 @@
 
         if ($encrypted)
         {
-            return a_encrypted($link, $icon, $attributes, $target);
+            return a_encrypted($icon, $link, $attributes, $target);
         }
         else
         {

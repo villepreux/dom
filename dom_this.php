@@ -136,25 +136,35 @@ function code_section($code, $client_source_url, $title, $attributes = false)
     {
         if (!!$client_source_url && (!get("minify") || !!get("beautify")))
         {
-            $source = file_get_contents($client_source_url);
+            $source = dom\content($client_source_url);
             {
-                $tag_bgn = '<div class="ide">';
-                $tag_end = "</code></pre></div>";
+                if (!!$source && "" != $source)
+                {
+                    $tag_bgn = '<div class="ide">';
+                    $tag_end = "</code></pre></div>";
 
-                $pos_bgn = stripos($source, $tag_bgn);
-                $pos_end = stripos($source, $tag_end, $pos_bgn);
+                    $pos_bgn = stripos($source, $tag_bgn);
+                    $pos_end = stripos($source, $tag_end, $pos_bgn);
 
-                if ($pos_bgn && $pos_end) $source = substr($source, 0, $pos_bgn).dom\comment("server-side source code").substr($source, $pos_end + strlen($tag_end));
+                    if ($pos_bgn && $pos_end) $source = substr($source, 0, $pos_bgn).dom\comment("server-side source code").substr($source, $pos_end + strlen($tag_end));
+                }
+                else
+                {
+                    $source = false;
+                }
             }
 
-            if ($is_card)
+            if (!!$source && "" != $source)
             {
-                $view_compile_source = card_title("Client source-code").card_text(pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers"));
+                if ($is_card)
+                {
+                    $view_compile_source = card_title("Client source-code").card_text(pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers"));
+                }
+                else
+                {
+                    $view_compile_source = header(p("Client source-code")).pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers");
+                }
             }
-            else
-            {
-                $view_compile_source = header(p("Client source-code")).pre(dom\code(htmlentities($source), "language-html"), "language-html line-numbers");
-            }            
         }
     }
     
@@ -246,7 +256,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     return code_section($code, $client_source_url, $title, $attributes);
 }
 
-function this($title = "", $attributes = false)
+function this($title = "", $attributes = false, $include_client_source = false)
 {
     $callstack = debug_backtrace(0);
     if (0 == count($callstack)) return "";
@@ -255,5 +265,5 @@ function this($title = "", $attributes = false)
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content, $title, $attributes, "php", auto, dom\live_url());
+    return code($caller_source_content, $title, $attributes, "php", auto, $include_client_source ? dom\live_url() : false);
 }
