@@ -7939,7 +7939,7 @@
             .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')*/
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
-            .   meta('description',                         get("description", get("title")))
+            .   meta('description',                         get("og_description", get("description", get("title"))))
             .   meta('author',                              get("author", author))                                                      .(!get("mastodon_user") ? "" : (""
             .   meta('fediverse:creator',                   "@".get("mastodon_user")."@".get("mastodon_domain", "mastodon.social"))     ))
             .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
@@ -7954,38 +7954,52 @@
             .   meta('color-scheme',                        'dark light')
             
             .   eol()       
-            .   meta('DC.title',                            get("title"))
-            .   meta('DC.format',                           'text/html')
-            .   meta('DC.language',                         get("dc-language", content_language()))
-            
-            .   eol()       
             .   meta('geo.region',                          get("geo_region"))
             .   meta('geo.placename',                       get("geo_placename"))
             .   meta('geo.position',                        get("geo_position_x").';'. get("geo_position_y"))
             .   meta('ICBM',                                get("geo_position_x").', '.get("geo_position_y"))              
             
             .   eol()       
+
+            .   meta_property('og:title',                   get("og_title", get("title")))
+            .   meta_property('og:description',             get("og_description", get("description", get("title"))))
+            .   meta_property('og:site_name',               get("live_domain", get("og_site_name", get("title"))))
+
+            .   meta_property('og:image',                   path(get("canonical").'/'.get("image")))
+            .   meta_property('og:url',                     get("canonical"))            
+            .   meta_property('og:type',                    'website')
+
+            .   meta_name('og:title',                       get("og_title", get("title")))
+            .   meta_name('og:description',                 get("og_description", get("description", get("title"))))
+            .   meta_name('og:site_name',                   get("live_domain", get("og_site_name", get("title"))))
+
+            .   eol()       
+            .   meta_name('name',                           get("og_title", get("title")))
+            .   meta_name('description',                    get("og_description", get("description", get("title"))))
+            
+            .   eol()       
+            .   meta_itemprop('name',                       get("og_title", get("title")))
+            .   meta_itemprop('description',                get("og_description", get("description", get("title"))))
+
+            .   eol()       
+            .   meta('DC.title',                            get("title"))
+            .   meta('DC.format',                           'text/html')
+            .   meta('DC.language',                         get("dc-language", content_language()))
+            
+            .   eol()       
             .   meta('twitter:card',                        'summary_large_image')      . (has('twitter_page') ? (""
             .   meta('twitter:site',                        get("twitter_page"))        ) : "")
             .   meta('twitter:url',                         get("canonical"))
             .   meta('twitter:title',                       get("title"))
-            .   meta('twitter:description',                 get("description", get("title")))
+            .   meta('twitter:description',                 get("og_description", get("description", get("title"))))
             .   meta('twitter:image',                       path(get("canonical").'/'.get("image")))
             
             .   eol()       
-            .   meta_property('og:site_name',               get("og_site_name", get("title")))
-            .   meta_property('og:image',                   path(get("canonical").'/'.get("image")))
-            .   meta_property('og:title',                   get("title"))
-            .   meta_property('og:description',             get("description", get("title")))
-            .   meta_property('og:url',                     get("canonical"))            
-            .   meta_property('og:type',                    'website')
+            .   meta('application-name',                    get("live_domain", get("og_site_name", get("title"))))  . ((has("pinterest_site_verification") || has("google_site_verification")) ? (""
             
-            .   eol()       
-            .   meta('application-name',                    get("title"))                                   . ((has("pinterest_site_verification") || has("google_site_verification")) ? (""
-            
-            .   eol()                                                                               ) : "") . (has("pinterest_site_verification") ? (""
-            .   meta('p:domain_verify',                     get("pinterest_site_verification"))     ) : "") . (has("google_site_verification")    ? (""
-            .   meta('google-site-verification',            get("google_site_verification"))        ) : "")
+            .   eol()                                                                                       ) : "") . (has("pinterest_site_verification") ? (""
+            .   meta('p:domain_verify',                     get("pinterest_site_verification"))             ) : "") . (has("google_site_verification")    ? (""
+            .   meta('google-site-verification',            get("google_site_verification"))                ) : "")
             
             .   eol()
             .   meta('msapplication-TileColor',             get("theme_color"))
@@ -8055,7 +8069,8 @@
     function meta_http_equiv($equiv,$content)   { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
     function meta_name($name,$content)          { return meta(array("name"       => $name,     "content" => $content), false, array(40,80)); }
     function meta_property($property,$content)  { return meta(array("property"   => $property, "content" => $content), false, array(40,80)); }
-
+    function meta_itemprop($itemprop,$content)  { return meta(array("itemprop"   => $itemprop, "content" => $content), false, array(40,80)); }
+    
     function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))  return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
     function link_rel($rel, $link, $type = false, $pan = 0) { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
     
