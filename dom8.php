@@ -378,10 +378,10 @@
         
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {
-        if (is_string($path0) && strlen($path0) > 0 && $path0[0] == '#')
-        {
-            return $path0;
-        }
+      //if (is_string($path0) && strlen($path0) > 0 && $path0[0] == '#')
+      //{
+      //    return $path0;
+      //}
 
         global $__reentrant_path_guard;
 
@@ -2466,6 +2466,13 @@
                 set("heading", $heading);
             } 
         }        
+    }
+
+    // Excerpts
+
+    function hook_excerpt($excerpt)
+    {
+        set("excerpt", $excerpt);
     }
     
     // Images
@@ -11412,7 +11419,7 @@
 
     function clearfix       () { return div("","clearfix"); }
 
-    function excerpt        ($html = "", $attributes = false) {                             return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
+    function excerpt        ($html = "", $attributes = false) { hook_excerpt($html); return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
 
     $__dom_is_first_main = true;
 
@@ -12181,7 +12188,7 @@
     {
         if ($url                 === false
         &&  $external_attributes === false
-        &&  $target              === false) $url = $html;
+        &&  $target              === false) $url = strip_tags($html);
 
         if (($external_attributes === internal_link 
           || $external_attributes === external_link) && $target === false)
@@ -12251,7 +12258,7 @@
     {
         if ($url        === false
         &&  $attributes === false
-        &&  $target     === external_link) $url = $html;
+        &&  $target     === external_link) $url = strip_tags($html);
 
         if (AMP())
         {
@@ -12271,7 +12278,7 @@
     {
         if ($email      === false
         &&  $attributes === false
-        &&  $target     === external_link) $email = $text;
+        &&  $target     === external_link) $email = strip_tags($text);
 
         if (AMP())
         {
