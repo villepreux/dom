@@ -9724,7 +9724,7 @@
              * Current "standard" hack to get viewport dimentions without unit
              */
 
-            @property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; } 
+            <?= '@property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; } ' ?> 
             :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px)); }
 
             /**
