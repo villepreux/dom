@@ -574,6 +574,11 @@
     #region HELPERS : CURRENT URL
     ######################################################################################################################################
 
+    function live_domain()
+    {
+        return get("live_domain", server_server_name());
+    }
+
     function host_url   ()                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
     function url_branch ($params = false, $get = true, $post = true, $session = false)  { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
     function url        ($params = false)                                               { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
@@ -584,14 +589,14 @@
         {
             if ($url_branch != "")
             {
-                if (0 === stripos($url_branch, get("local_domain", '/'.'/'.'/'.'/'.'/'))) $url_branch = substr($url_branch, strlen(get("local_domain")));
-                if (0 === stripos($url_branch, get("live_domain", server_server_name()))) $url_branch = substr($url_branch, strlen(get("live_domain", server_server_name())));
+                if (0 === stripos($url_branch, get("local_domain", '/'.'/'.'/'.'/'.'/')))   $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, live_domain()))                              $url_branch = substr($url_branch, strlen(live_domain()));
             }
 
             $url_branch = trim($url_branch, "/");
         }
     
-        $url = 'https://'.get("live_domain", server_server_name());
+        $url = 'https://'.live_domain();
         if ($url_branch != "") $url .= "/$url_branch";
 
         return $url;
@@ -7664,8 +7669,8 @@
 
             if ($url_branch != "")
             {
-                if (0 === stripos($url_branch, get("local_domain")))                        $url_branch = substr($url_branch, strlen(get("local_domain")));
-                if (0 === stripos($url_branch, get("live_domain", server_server_name())))   $url_branch = substr($url_branch, strlen(get("live_domain", server_server_name())));
+                if (0 === stripos($url_branch, get("local_domain")))    $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (0 === stripos($url_branch, live_domain()))          $url_branch = substr($url_branch, strlen(live_domain()));
             }
 
             $url_branch = trim($url_branch, "/");
@@ -8715,7 +8720,7 @@
             category: legacy browsers
             */
             article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section {
-            display: block;
+                display: block;
             }
             
             
@@ -8867,19 +8872,17 @@
             ========================================================================== */
             
             /**
-            * Remove the margin in all browsers.
-            */
-            
+             * Remove the margin in all browsers.
+             */            
             body {
-            margin: 0;
+                margin: 0;
             }
             
             /**
-            * Render the `main` element consistently in IE.
-            */
-            
+             * Render the `main` element consistently in IE.
+             */            
             main {
-            display: block;
+                display: block;
             }
             
             /**
@@ -9837,10 +9840,12 @@
 
             body                    { text-underline-offset: 0.24em; } /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
     
-            body                    { word-break: break-word; text-wrap: balance; }
+            body                    { word-break: break-word; text-wrap: pretty; }
             .grid *                 { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
+
+            h1,h2,h3,h4,h5,h6       { text-wrap: balance; }
     
                   nav a, [role="navigation"] a          { text-decoration: none }
             a:not(nav a, [role="navigation"] a)         { text-decoration-thickness: 0.5px }
@@ -9914,6 +9919,12 @@
                 text-align:     left;
                 padding-top:    unset; /*
                 margin-block:   var(--gap); */
+            }
+
+            :not(body > header) + :is(body > main) {
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }
 
             main > :is(header, .header, footer, .footer, article, .article, aside, blockquote, nav, section, details, figcaption, figure, hgroup) {
@@ -12117,6 +12128,7 @@
 
     function attr_card()            { return array("class" => "h-entry",                                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
     function attr_article()         { return array("class" => "h-entry",                                                "itemscope" => "", "itemtype" => "https://schema.org/BlogPosting"   ); }
+    function attr_rsvp()            { return array("class" => "h-entry",                                                "itemscope" => "", "itemtype" => "https://schema.org/RsvpAction"    ); }
     function attr_author()          { return array("class" => "p-author", "rel" => "author",    "itemprop" => "author", "itemscope" => "", "itemtype" => "https://schema.org/Person"        ); }
     function attr_name()            { return array("class" => "p-name",                         "itemprop" => "name"); }
     function attr_datepublished($t) { return array("class" => "dt-published",                   "itemprop" => "datePublished", "datetime" => date("c", $t)); }
@@ -12125,6 +12137,21 @@
     function attr_syndication()     { return array("class" => "u-syndication"); }
     function attr_category()        { return array("class" => "p-category"); }
     
+    function rsvp_response($html, $url, $response = "yes", $attributes = false)
+    {
+        return div(
+            
+            p(
+                a_author(get("author"))." RSVPs '".span($response, "p-rsvp")."'".
+                " to ".a($html, $url, [ "class" => "u-in-reply-to" ]),
+
+                "p-summary"), 
+                
+            attributes_add($attributes, attr_rsvp())
+
+            );
+    }
+
     // Components with BlogPosting microdata
     // NOTE. Currently, only cards with title, text, and properties sub-components are almost usable for indieweb content
 
@@ -14233,6 +14260,7 @@
                 // https://css-tricks.com/gifs-and-prefers-reduced-motion/
 
                 $img = picture(
+                    
                     source(
                                               at($photo, "no-motion",                at($photo, 0                 )), attributes(attr("media", "(prefers-reduced-motion: reduce)"))).
                     img($path               = at($photo, "animated",                 at($photo, 1                 ) ), 
@@ -14243,7 +14271,10 @@
                         $lazy_src           = auto, 
                         $content            = auto, 
                         $precompute_size    = auto, 
-                        $src_attribute      = "srcset"
+                        $src_attribute      = "srcset",
+
+                        $preload_if_among_first_images = false /* assumes that by default the h-card is not visible */
+
                         )
                     );
             }
