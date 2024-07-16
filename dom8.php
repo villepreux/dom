@@ -1442,17 +1442,17 @@
     
     define("DOM_I18N_SHARE", T("Share"));
     
-    function server_language()
+    function client_language()
     {
-        return  at("" == get("server-language",  "")           ? false : explode(",", get("server-language")                ), 0,
+        return  at("" == get("http-accept-language",  "")      ? false : explode(",", get("http-accept-language")           ), 0,
                 at("" == server_http_accept_language('en-US')  ? false : explode(",", server_http_accept_language('en-US')  ), 0,
                 "en-US")
                 );
     }
 
-    function server_language_short()
+    function client_language_short()
     {
-        return at("" == server_language() ? false : explode("-", server_language()), 0, "en");
+        return at("" == client_language() ? false : explode("-", client_language()), 0, "en");
     }
 
     function content_language()
@@ -1460,7 +1460,7 @@
         return  get( "lang",
                 at("" == get("content-language", "")    ? false : explode(",", get("content-language")  ), 0,
                 at("" == get("html-language",    "")    ? false : explode(",", get("html-language")     ), 0,
-                at("" == server_language()              ? false : explode(",", server_language()        ), 0,
+                at("" == client_language()              ? false : explode(",", client_language()        ), 0,
                 "en-US")
                 )));
     }
@@ -1493,7 +1493,7 @@
             {
                 list($lang, $text) = func_get_args();
                 debug_log("i18n-$lang / $text");
-                return (strtolower(server_language_short()) == strtolower($lang)) ? $text : "";
+                return (strtolower(client_language_short()) == strtolower($lang)) ? $text : "";
             }
         }
 
@@ -1503,13 +1503,13 @@
             {
                 list($lang_texts) = func_get_args();
                 foreach ($lang_texts as $lang => $text) 
-                    if (strtolower(server_language_short()) == strtolower($lang)) return $text;
+                    if (strtolower(client_language_short()) == strtolower($lang)) return $text;
                 return at($lang_texts, 0, "");
             }
             else
             {
                 list($label) = func_get_args();
-                foreach (array(server_language_short(), "en") as $lang) {
+                foreach (array(client_language_short(), "en") as $lang) {
                     $key = strtolower("i18n-$lang-$label");
                     if (has($key)) {
                         debug_log("i18n / $label -> $key -> ".get($key, ""));

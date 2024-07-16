@@ -4,12 +4,19 @@ namespace build;
 
 require_once(__DIR__."/../dom.php");
 
+use \parallel\{Runtime, Future, Channel, Events};
+
+#region Utilities
+
 function arg_state($flag, $on = 1, $off = 0) { global $argv; return (DOM_CLI ? in_array("--$flag",  $argv) : (array_key_exists($flag, $_GET) && !!$_GET[$flag] )) ? $on : $off; }
 function arg_array($flag)                    { global $argv; $values = array(); if (DOM_CLI) { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $values = array_merge($values, explode(",", $val)); } } else { $values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return $values; }
 function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
 function log($text)
 {
+    global $cmdline_option_process_id, $cmdline_option_process_count;
+    if ($cmdline_option_process_count > 1) $text = "[$cmdline_option_process_id/$cmdline_option_process_count] $text";
+
     echo $text.PHP_EOL;
 }
 
@@ -74,8 +81,13 @@ function die_on_compile_error($html, $src)
     }
 }
 
-function parse($path, $name = null, $depth = 0, $something_changed = false)
+#endregion Utilities
+
+function parse($path, $name = null, $depth = 0, $something_changed = false, $process = 0, $process_count = 1)
 {
+    $path_hash = intval(hash("crc32b", "$path/$name/$depth"), 16);
+    if ($depth == 1 && $process != ($path_hash % $process_count)) return;
+
     log($path); 
 
     global $main_src, $main_dst;
@@ -150,7 +162,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false)
         if (count($cmdline_option_include) > 0 && !in_array($dir, $cmdline_option_include)) continue;
         if (count($cmdline_option_exclude) > 0 &&  in_array($dir, $cmdline_option_exclude)) continue;
 
-        $something_changed_under = parse("$path/$dir", $dir, $depth + 1, $something_changed);
+        $something_changed_under = parse("$path/$dir", $dir, $depth + 1, $something_changed, $process, $process_count);
         $something_changed = $something_changed || $something_changed_under;
     }
 
@@ -162,7 +174,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false)
             {
                 unlink("$main_dst/$path/$file");
                 
-                log("$path/$file");
+                log("$path/$file (source changed)");
 
                 copy("$main_src/$path/$file", "$main_dst/$path/$file");
 
@@ -189,7 +201,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false)
         || !is_file("$main_dst/$path/$index_html") 
         || (filemtime("$main_src/$path/$index_php") >= filemtime("$main_dst/$path/$index_html")))
         {
-            log("$path/$index_html");
+            log("$path/$index_html (".($something_changed ? "something changed" : (!is_file("$main_dst/$path/$index_html") ? "new file" : "source changed")).")");
 
             global $cmdline_option_generate;
 
@@ -272,6 +284,9 @@ $main_dst                               = arg_value("main-dst",     "../$domain_
 $server_name                            = arg_value("server-name",      $domain_dst);
 $server_http_host                       = arg_value("server-http-host", $domain_dst);
 $cmdline_option_rebuild                 = arg_state("rebuild");
+$cmdline_option_process                 = arg_value("process", "1/1");
+
+list($cmdline_option_process_id, $cmdline_option_process_count) = explode("/", $cmdline_option_process);
 
 #endregion cmd-line
 #region php compile common args
@@ -305,4 +320,5 @@ if (!!$cmdline_option_output
 
 #endregion php compile common args
 
-parse(".", null, 0, $cmdline_option_rebuild);
+if ($cmdline_option_compile)
+    parse(".", null, 0, $cmdline_option_rebuild, (int)$cmdline_option_process_id - 1, (int)$cmdline_option_process_count);
