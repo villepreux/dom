@@ -9276,9 +9276,9 @@
             --dark-text-on-background-color:            <?= "#f2f2f2" ?>;
             --dark-text-on-background-lighter-color:    <?= "#ffffff" ?>;
             
-            --dark-background-darker-color:             <?= "#101012" ?>; /* #000000 no need to be that dark anymore with new default font sizez */
-            --dark-background-color:                    <?= "#161618" ?>; /* #0d0d0d no need to be that dark anymore with new default font sizez */
-            --dark-background-lighter-color:            <?= "#181819" ?>; /* #1a1a1a no need to be that dark anymore with new default font sizez */
+            --dark-background-darker-color:             <?= "#040404" ?>; /* #000000 no need to be that dark anymore with new default font sizez */
+            --dark-background-color:                    <?= "#101318" ?>; /* #0d0d0d no need to be that dark anymore with new default font sizez */
+            --dark-background-lighter-color:            <?= "#202024" ?>; /* #181819 #1a1a1a no need to be that dark anymore with new default font sizez */
             
             --dark-text-on-theme-darker-color:          <?= "#000000" ?>;
             --dark-text-on-theme-color:                 <?= "#0d0d0d" ?>;
