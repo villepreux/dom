@@ -8,11 +8,11 @@ function arg_state($flag, $on = 1, $off = 0) { global $argv; return (DEPLOY_CLI 
 function arg_array($flag)                    { global $argv; $values = array(); if (DEPLOY_CLI) { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $values = array_merge($values, explode(",", $val)); } } else { $values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return $values; }
 function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
+$cmdline_option_static                  = 1;
 $cmdline_option_compare_dates           = arg_state("compare-dates");
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
-$cmdline_option_static                  = 1;
-$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? "gemini" : "static");
+$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini" : "static");
 $cmdline_option_fast                    = arg_state("fast");
 $cmdline_option_profiling               = arg_state("profiling");
 $cmdline_option_debug                   = arg_state("debug", 1, arg_state("profiling"));
@@ -34,7 +34,7 @@ $cmdline_option_lunr                    = arg_state("lunr");
 $cmdline_option_blogroll                = arg_state("blogroll");
 $cmdline_option_minify                  = arg_state("minify", 1, !arg_state("beautify"));
 $cmdline_option_include                 = arg_array("include");
-$cmdline_option_exclude                 = array_merge(arg_array("exclude"), array("netlify", "static", "gemini"));
+$cmdline_option_exclude                 = array_merge(arg_array("exclude"), array(".netlify", "static", ".static", ".gemini"));
 $domain_src                             = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
 $domain_dst                             = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
 $main_src                               = arg_value("main-src",     "../$domain_src");
@@ -177,6 +177,9 @@ function should_be_parsed($path, $parse_output = false)
     {
         if (false !== stripos($path, "/static/"))   return false; // INFO Do not parse my output
         if (false !== stripos($path, "/gemini/"))   return false; // INFO Do not parse my output
+        
+        if (false !== stripos($path, "/.static/"))  return false; // INFO Do not parse my output
+        if (false !== stripos($path, "/.gemini/"))  return false; // INFO Do not parse my output
     }
 
     if (false !== stripos($path, "static.php"))                 return false; // INFO Do not parse myself
@@ -608,12 +611,15 @@ if (!!$cmdline_option_test)
     {
         list($file, $file_dependency_graph) = array_values($d);
 
-        $file = array_shift($file_dependency_graph);
-
-        foreach ($file_dependency_graph as $dependency_file)
+        if (is_array($file_dependency_graph))
         {
-            if (!dom\at($impact_graph, $dependency_file)) $impact_graph[$dependency_file] = [];
-            $impact_graph[$dependency_file][$file] = true;
+            $file = array_shift($file_dependency_graph);
+
+            foreach ($file_dependency_graph as $dependency_file)
+            {
+                if (!dom\at($impact_graph, $dependency_file)) $impact_graph[$dependency_file] = [];
+                $impact_graph[$dependency_file][$file] = true;
+            }
         }
     }
 
