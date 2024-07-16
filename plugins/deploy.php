@@ -1409,14 +1409,17 @@ if (!!$cmdline_option_lunr)
 {
     deploy_log("[i] generating files - LUNR index...");
 
+    $src = $main_src;
+    $dst = $main_dst;
+
     $cwd = getcwd();
-    chdir($main_src);
+    chdir($src);
     {
         $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst));
 
         $json = deploy_exec("php -f ./index.php -- $php_args lunr=doc", false);
-        file_put_contents("$main_src/lunr-doc.json", $json);
-        deploy_log("[+] $main_src/lunr-doc.json");
+        file_put_contents("$src/lunr-doc.json", $json);
+        deploy_log("[+] $src/lunr-doc.json");
     }
     chdir($cwd);
 
@@ -1427,14 +1430,17 @@ if (!!$cmdline_option_blogroll)
 {
     deploy_log("[i] generating files - blogroll opml...");
 
+    $src = $main_src;
+    $dst = $main_dst;
+
     $cwd = getcwd();
-    chdir($main_src);
+    chdir($src);
     {
         $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst));
 
         $xml = deploy_exec("php -f ./blogroll/opml/index.php -- $php_args static=0", false);
-        file_put_contents("$main_src/blogroll.opml", $xml);
-        deploy_log("[+] $main_src/blogroll.opml");
+        file_put_contents("$src/blogroll.opml", $xml);
+        deploy_log("[+] $src/blogroll.opml");
     }
     chdir($cwd);
 
