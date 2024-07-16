@@ -9862,7 +9862,7 @@
                 font-size:      0.825em;
             }
     
-            code {
+            code:not(pre > code) {
                 border:         2px solid currentColor;
                 border-radius:  0.1rem;
                 padding:        0.1em 0.2rem;
