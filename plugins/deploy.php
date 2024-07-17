@@ -12,7 +12,7 @@ $cmdline_option_static                  = 1;
 $cmdline_option_compare_dates           = arg_state("compare-dates");
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
-$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini" : "static");
+$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini" : ".static");
 $cmdline_option_fast                    = arg_state("fast");
 $cmdline_option_profiling               = arg_state("profiling");
 $cmdline_option_debug                   = arg_state("debug", 1, arg_state("profiling"));
@@ -34,7 +34,7 @@ $cmdline_option_lunr                    = arg_state("lunr");
 $cmdline_option_blogroll                = arg_state("blogroll");
 $cmdline_option_minify                  = arg_state("minify", 1, !arg_state("beautify"));
 $cmdline_option_include                 = arg_array("include");
-$cmdline_option_exclude                 = array_merge(arg_array("exclude"), array(".netlify", "static", ".static", ".gemini"));
+$cmdline_option_exclude                 = array_merge(arg_array("exclude"), array(".netlify", ".static", ".gemini"));
 $domain_src                             = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
 $domain_dst                             = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
 $main_src                               = arg_value("main-src",     "../$domain_src");
@@ -175,15 +175,13 @@ function should_be_parsed($path, $parse_output = false)
 
     if (!$parse_output)
     {
-        if (false !== stripos($path, "/static/"))   return false; // INFO Do not parse my output
-        if (false !== stripos($path, "/gemini/"))   return false; // INFO Do not parse my output
-        
         if (false !== stripos($path, "/.static/"))  return false; // INFO Do not parse my output
         if (false !== stripos($path, "/.gemini/"))  return false; // INFO Do not parse my output
     }
 
     if (false !== stripos($path, "static.php"))                 return false; // INFO Do not parse myself
     if (false !== stripos($path, "/dom/plugins/deploy.php"))    return false; // INFO Do not parse myself
+    if (false !== stripos($path, "/dom/plugins/deploy-v2.php")) return false; // INFO Do not parse myself
     if (false !== stripos($path, "static.bat"))                 return false; // INFO Do not parse myself
 
     // Excluded
