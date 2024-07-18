@@ -12840,8 +12840,8 @@
 
     // IMAGES URLs
  
-    function url_img_loading () { return path("loading.svg");   }
-    function url_img_blank   () { return path("img/blank.gif"); }
+    function url_img_loading () { return get("url_img_loading", path("loading.svg")   ); }
+    function url_img_blank   () { return get("url_img_blank",   path("img/blank.gif") ); }
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
 //  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
