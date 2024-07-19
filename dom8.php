@@ -13166,7 +13166,7 @@
     {
         if (!!get("random_cards_rotate"))
         {
-            $attributes = attributes_add($attributes, array("class" => "card", "style" => "transform: scale3d(1,1,1) rotate(".rand(-get("random_cards_rotate"),get("random_cards_rotate"))."deg);"));
+            $attributes = attributes_add($attributes, array("class" => "card", "style" => "transform: scale3d(1,1,1) rotate(".(0.01 * (float)rand( -100.0 * (float)get("random_cards_rotate"), 100.0 * (float)get("random_cards_rotate")))."deg);"));
         }
 
         $attributes = attributes_add($attributes, attr_card());
