@@ -1851,19 +1851,7 @@
 
     function rand_seed($seed = auto)
     {
-        if (auto === $seed)
-        {
-            $seed = null;
-
-            if (!!get("rss_date_granularity_daily"))
-            {
-                $d0 = new \DateTime("1976-06-13");
-                $d  = new \DateTime(date('Y-m-d'));
-
-                $seed = $d0->diff($d)->d;
-            }
-        }
-
+        if (auto === $seed) $seed = rss_auto_seed(null);
         debug_log("rand_seed: ".(!!$seed ? $seed : "AUTO"));
         mt_srand($seed);
 
@@ -2716,7 +2704,7 @@
     
     function rss_record_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
     {
-        $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00", time()) : date(DATE_RSS, time())));
+        $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : rss_auto_date(date(DATE_RSS)));
         
         set("rss_items", array_merge(get("rss_items", array()), array(array
         (
@@ -13519,6 +13507,11 @@
 
         return rss_item($rss);
     }
+
+    function rss_auto_seed($fallback = null)    { $seed = $fallback; if (!!get("rss_date_granularity_file") && is_file("index.php")) {   $seed = (int)filemtime("index.php"); } else if (!!get("rss_date_granularity_daily")) { $d0 = new \DateTime("1976-06-13"); $d = new \DateTime(date('Y-m-d')); $seed = $d0->diff($d)->d; } return $seed; }
+    function rss_auto_date($fallback)           { return                (!!get("rss_date_granularity_file") && is_file("index.php")) ? date(DATE_RSS, filemtime("index.php")) :         (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : $fallback); }
+
+    function rss_smart_date($timestamp = false) { return (false === $timestamp) ? rss_auto_date(date(DATE_RSS)) : date(DATE_RSS, $timestamp); }
  
     function rss_channel        ($html = "")                        { return tag('channel',                      $html,  false,         true); }
     function rss_image          ($html = "")                        { return tag('image',                        $html,  false,         true); }
@@ -13528,8 +13521,8 @@
     function rss_title          ($html = "")                        { return tag('title',       rss_sanitize($html), false,         true); }
     function rss_description    ($html = "", $attributes = false)   { return tag('description', rss_sanitize($html), $attributes,   true); }
 
-    function rss_lastbuilddate  ($date = false)                     { return tag('lastBuildDate', (false === $date) ? (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
-    function rss_pubDate        ($date = false)                     { return tag('pubDate',       (false === $date) ? (!!get("rss_date_granularity_daily") ? date("D, d M Y 00:00:00") : date(DATE_RSS)) : date(DATE_RSS, $date), false, true); }
+    function rss_lastbuilddate  ($timestamp = false)                { return tag('lastBuildDate', rss_smart_date($timestamp), false, true); }
+    function rss_pubDate        ($timestamp = false)                { return tag('pubDate',       rss_smart_date($timestamp), false, true); }
 
     function rss_copyright      ($author = false)                   { return tag('copyright', "Copyright " . ((false === $author) ? get("author", author) : $author), false, true); }
     

@@ -20,32 +20,6 @@ function log($text)
     echo $text.PHP_EOL;
 }
 
-function exec($cmd, $die_on_error = true, $output = false)
-{
-    $result  = false;
-    $outputs = array();
-
-    \exec($cmd, $outputs, $result);
-
-    if ($result != 0)
-    {
-        log("");
-        log("CWD: ".getcwd());
-        log("CMD: $cmd");
-        log("RES: $result");
-        log("");
-        foreach ($outputs as $output) log($output);
-        log("");
-        if ($die_on_error) die();
-    }
-    else if ($output)
-    {
-        foreach ($outputs as $output) log($output);
-    }
-
-    return implode(PHP_EOL, $outputs);
-}
-
 function die_on_compile_error($html, $src)
 {
     if (false === stripos($html, "PRAGMA STATIC NO DIE ON ERROR"))
@@ -211,7 +185,14 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
                 chdir("$main_src/$path");
                 {
                     global $php_args_common;
-                    $html = exec("php -f $index_php -- $php_args_common generate=1 REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path)));
+                    $args = "$php_args_common generate=1 REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path));
+                    //$html = exec("php -f $index_php -- $args");
+
+                    $args = http_build_query(array_combine(
+                        array_map(function ($x) { return (explode('=', $x))[0]; }, explode(' ', $args)),
+                        array_map(function ($x) { return (explode('=', $x))[1]; }, explode(' ', $args))));
+
+                    $html = file_get_contents("http://localhost/villepreux.net/$main_src/$path/$index_php?$args");
                 }
                 chdir($cwd);
 
@@ -223,7 +204,14 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
                 chdir("$main_src/$path");
                 {
                     global $php_args_common;
-                    $html = exec("php -f $index_php -- $php_args_common REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path)));
+                    $args = "$php_args_common REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path));
+                    //$html = exec("php -f $index_php -- $args");
+
+                    $args = http_build_query(array_combine(
+                        array_map(function ($x) { return (explode('=', $x))[0]; }, explode(' ', $args)),
+                        array_map(function ($x) { return (explode('=', $x))[1]; }, explode(' ', $args))));
+
+                    $html = file_get_contents("http://localhost/villepreux.net/$main_src/$path/$index_php?$args");
                 }
                 chdir($cwd);
 
@@ -254,7 +242,7 @@ $cmdline_option_compare_dates           = arg_state("compare-dates");
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
 $cmdline_option_static                  = 1;
-$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini" : ".static");
+$cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini-v2" : ".static-v2");
 $cmdline_option_fast                    = arg_state("fast");
 $cmdline_option_profiling               = arg_state("profiling");
 $cmdline_option_debug                   = arg_state("debug", 1, arg_state("profiling"));

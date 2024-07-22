@@ -1,4 +1,4 @@
-<?php
+ <?php
 
 define("DEPLOY_CLI", isset($argv));
 
@@ -41,6 +41,8 @@ $main_src                               = arg_value("main-src",     "../$domain_
 $main_dst                               = arg_value("main-dst",     "../$domain_dst");
 $server_name                            = arg_value("server-name",      $domain_dst);
 $server_http_host                       = arg_value("server-http-host", $domain_dst);
+
+list($cmdline_option_process_id, $cmdline_option_process_count) = explode("/", $cmdline_option_process);
 
 #endregion
 #region Utilities
@@ -123,6 +125,24 @@ function deploy_log()
     $__deploy_log_progressbar_size = $progressbar_size_target;
 
     flush();
+}
+
+function deploy_is_compiled($path, $extension = false)
+{
+    if (false === $extension)
+    {
+        $pathinfo  = pathinfo($path);
+        $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
+    }
+    
+    if ($extension == "php"
+    ||  $extension == "css"
+    || ($extension == "js" && false === stripos($path, "prism"))) // TODO handle vendor special cases
+    {
+        return true;
+    }
+
+    return false;
 }
 
 function deploy_exec($cmd, $die_on_error = true, $output = false)
@@ -238,6 +258,10 @@ function should_be_parsed($path, $parse_output = false)
 
 function deploy_scan($path, $parse_output = false)
 {
+    //global $cmdline_option_process, $cmdline_option_process_count;
+    //$path_hash = intval(hash("crc32b", $path), 16);
+    //if ($depth == 0 && $cmdline_option_process != ($path_hash % $cmdline_option_process_count)) return;
+
     $scan = array();
 
     foreach (scandir($path) as $name)
@@ -462,6 +486,7 @@ $php_args_common =
     " "."rand_seed"                     ."=".   "666".
     " "."path_max_depth"                ."=".   "32".
     " "."rss_date_granularity_daily"    ."=".   "1".
+    " "."rss_date_granularity_file"     ."=".   "1".
     " "."live_domain"                   ."=".   "$server_name".
 
     "";
@@ -527,6 +552,7 @@ if (!!$cmdline_option_test)
         }        
     }*/
 
+    /*
     $nb_files = 0;
 
     $roots = array(array($main_src, $main_dst));
@@ -574,9 +600,7 @@ if (!!$cmdline_option_test)
             $pathinfo  = pathinfo("$src/$name");
             $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
             
-            if ($extension == "php"
-            ||  $extension == "css"
-            ||  $extension == "js")
+            if (deploy_is_compiled("$src/$name", $extension))
             {
                 $cwd = getcwd();
                 chdir($src);
@@ -586,8 +610,9 @@ if (!!$cmdline_option_test)
                     dom\del("dependency-graph");
     
                     deploy_log("$src/$name");
-                  /*$json = */deploy_exec("php -f $name -- $php_args doctype=dependency-graph static=0");
-                  /*$dependencies = json_decode($json, true);*/
+                    //$json = deploy_exec("php -f $name -- $php_args doctype=dependency-graph static=0");
+                    deploy_exec("php -f $name -- $php_args doctype=dependency-graph static=0");
+                    //$dependencies = json_decode($json, true);
                     $dependencies = dom\del("dependency-graph");
                     
                     if (is_array($dependencies) && count($dependencies) > 0) 
@@ -665,6 +690,7 @@ if (!!$cmdline_option_test)
     deploy_log("[i] Testing OK");
 
     die;
+    */
 }
 
 if (!!$cmdline_option_generate)
@@ -751,9 +777,7 @@ if (!!$cmdline_option_copy)
                 $pathinfo  = pathinfo("$src/$name");
                 $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
                 
-                if ($extension != "php"
-                &&  $extension != "css"
-                &&  $extension != "js")
+                if (!deploy_is_compiled("$src/$name", $extension))
                 {
                     if (!!$cmdline_option_gemini && !$cmdline_option_gemini_local_bin && !deploy_is_text_file($pathinfo))
                     {   
@@ -827,7 +851,7 @@ if (!!$cmdline_option_compile)
 {
     deploy_log("[i] Compiling...");
 
-    $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile", "amp") : array();
+    $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile"/*, "amp"*/) : array();
 
     // PASS #1 - Compute amount of files to process. So we can track progression
 
@@ -850,9 +874,7 @@ if (!!$cmdline_option_compile)
             $pathinfo  = pathinfo("$src/$name");
             $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
             
-            if ($extension == "php"
-            ||  $extension == "css"
-            ||  $extension == "js")
+            if (deploy_is_compiled("$src/$name", $extension))
             {
                 $nb_files += 1 + count($derivatives);
                 
@@ -898,9 +920,7 @@ if (!!$cmdline_option_compile)
             $pathinfo  = pathinfo("$src/$name");
             $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
             
-            if ($extension == "php"
-            ||  $extension == "css"
-            ||  $extension == "js")
+            if (deploy_is_compiled("$src/$name", $extension))
             {
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
@@ -936,7 +956,7 @@ if (!!$cmdline_option_compile)
                     foreach ($derivatives as $type)
                     {
                         $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
-                        $execs[] = [ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ];
+                        $execs[] = [ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ];
                     }
                 }
                 else
@@ -1054,9 +1074,7 @@ if (!!$cmdline_option_compile)
             $pathinfo  = pathinfo("$src/$name");
             $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
             
-            if ($extension == "php"
-            ||  $extension == "css"
-            ||  $extension == "js")
+            if (deploy_is_compiled("$src/$name", $extension))
             {
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
@@ -1095,12 +1113,22 @@ if (!!$cmdline_option_compile)
                     }
 
                     if (!$html)
-                    {
+                    {   
                         $cwd = getcwd();
                         chdir($src);
                         {
-                            $html = deploy_exec("php -f $name -- $php_args");
-
+                            $html = "";
+                            /*
+                            if (!!$cmdline_option_test)
+                            {
+                                $getdata = []; foreach (explode(" ", $php_args) as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
+                                $html = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
+                            }
+                            else*/
+                            {
+                                $html = deploy_exec("php -f $name -- $php_args");
+                            }
+    
                             deploy_compile_error_check($html, "$src/$name");
                         }
                         chdir($cwd);
@@ -1120,7 +1148,7 @@ if (!!$cmdline_option_compile)
                           
                         if ($cmdline_option_mt)
                         {
-                            $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1", getcwd() ]))).".html");
+                            $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ]))).".html");
                         }
 
                         if (!$derivative_outputs[$type])
@@ -1128,7 +1156,17 @@ if (!!$cmdline_option_compile)
                             $cwd = getcwd();
                             chdir($src);
                             {
-                                $derivative_outputs[$type] = deploy_exec("php -f $name -- $php_args $type_arg rss_date_granularity_daily=1");
+                                $derivative_outputs[$type] = "";/*
+
+                                if (!!$cmdline_option_test)
+                                {
+                                    $getdata = []; foreach (explode(" ", "$php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1") as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
+                                    $derivative_outputs[$type] = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
+                                }
+                                else*/
+                                {
+                                    $derivative_outputs[$type] = deploy_exec("php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1");
+                                }
 
                                 deploy_compile_error_check($derivative_outputs[$type], "$src/$name $type");
                             }
@@ -1157,7 +1195,17 @@ if (!!$cmdline_option_compile)
 
                     if (!$html)
                     {
-                        $html = deploy_exec("php -f $src/$name -- $php_args");
+                        $html = "";/*
+
+                        if (!!$cmdline_option_test)
+                        {
+                            $getdata = []; foreach (explode(" ", $php_args) as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
+                            $html = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
+                        }
+                        else */
+                        {
+                            $html = deploy_exec("php -f $src/$name -- $php_args");
+                        }
                     }
 
                     if ($extension == "js" && !$html || $html == "")
