@@ -4822,14 +4822,17 @@
     function redirect($url)
     {   
         if ("dependency-graph" == get("doctype")) die("[]");
-        if (!!get("static")) die(html_refresh_page($url));
-        \header("Location: ".href($url));
-        exit;
+
+        if (!!get("static")) { echo html_refresh_page($url);     return true; }
+        if (!headers_sent()) { \header("Location: ".href($url)); return true; }
+                               echo html_refresh_page($url);     return true;
+
+        return false;
     }
 
     function redirect_https()
     {
-        if (has("ajax")) return;
+        if (has("ajax")) return false;
 
         if (!is_localhost() && server_https() != "on")
         {
@@ -4839,8 +4842,10 @@
                   && server_server_port("80") != "443") ? (":".server_server_port()) : "";
             $url .=  server_request_uri();
 
-            redirect($url);
+            return redirect($url);
         }
+
+        return false;
     }
 
     if (!has("main") && !has("main-include"))
@@ -4932,25 +4937,28 @@
             }
         }
 
-        if (!!get("gemini") && !get("debug"))
+        if (!headers_sent())
         {
-            \header('Content-Encoding: '.$encoding);
-            \header('Content-Disposition: inline');/*
-            \header('Content-type: text/plain; charset='.$encoding);*/
-            \header('Content-type: text/gemini; charset='.$encoding);
-        }
-        else
-        {
-            if (!$binary && $content_encoding_header !== false)  \header('Content-Encoding: ' . $encoding      . '');
-            if (array_key_exists($type, $types))                 \header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
-
-            if ($attachement_basename !== false)
+            if (!!get("gemini") && !get("debug"))
             {
-                if (array_key_exists($type, $dispositions))     @\header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
-                if ($attachement_length !== false)              @\header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
+                \header('Content-Encoding: '.$encoding);
+                \header('Content-Disposition: inline');/*
+                \header('Content-type: text/plain; charset='.$encoding);*/
+                \header('Content-type: text/gemini; charset='.$encoding);
             }
+            else
+            {
+                if (!$binary && $content_encoding_header !== false)  \header('Content-Encoding: ' . $encoding      . '');
+                if (array_key_exists($type, $types))                 \header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
 
-            @\header('Permissions-Policy: interest-cohort=()');
+                if ($attachement_basename !== false)
+                {
+                    if (array_key_exists($type, $dispositions))     @\header('Content-Disposition: ' . $dispositions[$type]                                                                               . '');
+                    if ($attachement_length !== false)              @\header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
+                }
+
+                @\header('Permissions-Policy: interest-cohort=()');
+            }
         }
 
         generate_all_preprocess();
@@ -5057,7 +5065,7 @@
 
         $doc = placeholder_replace_amp_css($doc);
 
-        $doc .= generate_all();
+        $doc .= generate_cleanup().generate_all();
 
         if (get("compression") == "gzip" && !has("main") && !has("main-include")) ob_start("ob_gzhandler");
 
@@ -5746,6 +5754,50 @@
 
     function generate_all_postprocess()
     {
+    }
+
+    function generate_cleanup()
+    {
+        if (!get("generate-cleanup")) return;
+            
+        global $__generated;
+
+        foreach ($__generated as $generated)
+        { 
+            $dst_path = $generated["path"];
+            
+            if (!!get("generate_dst"))
+            {
+                $dst_path = get("generate_dst")."/".$generated["path"];
+            }
+
+            if (is_file($dst_path))
+            {
+                unlink($dst_path);
+            }
+
+            if (false !== stripos($dst_path, "/"))
+            {
+                $parent_path = substr($dst_path, 0, strripos($dst_path, "/"));
+
+                if (is_dir($parent_path))
+                {
+                    $contains_files = false;
+
+                    foreach (scandir($parent_path) as $item)
+                    {
+                        if ($item[0] == ".") continue;
+                        $contains_files = true;
+                        break;
+                    }
+
+                    if (!$contains_files)
+                    {
+                        rmdir($parent_path);
+                    }
+                }
+            }
+        }
     }
 
     #endregion

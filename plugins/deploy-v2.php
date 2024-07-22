@@ -20,6 +20,15 @@ function log($text)
     echo $text.PHP_EOL;
 }
 
+function async_exec($cmd) {
+    if (substr(php_uname(), 0, 7) == "Windows"){
+        pclose(popen("start /B ". $cmd, "r")); 
+    }
+    else {
+        exec($cmd . " > /dev/null &");  
+    }
+} 
+
 function die_on_compile_error($html, $src)
 {
     if (false === stripos($html, "PRAGMA STATIC NO DIE ON ERROR"))
@@ -68,6 +77,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
 
     $name = null === $name ? $name : $name;
     $excluded_dirs = [ "static", "gemini", "netlify", "netflix", "node_modules", "vendor", "openmoji", "dom" ];
+    $included_dirs = [];
 
     $index_php = false;
     $files = [];
@@ -77,9 +87,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
         {
             foreach (scandir("$main_src/$path") as $item)
             {
-                if ($item[0] == ".") continue;
-                if (in_array($item, $excluded_dirs)) continue;
-                    
+                if ($item[0] == ".") continue;                    
                 $items[] = $item;
             }
         }
@@ -87,6 +95,8 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
         foreach ($items as $item)
         {
             if (!is_dir("$path/$item")) continue;
+            if (in_array($item, $excluded_dirs)) continue;
+            if (count($included_dirs) > 0 && !in_array($item, $included_dirs)) continue;
             $dirs[] = $item;
         }
 
@@ -100,14 +110,19 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
             }
             else if (substr($item, strripos($item, ".")) != ".php")
             {
-                $content = file_get_contents("$path/$item");
+                global $cmdline_option_generate_cleanup;
 
-                if (!!$content)
-                {
-                    if (false === stripos($content, "<?php")
-                    &&  false === stripos($content, "<?="))
+                if (!$cmdline_option_generate_cleanup)
+                {        
+                    $content = file_get_contents("$path/$item");
+
+                    if (!!$content)
                     {
-                        $files[] = $item;
+                        if (false === stripos($content, "<?php")
+                        &&  false === stripos($content, "<?="))
+                        {
+                            $files[] = $item;
+                        }
                     }
                 }
             }
@@ -120,7 +135,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
         {
             mkdir("$main_dst/$path");
 
-            $something_changed = true;
+            $A = true;
 
             if (!is_dir("$main_dst/$path"))
             {       
@@ -139,7 +154,7 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
         $something_changed_under = parse("$path/$dir", $dir, $depth + 1, $something_changed, $process, $process_count);
         $something_changed = $something_changed || $something_changed_under;
     }
-
+    
     foreach ($files as $file)
     {
         if (is_file("$main_dst/$path/$file"))
@@ -166,37 +181,47 @@ function parse($path, $name = null, $depth = 0, $something_changed = false, $pro
             copy("$main_src/$path/$file", "$main_dst/$path/$file");
         }
     }
-
+   
     if (!!$index_php)
     {
         $index_html = str_replace(".php", ".html", $index_php);
 
+        global $cmdline_option_generate, $cmdline_option_generate_cleanup;
+
         if ($something_changed 
+        ||  $cmdline_option_generate_cleanup
         || !is_file("$main_dst/$path/$index_html") 
         || (filemtime("$main_src/$path/$index_php") >= filemtime("$main_dst/$path/$index_html")))
         {
-            log("$path/$index_html (".($something_changed ? "something changed" : (!is_file("$main_dst/$path/$index_html") ? "new file" : "source changed")).")");
-
-            global $cmdline_option_generate;
+            log("$path/$index_html (".($cmdline_option_generate_cleanup ? "cleanup" : ($something_changed ? "something changed" : (!is_file("$main_dst/$path/$index_html") ? "new file" : "source changed"))).")");
 
             if ($cmdline_option_generate)
             {         
                 $cwd = getcwd();
                 chdir("$main_src/$path");
                 {
-                    global $php_args_common;
-                    $args = "$php_args_common generate=1 REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path));
-                    //$html = exec("php -f $index_php -- $args");
-
-                    $args = http_build_query(array_combine(
-                        array_map(function ($x) { return (explode('=', $x))[0]; }, explode(' ', $args)),
-                        array_map(function ($x) { return (explode('=', $x))[1]; }, explode(' ', $args))));
-
-                    $html = file_get_contents("http://localhost/villepreux.net/$main_src/$path/$index_php?$args");
+                    if (is_dir(".well-known"))
+                    {
+                        global $php_args_common;
+                        $args = "$php_args_common generate=1 REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path));
+                        async_exec("php -f $index_php -- $args");
+                    }
                 }
                 chdir($cwd);
-
-                die_on_compile_error($html, "$main_src/$path/$index_php");
+            }
+            else if ($cmdline_option_generate_cleanup)
+            {    
+                $cwd = getcwd();
+                chdir("$main_src/$path");
+                {
+                    if (!is_dir(".well-known"))
+                    {
+                        global $php_args_common;
+                        $args = "$php_args_common generate-cleanup=1 REQUEST_URI=".str_replace("//", "/", str_replace($main_src, "/", $path));
+                        async_exec("php -f $index_php -- $args");
+                    }
+                }
+                chdir($cwd);
             }
             else
             {            
@@ -257,6 +282,7 @@ $cmdline_option_compile                 = arg_state("compile");
 $cmdline_option_mt                      = arg_state("mt");
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
+$cmdline_option_generate_cleanup        = arg_state("generate-cleanup");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
 $cmdline_option_spa                     = arg_state("spa");
