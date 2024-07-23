@@ -9961,7 +9961,7 @@
                 margin-block:   var(--gap); */
             }
 
-            :not(body > header) + :is(body > main) {
+            :is(body > main):not(:is(body > header) ~ :is(body > main)) {
                 display: flex;
                 justify-content: center;
                 align-items: center;
