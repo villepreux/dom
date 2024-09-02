@@ -41,6 +41,7 @@ $main_src                               = arg_value("main-src",     "../$domain_
 $main_dst                               = arg_value("main-dst",     "../$domain_dst");
 $server_name                            = arg_value("server-name",      $domain_dst);
 $server_http_host                       = arg_value("server-http-host", $domain_dst);
+$cmdline_option_process                 = arg_value("process",          "1/1");
 
 list($cmdline_option_process_id, $cmdline_option_process_count) = explode("/", $cmdline_option_process);
 

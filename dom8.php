@@ -12,6 +12,8 @@
     const author        = "Antoine Villepreux";
     const version       = "0.8.5";
 
+    const amp_support   = false;
+
     define("DOM_CLI", isset($argv));
 
     #endregion
@@ -651,16 +653,16 @@
         
       //set("fonts",                            "Roboto:300,400,500");
             
-        set("twitter_user",                     "me");
-        set("twitter_page",                     get("twitter_user", "me"));
-        set("linkedin_page",                    "me");
-        set("facebook_page",                    "me");
-        set("tumblr_blog",                      "blog");
-        set("instagram_user",                   "self");
-        set("pinterest_user",                   "blog");
-        set("pinterest_board",                  "blog");
-        set("flickr_user",                      "blog");
-        set("messenger_id",                     "me");
+      //set("twitter_user",                     "me");
+      //set("twitter_page",                     get("twitter_user", "me"));
+      //set("linkedin_page",                    "me");
+      //set("facebook_page",                    "me");
+      //set("tumblr_blog",                      "blog");
+      //set("instagram_user",                   "self");
+      //set("pinterest_user",                   "blog");
+      //set("pinterest_board",                  "blog");
+      //set("flickr_user",                      "blog");
+      //set("messenger_id",                     "me");
             
         set("exclude_pinterest_pins_ids",       "");
         set("exclude_tumblr_slugs",             "");
@@ -709,7 +711,7 @@
 
         // Options that impact others
 
-        if (AMP())              {   del("css_layers_support");  }
+      //if (AMP())              {   del("css_layers_support");  }
         if (!!get("beautify"))  {   set("minify",  false);      }
         if (!!get("gemini"))    {   set("static",  true);
                                     set("noajax",  true);
@@ -1567,9 +1569,22 @@
 
     function AMP()
     {
-        return false !== get("amp", false) 
+        $amp = false !== get("amp", false) 
             && 0     !== get("amp", false) 
             && "0"   !== get("amp", false); 
+
+        if (!!$amp)
+        {
+            ob_start();
+            $x = get("amp", false);
+            var_dump($x);
+            $dump = "dum=".ob_get_contents();
+            ob_end_clean();
+
+            bye(($amp ? "amp" : "no-amp")." (".get("amp", "NO DEFINED").") ($dump) (".pre(print_r(debug_callstack(), true)).")");
+        }
+
+        return $amp;
     }
 
     function url_exists($url)
@@ -3574,6 +3589,8 @@
     
     function json_flickr_no_user_fallback($method, $params = array(), $user_id = false, $token = false)
     {
+        bye([ $method, $params, $user_id, $token]);
+
         $profiler = debug_track_timing($user_id);
         
         if ($token === false && !defined("TOKEN_FLICKR")) return array();
@@ -5832,53 +5849,48 @@
     #region WIP API : DOM : URLS
     ######################################################################################################################################
 
-    function url_pinterest_board            ($username = false, $board = false) { $username = ($username === false) ? get("pinterest_user")     : $username; 
-                                                                                  $board    = ($board    === false) ? get("pinterest_board")    : $board;      return "https://www.pinterest.com/$username/$board/";                      }
-    function url_instagram_user             ($username = false)                 { $username = ($username === false) ? get("instagram_user")     : $username;   return "https://www.instagram.com/$username/";                             }
-    function url_instagram_post             ($short_code)                       {                                                                              return "https://instagram.com/p/$short_code/";                             }
-    function url_flickr_user                ($username = false)                 { $username = ($username === false) ? get("flickr_user")        : $username;   return "https://www.flickr.com/photos/$username/";                         }
-    function url_500px_user                 ($username = false)                 { $username = ($username === false) ? get("500px_user")         : $username;   return "https://www.500px.com/$username/";                                 }
-    function url_pixelfed_user              ($username = false)                 { $username = ($username === false) ? get("pixelfed_user")      : $username;   return "https://pixelfed.social/$username/";                               }
-    function url_mastodon_user              ($username = false,     
-                                             $instance = "mastodon.social")     { $username = ($username === false) ? get("mastodon_user")      : $username;
-                                                                                  $instance = ($instance === false) ? get("mastodon_domain")    : $instance;   return "https://$instance/@$username/";                                    }
-    function url_github_user                ($username = false)                 { $username = ($username === false) ? get("github_user")        : $username;   return "https://github.com/$username";                                     }
-    function url_lastfm_user                ($username = false)                 { $username = ($username === false) ? get("lastfm_user")        : $username;   return "https://last.fm/user/$username";                                   }
-    function url_codepen_user               ($username = false)                 { $username = ($username === false) ? get("codepen_user")       : $username;   return "https://codepen.io/$username";                                     }
-                                                
-    function url_twitter_user               ($username = false)                 { $username = ($username === false) ? get("twitter_user")       : $username;   return "https://twitter.com/$username";                                    }
-    function url_facebook_user              ($username = false)                 { $username = ($username === false) ? get("facebook_user")      : $username;   return "https://www.facebook.com/$username";                               }
-                                                
-    function url_flickr_page                ($page     = false)                 { $page     = ($page     === false) ? get("flickr_page")        : $page;       return "https://www.flickr.com/photos/$page/";                             }
-    function url_pinterest_pin              ($pin)                              {                                                                              return "https://www.pinterest.com/pin/$pin/";                              }    
-    function url_facebook_page              ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page";                                   }
-    function url_twitter_page               ($page     = false)                 { $page     = ($page     === false) ? get("twitter_page")       : $page;       return "https://twitter.com/$page";                                        }
-    function url_linkedin_page              ($page     = false)                 { $page     = ($page     === false) ? get("linkedin_page")      : $page;       return "https://www.linkedin.com/in/$page";                                }
-    function url_github_repository          ($username = false, $repo = false)  { $username = ($username === false) ? get("github_user")        : $username; 
-                                                                                  $repo     = ($repo     === false) ? get("github_repository")  : $repo;       return "https://github.com/$username/$repo#readme";                        }
-    function url_facebook_page_about        ($page     = false)                 { $page     = ($page     === false) ? get("facebook_page")      : $page;       return "https://www.facebook.com/$page/about";                             }
-    function url_tumblr_blog                ($blogname = false)                 { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;   return "https://$blogname.tumblr.com";                                     }
-    function url_tumblr_avatar              ($blogname = false, $size = 64)     { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;   return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
-    function url_messenger                  ($id       = false)                 { $id       = ($id       === false) ? get("messenger_id")       : $id;         return "https://m.me/$id";                                                 }
-    function url_whatsapp                   ($phone    = false)                 { $phone    = ($phone    === false) ? get("phone")              : $phone;      return "https://wa.me/".trim(str_replace([" ","+","(",")"], "", $phone));  }
+    function url_pinterest_user             ($username = false)                                 { $username = ($username === false) ? get("pinterest_user")     : $username;                                                                            return "https://www.pinterest.com/$username";                              }
+    function url_pinterest_board            ($username = false, $board = false)                 { $username = ($username === false) ? get("pinterest_user")     : $username; $board     = ($board === false) ? get("pinterest_board")       : $board;   return "https://www.pinterest.com/$username/$board/";                      }
+    function url_pinterest_pin              ($pin      = false)                                 { $pin      = ($pin      === false) ? get("pinterest_pin")      : $pin;                                                                                 return "https://www.pinterest.com/pin/$pin/";                              }    
+    function url_instagram_user             ($username = false)                                 { $username = ($username === false) ? get("instagram_user")     : $username;                                                                            return "https://www.instagram.com/$username/";                             }
+    function url_instagram_post             ($short_code)                                       {                                                                                                                                                       return "https://instagram.com/p/$short_code/";                             }
+    function url_flickr_user                ($username = false)                                 { $username = ($username === false) ? get("flickr_user")        : $username;                                                                            return "https://www.flickr.com/photos/$username/";                         }
+    function url_flickr_page                ($page     = false)                                 { $page     = ($page     === false) ? get("flickr_page")        : $page;                                                                                return "https://www.flickr.com/photos/$page/";                             }
+    function url_500px_user                 ($username = false)                                 { $username = ($username === false) ? get("500px_user")         : $username;                                                                            return "https://www.500px.com/$username/";                                 }
+    function url_pixelfed_user              ($username = false)                                 { $username = ($username === false) ? get("pixelfed_user")      : $username;                                                                            return "https://pixelfed.social/$username/";                               }
+    function url_mastodon_user              ($username = false, $instance = "mastodon.social")  { $username = ($username === false) ? get("mastodon_user")      : $username; $instance = ($instance === false) ? get("mastodon_domain")    : $instance; return "https://$instance/@$username/";                                    }
+    function url_github_user                ($username = false)                                 { $username = ($username === false) ? get("github_user")        : $username;                                                                            return "https://github.com/$username";                                     }
+    function url_github_repository          ($username = false, $repo = false)                  { $username = ($username === false) ? get("github_user")        : $username; $repo     = ($repo     === false) ? get("github_repository")  : $repo;     return "https://github.com/$username/$repo#readme";                        }
+    function url_lastfm_user                ($username = false)                                 { $username = ($username === false) ? get("lastfm_user")        : $username;                                                                            return "https://last.fm/user/$username";                                   }
+    function url_codepen_user               ($username = false)                                 { $username = ($username === false) ? get("codepen_user")       : $username;                                                                            return "https://codepen.io/$username";                                     }
+    function url_twitter_user               ($username = false)                                 { $username = ($username === false) ? get("twitter_user")       : $username;                                                                            return "https://twitter.com/$username";                                    }
+    function url_twitter_page               ($page     = false)                                 { $page     = ($page     === false) ? get("twitter_page")       : $page;                                                                                return "https://twitter.com/$page";                                        }
+    function url_facebook_user              ($username = false)                                 { $username = ($username === false) ? get("facebook_user")      : $username;                                                                            return "https://www.facebook.com/$username";                               }
+    function url_facebook_page              ($page     = false)                                 { $page     = ($page     === false) ? get("facebook_page")      : $page;                                                                                return "https://www.facebook.com/$page";                                   }
+    function url_facebook_page_about        ($page     = false)                                 { $page     = ($page     === false) ? get("facebook_page")      : $page;                                                                                return "https://www.facebook.com/$page/about";                             }
+    function url_linkedin_page              ($page     = false)                                 { $page     = ($page     === false) ? get("linkedin_page")      : $page;                                                                                return "https://www.linkedin.com/in/$page";                                }
+    function url_tumblr_blog                ($blogname = false)                                 { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;                                                                            return "https://$blogname.tumblr.com";                                     }
+    function url_tumblr_avatar              ($blogname = false, $size = 64)                     { $blogname = ($blogname === false) ? get("tumblr_blog")        : $blogname;                                                                            return "https://api.tumblr.com/v2/blog/$blogname.tumblr.com/avatar/$size"; }
+    function url_messenger                  ($id       = false)                                 { $id       = ($id       === false) ? get("messenger_id")       : $id;                                                                                  return "https://m.me/$id";                                                 }
+    function url_whatsapp                   ($phone    = false)                                 { $phone    = ($phone    === false) ? get("phone")              : $phone;                                                                               return "https://wa.me/".trim(str_replace([" ","+","(",")"], "", $phone));  }
     
-    function url_amp                        ($on = true)                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(is_localhost()?"#development=1":"");   }
+    function url_amp                        ($on = true)                                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(is_localhost()?"#development=1":"");   }
 
-    function url_facebook_search_by_tags    ($tags, $userdata = false)          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
-    function url_pinterest_search_by_tags   ($tags, $userdata = false)          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
-    function url_instagram_search_by_tags   ($tags, $userdata = false)          { return "https://www.instagram.com/explore/tags/"      . urlencode($tags); }
-    function url_tumblr_search_by_tags      ($tags, $userdata = false)          { return "https://".$userdata.".tumblr.com/tagged/"     . urlencode($tags); }
-    function url_flickr_search_by_tags      ($tags, $userdata = false)          { return "https://www.flickr.com/search/?text="         . urlencode($tags); }
+    function url_facebook_search_by_tags    ($tags, $userdata = false)                          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
+    function url_pinterest_search_by_tags   ($tags, $userdata = false)                          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
+    function url_instagram_search_by_tags   ($tags, $userdata = false)                          { return "https://www.instagram.com/explore/tags/"      . urlencode($tags); }
+    function url_tumblr_search_by_tags      ($tags, $userdata = false)                          { return "https://".$userdata.".tumblr.com/tagged/"     . urlencode($tags); }
+    function url_flickr_search_by_tags      ($tags, $userdata = false)                          { return "https://www.flickr.com/search/?text="         . urlencode($tags); }
     
-    function url_leboncoin                  ($url = false)                      { return ($url === false) ? get("leboncoin_url", get("leboncoin", "https://www.leboncoin.fr")) : $url; }
-    function url_seloger                    ($url = false)                      { return ($url === false) ? get("seloger_url",   get("seloger",   "https://www.seloger.com"))  : $url; }
+    function url_leboncoin                  ($url = false)                                      { return ($url === false) ? get("leboncoin_url", get("leboncoin", "https://www.leboncoin.fr")) : $url; }
+    function url_seloger                    ($url = false)                                      { return ($url === false) ? get("seloger_url",   get("seloger",   "https://www.seloger.com"))  : $url; }
 
-    function top_id                         ()                                  { return "!"; }
+    function top_id                         ()                                                  { return "!"; }
 
-    function url_empty                      ()                                  { return ""; }
-    function url_top                        ()                                  { return "#".top_id(); }
-    function url_void                       ()                                  { return "javascript:void(0)"; } // ! As #! jumps on the page. But a without url also triggers warnings
-    function url_print                      ()                                  { return AMP() ? url_void() : "javascript:scan_and_print();"; }
+    function url_empty                      ()                                                  { return ""; }
+    function url_top                        ()                                                  { return "#".top_id(); }
+    function url_void                       ()                                                  { return "javascript:void(0)"; } // ! As #! jumps on the page. But a without url also triggers warnings
+    function url_print                      ()                                                  { return AMP() ? url_void() : "javascript:scan_and_print();"; }
     
     #endregion
     #region WIP API : DOM : COLORS
@@ -8076,9 +8088,9 @@
 
             .   eol().comment("Alternate URLs")   
                 // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . (!!get("static") ? '' : (''
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . ((!!get("static"))        ? '' : (''
             .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))  . (AMP() ? '' : (''
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))  . ((AMP() || !!amp_support) ? '' : (''
             .   link_rel("amphtml",     get("canonical").(!!get("static") ? "/amp"     : "/?amp=1"   ))                                                             ))
             .   link_rel("canonical",   get("canonical"))
             
@@ -9688,12 +9700,13 @@
 
             /* Dimensions setting cannot be dissociated from color setting */
             
-            *                           {  scrollbar-width: var(--scrollbar-width, 17px); }
-            *::-webkit-scrollbar        {            width: var(--scrollbar-width, 17px); }
+               *                            {  scrollbar-width: var(--scrollbar-width, 17px); }
+               *::-webkit-scrollbar         {            width: var(--scrollbar-width, 17px); }
         
-         /* *                           {  scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff); }
-         */ *::-webkit-scrollbar-thumb  { background-color: var(--scrollbar-accent-color, #990011); }
-            *::-webkit-scrollbar-track  { background-color: var(--scrollbar-background-color, #ffffff); }
+            /* *                            {  scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff); }
+            */ *::-webkit-scrollbar-thumb   { background-color: var(--scrollbar-accent-color, #990011); }
+               *::-webkit-scrollbar-track   { background-color: #ffffff00; }
+            body::-webkit-scrollbar-track   { background-color: var(--scrollbar-background-color, #ffffff); }
         
             /* Editable styles */
             
@@ -9960,12 +9973,13 @@
                 padding-top:    unset; /*
                 margin-block:   var(--gap); */
             }
-
+            /* COMMENT THAT BECAUSE IT FUCKS UP ALL HELLO WORLD EXAMPLES
             :not(body > header) + :is(body > main) {
                 display: flex;
+                flex-direction: column;
                 justify-content: center;
                 align-items: center;
-            }
+            }*/
 
             main > :is(header, .header, footer, .footer, article, .article, aside, blockquote, nav, section, details, figcaption, figure, hgroup) {
 
@@ -11266,22 +11280,44 @@
             "@context"  => "https://schema.org", 
             "@type"     => "Organization",
 
+            "name"      => get("publisher"),
             "url"       => get("canonical"),
             "logo"      => get("canonical").'/'.get("image")
         );
         
         $properties_person_same_as = array();
         
-        if (has("facebook_page"))   $properties_person_same_as[] = url_facebook_page   (get("facebook_page"));
-        if (has("instagram_user"))  $properties_person_same_as[] = url_instagram_user  (get("instagram_user"));
-        if (has("tumblr_blog"))     $properties_person_same_as[] = url_tumblr_blog     (get("tumblr_blog"));
-        if (has("pinterest_user"))  $properties_person_same_as[] = url_pinterest_board (get("pinterest_user"), get("pinterest_board"));
+        if (has("pinterest_user"))      $properties_person_same_as[] = url_pinterest_user       (get("pinterest_user"));
+      //if (has("pinterest_board"))     $properties_person_same_as[] = url_pinterest_board      (get("pinterest_user"), get("pinterest_board"));       // ($username = false, $board = false);
+      //if (has("pinterest_pin"))       $properties_person_same_as[] = url_pinterest_pin        (get("pinterest_pin"));         // ($pin);
+        if (has("instagram_user"))      $properties_person_same_as[] = url_instagram_user       (get("instagram_user"));        // ($username = false);
+        if (has("instagram_post"))      $properties_person_same_as[] = url_instagram_post       (get("instagram_post"));        // ($short_code);
+        if (has("flickr_user"))         $properties_person_same_as[] = url_flickr_user          (get("flickr_user"));           // ($username = false);
+      //if (has("flickr_page"))         $properties_person_same_as[] = url_flickr_page          (get("flickr_page"));           // ($page     = false);
+        if (has("500px_user"))          $properties_person_same_as[] = url_500px_user           (get("500px_user"));            // ($username = false);
+        if (has("pixelfed_user"))       $properties_person_same_as[] = url_pixelfed_user        (get("pixelfed_user"));         // ($username = false);
+        if (has("mastodon_user"))       $properties_person_same_as[] = url_mastodon_user        (get("mastodon_user"));         // ($username = false, $instance = "mastodon.social");
+        if (has("github_user"))         $properties_person_same_as[] = url_github_user          (get("github_user"));           // ($username = false);
+      //if (has("github_repository"))   $properties_person_same_as[] = url_github_repository    (get("github_repository"));     // ($username = false, $repo = false);
+        if (has("lastfm_user"))         $properties_person_same_as[] = url_lastfm_user          (get("lastfm_user"));           // ($username = false);
+        if (has("codepen_user"))        $properties_person_same_as[] = url_codepen_user         (get("codepen_user"));          // ($username = false);
+        if (has("twitter_user"))        $properties_person_same_as[] = url_twitter_user         (get("twitter_user"));          // ($username = false);
+        if (has("facebook_user"))       $properties_person_same_as[] = url_facebook_user        (get("facebook_user"));         // ($username = false);
+      //if (has("facebook_page"))       $properties_person_same_as[] = url_facebook_page        (get("facebook_page"));         // ($page     = false);
+      //if (has("facebook_page_about")) $properties_person_same_as[] = url_facebook_page_about  (get("facebook_page_about"));   // ($page     = false);
+        if (has("twitter_page"))        $properties_person_same_as[] = url_twitter_page         (get("twitter_page"));          // ($page     = false);
+        if (has("linkedin_page"))       $properties_person_same_as[] = url_linkedin_page        (get("linkedin_page"));         // ($page     = false);
+        if (has("tumblr_blog"))         $properties_person_same_as[] = url_tumblr_blog          (get("tumblr_blog"));           // ($blogname = false);
+        if (has("tumblr_avatar"))       $properties_person_same_as[] = url_tumblr_avatar        (get("tumblr_avatar"));         // ($blogname = false, $size = 64);
+        if (has("messenger"))           $properties_person_same_as[] = url_messenger            (get("messenger"));             // ($id       = false);
+        if (has("whatsapp"))            $properties_person_same_as[] = url_whatsapp             (get("whatsapp"));              // ($phone    = false);
+
             
         $properties_person = array
         (
             "@context"  => "https://schema.org", 
             "@type"     => "Person",
-            "name"      => get("publisher"),
+            "name"      => get("author"),
             "url"       => get("canonical"),
             "sameAs"    => $properties_person_same_as
         );
@@ -13056,7 +13092,7 @@
         return $url;
     }
 
-    function url_img_pinterest ($pin      = false) { return at(at(at(at(                            json_pinterest_pin ( $pin),                                                                        "data"),"image"),"original"),"url",                                  url_img_blank()); }
+    function url_img_pinterest ($pin      = false) { return at(at(at(at(                                    json_pinterest_pin ( $pin),                                                                        "data"),"image"),"original"),"url",                                  url_img_blank()); }
     function url_img_facebook  ($username = false) { return at(at(                                          json_facebook      (($username === false) ? get("facebook_page") : $username, "cover", false), "cover"),"source",                                                   url_img_blank()); }
     function url_img_tumblr    ($blogname = false) { return at(at(at(at(at(at(at(at(json_tumblr_blog   (($blogname === false) ? get("tumblr_blog")   : $blogname, "posts"),        "response"),"posts"),0),"trail"),0),"blog"),"theme"),"header_image", url_img_blank()); }
 
