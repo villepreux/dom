@@ -136,7 +136,7 @@ function code_section($code, $client_source_url, $title, $attributes = false)
     {
         if (!!$client_source_url && (!get("minify") || !!get("beautify")))
         {
-            $source = dom\content($client_source_url);
+            $source = dom\content($client_source_url.(false === stripos($client_source_url, "?") ? "?" : "")."&no-code=1");
             {
                 if (!!$source && "" != $source)
                 {
@@ -250,14 +250,21 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             
         $code = pre($code, "language-$lang line-numbers");
     }
-    
+    else
+    {
+        $code = htmlentities($code);
+        $code = pre($code, "language-$lang");
+    }
+
   //$code = code_transform_indent($code);
 
     return code_section($code, $client_source_url, $title, $attributes);
 }
 
-function this($title = "", $attributes = false, $include_client_source = false)
+function this($title = "", $attributes = false, $include_client_source = false, $syntax_highlight = auto)
 {
+    if (!!get("no-code")) return "";
+
     $callstack = debug_backtrace(0);
     if (0 == count($callstack)) return "";
 
@@ -265,5 +272,5 @@ function this($title = "", $attributes = false, $include_client_source = false)
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content, $title, $attributes, "php", auto, $include_client_source ? dom\live_url() : false);
+    return code($caller_source_content, $title, $attributes, "php", $syntax_highlight, $include_client_source ? dom\live_url() : false);
 }

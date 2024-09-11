@@ -598,7 +598,7 @@
             $url_branch = trim($url_branch, "/");
         }
     
-        $url = 'https://'.live_domain();
+        $url = (is_localhost() ? 'http' : 'https').'://'.live_domain();
         if ($url_branch != "") $url .= "/$url_branch";
 
         return $url;
@@ -5009,7 +5009,7 @@
         return $in;
     }
 
-    function placeholder_replace_once($placeholder, $replaced_by_cb, $in, $container_tag = false, $container_attributes = false)
+    function placeholder_replace_once($placeholder, $replaced_by_cb, $in, $container_tag = false, $container_attributes = false, $order = "asc")
     {
         $profiler = debug_track_timing($placeholder);
 
@@ -5017,8 +5017,7 @@
         {            
             $ph = placeholder($placeholder);
 
-          //return str_replace($ph, $replaced_by, $in);
-            $pos = strpos($in, $ph);
+            $pos = (($order == "desc") ? strrpos($in, $ph) : strpos($in, $ph));
             if (false === $pos) return $in;
             return substr($in, 0, $pos).($replaced_by_cb()).substr($in, $pos + strlen($ph));
         }
@@ -5027,7 +5026,7 @@
         {
             $ph = tab($tab).placeholder($placeholder);
 
-            if (false !== ($pos = stripos($in, $ph)))
+            if (false !== ($pos = ($order == "desc" ? strripos($in, $ph) : stripos($in, $ph))))
             {
                 $replaced_by = $replaced_by_cb();
                 $by = $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false);
@@ -6385,7 +6384,7 @@
     {
         $profiler = debug_track_timing();
 
-    //  Lazy html generation
+        // Lazy html generation
 
         if ("html" == get("doctype", "html") && !has("ajax"))
         {
@@ -6405,6 +6404,8 @@
 
                 ksort($priorities);
 
+                $processed = [];
+
                 foreach ($priorities as $priority => $_)
                 {
                     foreach ($delayed_components as $index => $delayed_component_and_param)
@@ -6413,6 +6414,12 @@
 
                         $delayed_component = $delayed_component_and_param[0];
                         $param             = $delayed_component_and_param[1];
+                        $behavior          = $delayed_component_and_param[3];
+
+                        if (array_key_exists($delayed_component, $processed) && $behavior != "all")
+                        {
+                            continue;
+                        }
     
                         $fn_delayed_component = $delayed_component;
                         if (!is_callable($fn_delayed_component)) $fn_delayed_component = "dom\\$fn_delayed_component";
@@ -6442,8 +6449,11 @@
                           //$html = placeholder_replace($delayed_component.$index, $content, $html, "div");
                           //break;
 
-                            $new_html = placeholder_replace_once($delayed_component.$index, $fn_get_placeholder_content_cb, $html, "div");
+                            $new_html = placeholder_replace_once($delayed_component.($behavior == "all" ? $index : ""), $fn_get_placeholder_content_cb, $html, "div", false, $behavior == "last" ? "desc" : "asc");
+
                             if ($new_html == $html) break;
+
+                            $processed[$delayed_component] = true;
 
                             if (++$iterations > 99)
                             {
@@ -6452,6 +6462,9 @@
                             }
 
                             $html = $new_html;
+                            
+                            if ($behavior == "first") break;
+                            if ($behavior == "last")  break;
                         }
                     }
                 }
@@ -6732,15 +6745,15 @@
 
     /* DELAYED COMPONENTS */
 
-    function delayed_component($callback, $arg = false, $priority = 1, $eol = 1)
+    function delayed_component($callback, $arg = false, $priority = 1, $eol = 1, $behavior = "all")
     {
         // ! DIRTY HACK
         $callback = str_replace("_dom\\", "_", $callback);
 
         $delayed_components = get("delayed_components", array());
         $index = count($delayed_components);
-        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority))));
-        return placeholder($callback.$index, $eol);
+        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior))));
+        return placeholder($callback.($behavior == "all" ? $index : ""), $eol);
     }
     
     function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false, 2); }
@@ -12677,7 +12690,122 @@
             return tag('img', $content, $attributes, false, $content == '');
         }
     }
-    
+        
+    function gif($clip, $width, $height, $attributes = false, $alt = false)
+    {       
+        $alt = $alt ?? "$clip gif image";
+        $attributes = attributes_as_string($attributes);
+        $attributes = $attributes == "" ? "" : " $attributes";
+
+        if (!has("dom/components/defined/img-gif"))
+        {
+            set("dom/components/defined/img-gif");
+
+            ?>
+                
+            <script>
+
+                class ImgGif extends HTMLElement {
+                    
+                    static motionQuery = window.matchMedia("(prefers-reduced-motion: no-preference)");
+                
+                    connectedCallback() 
+                    {
+                        this.video = this.querySelector("video");
+                
+                        ImgGif.motionQuery.addEventListener("change", (query) => {
+                
+                            this.toggle(query.matches);
+                        });
+                
+                        this.toggle(ImgGif.motionQuery.matches);
+                    }
+                
+                    toggle(state) 
+                    {
+                        if (state) {
+                
+                            this.video.play();
+                
+                        } else {
+                            
+                            this.video.pause();
+                        }
+                    }
+                }
+
+            </script>
+            
+            <noscript><style> 
+            
+                img-gif video { display: none }
+                
+            </style></noscript>
+            
+            <style>
+
+                img-gif {
+
+                    display: inline-block;
+                }
+
+                img-gif img, video {
+
+                    display:        inline-block;
+                    vertical-align: middle;
+                    object-fit:     cover; 
+
+                    height:         auto;
+                    aspect-ratio:   calc(var(--width, 16) / var(--height, 10));
+                    max-width:      100%;                    
+                }
+
+            </style>
+
+            <?php
+                
+            function img_gif_define()
+            {
+                return '<script> customElements.define("img-gif", ImgGif); </script>';
+            }
+        }
+
+        ?>
+        
+        <img-gif<?= $attributes ?>>
+
+            <noscript>
+                
+                <picture>
+
+                    <?php if (file_exists("$clip.avif")) { ?><source type="image/avif" srcset="<?= $clip ?>.avif" ><?php } ?> 
+                    <?php if (file_exists("$clip.webp")) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
+                    <?php if (file_exists("$clip.apng")) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
+
+                    <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"">
+
+                </picture>
+
+            </noscript>
+            
+            <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>">
+
+                <?php if (file_exists("$clip.webm")) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
+                <?php if (file_exists("$clip.mp4" )) { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
+
+                <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>">
+
+            </video>
+
+            <div id="<?= $clip ?>-video-label" aria-hidden="true" class="visually-hidden"><?= $alt ?></div>
+
+            <?= delayed_component("img_gif_define", $arg = false, $priority = 1, $eol = 1, $behavior = "last") ?> 
+
+        </img-gif>
+        
+        <?php 
+    }
+
     function img_domain_favicon($url, $attributes = false, $alt = false)
     {
         return img(url_img_domain_favicon($url), false, false, $attributes, $alt);
