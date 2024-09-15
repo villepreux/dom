@@ -74,5 +74,6 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
 ----
 
 ![Build](https://github.com/villepreux/dom/workflows/Build/badge.svg)
+[![justforfunnoreally.dev badge](https://img.shields.io/badge/justforfunnoreally-dev-9ff)](https://justforfunnoreally.dev)
 
 © Antoine Villepreux 2020-20XX
