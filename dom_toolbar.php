@@ -646,6 +646,18 @@
         );
     }
 
+    function menu_li_attributes($item)
+    {
+        return array(
+                        
+            "class"     => component_class("li", "list-item")/*,
+            "role"      => "menuitem"*/, 
+            "tabindex"  => "0",
+            "style"     => ("view-transition-name: ".to_classname($item).";"),
+        
+        );
+    }
+
     $__ul_menu_index = -1;
 
     function ul_menu($menu_entries = array(), $default_target = internal_link, $sidebar = auto)
@@ -676,8 +688,8 @@
                     $link       = get($menu_entry, "link",       get($menu_entry, 1, false));
                     $target     = get($menu_entry, "target",     get($menu_entry, 2, $default_target));
                     $attributes = get($menu_entry, "attributes", get($menu_entry, 3, false));
-                    
-                    $menu_lis .= li(a(span($item), $link, $attributes, $target), array("class" => component_class("li", "list-item")/*, "role" => "menuitem"*/, "tabindex" => "0"));
+
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), menu_li_attributes($item));
                 }
             }
         }

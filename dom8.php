@@ -3589,7 +3589,7 @@
     
     function json_flickr_no_user_fallback($method, $params = array(), $user_id = false, $token = false)
     {
-        bye([ $method, $params, $user_id, $token]);
+        //bye([ $method, $params, $user_id, $token]);
 
         $profiler = debug_track_timing($user_id);
         
@@ -6449,7 +6449,20 @@
                           //$html = placeholder_replace($delayed_component.$index, $content, $html, "div");
                           //break;
 
-                            $new_html = placeholder_replace_once($delayed_component.($behavior == "all" ? $index : ""), $fn_get_placeholder_content_cb, $html, "div", false, $behavior == "last" ? "desc" : "asc");
+                            $placeholder_emptier = function () { return ""; };
+
+                            $fn = (($behavior == "last" || $behavior == "first") && (array_key_exists($delayed_component, $processed) && !!$processed[$delayed_component])) 
+                                ? $placeholder_emptier 
+                                : $fn_get_placeholder_content_cb;
+
+                            $new_html = placeholder_replace_once(
+                                $delayed_component.($behavior == "all" ? $index : ""), 
+                                $fn, 
+                                $html, 
+                                "div", 
+                                false, 
+                                $behavior == "last" ? "desc" : "asc"
+                                );
 
                             if ($new_html == $html) break;
 
@@ -6463,8 +6476,8 @@
 
                             $html = $new_html;
                             
-                            if ($behavior == "first") break;
-                            if ($behavior == "last")  break;
+                          //if ($behavior == "first") break;
+                          //if ($behavior == "last")  break;
                         }
                     }
                 }
@@ -6511,7 +6524,7 @@
 
                 // Clean html
                                         $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
-                if (get("modernizr"))   $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
+             /* if (get("modernizr"))*/ $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
                 if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                                      ));
 
                 //  Return html
@@ -6544,6 +6557,59 @@
     #endregion
     #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
+
+    /**
+     * 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type
+     */
+    function head_user_preferences()
+    {
+        return  eol().comment("DOM Head user preferences handling") 
+
+            .   script((function() { HSTART() ?><script><?= HERE() ?>
+
+                    /**
+                     * Remeber scroll position - NOT WORKING
+                     */
+                    /*
+                    const maxLastYScrollOffset = 164;
+                    window.addEventListener('beforeunload', function () { console.log("SAVE Y SCROLL OFFSET"); sessionStorage.setItem('lastYScrollOffset', window.scrollY); });
+                    var offset = Math.min(maxLastYScrollOffset, sessionStorage.getItem('lastYScrollOffset') || 0);
+                    console.log("RELOAD Y SCROLL OFFSET", offset);
+                    window.scrollTo(0, offset);
+                    */
+
+                    /**
+                     * If user-preference is having js disabled then this wont occure and class="no-js" will remain in place on html tag
+                     */
+                    document.documentElement.className = (document.documentElement.className.replace(/\bno-js\b/, '') + ' js').trim();
+
+                    /**
+                     * Look for a previously selected theme
+                     */
+
+                    /**
+                     * TODO set that from elsewhere ?
+                     */
+                    window.themeKeys  = [ "light", "dark", "dawn", "dusk", "vapor", "vintage", "quill", "cyberpunk", "campfire", "director" ];
+                    window.themeStore = "dom-theme"; 
+                                
+                    var user_previously_selected_theme = localStorage.getItem(window.themeStore); 
+
+                    if (null !== user_previously_selected_theme) {
+
+                        if (window.themeKeys.includes(user_previously_selected_theme)) {
+                            
+                            document.documentElement.setAttribute("data-theme", user_previously_selected_theme);
+                        
+                        } else {
+
+                            localStorage.removeItem(window.themeStore);
+                        }
+                    }                            
+        
+                <?= HERE("raw_js") ?></script><?php return HSTOP(); })())
+            ;        
+    }
 
     /**
      * 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type
@@ -6660,6 +6726,7 @@
 
         return // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
 
+            eol().head_user_preferences().
             eol().head_pragma_directives().
             eol().head_title(). 
             eol().head_preconnect_hints().
@@ -6745,14 +6812,14 @@
 
     /* DELAYED COMPONENTS */
 
-    function delayed_component($callback, $arg = false, $priority = 1, $eol = 1, $behavior = "all")
+    function delayed_component($callback, $arg = false, $priority = 1, $eol = 1, $behavior = "all", $trim = true)
     {
         // ! DIRTY HACK
         $callback = str_replace("_dom\\", "_", $callback);
 
         $delayed_components = get("delayed_components", array());
         $index = count($delayed_components);
-        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior))));
+        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior, $trim))));
         return placeholder($callback.($behavior == "all" ? $index : ""), $eol);
     }
     
@@ -9509,14 +9576,14 @@
                 <?= css_root(css_vars_color_scheme("dark", 2)) ?> 
             }
 
-            /* Provide a way to dynamically change theme via a data-colorscheme attribute */
+            /* Provide a way to dynamically change theme via a data-theme attribute */
 
-            [data-colorscheme='light'] {
+            [data-theme='light'] {
                 --theme: "light";
                 <?= css_vars_color_scheme("light", 1) ?> 
             }
 
-            [data-colorscheme='dark'] {
+            [data-theme='dark'] {
                 --theme: "dark";
                 <?= css_vars_color_scheme("dark", 1) ?> 
             }
@@ -9549,13 +9616,13 @@
                 <?= $css_dark ?> 
             }
 
-            [data-colorscheme="light"] {
+            [data-theme="light"] {
 
                 --theme: "light";
                 <?= $css_light ?> 
             }
 
-            [data-colorscheme="dark"] {
+            [data-theme="dark"] {
 
                 --theme: "dark";
                 <?= $css_dark ?> 
@@ -9770,6 +9837,8 @@
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
           
             /* My own base/remedy css  */
+
+            @view-transition { navigation: auto; }
     
             :root {
     
@@ -11580,11 +11649,10 @@
         return $class;
     }
         
-    function iframe($url, $title = false, $classes = false, $w = false, $h = false, $lazy = auto, $extra_styles = false, $extra_attributes = false)
+    function iframe($url, $title = false, $attributes = false, $w = false, $h = false, $lazy = auto, $extra_styles = false, $extra_attributes = false)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
         // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
-        // TODO replace $classes by $attributes
 
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
 
@@ -11595,38 +11663,34 @@
         
         if (AMP()) $lazy = false;
 
-        $src_attributes = ' src="'.$url.'"';
-        if ($lazy === true) $src_attributes = ' data-src="'.$url.'" src="'.url_img_loading().'"';
-        
-        $lazy_attributes = "";
+        if (!!$title)       $attributes = attributes_add($attributes, attr("title",     $title));
 
-        if ($lazy === auto) $lazy_attributes = ' loading="lazy" decoding="async"';
-        if ($lazy === true) $classes = (!!$classes) ? ($classes . ' lazy loading iframe') : 'lazy loading iframe';
+        if ($lazy !== true) $attributes = attributes_add($attributes, attr("src",       $url));
+        if ($lazy === true) $attributes = attributes_add($attributes, attr("data-src",  $url));
+        if ($lazy === true) $attributes = attributes_add($attributes, attr("src",       url_img_loading()));
+
+        if ($lazy === auto) $attributes = attributes_add($attributes, attr("loading",   "lazy"      ));
+        if ($lazy === auto) $attributes = attributes_add($attributes, attr("decoding",  "async"     ));
+        if ($lazy === true) $attributes = attributes_add($attributes, attr("class",     "lazy"      ));
+        if ($lazy === true) $attributes = attributes_add($attributes, attr("class",     "loading"   ));
+        if ($lazy === true) $attributes = attributes_add($attributes, attr("class",     "iframe"    ));
         
         global $hook_need_lazy_loding;
         if ($lazy === true) $hook_need_lazy_loding[] = $url;
 
         if (!!get("gemini")) return "";
+
+        $attributes = attributes_add($attributes, attr("width",             $w));
+        $attributes = attributes_add($attributes, attr("height",            $h));
+        $attributes = attributes_add($attributes, attr("layout",            'responsive'));
+        $attributes = attributes_add($attributes, attr("frameborder",       0));
+        $attributes = attributes_add($attributes, attr("overflow",          'hidden'));
+        $attributes = attributes_add($attributes, attr("allowfullscreen",   ''));
+        $attributes = attributes_add($attributes, attr("style",             "border: 0; max-width: 100%; --width: $w; --height: $h; ".(!$extra_styles ? "" : " $extra_styles")));
+
+        $attributes_str = attributes_as_string($attributes).(!$extra_attributes ? "" : " $extra_attributes");
      
-        return '<'.(AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe').
-
-             (!!$title   ? (' title'            .'="'.$title        .'"') : '').
-             (!!$classes ? (' class'            .'="'.$classes      .'"') : '') .
-             
-                            $lazy_attributes.
-                            $src_attributes.
-
-                            ' width'            .'="'.$w            .'"'.
-                            ' height'           .'="'.$h            .'"'.
-                            ' layout'           .'="'.'responsive'  .'"'.
-                            ' frameborder'      .'="'.'0'           .'"'.
-                            ' overflow'         .'="'.'hidden'      .'"'.
-                            ' allowfullscreen'  .'="'.''            .'"'.
-                            ' style'            .'="'."border: 0; max-width: 100%; --width: $w; --height: $h;".(!$extra_styles ? "" : " $extra_styles") .'"'.
-
-                            (!$extra_attributes ? "" : " $extra_attributes").
-
-                            '>'.
+        return '<'.(AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')." $attributes_str".'>'.
 
             (AMP() ? ('<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>') : "").
             
@@ -12668,21 +12732,21 @@
                 ' height'.  '='.$h.
                 ' style'.   '='.'"--width: '.$w.'; --height: '.$h.'"',
                 $content,
-                attributes_as_string(array("src" => $path)).
-                attributes_add_class($attributes, "img"),
+                attributes_as_string(array("src" => $path))/*.
+                attributes_add_class($attributes, "img")*/,
                 false,
                 false
                 );
         }
         else
         {
-                 if (auto === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async", $src_attribute =>                          $path ));
-            else if (true === $lazy)  $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async", $src_attribute => $lazy_src, "data-src" => $path ));
-            else                      $attributes = attributes_add($attributes, array("alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async", $src_attribute =>                          $path ));
+                 if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
+            else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
+            else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
 
-                 if (auto === $lazy)  $attributes = attributes_add_class($attributes, "img");
-            else if (true === $lazy)  $attributes = attributes_add_class($attributes, "img lazy loading");
-            else                      $attributes = attributes_add_class($attributes, "img");
+                 if (auto === $lazy)  { /* $attributes = attributes_add_class($attributes, "img"); */ }
+            else if (true === $lazy)  {    $attributes = attributes_add_class($attributes, /*"img lazy loading"*/ "lazy loading"); }
+            else                      { /* $attributes = attributes_add_class($attributes, "img"); */ }
 
             global $hook_need_lazy_loding;
             if ($lazy === true) $hook_need_lazy_loding[] = $path;
@@ -12702,6 +12766,8 @@
             set("dom/components/defined/img-gif");
 
             ?>
+
+            <!-- img-gif web component HTML element definition before 1st img-gif component on the page //-->
                 
             <script>
 
@@ -12735,6 +12801,8 @@
                 }
 
             </script>
+
+            <!-- img-gif web component light-dom default styles before 1st img-gif component on the page //-->
             
             <noscript><style> 
             
@@ -12766,7 +12834,17 @@
                 
             function img_gif_define()
             {
-                return '<script> customElements.define("img-gif", ImgGif); </script>';
+                HSTART(-1) ?><html><?= HERE() ?>
+
+                <!-- img-gif web component definition script after last img-gif component on the page //--> 
+
+                <script>
+
+                    customElements.define("img-gif", ImgGif);
+
+                </script>
+
+                <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
             }
         }
 
@@ -12799,7 +12877,9 @@
 
             <div id="<?= $clip ?>-video-label" aria-hidden="true" class="visually-hidden"><?= $alt ?></div>
 
-            <?= delayed_component("img_gif_define", $arg = false, $priority = 1, $eol = 1, $behavior = "last") ?> 
+            <?php delayed_component("img_gif_define", $arg = false, $priority = 1, $eol = 1, $behavior = "last") ?> 
+
+            <!-- DOM_PLACEHOLDER_IMG_GIF_DEFINE //-->
 
         </img-gif>
         
