@@ -5083,7 +5083,13 @@
 
         $doc .= generate_cleanup().generate_all();
 
-        if (get("compression") == "gzip" && !has("main") && !has("main-include")) ob_start("ob_gzhandler");
+        $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
+
+        if ($compression) 
+        {
+            while (ob_get_level() > 0) { ob_end_clean() ; } 
+            ob_start("ob_gzhandler");
+        }
 
         echo $doc;
         
@@ -5091,7 +5097,7 @@
     
         generate_all_postprocess();
 
-        if (get("compression") == "gzip" && !has("main") && !has("main-include")) ob_end_flush();
+        if ($compression) ob_end_flush();
     }
 
     #endregion
@@ -12442,7 +12448,12 @@
 
         if (AMP())
         {
-            return a($html, $url, $attributes, $target);
+            return $html;
+            //return a($html, $url, $attributes, $target);
+        }
+        else if (!!get("no_js"))
+        {
+            return span($html);
         }
         else
         {
@@ -12462,7 +12473,12 @@
 
         if (AMP())
         {
-            return a($text, "mailto:" . $email, $attributes, $target);
+            return span($text);
+            //return a($text, "mailto:" . $email, $attributes, $target);
+        }
+        else if (!!get("no_js"))
+        {
+            return span($text);
         }
         else
         {
@@ -12755,135 +12771,179 @@
         }
     }
         
-    function gif($clip, $width, $height, $attributes = false, $alt = false)
-    {       
-        $alt = $alt ?? "$clip gif image";
+    function gif($path, $width = false, $height = false, $attributes = false, $alt = false, $precompute_size = auto)
+    {
+        $precompute_size = (auto === $precompute_size) ? get("img_precompute_size") : $precompute_size;
+
+        // Image path. Deduce ext and alt if not provided (bad)
+
+        $valid_path = path($path);
+        $path       = !$valid_path ? $path : $valid_path;
+        $info       = explode('?', $path);
+        $info       = $info[0];
+        $info       = pathinfo($info);
+        $ext        = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+        $dirname    = array_key_exists('dirname',   $info) ?     $info['dirname']   : false;
+        $basename   = basename($path, $ext);
+        $codename   = urlencode($basename);
+        $alt        = ($alt === false || $alt === "") ? $codename : $alt;
+        $clip       = "$dirname/$basename";
+
+        // Image size
+
+        $size0 = ($precompute_size ? cached_getimagesize($path) : array(0,0));
+        list($w0, $h0) = (is_array($size0) ? $size0 : array(0, 0));
+        if ($w0 == 0 || $h0 == 0) list($w0, $h0) = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
+        $width  = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$width  ? $width  : $w0;
+        $height = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$height ? $height : $h0;
+
         $attributes = attributes_as_string($attributes);
         $attributes = $attributes == "" ? "" : " $attributes";
 
-        if (!has("dom/components/defined/img-gif"))
+        $has_webp = file_exists("$clip.webp");
+        $has_avif = file_exists("$clip.avif");
+        $has_apng = file_exists("$clip.apng");
+
+        $has_webm = file_exists("$clip.webm");
+        $has_mp4  = file_exists("$clip.mp4");
+
+        $has_video = $has_webm || $has_mp4;
+
+        $pre_html = "";
         {
-            set("dom/components/defined/img-gif");
-
-            ?>
-
-            <!-- img-gif web component HTML element definition before 1st img-gif component on the page //-->
-                
-            <script>
-
-                class ImgGif extends HTMLElement {
-                    
-                    static motionQuery = window.matchMedia("(prefers-reduced-motion: no-preference)");
-                
-                    connectedCallback() 
-                    {
-                        this.video = this.querySelector("video");
-                
-                        ImgGif.motionQuery.addEventListener("change", (query) => {
-                
-                            this.toggle(query.matches);
-                        });
-                
-                        this.toggle(ImgGif.motionQuery.matches);
-                    }
-                
-                    toggle(state) 
-                    {
-                        if (state) {
-                
-                            this.video.play();
-                
-                        } else {
-                            
-                            this.video.pause();
-                        }
-                    }
-                }
-
-            </script>
-
-            <!-- img-gif web component light-dom default styles before 1st img-gif component on the page //-->
-            
-            <noscript><style> 
-            
-                img-gif video { display: none }
-                
-            </style></noscript>
-            
-            <style>
-
-                img-gif {
-
-                    display: inline-block;
-                }
-
-                img-gif img, video {
-
-                    display:        inline-block;
-                    vertical-align: middle;
-                    object-fit:     cover; 
-
-                    height:         auto;
-                    aspect-ratio:   calc(var(--width, 16) / var(--height, 10));
-                    max-width:      100%;                    
-                }
-
-            </style>
-
-            <?php
-                
-            function img_gif_define()
+            if ($has_video)
             {
-                HSTART(-1) ?><html><?= HERE() ?>
+                if (!has("dom/components/defined/img-gif"))
+                {
+                    set("dom/components/defined/img-gif");
 
-                <!-- img-gif web component definition script after last img-gif component on the page //--> 
+                    HSTART() ?><html><?= HERE() ?>
 
-                <script>
+                    <!-- img-gif web component HTML element definition before 1st img-gif component on the page //-->
+                        
+                    <script>
 
-                    customElements.define("img-gif", ImgGif);
+                        class ImgGif extends HTMLElement {
+                            
+                            static motionQuery = window.matchMedia("(prefers-reduced-motion: no-preference)");
+                        
+                            connectedCallback() 
+                            {
+                                this.video = this.querySelector("video");
+                        
+                                ImgGif.motionQuery.addEventListener("change", (query) => {
+                        
+                                    this.toggle(query.matches);
+                                });
+                        
+                                this.toggle(ImgGif.motionQuery.matches);
+                            }
+                        
+                            toggle(state) 
+                            {
+                                if (state) {
+                        
+                                    this.video.play();
+                        
+                                } else {
+                                    
+                                    this.video.pause();
+                                }
+                            }
+                        }
 
-                </script>
+                    </script>
 
-                <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
+                    <!-- img-gif web component light-dom default styles before 1st img-gif component on the page //-->
+                    
+                    <noscript><style> 
+                    
+                        img-gif video { display: none }
+                        
+                    </style></noscript>
+                    
+                    <style>
+
+                        img-gif {
+
+                            display: inline-block;
+                        }
+
+                        img-gif img, video {
+
+                            display:        inline-block;
+                            vertical-align: middle;
+                            object-fit:     cover; 
+
+                            height:         auto;
+                            aspect-ratio:   calc(var(--width, 16) / var(--height, 10));
+                            max-width:      100%;                    
+                        }
+
+                    </style>
+
+                    <?= HERE("raw_html") ?></html><?php $pre_html = HSTOP();
+                        
+                    function img_gif_define()
+                    {
+                        HSTART(-1) ?><html><?= HERE() ?>
+
+                        <!-- img-gif web component definition script after last img-gif component on the page //--> 
+
+                        <script>
+
+                            customElements.define("img-gif", ImgGif);
+
+                        </script>
+
+                        <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
+                    }
+                }
             }
         }
-
-        ?>
         
-        <img-gif<?= $attributes ?>>
+        HSTART() ?><html><?= HERE() ?>
+        
+        <?php if ($has_video) { ?><img-gif<?= $attributes ?>><?php } ?>
 
-            <noscript>
+            <?php if ($has_video) { ?><noscript><?php } ?>
                 
                 <picture>
 
-                    <?php if (file_exists("$clip.avif")) { ?><source type="image/avif" srcset="<?= $clip ?>.avif" ><?php } ?> 
-                    <?php if (file_exists("$clip.webp")) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
-                    <?php if (file_exists("$clip.apng")) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
+                    <?php if ($has_avif) { ?><source type="image/avif" srcset="<?= $clip ?>.avif" ><?php } ?> 
+                    <?php if ($has_webp) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
+                    <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
 
                     <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"">
 
                 </picture>
 
-            </noscript>
+            <?php if ($has_video) { ?></noscript><?php } ?>
+
+            <?php if ($has_video) { ?>
             
-            <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>">
+                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>">
 
-                <?php if (file_exists("$clip.webm")) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
-                <?php if (file_exists("$clip.mp4" )) { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
+                    <?php if ($has_webm) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
+                    <?php if ($has_mp4)  { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
 
-                <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>">
+                    <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>">
 
-            </video>
+                </video>
 
-            <div id="<?= $clip ?>-video-label" aria-hidden="true" class="visually-hidden"><?= $alt ?></div>
+                <div id="<?= $clip ?>-video-label" aria-hidden="true" class="visually-hidden"><?= $alt ?></div>
 
-            <?php delayed_component("img_gif_define", $arg = false, $priority = 1, $eol = 1, $behavior = "last") ?> 
+                <?php delayed_component("img_gif_define", $arg = false, $priority = 1, $eol = 1, $behavior = "last") ?> 
 
-            <!-- DOM_PLACEHOLDER_IMG_GIF_DEFINE //-->
+                <!-- DOM_PLACEHOLDER_IMG_GIF_DEFINE //-->
 
-        </img-gif>
+            <?php } ?>
+
+        <?php if ($has_video) { ?></img-gif><?php } ?>
         
-        <?php 
+        <?= HERE("raw_html") ?></html><?php $html = HSTOP();
+
+        return $pre_html.$html;
     }
 
     function img_domain_favicon($url, $attributes = false, $alt = false)
@@ -12927,7 +12987,7 @@
             $desc       = at($label, "desc",  "$title svg image");
         }
 
-        $html = '<svg'  .' class'           .'="'.  "svg ".$class           .'"'    // + colorful-shadow ?
+        $html = '<svg'  .' class'           .'="'.  "svg ".$class           .'"'    
                         .' role'            .'="'.  "img"                   .'"'            .(($label!="" && $label!=false)                ? (''
                         .' aria-label'      .'="'.  $label                  .'"'    ):'')   .(($label!="" && $label!=false && !$has_title) ? (''
                         .' aria-labelledby' .'="'.  "$id_title $id_desc"    .'"'    ):'')
