@@ -6574,17 +6574,6 @@
             .   script((function() { HSTART() ?><script><?= HERE() ?>
 
                     /**
-                     * Remeber scroll position - NOT WORKING
-                     */
-                    /*
-                    const maxLastYScrollOffset = 164;
-                    window.addEventListener('beforeunload', function () { console.log("SAVE Y SCROLL OFFSET"); sessionStorage.setItem('lastYScrollOffset', window.scrollY); });
-                    var offset = Math.min(maxLastYScrollOffset, sessionStorage.getItem('lastYScrollOffset') || 0);
-                    console.log("RELOAD Y SCROLL OFFSET", offset);
-                    window.scrollTo(0, offset);
-                    */
-
-                    /**
                      * If user-preference is having js disabled then this wont occure and class="no-js" will remain in place on html tag
                      */
                     document.documentElement.className = (document.documentElement.className.replace(/\bno-js\b/, '') + ' js').trim();
@@ -6596,20 +6585,19 @@
                     /**
                      * TODO set that from elsewhere ?
                      */
-                    window.themeKeys  = [ "light", "dark", "dawn", "dusk", "vapor", "vintage", "quill", "cyberpunk", "campfire", "director" ];
-                    window.themeStore = "dom-theme"; 
+                    const themes = [ "light", "dark" ];
                                 
-                    var user_previously_selected_theme = localStorage.getItem(window.themeStore); 
+                    var user_previously_selected_theme = localStorage.getItem("theme");
 
                     if (null !== user_previously_selected_theme) {
 
-                        if (window.themeKeys.includes(user_previously_selected_theme)) {
+                        if (themes.includes(user_previously_selected_theme)) {
                             
                             document.documentElement.setAttribute("data-theme", user_previously_selected_theme);
                         
                         } else {
 
-                            localStorage.removeItem(window.themeStore);
+                            localStorage.removeItem("theme");
                         }
                     }                            
         
