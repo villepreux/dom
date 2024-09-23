@@ -584,8 +584,8 @@
 
         if (false === $attributes) $attributes = array();
         
-        if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;
-        if (!in_array("alt",        $attributes) && !AMP()          ) $attributes["alt"         ] = $label;
+        if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;/*
+        if (!in_array("alt",        $attributes) && !AMP()          ) $attributes["alt"         ] = $label;*/
         if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
 
         if ($encrypted)
@@ -648,14 +648,17 @@
 
     function menu_li_attributes($item)
     {
-        return array(
-                        
-            "class"     => component_class("li", "list-item")/*,
-            "role"      => "menuitem"*/, 
-            "tabindex"  => "0",
-            "style"     => ("view-transition-name: ".to_classname($item).";"),
-        
-        );
+        $transition_name = trim(to_classname($item));
+
+        $attributes = [];
+        {
+            $attributes["class"]    = component_class("li", "list-item");           /*
+            $attributes[""role"]    = "menuitem";                                   */
+            $attributes["tabindex"] = "0";                                          if ($transition_name != "") {
+            $attributes["style"]    = "view-transition-name: $transition_name;";    }
+        }
+
+        return $attributes;
     }
 
     $__ul_menu_index = -1;
@@ -712,13 +715,15 @@
         return $html;
     }
 
-    function menu_switch() { return (get("framework") == "material"  ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu", /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle")                                                                ))) : "")
-                                .   (get("framework") == "bootstrap" ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (get("framework") == "spectre"   ? (a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),     array("class" => "menu-switch-link nav-link material-icons",                             /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle"), "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ))) : "")
-                                .   (get("framework") == "NONE"      ? (a(span("☰", "menu-switch-symbol menu-toggle-content")   
-                                                                      . a(span("✕", "menu-close-symbol  menu-close-content"), "#".DOM_MENU_ID."-close", array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden"/*, "aria-label" => "Menu Toggle"*/))
-                                                                                                                            , "#".DOM_MENU_ID."-open",  array("class" => "menu-switch-link open nav-link material-icons", "name" => "menu-close",                            /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ "on" => ("tap:".DOM_MENU_ID.".toggle")                     ))) : "")
-                                                            ; 
+    function menu_switch() { 
+
+        if (get("framework") == "material")  return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu",        /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                                                               ));
+        if (get("framework") == "bootstrap") return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
+        if (get("framework") == "spectre")   return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
+                                        $a_toggle = a(span("☰", "menu-switch-symbol menu-toggle-content"), "#".DOM_MENU_ID."-open",    array("class" => "menu-switch-link open nav-link material-icons"/*, "name" => "menu-close"*/,   /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                     ));
+                                        $a_close  = a(span("✕", "menu-close-symbol menu-close-content"),   "#".DOM_MENU_ID."-close",   array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden"/*, "aria-label" => "Menu Toggle"*/));
+        
+        return $a_toggle.$a_close;
     }
 
     // TOOLBAR

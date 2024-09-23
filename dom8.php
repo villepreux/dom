@@ -2630,7 +2630,7 @@
         
         if (count($hook_amp_scripts) > 0)
         {
-            return eol().'<meta name="amp-script-src" content="'.delayed_component("_amp_sha384_hash_local_script", false, 1, 0).' " />';
+            return eol().'<meta name="amp-script-src" content="'.delayed_component("_amp_sha384_hash_local_script", false, 1, 0).' ">';
         }
 
         return "";
@@ -3373,7 +3373,8 @@
             
         if ($html)
         {
-            $tag_bgn = '<script type="text/javascript">window._sharedData = ';
+          //$tag_bgn = '<script type="text/javascript">window._sharedData = ';
+            $tag_bgn = '<script>window._sharedData = ';
             $tag_end = ';</script>';
             
             $pos_bgn = strpos($html, $tag_bgn);
@@ -4833,7 +4834,7 @@
 
     function html_refresh_page($url)
     {
-        return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\" /></head></html>";
+        return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\"></head></html>";
     }
 
     function redirect($url)
@@ -5132,7 +5133,7 @@
 
         return '<?xml version="1.0" encoding="utf-8"?>'.tag('browserconfig', tag('msapplication', 
         
-            $eol.tag('tile',            $xml_icons      . $tab . tag('TileColor', get("theme_color"))                                       . $eol).
+            $eol.tag('tile',            $xml_icons      . $tab . tag('TileColor', get("theme_color", "#000"))                                   . $eol).
             $eol.tag('notification',    $xml_polling    . $tab . tag('frequency', 30) . $tab . tag('cycle', 1)                                  . $eol).
             $eol.tag('badge',           $tab . tag('polling-uri', false, array("src"=>'/badge.xml'), true, true) . $tab . tag('frequency', 30)  . $eol).
             $eol
@@ -5362,7 +5363,7 @@
             "description"      => get("description"),
             
             "background_color" => get("manifest_background_color",   get("background_color")),
-            "theme_color"      => get("manifest_theme_color",        get("theme_color")),
+            "theme_color"      => get("manifest_theme_color",        get("theme_color", "#000")),
 
             "shortcuts"        => $shortcuts,
             "screenshots"      => $screenshots,
@@ -5496,10 +5497,10 @@
             <!doctype html><html>
                 <head>
                     <title>Please wait...</title>
-                    <meta charset="utf-8" /><meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1" />
-                    <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
-                    <meta name="format-detection" content="telephone=no" />
-                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />
+                    <meta charset="utf-8">
+                    <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
+                    <meta name="format-detection" content="telephone=no">
+                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1">
                     <meta http-equiv="refresh" content="3">
                     <style>
                         body { margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: <?= string_system_font_stack("\'") ?>; padding-top: calc(50vh - 2em - 64px); }
@@ -5543,7 +5544,7 @@
             <!doctype html><html>
                 <head>
                     <title>Installing service worker</title>
-                    <script type="text/javascript"><?= string_service_worker_install_js(true) ?></script>
+                    <script><?= string_service_worker_install_js(true) ?></script>
                 </head>
                 <body>
                 </body>
@@ -5612,15 +5613,15 @@
             <!doctype html><html>
                 <head>
                     <title>Please wait...</title>
-                    <meta charset="utf-8" /><meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1" />
-                    <meta http-equiv="Content-type" content="text/html;charset=utf-8" />
-                    <meta name="format-detection" content="telephone=no" />
-                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1" />
+                    <meta charset="utf-8">
+                    <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
+                    <meta name="format-detection" content="telephone=no">
+                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1">
                     <meta http-equiv="refresh" content="3">
                 </head>
                 <body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: <?= string_system_font_stack("\'") ?>; padding-top: calc(50vh - 2em - 64px);">
                     <p>OFFLINE<br>Please wait...</p>
-                    <p><img alt="Please wait..." src="<?= string_loading_svg_src_base64($force_minify) ?>" /></p>
+                    <p><img alt="Please wait..." src="<?= string_loading_svg_src_base64($force_minify) ?>"></p>
                 </body>
             </html>
 
@@ -6569,40 +6570,39 @@
      */
     function head_user_preferences()
     {
-        return  eol().comment("DOM Head user preferences handling") 
+        return  eol().comment("DOM Head user preferences handling").
 
-            .   script((function() { HSTART() ?><script><?= HERE() ?>
+            script((function() { HSTART(-3) ?><script><?= HERE() ?>
 
-                    /**
-                     * If user-preference is having js disabled then this wont occure and class="no-js" will remain in place on html tag
-                     */
-                    document.documentElement.className = (document.documentElement.className.replace(/\bno-js\b/, '') + ' js').trim();
+                /**
+                 * If user-preference is having js disabled then this wont occure and class="no-js" will remain in place on html tag
+                 */
+                document.documentElement.className = (document.documentElement.className.replace(/\bno-js\b/, '') + ' js').trim();
 
-                    /**
-                     * Look for a previously selected theme
-                     */
+                /**
+                 * Look for a previously selected theme
+                 */
 
-                    /**
-                     * TODO set that from elsewhere ?
-                     */
-                    const themes = [ "light", "dark" ];
-                                
-                    var user_previously_selected_theme = localStorage.getItem("theme");
-
-                    if (null !== user_previously_selected_theme) {
-
-                        if (themes.includes(user_previously_selected_theme)) {
+                /**
+                 * TODO set that from elsewhere ?
+                 */
+                const themes = [ "light", "dark" ];
                             
-                            document.documentElement.setAttribute("data-theme", user_previously_selected_theme);
-                        
-                        } else {
+                var user_previously_selected_theme = localStorage.getItem("theme");
 
-                            localStorage.removeItem("theme");
-                        }
-                    }                            
+                if (null !== user_previously_selected_theme) {
+
+                    if (themes.includes(user_previously_selected_theme)) {
+                        
+                        document.documentElement.setAttribute("data-theme", user_previously_selected_theme);
+                    
+                    } else {
+
+                        localStorage.removeItem("theme");
+                    }
+                }                            
         
-                <?= HERE("raw_js") ?></script><?php return HSTOP(); })())
-            ;        
+            <?= HERE("raw_js") ?></script><?php return HSTOP(); })());        
     }
 
     /**
@@ -6612,8 +6612,8 @@
     {
         return  eol().comment("DOM Head pragma directives") 
             .   meta_charset('utf-8')
-            .   eol()
-            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))
+            .   eol()/*
+            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))*/
             .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
             ;        
     }
@@ -6627,15 +6627,18 @@
     /* 9 */
     function head_preconnect_hints()
     {
-        return  eol().comment("DOM Head preconnect hints"). 
-                (!get("unsplash-preconnect") ? '' : '<link rel="preconnect" href="https://source.unsplash.com">');
+        return  eol().comment("DOM Head preconnect hints").                             (!get("unsplash-preconnect") ? '' : (
+                eol().'<link rel="preconnect" href="https://source.unsplash.com">'.     '')).
+                "";
     }
 
     /* 8 */
     function head_asynchronous_scripts($scripts = true)
     {
-        return  (AMP() ? "" : (eol().comment("DOM Head Asynchronous scripts"))). 
-                scripts_head($scripts);
+        return                                                      (AMP() ? "" : (
+                eol().comment("DOM Head Asynchronous scripts").     "")). 
+                scripts_head($scripts).
+                "";
     }
 
     /* 7 */
@@ -6662,10 +6665,10 @@
 
         return 
             eol().comment("DOM Head Synchronous styles").
-            (!AMP() ? ("".
+          /*(!AMP() ? ("".
                 eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-                eol().'<link rel="stylesheet" type="text/css" media="screen"/>'.
-            "") : "").
+                eol().'<link rel="stylesheet" type="text/css" media="screen">'. // link without href is invalid
+            "") : "").*/
             (AMP() ? "" : (eol().comment("DOM Head styles"))).
             link_styles($async_css). // if $async_css == false otherwise move to #2
             (!$styles ? "" : styles()).
@@ -6720,8 +6723,8 @@
 
         return // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
 
-            eol().head_user_preferences().
             eol().head_pragma_directives().
+            eol().head_user_preferences(). // Only addition to date to capo ordering 
             eol().head_title(). 
             eol().head_preconnect_hints().
             eol().head_asynchronous_scripts($scripts).
@@ -8064,11 +8067,11 @@
             .   meta_charset('utf-8')
             
             .   eol() */
-            .                 meta_http_equiv('x-ua-compatible',   'ie=edge,chrome=1')/*
-            .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))*/
-            .                 meta_http_equiv('content-language',  get("content-language", content_language()))
+            .                 meta_http_equiv('x-ua-compatible',   'IE=edge')/*
+            .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))*/ /*
+            .                 meta_http_equiv('content-language',  get("content-language", content_language()))*/ /*
             .   eol()       
-            .   meta(array("title" => get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')))
+            .   meta(array("title" => get("title") . ((get("heading") != '') ? (' - '.get("heading")) : ''))) */
             .   eol()       
             .   meta('keywords', get("title").((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
             
@@ -8083,7 +8086,7 @@
             .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
             .   meta('generator',                           "DOM ".version)
             .   meta('title',                               get("title"))
-            .   meta('theme-color',                         get("theme_color"))
+            .   meta('theme-color',                         get("theme_color", "#000"))
 
             .   eol()
             .   meta('view-transition',                     'same-origin')
@@ -8112,8 +8115,8 @@
             .   meta_name('og:site_name',                   get("live_domain", get("og_site_name", get("title"))))
 
             .   eol()       
-            .   meta_name('name',                           get("og_title", get("title")))
-            .   meta_name('description',                    get("og_description", get("description", get("title"))))
+            .   meta_name('name',                           get("og_title", get("title")))/*
+            .   meta_name('description',                    get("og_description", get("description", get("title"))))*/
             
             .   eol()       
             .   meta_itemprop('name',                       get("og_title", get("title")))
@@ -8140,7 +8143,7 @@
             .   meta('google-site-verification',            get("google_site_verification"))                ) : "")
             
             .   eol()
-            .   meta('msapplication-TileColor',             get("theme_color"))
+            .   meta('msapplication-TileColor',             get("theme_color", "#000"))
             .   meta('msapplication-TileImage',             path(get("icons_path").'ms-icon-144x144.png'))
             
             .   eol()
@@ -8201,13 +8204,13 @@
             ;
     }
     
-    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (eol().'<meta'.attributes_as_string($p0,$pan).' />') : meta_name($p0,$p1)); }
+    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (eol().'<meta'.attributes_as_string($p0,$pan).'>') : meta_name($p0,$p1)); }
                             
-    function meta_charset($charset)             { return meta(array("charset"    => $charset)); }
-    function meta_http_equiv($equiv,$content)   { return meta(array("http-equiv" => $equiv,    "content" => $content), false, array(40,80)); }
-    function meta_name($name,$content)          { return meta(array("name"       => $name,     "content" => $content), false, array(40,80)); }
-    function meta_property($property,$content)  { return meta(array("property"   => $property, "content" => $content), false, array(40,80)); }
-    function meta_itemprop($itemprop,$content)  { return meta(array("itemprop"   => $itemprop, "content" => $content), false, array(40,80)); }
+    function meta_charset(      $charset,            $pan = 0) { return meta(array("charset"    => $charset)); }
+    function meta_http_equiv(   $equiv,    $content, $pan = 0) { return meta(array("http-equiv" => $equiv,    "content" => $content)/*, false, array(40,80)*/); }
+    function meta_name(         $name,     $content, $pan = 0) { return meta(array("name"       => $name,     "content" => $content)/*, false, array(40,80)*/); }
+    function meta_property(     $property, $content, $pan = 0) { return meta(array("property"   => $property, "content" => $content)/*, false, array(40,80)*/); }
+    function meta_itemprop(     $itemprop, $content, $pan = 0) { return meta(array("itemprop"   => $itemprop, "content" => $content)/*, false, array(40,80)*/); }
     
     function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))  return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
     function link_rel($rel, $link, $type = false, $pan = 0) { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
@@ -8321,7 +8324,7 @@
         $js  = eol().$js.eol();
         if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
 
-        $attributes = attributes_add($attributes, array("type" => $type));
+        if ($type != "text/javascript") $attributes = attributes_add($attributes, array("type" => $type));
 
         return tag('script', $js, $attributes);
     }
@@ -8359,10 +8362,10 @@
         $filename = path($filename_or_code);
         $js  = eol().($filename ? include_js($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol();
         if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
-        return tag('script', $js, array("type" => $type));
+        return tag('script', $js, $type != "text/javascript" ? array("type" => $type) : false);
     }
 
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false) ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false || $type == "text/javascript") ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
@@ -9610,17 +9613,11 @@
                 <?= $css_dark ?> 
             }
 
-            [data-theme="light"] {
+            [data-theme="light"] { --theme: "light"; } 
+            [data-theme="dark"]  { --theme: "dark";  } 
 
-                --theme: "light";
-                <?= $css_light ?> 
-            }
-
-            [data-theme="dark"] {
-
-                --theme: "dark";
-                <?= $css_dark ?> 
-            }
+            [data-theme="light"] <?= $css_light ?> 
+            [data-theme="dark"]  <?= $css_dark  ?> 
 
         <?php heredoc_flush("raw_css"); ?></style><?php return heredoc_stop(null);
     }
@@ -11332,7 +11329,7 @@
                     (($extra_attributes_raw === false) ? '' : (' '.$extra_attributes_raw))
                 ) . 
                 (
-                    ($self_closing) ? '/>' : 
+                    ($self_closing) ? /*'/>'*/'>' : 
                     ('>'.$html.'</'.(($space_pos === false) ? $tag : substr($tag, 0, $space_pos)).'>')
                 )
 
@@ -11473,9 +11470,9 @@
         $attributes = array_merge(array(
             "id"    => top_id(),
             "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
-            ), AMP() ? array() : array(
+            )/*, AMP() ? array() : array(
             "name"  => "!"
-            ));
+            )*/);
 
         return eol().tag(
             'body',
@@ -12388,7 +12385,7 @@
                                                         $internal_attributes["rel"]                 = "";
         if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
         if ($target == external_link && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
-        if ($target == external_link && !AMP())         $internal_attributes["crossorigin"]         = "anonymous";
+      //if ($target == external_link && !AMP())         $internal_attributes["crossorigin"]         = "anonymous"; // Not allowed on <a>
         if (!!get("turbo") && !!get("turbo_links"))     $internal_attributes["data-turbo-action"]   = "replace";
 
         if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
@@ -12449,7 +12446,7 @@
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
             $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
 
-            return a("", "", $attributes, $target).script("eval(unescape('".$crypted_script."'))");
+            return a(str_repeat("x", strlen($html)), url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
@@ -12969,8 +12966,8 @@
         if (!$has_title)
         {
             $id         = to_classname($label);
-            $id_title   = "$id-title-$__svg_index";
-            $id_desc    = "$id-desc-$__svg_index";
+            $id_title   = "title-$id-$__svg_index";
+            $id_desc    = "desc-$id-$__svg_index";
             $title      = at($label, "title", "$label");
             $desc       = at($label, "desc",  "$title svg image");
         }
