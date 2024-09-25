@@ -75,51 +75,52 @@ function code_css()
 
         /* TODO: CLEANUP CSS */
 
-        @layer ide;
-        
-        .ide:not(:is(.card.ide, details .ide)) {
-            width:          fit-content;
-            max-width:      stretch;
-            max-width:      -moz-available;
-            max-width:      -webkit-fill-available;
-            border:         2px dashed var(--theme-color);
-            margin-bottom:  var(--gap);
-        }
+        @layer ide {
 
-        .ide pre {
-            margin-block:   0;
-            padding:        var(--gap);
-        }
+            .ide:not(:is(.card.ide, details .ide)) {
+                width:          fit-content;
+                max-width:      stretch;
+                max-width:      -moz-available;
+                max-width:      -webkit-fill-available;
+                border:         2px dashed var(--theme-color);
+                margin-bottom:  var(--gap);
+            }
 
-        .ide code {
-            display:        block;
-            white-space:    pre;
-            padding:        0;
-            width:          fit-content;
-            max-width:      100%;
-            border:         none;
-            background:     unset;
-        }
+            .ide pre {
+                margin-block:   0;
+                padding:        var(--gap);
+            }
 
-        :is(.card, details).ide code {            
-            border: none;
-        }
+            .ide code {
+                display:        block;
+                white-space:    pre;
+                padding:        0;
+                width:          fit-content;
+                max-width:      100%;
+                border:         none;
+                background:     unset;
+            }
 
-        /* Horizontal Scroll */
+            :is(.card, details).ide code {            
+                border: none;
+            }
 
-        .card.ide {
-            overflow: hidden;
-        }        
-        .ide:not(:is(.card, details)), .card.ide > :is(.card-text, pre) {
+            /* Horizontal Scroll */
 
-            overflow:   hidden;
-            overflow-x: auto;
-        }
+            .card.ide {
+                overflow: hidden;
+            }        
+            .ide:not(:is(.card, details)), .card.ide > :is(.card-text, pre) {
 
-        /* Do not display source code when inside iframe */
+                overflow:   hidden;
+                overflow-x: auto;
+            }
 
-        .in-iframe .ide { 
-            display: none 
+            /* Do not display source code when inside iframe */
+
+            .in-iframe .ide { 
+                display: none 
+            }
         }
 
     <?= HERE("raw_css") ?></style><?php return HSTOP();

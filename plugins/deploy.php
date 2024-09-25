@@ -852,7 +852,7 @@ if (!!$cmdline_option_compile)
 {
     deploy_log("[i] Compiling...");
 
-    $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile"/*, "amp"*/) : array();
+    $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile") : array();
 
     // PASS #1 - Compute amount of files to process. So we can track progression
 
@@ -956,7 +956,7 @@ if (!!$cmdline_option_compile)
 
                     foreach ($derivatives as $type)
                     {
-                        $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
+                        $type_arg = "rss=$type";
                         $execs[] = [ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ];
                     }
                 }
@@ -1143,7 +1143,7 @@ if (!!$cmdline_option_compile)
                             deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name -> $type COMPILE");
                         }
             
-                        $type_arg = ($type == "amp") ? "amp=1" : "rss=$type";
+                        $type_arg = "rss=$type";
 
                         $derivative_outputs[$type] = false;
                           
@@ -1264,9 +1264,8 @@ if (!!$cmdline_option_compile)
                     }
 
                     $deploy_name =  ($type == "json") ? "rss.json"  : (
-                                    ($type == "tile") ? "tile.xml"  : (
-                                    ($type == "amp")  ? "amp.html"  : (
-                                                        "rss.xml"     )));
+                                    ($type == "tile") ? "tile.xml"  : (                                                                      
+                                                        "rss.xml"     ));
 
                     // Redirection file
 
