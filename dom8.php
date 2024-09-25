@@ -6665,10 +6665,13 @@
 
         return 
             eol().comment("DOM Head Synchronous styles").
-          /*(!AMP() ? ("".
+
+            // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
+            (!AMP() ? ("".
                 eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-                eol().'<link rel="stylesheet" type="text/css" media="screen">'. // link without href is invalid
-            "") : "").*/
+                eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
+            "") : "").
+
             (AMP() ? "" : (eol().comment("DOM Head styles"))).
             link_styles($async_css). // if $async_css == false otherwise move to #2
             (!$styles ? "" : styles()).
