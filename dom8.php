@@ -8997,7 +8997,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_remedy_chocapic($layer = "normalize.remedy.chocapic")
+    function css_normalize_chocapic($layer = "normalize.remedy.chocapic")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
@@ -9036,6 +9036,160 @@
             h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
             h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
 
+            @property --100vw { syntax: "<length>"; initial-value: 0px; inherits: false; }
+            :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px));  }
+
+            :root {
+                    
+               --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
+               --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
+
+               --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
+               --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
+               --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
+
+               --root-font-size: var(--fluid-font-size);
+           }
+
+            html { 
+
+                font-size: var(--root-font-size); 
+                
+                hanging-punctuation: first allow-end last; 
+
+                -webkit-font-smoothing: antialiased; 
+                -moz-osx-font-smoothing: grayscale; 
+                
+                --line-height: clamp(1.35rem, 1.60rem + 1.70vw, 1.50rem);
+                line-height: var(--line-height); 
+               
+            }
+
+            body { 
+                line-height: 1.5;
+                font-family: <?= string_system_font_stack() ?>; 
+                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
+            }
+
+            a {
+                font-weight: 600;
+            }
+
+            /* assume explicitly small images are inline */
+            <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
+            <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
+            <?php } ?>
+
+            .visually-hidden:not(:focus):not(:active) {
+                clip:           rect(0 0 0 0);
+                clip-path:      inset(50%);
+                height:         1px;
+                overflow:       hidden;
+                position:       absolute;
+                white-space:    nowrap;
+                width:          1px;
+            }
+
+            /* LETS PUT HERE SOME ADDITIONNAL RESET FROM MIRIAM SUZANNE */
+
+  /*html {
+    font-size: max(1em, 20px);
+  }*/
+  body {
+    margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
+  }
+  h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+li {
+    max-width: var(--measure, 75ch);
+  }
+  [hidden] {
+    display: none !important;
+  }
+  dd,
+dir,
+menu,
+ol,
+ul,
+blockquote,
+figure {
+    padding-inline: var(--gap, 1em);
+  }/*
+  nav,
+header,
+main,
+footer,
+section,
+article,
+details {
+    margin-block: var(--gap, 1em);
+  }*/ /*
+  main {
+    border-block: thick double;
+    padding-block: var(--gap, 1em);
+  }*/
+  table {
+    width: 100%;
+  }
+  summary {
+    cursor: pointer;
+  }
+  p:empty {
+    display: none;
+  }/*
+  input,
+select,
+textarea {
+    display: block;
+    font: inherit;
+    margin-block-end: 1em;
+    width: 100%;
+  }*/
+  textarea {
+    min-height: 6em;
+  }
+  button {
+    cursor: pointer;
+    font: inherit;
+    margin: 0;
+    padding: 0.25em 1em;
+  }
+  [aria-pressed=true] {
+    border: medium solid;
+  }
+  img,
+video,
+audio,
+iframe,
+picture {
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: auto var(--ratio);
+  }
+  video,
+iframe {
+    --ratio: 16 / 9;
+  }
+  svg {
+    fill: var(--fill, var(--svg, currentcolor));
+    stroke: var(--stroke, var(--svg, currentcolor));
+    stroke-width: 0;
+  }
+  [data-icon] {
+    display: inline-block;
+  }
+
+        /* END OF SOME ADDITIONNAL RESET FROM MIRIAM SUZANNE */
+
+
+
+
+
             /* now that we have light & dark colors system in place,    */
             /* any component that requires it can be shown              */
             .requires-color-schemes { display: initial; }
@@ -9050,7 +9204,7 @@
             html {
                 --Canvas:           var(--bg,               #1c1c1c);
                 --CanvasText:       var(--text,             #f8f9fa);
-                --Link:             var(--action,           #8c8cff);
+                --Link:             var(--action,           #8cabff);
                 --VisitedText:      var(--action,           #ffadff);
                 --ActiveText:       var(--active,           #ff6666);
                 --ButtonFace:       var(--btn-bg,           #2b2a33);
@@ -9092,7 +9246,7 @@
             html[data-theme=dark] {
                 --Canvas:       var(--bg,       #1c1c1c);
                 --CanvasText:   var(--text,     #f8f9fa);
-                --Link:         var(--action,   #8c8cff);
+                --Link:         var(--action,   #8cabff);
                 --VisitedText:  var(--action,   #ffadff);
                 --ActiveText:   var(--active,   #f66);
       --ButtonFace: var(--btn-bg, #2b2a33);
@@ -9156,8 +9310,7 @@
         return 
             css_layer($layer, 
                 css_normalize_remedy_core(      "core").
-                css_normalize_remedy_reminders( "reminders").
-                css_normalize_remedy_chocapic(  "chocapic"));
+                css_normalize_remedy_reminders( "reminders"));
     }
 
     function css_normalize_normalize($layer = "normalize.normalize")
@@ -9521,8 +9674,9 @@
 
     function css_normalize($layer = "normalize")
     {
-      //return css_normalize_remedy("$layer.normalize");
-        return css_normalize_remedy("$layer.remedy");
+        return  css_layer($layer, 
+                    css_normalize_remedy("remedy").
+                    css_normalize_chocapic("chocapic"));
     }
     
 
@@ -9765,12 +9919,10 @@
             /* Provide a way to dynamically change theme via a data-theme attribute */
 
             [data-theme='light'] {
-                --theme: "light";
                 <?= css_vars_color_scheme("light", 1) ?> 
             }
 
             [data-theme='dark'] {
-                --theme: "dark";
                 <?= css_vars_color_scheme("dark", 1) ?> 
             }
 
@@ -9801,9 +9953,6 @@
 
                 <?= $css_dark ?> 
             }
-
-            [data-theme="light"] { --theme: "light"; } 
-            [data-theme="dark"]  { --theme: "dark";  } 
 
             [data-theme="light"] <?= $css_light ?> 
             [data-theme="dark"]  <?= $css_dark  ?> 
@@ -10042,8 +10191,10 @@
              * Current "standard" hack to get viewport dimentions without unit
              */
 
-            @property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; }
+             /*
+            @property --100vw { syntax: "<length>"; initial-value: 0px; inherits: false; }
             :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px)); }
+            */
 
             /**
              * Fluid font size
@@ -10515,29 +10666,28 @@
 
     function styles()
     {
-        return
-            
-            eol().comment("Layers").      style(css_layers()    )./*
-            eol().comment("Reset").       style(css_reset()     ).*/
-            eol().comment("Normalize").   style(css_normalize() ).
-            eol().comment("Default").     style(css_default()   ).
-            
-            /* */ // CHOCA_WIP
-        
-            eol().comment("Base-Layout"). style(css_base_layout()              ).
-            eol().comment("Base-Colors"). style(css_base_colors_vars_schemes() ).
-                                          style(css_base_colors_vars()         ).
-                                          style(css_base_colors()              ).
+        $styles = "";
 
-            // TODO: We cannot be dependent here of a plugin
-          
-            eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "").
-            eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "").
-            eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "").
-           
-            /* */ // CHOCA_WIP
+        $styles .= eol().comment("Layers").      style(css_layers()    );
+      //$styles .= eol().comment("Reset").       style(css_reset()     );
+        $styles .= eol().comment("Normalize").   style(css_normalize() );
+
+        if (!!get("REWORK")) return $styles;
+
+        $styles .= eol().comment("Default").     style(css_default()   );
+        
+        $styles .= eol().comment("Base-Layout"). style(css_base_layout()              ).
+        $styles .= eol().comment("Base-Colors"). style(css_base_colors_vars_schemes() ).
+                                                 style(css_base_colors_vars()         ).
+                                                 style(css_base_colors()              );
+
+        // TODO: We cannot be dependent here of a plugin
+        
+        $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "");
+        $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "");
+        $styles .= eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "");
             
-            "";
+        return $styles;
     }
 
     function scripts_head($scripts)

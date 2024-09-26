@@ -640,9 +640,9 @@
 
         $attributes = [];
         {
-            $attributes["class"]    = component_class("li", "list-item");           /*
-            $attributes[""role"]    = "menuitem";                                   */
-            $attributes["tabindex"] = "0";                                          if ($transition_name != "") {
+            $attributes["class"]    = component_class("li", "list-item");               /*
+            $attributes[""role"]    = "menuitem";                                   */  /*
+            $attributes["tabindex"] = "0";                                          */  if ($transition_name != "") {
             $attributes["style"]    = "view-transition-name: $transition_name;";    }
             
         }
@@ -736,7 +736,8 @@
     function toolbar_skip_to_main()
     {
       //return a(T("Skip to main"), "#".anchor_name(get("title")),  "skip-to-main");
-        return a(T("Skip to main"), "#main",                        "skip-to-main");
+      //return a(T("Skip to main"), "#main",                        "skip-to-main");
+        return a(T("Skip to main"), "#main",                        "visually-hidden");        
     }
 
     function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
