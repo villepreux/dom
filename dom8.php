@@ -10,9 +10,7 @@
     const external_link = "_blank";
 
     const author        = "Antoine Villepreux";
-    const version       = "0.8.5";
-
-    const amp_support   = false;
+    const version       = "0.8.6";
 
     define("DOM_CLI", isset($argv));
 
@@ -693,7 +691,7 @@
         
         set("cache_time",                       1*60*60); // 1h
 
-        set("forwarded_flags",                  array("amp","contrast","light","no_js","no_css","rss"));
+        set("forwarded_flags",                  array("contrast","light","no_js","no_css","rss"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
 
         set("img_lazy_loading_after",           3);
@@ -703,7 +701,6 @@
         set("canonical",                        get("canonical",    url()   ));
         set("framework",                        get("framework",    "NONE"  ));
         set("generate",                         get("generate",     false   ));
-        set("amp",                              get("amp",          false   ));
         set("cache",                            get("cache",        false   ));
         set("minify",                           get("minify",       true    )); // Performances first
         set("page",                             get("page",         1       ));
@@ -711,7 +708,6 @@
 
         // Options that impact others
 
-      //if (AMP())              {   del("css_layers_support");  }
         if (!!get("beautify"))  {   set("minify",  false);      }
         if (!!get("gemini"))    {   set("static",  true);
                                     set("noajax",  true);
@@ -787,7 +783,7 @@
     {
         // Async calls disabled
         
-        if (has("noajax") || !!get("no_js") || has("rss") || AMP())
+        if (has("noajax") || !!get("no_js") || has("rss"))
         {  
             $n = stripos($f,"/");
             $f = (false === $n) ? $f : substr($f, 0, $n);
@@ -1565,26 +1561,6 @@
                 str_replace("à","a",$str)));
                 
         return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str));
-    }
-
-    function AMP()
-    {
-        $amp = false !== get("amp", false) 
-            && 0     !== get("amp", false) 
-            && "0"   !== get("amp", false); 
-
-        if (!!$amp)
-        {
-            ob_start();
-            $x = get("amp", false);
-            var_dump($x);
-            $dump = "dum=".ob_get_contents();
-            ob_end_clean();
-
-            bye(($amp ? "amp" : "no-amp")." (".get("amp", "NO DEFINED").") ($dump) (".pre(print_r(debug_callstack(), true)).")");
-        }
-
-        return $amp;
     }
 
     function url_exists($url)
@@ -2594,129 +2570,6 @@
         return "";
     }
 
-    // AM Sidebars
-    
-    $hook_amp_sidebars = "";
-    
-    function hook_amp_sidebar($html)
-    {
-        hook_amp_require("sidebar");
-
-        global $hook_amp_sidebars;
-        $hook_amp_sidebars .= $html;
-    }
-
-    function _amp_sidebars()
-    {
-        global $hook_amp_sidebars;
-        return $hook_amp_sidebars;
-    }
-
-    // AMP JS Scripts
-    
-    $hook_amp_scripts = array();
-    
-    function hook_amp_js($js, $html)
-    {
-        hook_amp_require("script");
-        global $hook_amp_scripts;
-        $hook_amp_scripts[] = array($js, $html);
-        return "";
-    }
-
-    function _amp_scripts_head()
-    {
-        global $hook_amp_scripts;
-        
-        if (count($hook_amp_scripts) > 0)
-        {
-            return eol().'<meta name="amp-script-src" content="'.delayed_component("_amp_sha384_hash_local_script", false, 1, 0).' ">';
-        }
-
-        return "";
-    }
-
-    function _amp_sha384_hash_local_script()
-    {
-        $keys = array();
-        
-        global $hook_amp_scripts;
-        
-        foreach ($hook_amp_scripts as $js_html) 
-        {
-            list($js, $html) = $js_html;
-
-            $keys[] = hash("sha384", $js);
-        }
-
-        return implode(" ", $keys);
-    }
-
-    function _amp_scripts_body()
-    {
-        $html_script = "";
-
-        global $hook_amp_scripts;
-
-        foreach ($hook_amp_scripts as $js_html)
-        {
-            list($js, $html) = $js_html;
-
-            $uuid = md5($js);
-
-            $html_script .= eol().
-                '<amp-script script="amp_scripts_'.$uuid.'" layout="container">'.$html.'</amp-script>'.
-                '<script type="text/plain" target="amp-script" id="amp_scripts_'.$uuid.'">'.
-                $js.
-                '</script>';
-        }
-
-        return $html_script;
-    }
-
-    // AMP CSS
-    
-    $hook_amp_css = array();
-
-    function hook_amp_css($css)
-    {
-        $css = str_replace('@-moz-document url-prefix("")', '@media only screen',   $css);
-        $css = str_replace('@-ms-viewport',                 '____dummy',            $css);
-        $css = str_replace("@charset 'UTF-8';",             '',                     $css);
-        $css = str_replace("!important",                    '',                     $css);
-        
-        global $hook_amp_css;
-        $hook_amp_css[] = $css;
-
-        return placeholder("AMP_CSS_".(count($hook_amp_css)-1)); // They are aggregated
-    }
-
-    function placeholder_replace_amp_css($html)
-    {
-        global $hook_amp_css;
-        foreach ($hook_amp_css as $i => $_) $html = placeholder_replace("AMP_CSS_$i", "", $html);
-        return $html;
-    }
-
-    function _amp_css($_, $html)
-    {
-        global $hook_amp_css;
-        
-        $ordered_css = array();
-        foreach ($hook_amp_css as $i => $css) $ordered_css[stripos($html, placeholder("AMP_CSS_$i"))] = $css;
-        ksort($ordered_css);
-        
-        $aggregated_css = "";
-        foreach ($ordered_css as $css) $aggregated_css .= eol().css_postprocess($css);
-
-        return $aggregated_css;
-    }
-
-    // AMP Requirements
-
-    function hook_amp_require($component)    {    if (AMP())     set("hook_amp_require_$component", true); return ""; }
-    function has_amp_requirement($component) { return AMP() && !!get("hook_amp_require_$component");       }
-    
     function rss_record_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
     {
         $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : rss_auto_date(date(DATE_RSS)));
@@ -5080,8 +4933,6 @@
         $doc = placeholder_replace("DOM_HOOK_JSONFEED_0"  , "", $doc);
         $doc = placeholder_replace("DOM_HOOK_TILE_0"      , "", $doc);
 
-        $doc = placeholder_replace_amp_css($doc);
-
         $doc .= generate_cleanup().generate_all();
 
         $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
@@ -5444,10 +5295,10 @@
         
             /* SITE */
 
-            Standards  : HTML5, CSS3
-            Language   : French
-            Doctype    : HTML5
-            Components : DOM.php, Optionnal: MCW, Bootstrap, Spectre, Amp and others
+            Standards  : HTML, CSS, JS
+            Language   : French, English
+            Doctype    : HTML
+            Components : DOM.php, Highlight.js, Lunr.js
             IDE        : Visual Studio Code
             
         <?php heredoc_flush("raw"); ?></html><?php return heredoc_stop(null);
@@ -5526,11 +5377,11 @@
             {
                 navigator.serviceWorker.register(swsource).then(function(reg)
                 {
-                    dom.log("AMP", "ServiceWorker scope: ", reg.scope);
+                    dom.log("SW", "ServiceWorker scope: ", reg.scope);
                 })
                 .catch(function(err)
                 {
-                    dom.log("AMP", "ServiceWorker registration failed: ", err);
+                    dom.log("SW", "ServiceWorker registration failed: ", err);
                 });
             };
 
@@ -5880,8 +5731,6 @@
     function url_messenger                  ($id       = false)                                 { $id       = ($id       === false) ? get("messenger_id")       : $id;                                                                                  return "https://m.me/$id";                                                 }
     function url_whatsapp                   ($phone    = false)                                 { $phone    = ($phone    === false) ? get("phone")              : $phone;                                                                               return "https://wa.me/".trim(str_replace([" ","+","(",")"], "", $phone));  }
     
-    function url_amp                        ($on = true)                                        {                                                                                  return (is_dir("./amp") ? "./amp" : ("?amp=".(!!$on?"1":"0"))).(is_localhost()?"#development=1":"");   }
-
     function url_facebook_search_by_tags    ($tags, $userdata = false)                          { return "https://www.facebook.com/hashtag/"            . urlencode($tags); }
     function url_pinterest_search_by_tags   ($tags, $userdata = false)                          { return "https://www.pinterest.com/search/pins/?q="    . urlencode($tags); }
     function url_instagram_search_by_tags   ($tags, $userdata = false)                          { return "https://www.instagram.com/explore/tags/"      . urlencode($tags); }
@@ -5896,7 +5745,7 @@
     function url_empty                      ()                                                  { return ""; }
     function url_top                        ()                                                  { return "#".top_id(); }
     function url_void                       ()                                                  { return "javascript:void(0)"; } // ! As #! jumps on the page. But a without url also triggers warnings
-    function url_print                      ()                                                  { return AMP() ? url_void() : "javascript:scan_and_print();"; }
+    function url_print                      ()                                                  { return "javascript:scan_and_print();"; }
     
     #endregion
     #region WIP API : DOM : COLORS
@@ -5938,7 +5787,6 @@
     function color_alert            () { return '#EE0000'; }
     function color_leboncoin        () { return '#EA6B30'; }
     function color_seloger          () { return '#E00034'; }
-    function color_amp              () { return '#0379C4'; }
     function color_darkandlight     () { return '#FFFFFF'; }
     function color_shareopenly      () { return '#FFFFFF'; }
    
@@ -6532,7 +6380,6 @@
                 // Clean html
                                         $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
              /* if (get("modernizr"))*/ $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
-                if (AMP())              $attributes = attributes_add($attributes, attributes(attr("amp",    "amp")                                      ));
 
                 //  Return html
 
@@ -6583,9 +6430,6 @@
                  * Look for a previously selected theme
                  */
 
-                /**
-                 * TODO set that from elsewhere ?
-                 */
                 const themes = [ "light", "dark" ];
                             
                 var user_previously_selected_theme = localStorage.getItem("theme");
@@ -6612,8 +6456,7 @@
     {
         return  eol().comment("DOM Head pragma directives") 
             .   meta_charset('utf-8')
-            .   eol()/*
-            .   (AMP() ? '' : meta_http_equiv('Content-type', 'text/html;charset=utf-8'))*/
+            .   eol()
             .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
             ;        
     }
@@ -6635,8 +6478,7 @@
     /* 8 */
     function head_asynchronous_scripts($scripts = true)
     {
-        return                                                      (AMP() ? "" : (
-                eol().comment("DOM Head Asynchronous scripts").     "")). 
+        return  eol().comment("DOM Head Asynchronous scripts").
                 scripts_head($scripts).
                 "";
     }
@@ -6665,17 +6507,18 @@
 
         return 
             eol().comment("DOM Head Synchronous styles").
-          /*(!AMP() ? ("".
-                eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-                eol().'<link rel="stylesheet" type="text/css" media="screen">'. // link without href is invalid
-            "") : "").*/
-            (AMP() ? "" : (eol().comment("DOM Head styles"))).
+
+            // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
+            eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
+            eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
+
+            eol().comment("DOM Head styles").
             link_styles($async_css). // if $async_css == false otherwise move to #2
             (!$styles ? "" : styles()).
             (!$path_css ? "" : (
-                (AMP() ? "" : (eol(). comment("DOM Head project-specific main stylesheet"))).   (!get("htaccess_rewrite_php") ? (
-                style_file($path_css).                                                          "") : (
-                link_style($path_css).                                                          "")).
+                eol(). comment("DOM Head project-specific main stylesheet").    (!get("htaccess_rewrite_php") ? (
+                style_file($path_css).                                          "") : (
+                link_style($path_css).                                          "")).
             ""));
     }
 
@@ -6749,39 +6592,9 @@
 
         $html = css_postprocess($html);
 
-        if (get("support_service_worker", false))
-        {
-            hook_amp_require("install-serviceworker");
-        }
-
-        $amp_scripts = "";
-
-        if (AMP())
-        {
-            $amp_scripts =
-                
-                eol() . comment("DOM AMP Styles").
-                eol() . '<style amp-custom>'.delayed_component("_amp_css").eol().'</style>'.                        
-                eol() . "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>".
-
-                eol() . comment("DOM AMP Scripts").
-                eol() . '<script async src="https://cdn.ampproject.org/v0.js"></script>'.
-
-                script_amp_iframe                   ().
-                script_amp_sidebar                  ().
-                script_amp_position_observer        ().
-                script_amp_animation                ().
-                script_amp_form                     ().
-                script_amp_youtube                  ().
-                script_amp_script                   ().
-                script_amp_install_serviceworker    ().
-
-                "";
-        }
-
         if (!!get("gemini")) return "";
-        
-        return tag('head', $html.$amp_scripts); 
+
+        return tag('head', $html); 
     }
 
     /**
@@ -6820,24 +6633,6 @@
         return placeholder($callback.($behavior == "all" ? $index : ""), $eol);
     }
     
-    function script_amp_install_serviceworker   () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_iframe                  () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_sidebar                 () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_position_observer       () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_animation               () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_form                    () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_youtube                 () { return delayed_component("_".__FUNCTION__, false, 2); }
-    function script_amp_script                  () { return delayed_component("_".__FUNCTION__, false, 2); }
-
-    function _script_amp_install_serviceworker  () { return has_amp_requirement("install-serviceworker") ? (eol(1) . '<script async custom-element="amp-install-serviceworker' . '" src="https://cdn.ampproject.org/v0/amp-install-serviceworker' . '-0.1.js"></script>') : ""; }
-    function _script_amp_iframe                 () { return has_amp_requirement("iframe")                ? (eol(1) . '<script async custom-element="amp-iframe'                . '" src="https://cdn.ampproject.org/v0/amp-iframe'                . '-0.1.js"></script>') : ""; }
-    function _script_amp_sidebar                () { return has_amp_requirement("sidebar")               ? (eol(1) . '<script async custom-element="amp-sidebar'               . '" src="https://cdn.ampproject.org/v0/amp-sidebar'               . '-0.1.js"></script>') : ""; }
-    function _script_amp_position_observer      () { return has_amp_requirement("position-observer")     ? (eol(1) . '<script async custom-element="amp-position-observer'     . '" src="https://cdn.ampproject.org/v0/amp-position-observer'     . '-0.1.js"></script>') : ""; }
-    function _script_amp_animation              () { return has_amp_requirement("animation")             ? (eol(1) . '<script async custom-element="amp-animation'             . '" src="https://cdn.ampproject.org/v0/amp-animation'             . '-0.1.js"></script>') : ""; }
-    function _script_amp_form                   () { return has_amp_requirement("form")                  ? (eol(1) . '<script async custom-element="amp-form'                  . '" src="https://cdn.ampproject.org/v0/amp-form'                  . '-0.1.js"></script>') : ""; }
-    function _script_amp_youtube                () { return has_amp_requirement("youtube")               ? (eol(1) . '<script async custom-element="amp-youtube'               . '" src="https://cdn.ampproject.org/v0/amp-youtube'               . '-0.1.js"></script>') : ""; }
-    function _script_amp_script                 () { return has_amp_requirement("script")                ? (eol(1) . '<script async custom-element="amp-script'                . '" src="https://cdn.ampproject.org/v0/amp-script'                . '-0.1.js"></script>') : ""; }
-
     function title  ($title = false) { return delayed_component("_".__FUNCTION__, $title); }
     function _title ($title = false) { return ($title === false) ? tag('title', get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')) : tag('title', $title); }
 
@@ -8058,20 +7853,7 @@
     {
         $profiler = debug_track_timing();
         
-        return  ""
-            /*
-            .   eol().comment("Preloaded images")
-            .   link_rel_image_preloads()
-            */
-            /*
-            .   meta_charset('utf-8')
-            
-            .   eol() */
-            .                 meta_http_equiv('x-ua-compatible',   'IE=edge')/*
-            .   (AMP() ? '' : meta_http_equiv('Content-type',      'text/html;charset=utf-8'))*/ /*
-            .                 meta_http_equiv('content-language',  get("content-language", content_language()))*/ /*
-            .   eol()       
-            .   meta(array("title" => get("title") . ((get("heading") != '') ? (' - '.get("heading")) : ''))) */
+        return  meta_http_equiv('x-ua-compatible',   'IE=edge')
             .   eol()       
             .   meta('keywords', get("title").((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
             
@@ -8086,7 +7868,9 @@
             .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
             .   meta('generator',                           "DOM ".version)
             .   meta('title',                               get("title"))
-            .   meta('theme-color',                         get("theme_color", "#000"))
+
+            .   meta([ 'name' => 'theme-color', 'media' => '(prefers-color-scheme: light)', 'content' => get("theme_color_dark",  get("theme_color", "#000")) ])
+            .   meta([ 'name' => 'theme-color', 'media' => '(prefers-color-scheme: dark)',  'content' => get("theme_color_light", get("theme_color", "#000")) ])
 
             .   eol()
             .   meta('view-transition',                     'same-origin')
@@ -8165,10 +7949,9 @@
 
             .   eol().comment("Alternate URLs")   
                 // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))       . ((!!get("static"))        ? '' : (''
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))   . ((!!get("static")) ? '' : (''
             .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))  . ((AMP() || !!amp_support) ? '' : (''
-            .   link_rel("amphtml",     get("canonical").(!!get("static") ? "/amp"     : "/?amp=1"   ))                                                             ))
+            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))
             .   link_rel("canonical",   get("canonical"))
             
             .   eol().comment("Icons")
@@ -8204,7 +7987,12 @@
             ;
     }
     
-    function meta($p0, $p1 = false, $pan = 0)   { return (($p1 === false) ? (eol().'<meta'.attributes_as_string($p0,$pan).'>') : meta_name($p0,$p1)); }
+    function meta($p0, $p1 = false, $pan = 0)
+    {
+        return ($p1 === false) // Legacy. Means all passed as an array        
+            ? (eol().'<meta'.attributes_as_string($p0, $pan).'>') 
+            : meta_name($p0,$p1); // Otherwise with 2 params we mean <meta name="..." content="...">
+    }
                             
     function meta_charset(      $charset,            $pan = 0) { return meta(array("charset"    => $charset)); }
     function meta_http_equiv(   $equiv,    $content, $pan = 0) { return meta(array("http-equiv" => $equiv,    "content" => $content)/*, false, array(40,80)*/); }
@@ -8217,11 +8005,7 @@
     
     function manifest($filename = "manifest.json") 
     {
-        return link_rel("manifest", $filename)
-              //. ((!AMP() && !is_localhost()) 
-              //? (eol(2) . '<script async src="https://cdn.jsdelivr.net/npm/pwacompat@2.0.6/pwacompat.min.js" integrity="sha384-GOaSLecPIMCJksN83HLuYf9FToOiQ2Df0+0ntv7ey8zjUHESXhthwvq9hXAZTifA" crossorigin="anonymous"></script>') 
-              //: "")
-                ; 
+        return link_rel("manifest", $filename); 
     }
 
     function link_style($link, $media = "screen", $async = false, $attributes = false)
@@ -8232,9 +8016,7 @@
         $is_external_url = ((0 === stripos($link, "http"))
                          || (0 === stripos($link, "//"  )));
 
-        if (AMP() && !$is_external_url)  return style_file($link, false, true);
-
-        if ($async && !AMP())
+        if ($async)
         {
             $method = 2;
 
@@ -8276,18 +8058,16 @@
         return eol()."}".(!$layer ? "" : " /* @layer $layer */");
     }
     
-    function css_layer($layer, $css)
+    function css_layer($layer, $css = "")
     {
         if (false === $layer || !get("css_layers_support")) return $css;
-        return "@layer $layer {".eol(2).$css.eol()."}";
+        return "@layer $layer {".($css != "" ? (eol(2).$css.eol()) : "")."}";
     }
 
     function style_css_as_is($css = "", $attributes = false)
     {
         if (!$css || $css == "") return '';
-        $css = eol().$css.eol();
-        if (AMP()) return hook_amp_css($css);
-        return tag('style',  $css, $attributes);
+        return tag('style',  eol().$css.eol(), $attributes);
     }
 
     function style($css = "", $force_minify = false, $attributes = false) // TODO attributes at 2nd position
@@ -8321,18 +8101,18 @@
     {
         if (!!get("no_js"))    return '';
         if (!$js || $js == "") return ''; 
-        $js  = eol().$js.eol();
-        if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
 
-        if ($type != "text/javascript") $attributes = attributes_add($attributes, array("type" => $type));
+        if ($type != "text/javascript") 
+            $attributes = attributes_add($attributes, array("type" => $type));
 
-        return tag('script', $js, $attributes);
+        return tag('script', eol().$js.eol(), $attributes);
     }
 
     function script($js = "", $type = "text/javascript",  $force_minify = false)
     {
         $profiler = debug_track_timing();         
         if (!$js || $js == "") return ''; 
+
         return script_js_as_is(raw_js($js, $force_minify), $type);
     }
 
@@ -8361,17 +8141,17 @@
         if (!$filename_or_code || $filename_or_code == "") return ''; 
         $filename = path($filename_or_code);
         $js  = eol().($filename ? include_js($filename, $force_minify, $silent_errors) : raw_js($filename_or_code, $force_minify)).eol();
-        if (AMP()) return hook_amp_js(at($js, "js", at($js, 0, $js)), at($js, "html", at($js, 1, "")));
+
         return tag('script', $js, $type != "text/javascript" ? array("type" => $type) : false);
     }
 
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return ((!$force && AMP()) ? '' : tag('script', '', ($type === false || $type == "text/javascript") ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return (tag('script', '', ($type === false || $type == "text/javascript") ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
     function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script_common_head()   { return /*AMP() ? "" : */script(js_common_head()); }
-    function script_ajax_head()     { return /*AMP() ? "" : */script(js_ajax_head());   }
-    function script_ajax_body()     { return /*AMP() ? "" : */script(js_ajax_body());   }
+    function script_common_head()   { return script(js_common_head());   }
+    function script_ajax_head()     { return script(js_ajax_head());     }
+    function script_ajax_body()     { return script(js_ajax_body());     }
     function script_inside_iframe() { return script(js_inside_iframe()); }
     
     function schema($type, $properties = array(), $parent_schema = false)
@@ -8424,7 +8204,7 @@
             ;
     }
     
-    define("IMPORTANT", !!AMP() ? '' : ' !important');
+    define("IMPORTANT", ' !important');
 
     function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
     {
@@ -8459,12 +8239,12 @@
     {
         return css_layer_order(
     
-                "normalize",
                 "reset",
+                "normalize"/*,
     
                 "base-colors",
                 "base",
-                "base-components"
+                "base-components"*/
 
                 );
     }
@@ -8483,12 +8263,12 @@
     
     #region Third Parties CSS
 
-    function css_reset($layer = "reset")
+    function css_reset_new_reset($layer = "reset.new-reset")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
             /***
-                The new CSS reset - version 1.11.2 (last updated 15.11.2023)
+                The new CSS reset - version 1.11.3 (last updated 25.08.2024)
                 GitHub page: https://github.com/elad2412/the-new-css-reset
             ***/
 
@@ -8526,6 +8306,11 @@
                 list-style: none;
             }
 
+            /* Firefox: solve issue where nested ordered lists continue numbering from parent (https://bugzilla.mozilla.org/show_bug.cgi?id=1881517) */
+            ol {
+                counter-reset: revert;
+            }
+
             /* For images to not be able to exceed their container */
             img {
                 max-inline-size: 100%;
@@ -8540,7 +8325,6 @@
             /* Safari - solving issue when using user-select:none on the <body> text input doesn't working */
             input, textarea {
                 -webkit-user-select: auto;
-                user-select: auto;
             }
 
             /* revert the 'white-space' property for textarea elements on Safari */
@@ -8579,9 +8363,7 @@
                 -webkit-user-modify: read-write;
                 overflow-wrap: break-word;
                 -webkit-line-break: after-white-space;
-                line-break: after-white-space;
                 -webkit-user-select: auto;
-                user-select: auto;
             }
 
             /* apply back the draggable feature - exist only in Chromium and Safari */
@@ -8600,93 +8382,640 @@
                 display: none;
             }
 
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
+    }
+
+    function css_reset($layer = "reset")
+    {
+        return css_reset_new_reset("$layer.new-reset");
+    }
+
+    function css_normalize_remedy_quotes($layer = "normalize.remedy.quotes")
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+
+            /* @docs
+            label: Quotes
+            version: 0.1.0-beta.2
+
+            note: |
+            This is what user agents are supposed to be doing for quotes,
+            according to https://html.spec.whatwg.org/multipage/rendering.html#quotes
+
+            links:
+            - https://html.spec.whatwg.org/multipage/rendering.html#quotes
+
+            todo: |
+            I believe
+
+            ```css
+            :root:lang(af),       :not(:lang(af)) > :lang(af)             { quotes: '\201c' '\201d' '\2018' '\2019' }
+            :root:lang(ak),       :not(:lang(ak)) > :lang(ak)             { quotes: '\201c' '\201d' '\2018' '\2019' }
+            :root:lang(asa),      :not(:lang(asa)) > :lang(asa)           { quotes: '\201c' '\201d' '\2018' '\2019' }
+            ```
+
+            can be replaced by
+
+            ```css
+            :root:lang(af, ak, asa), [lang]:lang(af, ak, asa)       			{ quotes: '\201c' '\201d' '\2018' '\2019' }
+            ```
+
+            category: file
+            */
+
+            :root                                                         { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(af),       :not(:lang(af)) > :lang(af)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ak),       :not(:lang(ak)) > :lang(ak)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(asa),      :not(:lang(asa)) > :lang(asa)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(az),       :not(:lang(az)) > :lang(az)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(bem),      :not(:lang(bem)) > :lang(bem)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(bez),      :not(:lang(bez)) > :lang(bez)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(bn),       :not(:lang(bn)) > :lang(bn)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(brx),      :not(:lang(brx)) > :lang(brx)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(cgg),      :not(:lang(cgg)) > :lang(cgg)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(chr),      :not(:lang(chr)) > :lang(chr)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(cy),       :not(:lang(cy)) > :lang(cy)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(da),       :not(:lang(da)) > :lang(da)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(dav),      :not(:lang(dav)) > :lang(dav)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(dje),      :not(:lang(dje)) > :lang(dje)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(dz),       :not(:lang(dz)) > :lang(dz)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ebu),      :not(:lang(ebu)) > :lang(ebu)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ee),       :not(:lang(ee)) > :lang(ee)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(en),       :not(:lang(en)) > :lang(en)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(fil),      :not(:lang(fil)) > :lang(fil)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(fo),       :not(:lang(fo)) > :lang(fo)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ga),       :not(:lang(ga)) > :lang(ga)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(gd),       :not(:lang(gd)) > :lang(gd)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(gl),       :not(:lang(gl)) > :lang(gl)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(gu),       :not(:lang(gu)) > :lang(gu)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(guz),      :not(:lang(guz)) > :lang(guz)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ha),       :not(:lang(ha)) > :lang(ha)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(hi),       :not(:lang(hi)) > :lang(hi)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(id),       :not(:lang(id)) > :lang(id)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ig),       :not(:lang(ig)) > :lang(ig)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(jmc),      :not(:lang(jmc)) > :lang(jmc)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(kam),      :not(:lang(kam)) > :lang(kam)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(kde),      :not(:lang(kde)) > :lang(kde)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(kea),      :not(:lang(kea)) > :lang(kea)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(khq),      :not(:lang(khq)) > :lang(khq)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ki),       :not(:lang(ki)) > :lang(ki)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(kln),      :not(:lang(kln)) > :lang(kln)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(km),       :not(:lang(km)) > :lang(km)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(kn),       :not(:lang(kn)) > :lang(kn)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ko),       :not(:lang(ko)) > :lang(ko)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ksb),      :not(:lang(ksb)) > :lang(ksb)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(lg),       :not(:lang(lg)) > :lang(lg)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ln),       :not(:lang(ln)) > :lang(ln)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(lo),       :not(:lang(lo)) > :lang(lo)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(lrc),      :not(:lang(lrc)) > :lang(lrc)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(lu),       :not(:lang(lu)) > :lang(lu)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(luo),      :not(:lang(luo)) > :lang(luo)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(lv),       :not(:lang(lv)) > :lang(lv)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mas),      :not(:lang(mas)) > :lang(mas)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mer),      :not(:lang(mer)) > :lang(mer)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mfe),      :not(:lang(mfe)) > :lang(mfe)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mgo),      :not(:lang(mgo)) > :lang(mgo)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ml),       :not(:lang(ml)) > :lang(ml)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mn),       :not(:lang(mn)) > :lang(mn)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mr),       :not(:lang(mr)) > :lang(mr)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ms),       :not(:lang(ms)) > :lang(ms)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(mt),       :not(:lang(mt)) > :lang(mt)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(my),       :not(:lang(my)) > :lang(my)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(naq),      :not(:lang(naq)) > :lang(naq)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(nd),       :not(:lang(nd)) > :lang(nd)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ne),       :not(:lang(ne)) > :lang(ne)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(nus),      :not(:lang(nus)) > :lang(nus)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(nyn),      :not(:lang(nyn)) > :lang(nyn)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(pa),       :not(:lang(pa)) > :lang(pa)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(pt),       :not(:lang(pt)) > :lang(pt)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(rof),      :not(:lang(rof)) > :lang(rof)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(rwk),      :not(:lang(rwk)) > :lang(rwk)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(saq),      :not(:lang(saq)) > :lang(saq)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(sbp),      :not(:lang(sbp)) > :lang(sbp)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(seh),      :not(:lang(seh)) > :lang(seh)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ses),      :not(:lang(ses)) > :lang(ses)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(si),       :not(:lang(si)) > :lang(si)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(so),       :not(:lang(so)) > :lang(so)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(sw),       :not(:lang(sw)) > :lang(sw)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(ta),       :not(:lang(ta)) > :lang(ta)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(te),       :not(:lang(te)) > :lang(te)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(teo),      :not(:lang(teo)) > :lang(teo)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(th),       :not(:lang(th)) > :lang(th)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(to),       :not(:lang(to)) > :lang(to)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(tr),       :not(:lang(tr)) > :lang(tr)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(twq),      :not(:lang(twq)) > :lang(twq)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(tzm),      :not(:lang(tzm)) > :lang(tzm)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(uz-Cyrl),  :not(:lang(uz-Cyrl)) > :lang(uz-Cyrl)   { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(vai),      :not(:lang(vai)) > :lang(vai)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(vai-Latn), :not(:lang(vai-Latn)) > :lang(vai-Latn) { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(vi),       :not(:lang(vi)) > :lang(vi)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(vun),      :not(:lang(vun)) > :lang(vun)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(xog),      :not(:lang(xog)) > :lang(xog)           { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(yo),       :not(:lang(yo)) > :lang(yo)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(yue-Hans), :not(:lang(yue-Hans)) > :lang(yue-Hans) { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(zh),       :not(:lang(zh)) > :lang(zh)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+            :root:lang(zu),       :not(:lang(zu)) > :lang(zu)             { quotes: '\201c' '\201d' '\2018' '\2019' } /* “ ” ‘ ’ */
+
+
+            :root:lang(uz),       :not(:lang(uz)) > :lang(uz)             { quotes: '\201c' '\201d' '\2019' '\2018' } /* “ ” ’ ‘ */
+
+
+            :root:lang(eu),       :not(:lang(eu)) > :lang(eu)             { quotes: '\201c' '\201d' '\201c' '\201d' } /* “ ” “ ” */
+            :root:lang(tk),       :not(:lang(tk)) > :lang(tk)             { quotes: '\201c' '\201d' '\201c' '\201d' } /* “ ” “ ” */
+
+
+            :root:lang(ar),       :not(:lang(ar)) > :lang(ar)             { quotes: '\201d' '\201c' '\2019' '\2018' } /* ” “ ’ ‘ */
+            :root:lang(ur),       :not(:lang(ur)) > :lang(ur)             { quotes: '\201d' '\201c' '\2019' '\2018' } /* ” “ ’ ‘ */
+
+
+            :root:lang(fi),       :not(:lang(fi)) > :lang(fi)             { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+            :root:lang(he),       :not(:lang(he)) > :lang(he)             { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+            :root:lang(lag),      :not(:lang(lag)) > :lang(lag)           { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+            :root:lang(rn),       :not(:lang(rn)) > :lang(rn)             { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+            :root:lang(sn),       :not(:lang(sn)) > :lang(sn)             { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+            :root:lang(sv),       :not(:lang(sv)) > :lang(sv)             { quotes: '\201d' '\201d' '\2019' '\2019' } /* ” ” ’ ’ */
+
+
+            :root:lang(sr),       :not(:lang(sr)) > :lang(sr)             { quotes: '\201e' '\201c' '\2018' '\2018' } /* „ “ ‘ ‘ */
+            :root:lang(sr-Latn),  :not(:lang(sr-Latn)) > :lang(sr-Latn)   { quotes: '\201e' '\201c' '\2018' '\2018' } /* „ “ ‘ ‘ */
+
+
+            :root:lang(bg),       :not(:lang(bg)) > :lang(bg)             { quotes: '\201e' '\201c' '\201e' '\201c' } /* „ “ „ “ */
+            :root:lang(lt),       :not(:lang(lt)) > :lang(lt)             { quotes: '\201e' '\201c' '\201e' '\201c' } /* „ “ „ “ */
+
+
+            :root:lang(bs-Cyrl),  :not(:lang(bs-Cyrl)) > :lang(bs-Cyrl)   { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(cs),       :not(:lang(cs)) > :lang(cs)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(cs),       :not(:lang(cs)) > :lang(cs)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(de),       :not(:lang(de)) > :lang(de)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(dsb),      :not(:lang(dsb)) > :lang(dsb)           { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(et),       :not(:lang(et)) > :lang(et)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(hr),       :not(:lang(hr)) > :lang(hr)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(hsb),      :not(:lang(hsb)) > :lang(hsb)           { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(is),       :not(:lang(is)) > :lang(is)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(lb),       :not(:lang(lb)) > :lang(lb)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(luy),      :not(:lang(luy)) > :lang(luy)           { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(mk),       :not(:lang(mk)) > :lang(mk)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(sk),       :not(:lang(sk)) > :lang(sk)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+            :root:lang(sl),       :not(:lang(sl)) > :lang(sl)             { quotes: '\201e' '\201c' '\201a' '\2018' } /* „ “ ‚ ‘ */
+
+
+            :root:lang(ka),       :not(:lang(ka)) > :lang(ka)             { quotes: '\201e' '\201c' '\00ab' '\00bb' } /* „ “ « » */
+
+
+            :root:lang(bs),       :not(:lang(bs)) > :lang(bs)             { quotes: '\201e' '\201d' '\2018' '\2019' } /* „ ” ‘ ’ */
+
+
+            :root:lang(agq),      :not(:lang(agq)) > :lang(agq)           { quotes: '\201e' '\201d' '\201a' '\2019' } /* „ ” ‚ ’ */
+            :root:lang(ff),       :not(:lang(ff)) > :lang(ff)             { quotes: '\201e' '\201d' '\201a' '\2019' } /* „ ” ‚ ’ */
+
+
+            :root:lang(nmg),      :not(:lang(nmg)) > :lang(nmg)           { quotes: '\201e' '\201d' '\00ab' '\00bb' } /* „ ” « » */
+            :root:lang(ro),       :not(:lang(ro)) > :lang(ro)             { quotes: '\201e' '\201d' '\00ab' '\00bb' } /* „ ” « » */
+            :root:lang(pl),       :not(:lang(pl)) > :lang(pl)             { quotes: '\201e' '\201d' '\00ab' '\00bb' } /* „ ” « » */
+
+
+            :root:lang(hu),       :not(:lang(hu)) > :lang(hu)             { quotes: '\201e' '\201d' '\00bb' '\00ab' } /* „ ” » « */
+
+
+            :root:lang(nl),       :not(:lang(nl)) > :lang(nl)             { quotes: '\2018' '\2019' '\201c' '\201d' } /* ‘ ’ “ ” */
+            :root:lang(ti-ER),    :not(:lang(ti-ER)) > :lang(ti-ER)       { quotes: '\2018' '\2019' '\201c' '\201d' } /* ‘ ’ “ ” */
+
+
+            :root:lang(dua),      :not(:lang(dua)) > :lang(dua)           { quotes: '\00ab' '\00bb' '\2018' '\2019' } /* « » ‘ ’ */
+            :root:lang(ksf),      :not(:lang(ksf)) > :lang(ksf)           { quotes: '\00ab' '\00bb' '\2018' '\2019' } /* « » ‘ ’ */
+            :root:lang(rw),       :not(:lang(rw)) > :lang(rw)             { quotes: '\00ab' '\00bb' '\2018' '\2019' } /* « » ‘ ’ */
+            :root:lang(nn),       :not(:lang(nn)) > :lang(nn)             { quotes: '\00ab' '\00bb' '\2018' '\2019' } /* « » ‘ ’ */
+            :root:lang(nb),       :not(:lang(nb)) > :lang(nb)             { quotes: '\00ab' '\00bb' '\2018' '\2019' } /* « » ‘ ’ */
+
+
+            :root:lang(ast),      :not(:lang(ast)) > :lang(ast)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(bm),       :not(:lang(bm)) > :lang(bm)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(br),       :not(:lang(br)) > :lang(br)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(ca),       :not(:lang(ca)) > :lang(ca)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(dyo),      :not(:lang(dyo)) > :lang(dyo)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(el),       :not(:lang(el)) > :lang(el)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(es),       :not(:lang(es)) > :lang(es)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(ewo),      :not(:lang(ewo)) > :lang(ewo)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(mg),       :not(:lang(mg)) > :lang(mg)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(mua),      :not(:lang(mua)) > :lang(mua)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(sg),       :not(:lang(sg)) > :lang(sg)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(it),       :not(:lang(it)) > :lang(it)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(kab),      :not(:lang(kab)) > :lang(kab)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(kk),       :not(:lang(kk)) > :lang(kk)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(pt-PT),    :not(:lang(pt-PT)) > :lang(pt-PT)       { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(nnh),      :not(:lang(nnh)) > :lang(nnh)           { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+            :root:lang(sq),       :not(:lang(sq)) > :lang(sq)             { quotes: '\00ab' '\00bb' '\201c' '\201d' } /* « » “ ” */
+
+
+            :root:lang(bas),      :not(:lang(bas)) > :lang(bas)           { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+            :root:lang(be),       :not(:lang(be)) > :lang(be)             { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+            :root:lang(ky),       :not(:lang(ky)) > :lang(ky)             { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+            :root:lang(sah),      :not(:lang(sah)) > :lang(sah)           { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+            :root:lang(ru),       :not(:lang(ru)) > :lang(ru)             { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+            :root:lang(uk),       :not(:lang(uk)) > :lang(uk)             { quotes: '\00ab' '\00bb' '\201e' '\201c' } /* « » „ “ */
+
+
+            :root:lang(zgh),      :not(:lang(zgh)) > :lang(zgh)           { quotes: '\00ab' '\00bb' '\201e' '\201d' } /* « » „ ” */
+            :root:lang(shi),      :not(:lang(shi)) > :lang(shi)           { quotes: '\00ab' '\00bb' '\201e' '\201d' } /* « » „ ” */
+            :root:lang(shi-Latn), :not(:lang(shi-Latn)) > :lang(shi-Latn) { quotes: '\00ab' '\00bb' '\201e' '\201d' } /* « » „ ” */
+
+
+            :root:lang(am),       :not(:lang(am)) > :lang(am)             { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(az-Cyrl),  :not(:lang(az-Cyrl)) > :lang(az-Cyrl)   { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(fa),       :not(:lang(fa)) > :lang(fa)             { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(fr-CH),    :not(:lang(fr-CH)) > :lang(fr-CH)       { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(gsw),      :not(:lang(gsw)) > :lang(gsw)           { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(jgo),      :not(:lang(jgo)) > :lang(jgo)           { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(kkj),      :not(:lang(kkj)) > :lang(kkj)           { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+            :root:lang(mzn),      :not(:lang(mzn)) > :lang(mzn)           { quotes: '\00ab' '\00bb' '\2039' '\203a' } /* « » ‹ › */
+
+
+            :root:lang(fr),       :not(:lang(fr)) > :lang(fr)             { quotes: '\00ab' '\00bb' '\00ab' '\00bb' } /* « » « » */
+            :root:lang(hy),       :not(:lang(hy)) > :lang(hy)             { quotes: '\00ab' '\00bb' '\00ab' '\00bb' } /* « » « » */
+            :root:lang(yav),      :not(:lang(yav)) > :lang(yav)           { quotes: '\00ab' '\00bb' '\00ab' '\00bb' } /* « » « » */
+
+
+            :root:lang(ja),       :not(:lang(ja)) > :lang(ja)             { quotes: '\300c' '\300d' '\300e' '\300f' } /* 「 」 『 』 */
+            :root:lang(yue),      :not(:lang(yue)) > :lang(yue)           { quotes: '\300c' '\300d' '\300e' '\300f' } /* 「 」 『 』 */
+            :root:lang(zh-Hant),  :not(:lang(zh-Hant)) > :lang(zh-Hant)   { quotes: '\300c' '\300d' '\300e' '\300f' } /* 「 」 『 』 */
+
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_remedy($layer = "normalize")
+    function css_normalize_remedy_reminders($layer = "normalize.remedy.reminders")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
-            
-            /* CSS Remedy */
-            
+
+            /* @docs
+            label: Reminders
+            version: 0.1.0-beta.2
+
+            note: |
+            All the remedies in this file are commented out by default,
+            because they could cause harm as general defaults.
+            These should be used as reminders
+            to handle common styling issues
+            in a way that will work for your project and users.
+            Read, explore, uncomment, and edit as needed.
+
+            category: file
+            */
+
+
+            /* @docs
+            label: List Style
+
+            note: |
+            List styling is not usually desired in navigation,
+            but this also removes list-semantics for screen-readers
+
+            links:
+            - https://github.com/mozdevs/cssremedy/issues/15
+
+            category: navigation
+            */
+            /* nav ul {
+            list-style: none;
+            } */
+
+
+            /* @docs
+            label: List Voiceover
+
+            note: |
+            1. Add zero-width-space to prevent VoiceOver disable
+            2. Absolute position ensures no extra space
+
+            links:
+            - https://unfetteredthoughts.net/2017/09/26/voiceover-and-list-style-type-none/
+
+            category: navigation
+            */
+            /* nav li:before {
+            content: "\200B";
+            position: absolute;
+            } */
+
+
+            /* @docs
+            label: Reduced Motion
+
+            note: |
+            1. Immediately jump any animation to the end point
+            2. Remove transitions & fixed background attachment
+
+            links:
+            - https://github.com/mozdevs/cssremedy/issues/11
+
+            category: accessibility
+            */
+            /* @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-delay: -1ms !important;
+                animation-duration: 1ms !important;
+                animation-iteration-count: 1 !important;
+                background-attachment: initial !important;
+                scroll-behavior: auto !important;
+                transition-delay: 0s !important;
+                transition-duration: 0s !important;
+            }
+            } */
+
+
+            /* @docs
+            label: Line Heights
+
+            note: |
+            The default `normal` line-height is tightly spaced,
+            but takes font-metrics into account,
+            which is important for many fonts.
+            Looser spacing may improve readability in latin type,
+            but may cause problems in some scripts --
+            from cusrive/fantasy fonts to
+            [Javanese](https://jsbin.com/bezasax/1/edit?html,css,output),
+            [Persian](https://jsbin.com/qurecom/edit?html,css,output),
+            and CJK languages.
+
+            links:
+            - https://github.com/mozdevs/cssremedy/issues/7
+            - https://jsbin.com/bezasax/1/edit?html,css,output
+            - https://jsbin.com/qurecom/edit?html,css,output
+
+            todo: |
+            - Use `:lang(language-code)` selectors?
+            - Add typography remedies for other scripts & languages...
+
+            category: typography
+            */
+            /* html { line-height: 1.5; }
+            h1, h2, h3, h4, h5, h6 { line-height: 1.25; }
+            caption, figcaption, label, legend { line-height: 1.375; } */
+
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
+    }
+
+    function css_normalize_remedy_core($layer = "normalize.remedy.core")
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+
             /* @docs
             label: Core Remedies
             version: 0.1.0-beta.2
-            
+
             note: |
             These remedies are recommended
             as a starter for any project.
-            
+
             category: file
             */
-            
-            
+
+
             /* @docs
             label: Box Sizing
-            
+
             note: |
             Use border-box by default, globally.
-            
+
             category: global
             */
             *, ::before, ::after { box-sizing: border-box; }
-            
-            
+
+
             /* @docs
             label: Line Sizing
-            
+
             note: |
             Consistent line-spacing,
             even when inline elements have different line-heights.
-            
+
             links:
             - https://drafts.csswg.org/css-inline-3/#line-sizing-property
-            
+
             category: global
             */
-            <?= "html { line-sizing: normal; }" /* Inside phh string as this draft property is currently a VS-CODE WARNING */ ?> 
-            
-            
+            html { line-sizing: normal; }
+
+
             /* @docs
             label: Body Margins
-            
+
             note: |
             Remove the tiny space around the edge of the page.
-            
+
             category: global
             */
             body { margin: 0; }
-            
-            
+
+
             /* @docs
             label: Hidden Attribute
-            
+
             note: |
             Maintain `hidden` behaviour when overriding `display` values.
-            
+
             category: global
             */
             [hidden] { display: none; }
-            
-            
+
+
             /* @docs
             label: Heading Sizes
-            
+
             note: |
             Switch to rem units for headings
-            
+
             category: typography
             */
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.5rem; }
+            h3 { font-size: 1.17rem; }
+            h4 { font-size: 1.00rem; }
+            h5 { font-size: 0.83rem; }
+            h6 { font-size: 0.67rem; }
+
+
+            /* @docs
+            label: H1 Margins
+
+            note: |
+            Keep h1 margins consistent, even when nested.
+
+            category: typography
+            */
+            h1 { margin: 0.67em 0; }
+
+
+            /* @docs
+            label: Pre Wrapping
+
+            note: |
+            Overflow by default is bad...
+
+            category: typography
+            */
+            pre { white-space: pre-wrap; }
+
+
+            /* @docs
+            label: Horizontal Rule
+
+            note: |
+            1. Solid, thin horizontal rules
+            2. Remove Firefox `color: gray`
+            3. Remove default `1px` height, and common `overflow: hidden`
+
+            category: typography
+            */
+            hr {
+            border-style: solid;
+            border-width: 1px 0 0;
+            color: inherit;
+            height: 0;
+            overflow: visible;
+            }
+
+
+            /* @docs
+            label: Responsive Embeds
+
+            note: |
+            1. Block display is usually what we want
+            2. The `vertical-align` removes strange space-below in case authors overwrite the display value
+            3. Responsive by default
+            4. Audio without `[controls]` remains hidden by default
+
+            category: embedded elements
+            */
+            img, svg, video, canvas, audio, iframe, embed, object {
+            display: block;
+            vertical-align: middle;
+            max-width: 100%;
+            }
+            audio:not([controls]) { display:none; }
+
+
+            /* @docs
+            label: Responsive Images
+
+            note: |
+            These new elements display inline by default,
+            but that's not the expected behavior for either one.
+            This can interfere with proper layout and aspect-ratio handling.
+
+            1. Remove the unnecessary wrapping `picture`, while maintaining contents
+            2. Source elements have nothing to display, so we hide them entirely
+
+            category: embedded elements
+            */
+            picture { display: contents; }
+            source { display: none; }
+
+
+            /* @docs
+            label: Aspect Ratios
+
+            note: |
+            Maintain intrinsic aspect ratios when `max-width` is applied.
+            `iframe`, `embed`, and `object` are also embedded,
+            but have no intrinsic ratio,
+            so their `height` needs to be set explicitly.
+
+            category: embedded elements
+            */
+            img, svg, video, canvas {
+            height: auto;
+            }
+
+
+            /* @docs
+            label: Audio Width
+
+            note: |
+            There is no good reason elements default to 300px,
+            and audio files are unlikely to come with a width attribute.
+
+            category: embedded elements
+            */
+            audio { width: 100%; }
+
+            /* @docs
+            label: Image Borders
+
+            note: |
+            Remove the border on images inside links in IE 10 and earlier.
+
+            category: legacy browsers
+            */
+            img { border-style: none; }
+
+
+            /* @docs
+            label: SVG Overflow
+
+            note: |
+            Hide the overflow in IE 10 and earlier.
+
+            category: legacy browsers
+            */
+            svg { overflow: hidden; }
+
+
+            /* @docs
+            label: HTML5 Elements
+
+            note: |
+            Default block display on HTML5 elements.
+            For oldIE to apply this styling one needs to add some JS as well (i.e. `document.createElement("main")`)
+
+            links:
+            - https://www.sitepoint.com/html5-older-browsers-and-the-shiv/
+
+            category: legacy browsers
+            */
+            article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section {
+            display: block;
+            }
+
+
+            /* @docs
+            label: Checkbox & Radio Inputs
+
+            note: |
+            1. Add the correct box sizing in IE 10
+            2. Remove the padding in IE 10
+
+            category: legacy browsers
+            */
+            [type='checkbox'],
+            [type='radio'] {
+            box-sizing: border-box;
+            padding: 0;
+            }
+         
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
+    }
+
+    function css_normalize_remedy_chocapic($layer = "normalize.remedy.chocapic")
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
+            @view-transition { navigation: auto; }
+            * { view-transition-name: var(--view-transition-name); }
+
+            html { interpolate-size: allow-keywords; }
+
+            .requires-color-schemes { display: none; }
+
             :root {
 
-                --h1-font-size: 2.00rem; /*2.00rem;*/
-                --h2-font-size: 1.50rem; /*1.50rem;*/
-                --h3-font-size: 1.20rem; /*1.17rem;*/
-                --h4-font-size: 1.10rem; /*1.00rem;*/
-                --h5-font-size: 1.05rem; /*0.83rem;*/
-                --h6-font-size: 1.00rem; /*0.67rem;*/
+                --h1-font-size: 2.00rem;
+                --h2-font-size: 1.50rem;
+                --h3-font-size: 1.20rem;
+                --h4-font-size: 1.10rem;
+                --h5-font-size: 1.05rem;
+                --h6-font-size: 1.00rem;
                 
                 --text-font-weight: 400;
 
@@ -8706,279 +9035,132 @@
             h4 { font-size: var(--h4-font-size); font-weight: var(--h4-font-weight); }
             h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
             h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
-            
-            
-            /* @docs
-            label: H1 Margins
-            
-            note: |
-            Keep h1 margins consistent, even when nested.
-            
-            category: typography
-            */
-            h1 { margin: 0.67em 0; }
-            
-            
-            /* @docs
-            label: Pre Wrapping
-            
-            note: |
-            Overflow by default is bad...
-            
-            category: typography
-            */
-            pre { white-space: pre-wrap; }
-            
-            
-            /* @docs
-            label: Horizontal Rule
-            
-            note: |
-            1. Solid, thin horizontal rules
-            2. Remove Firefox `color: gray`
-            3. Remove default `1px` height, and common `overflow: hidden`
-            
-            category: typography
-            */
-            hr {
-            border-style: solid;
-            border-width: 1px 0 0;
-            color: inherit;
-            height: 0;
-            overflow: visible;
-            }
-            
-            
-            /* @docs
-            label: Responsive Embeds
-            
-            note: |
-            1. Block display is usually what we want
-            2. The `vertical-align` removes strange space-below in case authors overwrite the display value
-            3. Responsive by default
-            4. Audio without `[controls]` remains hidden by default
-            
-            category: embedded elements
-            */
-            img, svg, video, canvas, audio, iframe, embed, object {
-                display: block;
-                max-width: 100%;
-            }
-            img, svg, video, canvas, audio, iframe, embed, object {
-                vertical-align: middle;
-            }
-            audio:not([controls]) { display:none; }
-            
-            
-            /* @docs
-            label: Responsive Images
-            
-            note: |
-            These new elements display inline by default,
-            but that's not the expected behavior for either one.
-            This can interfere with proper layout and aspect-ratio handling.
-            
-            1. Remove the unnecessary wrapping `picture`, while maintaining contents
-            2. Source elements have nothing to display, so we hide them entirely
-            
-            category: embedded elements
-            */
-            picture { display: contents; }
-            source  { display: none; }
-            
-            
-            /* @docs
-            label: Aspect Ratios
-            
-            note: |
-            Maintain intrinsic aspect ratios when `max-width` is applied.
-            `iframe`, `embed`, and `object` are also embedded,
-            but have no intrinsic ratio,
-            so their `height` needs to be set explicitly.
-            
-            category: embedded elements
-            */
-            img, svg, video, canvas {
-            height: auto;
-            }
-            
-            
-            /* @docs
-            label: Audio Width
-            
-            note: |
-            There is no good reason elements default to 300px,
-            and audio files are unlikely to come with a width attribute.
-            
-            category: embedded elements
-            */
-            audio { width: 100%; }
-            
-            /* @docs
-            label: Image Borders
-            
-            note: |
-            Remove the border on images inside links in IE 10 and earlier.
-            
-            category: legacy browsers
-            */
-            img { border-style: none; }
-            
-            
-            /* @docs
-            label: SVG Overflow
-            
-            note: |
-            Hide the overflow in IE 10 and earlier.
-            
-            category: legacy browsers
-            */
-            svg { overflow: hidden; }
-            
-            
-            /* @docs
-            label: HTML5 Elements
-            
-            note: |
-            Default block display on HTML5 elements.
-            For oldIE to apply this styling one needs to add some JS as well (i.e. `document.createElement("main")`)
-            
-            links:
-            - https://www.sitepoint.com/html5-older-browsers-and-the-shiv/
-            
-            category: legacy browsers
-            */
-            article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section {
-                display: block;
-            }
-            
-            
-            /* @docs
-            label: Checkbox & Radio Inputs
-            
-            note: |
-            1. Add the correct box sizing in IE 10
-            2. Remove the padding in IE 10
-            
-            category: legacy browsers
-            */
-            [type='checkbox'],
-            [type='radio'] {
-            box-sizing: border-box;
-            padding: 0;
-            }
-            
-                        
-            /* @docs
-            label: Reminders
-            version: 0.1.0-beta.2
-            
-            note: |
-            All the remedies in this file are commented out by default,
-            because they could cause harm as general defaults.
-            These should be used as reminders
-            to handle common styling issues
-            in a way that will work for your project and users.
-            Read, explore, uncomment, and edit as needed.
-            
-            category: file
-            */
-            
-            
-            /* @docs
-            label: List Style
-            
-            note: |
-            List styling is not usually desired in navigation,
-            but this also removes list-semantics for screen-readers
-            
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/15
-            
-            category: navigation
-            */
-            nav ul {
-            list-style: none;
-            }
-            
-            
-            /* @docs
-            label: List Voiceover
-            
-            note: |
-            1. Add zero-width-space to prevent VoiceOver disable
-            2. Absolute position ensures no extra space
-            
-            links:
-            - https://unfetteredthoughts.net/2017/09/26/voiceover-and-list-style-type-none/
-            
-            category: navigation
-            */
-            nav li:before {
-            content: "\200B";
-            position: absolute;
-            }
-            
-            
-            /* @docs
-            label: Reduced Motion
-            
-            note: |
-            1. Immediately jump any animation to the end point
-            2. Remove transitions & fixed background attachment
-            
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/11
-            
-            category: accessibility
-            */
-            @media (prefers-reduced-motion: reduce) {
-            *, ::before, ::after {
 
-                animation-delay: -1ms !important;
-                animation-duration: 1ms !important;
-                animation-iteration-count: 1 !important;
-                background-attachment: initial !important;
-                scroll-behavior: auto !important;
-                transition-delay: 0s !important;
-                transition-duration: 0s !important;
+            /* now that we have light & dark colors system in place,    */
+            /* any component that requires it can be shown              */
+            .requires-color-schemes { display: initial; }
+            
+            html { color-scheme: light dark; }
+
+            /* Have "Sytem Colors" variables that support [data-theme] */
+            /* (that is, ie. a data-theme=light whereas the use chose dark on this site) */ 
+
+            /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
+
+            html {
+                --Canvas:           var(--bg,               #1c1c1c);
+                --CanvasText:       var(--text,             #f8f9fa);
+                --Link:             var(--action,           #8c8cff);
+                --VisitedText:      var(--action,           #ffadff);
+                --ActiveText:       var(--active,           #ff6666);
+                --ButtonFace:       var(--btn-bg,           #2b2a33);
+                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
+                --ButtonText:       var(--btn-text,         #fbfbfe);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #2b2a33);
+                --FieldText:        var(--field-text,       #fbfbfe);
+                --Highlight:        var(--highlight,        #3f638b);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         skyblue);
+                --SelectedItemText: var(--selected-text,    black);
+                --AccentColor:      var(--accent,           #ff5ce4);
+                --AccentColorText:  var(--accent-text,      black);
+                }
+
+            @media (prefers-color-scheme: light) {
+                html {
+                    --Canvas:       var(--bg,       #f8f9fa);
+                    --CanvasText:   var(--text,     #1c1c1c);
+                    --Link:         var(--action,   #00e);
+                    --VisitedText:  var(--action,   #551a8b);
+                    --ActiveText:   var(--active,   #e00);
+                    --ButtonFace:   var(--btn-bg, #e9e9ed);
+                    --ButtonText:   var(--btn-text, #1c1c1c);
+                    --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
+                    --ButtonBorder: var(--btn-border, var(--border, currentColor));
+                    --Field: var(--field-bg, #f8f9fa);
+                    --FieldText: var(--field-text, #1c1c1c);
+                    --Highlight: var(--highlight, #b3d8ff);
+                    --HighlightText: var(--highlight-text, var(--CanvasText));
+                    --SelectedItem: var(--selected, #0063e1);
+                    --SelectedItemText: var(--selected-text, white);
+                    --AccentColor: var(--accent, #7d004f);
+                    --AccentColorText: var(--accent-text, white);
+                }
             }
+            html[data-theme=dark] {
+                --Canvas:       var(--bg,       #1c1c1c);
+                --CanvasText:   var(--text,     #f8f9fa);
+                --Link:         var(--action,   #8c8cff);
+                --VisitedText:  var(--action,   #ffadff);
+                --ActiveText:   var(--active,   #f66);
+      --ButtonFace: var(--btn-bg, #2b2a33);
+      --ButtonFaceHover: var(--btn-hover-bg, #52525e);
+      --ButtonText: var(--btn-text, #fbfbfe);
+      --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
+      --ButtonBorder: var(--btn-border, var(--border, currentColor));
+      --Field: var(--field-bg, #2b2a33);
+      --FieldText: var(--field-text, #fbfbfe);
+      --Highlight: var(--highlight, #3f638b);
+      --HighlightText: var(--highlight-text, var(--CanvasText));
+      --SelectedItem: var(--selected, skyblue);
+      --SelectedItemText: var(--selected-text, black);
+      --AccentColor: var(--accent, #ff5ce4);
+      --AccentColorText: var(--accent-text, black);
             }
-            
-            
-            /* @docs
-            label: Line Heights
-            
-            note: |
-            The default `normal` line-height is tightly spaced,
-            but takes font-metrics into account,
-            which is important for many fonts.
-            Looser spacing may improve readability in latin type,
-            but may cause problems in some scripts --
-            from cusrive/fantasy fonts to
-            [Javanese](https://jsbin.com/bezasax/1/edit?html,css,output),
-            [Persian](https://jsbin.com/qurecom/edit?html,css,output),
-            and CJK languages.
-            
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/7
-            - https://jsbin.com/bezasax/1/edit?html,css,output
-            - https://jsbin.com/qurecom/edit?html,css,output
-            
-            todo: |
-            - Use `:lang(language-code)` selectors?
-            - Add typography remedies for other scripts & languages...
-            
-            category: typography
-            */
-            html { line-height: 1.5; }
-            h1, h2, h3, h4, h5, h6 { line-height: 1.25; }
-            caption, figcaption, label, legend { line-height: 1.375; } 
-    
+            html[data-theme=light] {
+                --Canvas:       var(--bg,       #f8f9fa);
+                --CanvasText:   var(--text,     #1c1c1c);
+                --Link:         var(--action,   #00e);
+                --VisitedText:  var(--action,   #551a8b);
+                --ActiveText:   var(--active,   #e00);
+      --ButtonFace: var(--btn-bg, #e9e9ed);
+      --ButtonText: var(--btn-text, #1c1c1c);
+      --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
+      --ButtonBorder: var(--btn-border, var(--border, currentColor));
+      --Field: var(--field-bg, #f8f9fa);
+      --FieldText: var(--field-text, #1c1c1c);
+      --Highlight: var(--highlight, #b3d8ff);
+      --HighlightText: var(--highlight-text, var(--CanvasText));
+      --SelectedItem: var(--selected, #0063e1);
+      --SelectedItemText: var(--selected-text, white);
+      --AccentColor: var(--accent, #7d004f);
+      --AccentColorText: var(--accent-text, white);
+            }
+        
+            html { 
+
+                color-scheme:       light dark;
+                background-color:   var(--Canvas);
+                color:              var(--CanvasText);
+            }
+
+            a         { color: var(--Link);         }
+            a:visited { color: var(--VisitedText);  }
+            a:hover   { color: var(--ActiveText);   }
+
+            /* IF RESET */ /*
+            p {
+                margin-block-start:     1em;
+                margin-block-end:       1em;
+                margin-inline-start:    0;
+                margin-inline-end:      0;
+            } */
+
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_normalize($layer = "normalize")
+    function css_normalize_remedy($layer = "normalize.remedy")
+    {
+        return 
+            css_layer($layer, 
+                css_normalize_remedy_core(      "core").
+                css_normalize_remedy_reminders( "reminders").
+                css_normalize_remedy_chocapic(  "chocapic"));
+    }
+
+    function css_normalize_normalize($layer = "normalize.normalize")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
@@ -9337,6 +9519,13 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
+    function css_normalize($layer = "normalize")
+    {
+      //return css_normalize_remedy("$layer.normalize");
+        return css_normalize_remedy("$layer.remedy");
+    }
+    
+
     #endregion
     #region Color vars
 
@@ -9539,7 +9728,7 @@
     {
         return css_root(
 
-            eol(1)."color-scheme: light dark;".
+          //eol(1)."color-scheme: light dark;". // Moved to normalize.remedy.chocapic
 
             eol(2).css_vars_color_scheme_light_base().
             eol(2).css_vars_color_scheme_light_brands().            (is_callable("dom\\css_vars_color_scheme_light_brands_toolbar") ? (
@@ -9655,6 +9844,8 @@
             }
     
             /* Colors */
+
+            .requires-color-schemes { display: initial; }
             
             body            { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
             header, .header { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
@@ -9829,8 +10020,6 @@
           
             /* My own base/remedy css  */
 
-            @view-transition { navigation: auto; }
-    
             :root {
     
                 --root-font-size:           clamp(1.00rem, 0.59rem + 1.47vw, 1.25rem);
@@ -9853,7 +10042,7 @@
              * Current "standard" hack to get viewport dimentions without unit
              */
 
-            <?= '@property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; } ' ?> 
+            @property --100vw { syntax: “<length>”; initial-value: 0px; inherits: false; }
             :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px)); }
 
             /**
@@ -9970,12 +10159,11 @@
             .grid *                 { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
-
-            h1,h2,h3,h4,h5,h6       { text-wrap: balance; }
+                 h1,h2,h3,h4,h5,h6  { text-wrap: balance; }
     
-                  nav a, [role="navigation"] a          { text-decoration: none }
-            a:not(nav a, [role="navigation"] a)         { text-decoration-thickness: 0.5px }
-            a:not(nav a, [role="navigation"] a):hover   { text-decoration-thickness: 1.5px }
+                  :is(nav, [role="navigation"]) a          { text-decoration: none }
+            a:not(:is(nav, [role="navigation"]) a)         { text-decoration-thickness: 0.5px }
+            a:not(:is(nav, [role="navigation"]) a):hover   { text-decoration-thickness: 1.5px }
 
           /*ins, abbr, acronym      { } */
             u                       { text-decoration-style: wavy; }
@@ -10134,7 +10322,10 @@
                 margin-block: var(--gap);
             }
     
-            body > :is(main, header, .header, footer, .footer) > :is(article, .article) > :is(.grid, .flex) {
+            body 
+                > :is(main, header, .header, footer, .footer) 
+                > :is(article, .article) 
+                > :is(.grid, .flex) {
 
                 margin-inline: var(--margin-gap);
                 padding-block: var(--gap);
@@ -10179,20 +10370,20 @@
               
             /* Images */
     
-            video, iframe, img, amp-img, picture, figure, canvas {
+            video, iframe, img, picture, figure, canvas {
                   width: 100%;
                   height: auto;
                   vertical-align: middle;
                   display: inline-block;
                 }
                 
-            video, iframe, img, amp-img {
+            video, iframe, img {
                 max-width: 100%;
                 aspect-ratio: calc(var(--width, 16) / var(--height, 10));
                 object-fit: cover; 
                 }
     
-            :is(video, iframe, img, amp-img).loading { object-fit: none; }
+            :is(video, iframe, img).loading { object-fit: none; }
     
             figure { margin-top: 0px; margin-right: 0px; margin-bottom: 0px; margin-left: 0px;  }
     
@@ -10254,12 +10445,14 @@
             .app-install.visible                { display: inline-block }
 
             /* Grid & Flex */
-    
-            .grid { 
 
-                display: grid;
-                grid-gap: var(--gap);
-                grid-template-columns: repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
+            /*.grid*/ *:has(> .card) {
+
+                --grid-default-min-width: min(300px, calc(100% - 2 * var(--gap)));
+
+                display:                grid;
+                grid-gap:               var(--gap);
+                grid-template-columns:  repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
                 
                 /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
             }
@@ -10312,6 +10505,11 @@
     
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
+
+    function css_default($layer = "base")
+    {
+        return css_layer($layer, css_base_layout("layout"));
+    }
     
     #endregion
 
@@ -10319,19 +10517,26 @@
     {
         return
             
-            eol().comment("Layers").      style(css_layers()                   ).
-            eol().comment("Normalize").   style(css_normalize_normalize()      ).
-            eol().comment("Remedy").      style(css_normalize_remedy()         ).
+            eol().comment("Layers").      style(css_layers()    )./*
+            eol().comment("Reset").       style(css_reset()     ).*/
+            eol().comment("Normalize").   style(css_normalize() ).
+            eol().comment("Default").     style(css_default()   ).
+            
+            /* */ // CHOCA_WIP
+        
             eol().comment("Base-Layout"). style(css_base_layout()              ).
             eol().comment("Base-Colors"). style(css_base_colors_vars_schemes() ).
                                           style(css_base_colors_vars()         ).
                                           style(css_base_colors()              ).
 
             // TODO: We cannot be dependent here of a plugin
+          
             eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "").
             eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "").
             eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "").
-                              
+           
+            /* */ // CHOCA_WIP
+            
             "";
     }
 
@@ -10348,10 +10553,7 @@
                 script(js_scan_and_print_head()     ).      ((!!get("script_document_events", true)) ? (
                 script(js_on_document_events_head() ).
                 script(js_storage()                 ).      "") : "").
-
-                (!AMP() ? "" : (eol().comment("DOM AMP Javascript"))).
-                (!AMP() ? "" : (delayed_component("_amp_scripts_head")))
-        ; 
+            ""; 
     }
 
     function back_to_top_link()
@@ -11133,7 +11335,6 @@
 
         if (has($attributes, "hidden")) return "";
         if (in_array($tag, [ "head", "meta", "link", "style", "script", "iframe", "svg", "video", "channel" ])) return "";
-        if (0 === stripos($tag, "amp-")) return "";
 
         if (in_array($tag, [ "hr", "br" ])) return PHP_EOL;
 
@@ -11305,12 +11506,6 @@
             "tr",
             "figure",
             "hr",
-            // AMP
-            "amp-iframe",
-            "amp-sidebar",
-            "amp-form",
-            "amp-youtube",
-            "amp-script",
             // RSS
             "channel"
 
@@ -11407,10 +11602,6 @@
         . eol()
         . $html
 
-        . (AMP() ? (eol().comment("DOM AMP sidebars").eol(2))   : "")
-        . (AMP() ? delayed_component("_amp_sidebars")           : "")
-        . (AMP() ? delayed_component("_amp_scripts_body")       : "")
-
         . eol().comment("DOM Body boilerplate markup")
       /*. back_to_top_link()*/
 
@@ -11460,9 +11651,6 @@
       //. ((function () { $url = url_messenger         (); if (!$url || !has("messenger_id")   ) return ""; return eol().a("Messenger", $url, array("hidden" => "hidden", "rel" => "me"), false, false, false); })())
 
         . eol()
-
-        . ((AMP() && get("support_service_worker", false)) ? (eol().comment("DOM Body AMP service worker")) : "")
-        . ((AMP() && get("support_service_worker", false)) ? (eol().'<amp-install-serviceworker src="'.path('sw.js').'" layout="nodisplay" data-iframe-src="'.path("install-service-worker.html").'"></amp-install-serviceworker>') : "")
         ;
 
         if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
@@ -11470,9 +11658,7 @@
         $attributes = array_merge(array(
             "id"    => top_id(),
             "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
-            )/*, AMP() ? array() : array(
-            "name"  => "!"
-            )*/);
+            ));
 
         return eol().tag(
             'body',
@@ -11542,7 +11728,7 @@
     function details        ($html = "", $attributes = false) {                             return  tag('details',                    $html,                                                $attributes                                                         );                      }
     function summary        ($html = "", $attributes = false) {                             return  tag('summary',                    $html,                                                $attributes                                                         );                      }
 
-    function form           ($html = "", $attributes = false) { hook_amp_require("form");   return  tag('form',                       $html,                                                $attributes                                                         );                      }
+    function form           ($html = "", $attributes = false) {                             return  tag('form',                       $html,                                                $attributes                                                         );                      }
 
     function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),                attr("id" , $id), attr("type", "checkbox") ) ));  }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')),  attr("for", $id)                           ) ));  }
@@ -11643,16 +11829,12 @@
     function iframe($url, $title = false, $attributes = false, $w = false, $h = false, $lazy = auto, $extra_styles = false, $extra_attributes = false)
     {   
         // TODO See https://benmarshall.me/responsive-iframes/ for frameworks integration   
-        // TODO if EXTERNAL LINK add crossorigin="anonymous" (unless AMP)
+        // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
 
         $w = ($w === false) ? "300" : $w;
         $h = ($h === false) ? "200" : $h;
-
-        hook_amp_require("iframe");
-        
-        if (AMP()) $lazy = false;
 
         if (!!$title)       $attributes = attributes_add($attributes, attr("title",     $title));
 
@@ -11681,11 +11863,7 @@
 
         $attributes_str = attributes_as_string($attributes).(!$extra_attributes ? "" : " $extra_attributes");
      
-        return '<'.(AMP() ? 'amp-iframe sandbox="allow-scripts"' : 'iframe')." $attributes_str".'>'.
-
-            (AMP() ? ('<amp-img layout="fill" src="'.url_img_blank().'" placeholder></amp-img>') : "").
-            
-            '</'.(AMP() ? 'amp-iframe' : 'iframe').'>';
+        return "<iframe $attributes_str></iframe>";
     }
 
     function google_calendar($id, $w = false, $h = false, $background_color = "FFFFFF", $mode = "MONTH" /*WEEK AGENDA*/)
@@ -11709,8 +11887,6 @@
             .'&amp;'.'ctz'              .'=Europe%2FParis';
         }
         
-        if (AMP()) return a('https://calendar.google.com', $src, external_link);
-        
         return iframe($src, "Google Calendar", "google-calendar", $w, $h).a('https://calendar.google.com', $src, external_link);
     }
        
@@ -11718,8 +11894,6 @@
 
     function script_lazy_load($url, $query_selector, $src_attribute = "src")
     {
-        if (AMP()) $query_selector .= " iframe";
-
         global $__dom_lazy_load_index;
         ++$__dom_lazy_load_index;
 
@@ -11758,7 +11932,7 @@
 
     function codepen($url, $title, $w = false, $h = false, $lazy = auto)
     {
-        return (!!get("no_js") || AMP()) 
+        return (!!get("no_js")) 
         
             ? iframe($url, $title, "codepen", $w, $h, $lazy)
 
@@ -11774,7 +11948,7 @@
         
     function google_map($embed_url, $w = false, $h = false, $lazy = auto)
     {
-        return (!!get("no_js") || AMP()) 
+        return (!!get("no_js")) 
         
             ? iframe($embed_url, "Google Map", "google-map", $w, $h, $lazy) 
             
@@ -11822,17 +11996,9 @@
         $w = ($w === false) ? "1200" : $w;
         $h = ($h === false) ?  "675" : $h;
 
-        if (AMP())
-        {
-            hook_amp_require("youtube");
-            return '<amp-youtube data-videoid="'.$id.'" layout="responsive" width="'.$w.'" height="'.$h.'"></amp-youtube>';        
-        }
-        else
-        {        
-            $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
+        $url = "https://www.youtube.com/embed/$id?wmode=opaque&amp;enablejsapi=1";
 
-            return iframe($url, "Google Video", "google-video", $w, $h, $lazy);
-        }
+        return iframe($url, "Google Video", "google-video", $w, $h, $lazy);
     }
 
     function offset_html_headlines($html, $offset)
@@ -12330,7 +12496,7 @@
                 {
                     foreach (get("forwarded_flags") as $forward_flag)
                     {
-                        if (!!get($forward_flag) && (in_array($forward_flag, array("rss","json","tile","amp"))))
+                        if (!!get($forward_flag) && (in_array($forward_flag, array("rss","json","tile"))))
                         {
                             $extended_link = "$extended_link/$forward_flag";
                         }
@@ -12385,7 +12551,7 @@
                                                         $internal_attributes["rel"]                 = "";
         if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
         if ($target == external_link && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
-      //if ($target == external_link && !AMP())         $internal_attributes["crossorigin"]         = "anonymous"; // Not allowed on <a>
+      //if ($target == external_link)                   $internal_attributes["crossorigin"]         = "anonymous"; // Not allowed on <a>
         if (!!get("turbo") && !!get("turbo_links"))     $internal_attributes["data-turbo-action"]   = "replace";
 
         if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
@@ -12431,12 +12597,7 @@
         &&  $attributes === false
         &&  $target     === external_link) $url = strip_tags($html);
 
-        if (AMP())
-        {
-            return $html;
-            //return a($html, $url, $attributes, $target);
-        }
-        else if (!!get("no_js"))
+        if (!!get("no_js"))
         {
             return span($html);
         }
@@ -12456,12 +12617,7 @@
         &&  $attributes === false
         &&  $target     === external_link) $email = strip_tags($text);
 
-        if (AMP())
-        {
-            return span($text);
-            //return a($text, "mailto:" . $email, $attributes, $target);
-        }
-        else if (!!get("no_js"))
+        if (!!get("no_js"))
         {
             return span($text);
         }
@@ -12496,8 +12652,7 @@
         $name = str_replace("#", "", $name); // Fix common mistake
         $id   = anchor_name($name, $tolower);
 
-        $attributes = array("id" => $id, "class" => "anchor");
-        if (!AMP()) $attributes["name"] = $id;
+        $attributes = array("id" => $id, "class" => "anchor", "name" => $id);
 
         if (false === $character)
         {
@@ -12577,17 +12732,11 @@
         $codename = urlencode(basename($path, $ext));
         $alt      = ($alt === false) ? $codename : $alt;
 
-        return tag
-        (
+        return tag(
             "video",
             tag("source", '', attributes_as_string(array("src" => $path, "type" => ("video/".str_replace(".","",$ext)))), false, true),
-            attributes_as_string(
-                array_merge(
-                    AMP() ? array() : array("alt" => $alt), 
-                    array("width" => "100%", "controls" => "no")
-                    )
-                )            
-        );
+            attributes_as_string(array("alt" => $alt, "width" => "100%", "controls" => "no"))
+            );
     }
     
     // IMAGES
@@ -12596,61 +12745,25 @@
     {
         $attributes = to_attributes($attributes);
 
-        if (false === stripos($html, "<img")
-        &&  false === stripos($html, "<amp-img")) 
+        if (false === stripos($html, "<img")) 
         {
             $html = img($html, at($attributes, "width", at($attributes, "w")), at($attributes, "height", at($attributes, "h")), false, $alt, $lazy, $lazy_src);
         }
 
-        if (AMP())
-        {
-            $tag_bgn = html_comment_bgn();
-            $tag_end = html_comment_end();
-
-            $prefered_src = false;
-
-            while (true)
-            {
-                $pos_bgn = stripos($html, $tag_bgn); if (false === $pos_bgn) break;
-                $pos_end = stripos($html, $tag_end); if (false === $pos_end) break;
-
-                $prefered_src = trim(substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn)));
-                $html = substr($html, $pos_end + strlen($tag_end));
-            }
-
-            if ($prefered_src !== false)
-            {
-                return img($prefered_src, false, false, $attributes, $alt, false, false, $html);
-            }
-            else
-            {
-                return $html;
-            }
-        }
-        else
-        {
-            return tag('picture', $html, $attributes);
-        }
+        return tag('picture', $html, $attributes);
     }
 
     function source($path, $attributes = false)
     {
-        if (AMP())
-        {
-            return html_comment($path);
-        }
-        else
-        {
-            $src    = explode('?', $path);
-            $src    = $src[0];
-            $info   = pathinfo($src);
-            $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
-            $type   = substr($ext,1); // ! TODO Find better solution
+        $src    = explode('?', $path);
+        $src    = $src[0];
+        $info   = pathinfo($src);
+        $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+        $type   = substr($ext,1); // ! TODO Find better solution
 
-            $attributes = attributes_add($attributes, array("type" => "image/$type", "srcset" => $path));
+        $attributes = attributes_add($attributes, array("type" => "image/$type", "srcset" => $path));
 
-            return tag("source", "", $attributes, false, true);
-        }
+        return tag("source", "", $attributes, false, true);
     }
 
     /**
@@ -12724,36 +12837,18 @@
 
         set("img_nth", $img_nth + 1);
 
-        if (AMP())
-        {
-            return tag('amp-img'.                   ($content =='' ? (
-                ' fallback'.                        '') : '').
-                ' layout'.  '='.'"responsive"'.
-                ' width'.   '='.$w.
-                ' height'.  '='.$h.
-                ' style'.   '='.'"--width: '.$w.'; --height: '.$h.'"',
-                $content,
-                attributes_as_string(array("src" => $path))/*.
-                attributes_add_class($attributes, "img")*/,
-                false,
-                false
-                );
-        }
-        else
-        {
-                 if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
-            else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
-            else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
+             if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
+        else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
+        else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
 
-                 if (auto === $lazy)  { /* $attributes = attributes_add_class($attributes, "img"); */ }
-            else if (true === $lazy)  {    $attributes = attributes_add_class($attributes, /*"img lazy loading"*/ "lazy loading"); }
-            else                      { /* $attributes = attributes_add_class($attributes, "img"); */ }
+             if (auto === $lazy)  { /* $attributes = attributes_add_class($attributes, "img"); */ }
+        else if (true === $lazy)  {    $attributes = attributes_add_class($attributes, /*"img lazy loading"*/ "lazy loading"); }
+        else                      { /* $attributes = attributes_add_class($attributes, "img"); */ }
 
-            global $hook_need_lazy_loding;
-            if ($lazy === true) $hook_need_lazy_loding[] = $path;
-    
-            return tag('img', $content, $attributes, false, $content == '');
-        }
+        global $hook_need_lazy_loding;
+        if ($lazy === true) $hook_need_lazy_loding[] = $path;
+
+        return tag('img', $content, $attributes, false, $content == '');
     }
         
     function gif($path, $width = false, $height = false, $attributes = false, $alt = false, $precompute_size = auto)
@@ -13137,9 +13232,8 @@
     function svg_printer        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Printer"         : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_notifications  ($label = auto, $align = auto, $add_wrapper = auto) { import_color("printer");       $class = "brand-printer";         return svg($label === auto ? "Notifications"   : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M14,20A2,2 0 0,1 12,22A2,2 0 0,1 10,20H14M12,2A1,1 0 0,1 13,3V4.08C15.84,4.56 18,7.03 18,10V16L21,19H3L6,16V10C6,7.03 8.16,4.56 11,4.08V3A1,1 0 0,1 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_messenger      ($label = auto, $align = auto, $add_wrapper = auto) { import_color("messenger");     $class = "brand-messenger";       return svg($label === auto ? "Messenger"       : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M12,2C6.5,2 2,6.14 2,11.25C2,14.13 3.42,16.7 5.65,18.4L5.71,22L9.16,20.12L9.13,20.11C10.04,20.36 11,20.5 12,20.5C17.5,20.5 22,16.36 22,11.25C22,6.14 17.5,2 12,2M13.03,14.41L10.54,11.78L5.5,14.41L10.88,8.78L13.46,11.25L18.31,8.78L13.03,14.41Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
-    function svg_whatsapp       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("whatsapp");      $class = "brand-whatsapp";        return svg($label === auto ? "Whatsapp"        : $label,   0,      0,     293.5,   293.5,    $align == auto ? false : !!$align, '<g id="background_1_" enable-background="new    "></g><g id="WhatsApp_Logo_Icon_1_"><g id="WA_Logo"><g><path class="'.$class.'" fill-rule="evenodd" clip-rule="evenodd" fill="#ffffff" d="M223.777,70.979c-19.623-19.646-45.719-30.47-73.522-30.482 c-57.288,0-103.914,46.623-103.937,103.929c-0.007,18.318,4.778,36.198,13.874,51.961l-14.745,53.858l55.098-14.453 c15.181,8.28,32.273,12.645,49.668,12.651h0.043c57.282,0,103.912-46.629,103.936-103.936 C254.202,116.737,243.4,90.624,223.777,70.979z M150.256,230.89h-0.035c-15.501-0.006-30.705-4.171-43.968-12.042l-3.155-1.871 l-32.696,8.576l8.727-31.878l-2.054-3.27c-8.647-13.753-13.215-29.65-13.208-45.974c0.019-47.63,38.772-86.38,86.424-86.38 c23.073,0.008,44.764,9.005,61.074,25.335c16.31,16.329,25.286,38.033,25.277,61.116 C236.623,192.136,197.87,230.89,150.256,230.89z M197.641,166.189c-2.597-1.299-15.364-7.582-17.745-8.449 c-2.38-0.865-4.112-1.299-5.843,1.301c-1.731,2.6-6.709,8.449-8.224,10.183c-1.515,1.732-3.03,1.95-5.626,0.649 c-2.598-1.299-10.965-4.042-20.885-12.89c-7.72-6.886-12.932-15.39-14.447-17.991c-1.515-2.6-0.162-4.005,1.139-5.3 c1.168-1.164,2.597-3.034,3.896-4.55s1.731-2.6,2.597-4.333s0.433-3.25-0.217-4.549c-0.649-1.301-5.843-14.084-8.007-19.284 c-2.108-5.063-4.249-4.378-5.843-4.458c-1.513-0.075-3.246-0.092-4.978-0.092c-1.731,0-4.544,0.65-6.925,3.25 c-2.38,2.6-9.089,8.883-9.089,21.666c0,12.783,9.305,25.131,10.604,26.865c1.298,1.733,18.313,27.964,44.364,39.214 c6.195,2.676,11.033,4.273,14.805,5.471c6.222,1.977,11.883,1.697,16.357,1.029c4.99-0.746,15.365-6.283,17.529-12.349 c2.164-6.067,2.164-11.267,1.515-12.35C201.969,168.14,200.238,167.49,197.641,166.189z"/></g></g></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_whatsapp       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("whatsapp");      $class = "brand-whatsapp";        return svg($label === auto ? "Whatsapp"        : $label,   0,      0,     293.5,   293.5,    $align == auto ? false : !!$align, '<g id="background_1_" enable-background="new"></g><g id="WhatsApp_Logo_Icon_1_"><g id="WA_Logo"><g><path class="'.$class.'" fill-rule="evenodd" clip-rule="evenodd" d="M223.777,70.979c-19.623-19.646-45.719-30.47-73.522-30.482 c-57.288,0-103.914,46.623-103.937,103.929c-0.007,18.318,4.778,36.198,13.874,51.961l-14.745,53.858l55.098-14.453 c15.181,8.28,32.273,12.645,49.668,12.651h0.043c57.282,0,103.912-46.629,103.936-103.936 C254.202,116.737,243.4,90.624,223.777,70.979z M150.256,230.89h-0.035c-15.501-0.006-30.705-4.171-43.968-12.042l-3.155-1.871 l-32.696,8.576l8.727-31.878l-2.054-3.27c-8.647-13.753-13.215-29.65-13.208-45.974c0.019-47.63,38.772-86.38,86.424-86.38 c23.073,0.008,44.764,9.005,61.074,25.335c16.31,16.329,25.286,38.033,25.277,61.116 C236.623,192.136,197.87,230.89,150.256,230.89z M197.641,166.189c-2.597-1.299-15.364-7.582-17.745-8.449 c-2.38-0.865-4.112-1.299-5.843,1.301c-1.731,2.6-6.709,8.449-8.224,10.183c-1.515,1.732-3.03,1.95-5.626,0.649 c-2.598-1.299-10.965-4.042-20.885-12.89c-7.72-6.886-12.932-15.39-14.447-17.991c-1.515-2.6-0.162-4.005,1.139-5.3 c1.168-1.164,2.597-3.034,3.896-4.55s1.731-2.6,2.597-4.333s0.433-3.25-0.217-4.549c-0.649-1.301-5.843-14.084-8.007-19.284 c-2.108-5.063-4.249-4.378-5.843-4.458c-1.513-0.075-3.246-0.092-4.978-0.092c-1.731,0-4.544,0.65-6.925,3.25 c-2.38,2.6-9.089,8.883-9.089,21.666c0,12.783,9.305,25.131,10.604,26.865c1.298,1.733,18.313,27.964,44.364,39.214 c6.195,2.676,11.033,4.273,14.805,5.471c6.222,1.977,11.883,1.697,16.357,1.029c4.99-0.746,15.365-6.283,17.529-12.349 c2.164-6.067,2.164-11.267,1.515-12.35C201.969,168.14,200.238,167.49,197.641,166.189z"/></g></g></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_alert          ($label = auto, $align = auto, $add_wrapper = auto) { import_color("alert");         $class = "brand-alert";           return svg($label === auto ? "Alert"           : $label,   0,      0,      24,      24,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
-    function svg_amp            ($label = auto, $align = auto, $add_wrapper = auto) { import_color("amp");           $class = "brand-amp";             return svg($label === auto ? "AMP"             : $label, -22,    -22,     300,     300,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M171.887 116.28l-53.696 89.36h-9.728l9.617-58.227-30.2.047c-2.684 0-4.855-2.172-4.855-4.855 0-1.152 1.07-3.102 1.07-3.102l53.52-89.254 9.9.043-9.86 58.317 30.413-.043c2.684 0 4.855 2.172 4.855 4.855 0 1.088-.427 2.044-1.033 2.854l.004.004zM128 0C57.306 0 0 57.3 0 128s57.306 128 128 128 128-57.306 128-128S198.7 0 128 0z" />', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_loading        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("loading");       $class = "brand-loading";         return svg($label === auto ? "Loading"         : $label,   0,      0,      96,      96,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50"><animateTransform attributeName="transform" attributeType="XML" type="rotate" dur="1s" from="0 48 48" to="360 48 48" repeatCount="indefinite" /></path>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_darkandlight   ($label = auto, $align = auto, $add_wrapper = auto) { import_color("darkandlight");  $class = "brand-darkandlight";    return svg($label === auto ? "DarkAndLight"    : $label, -12,    -12,     640,     640,      $align == auto ? false : !!$align, '<path class="'.$class.'" d="M289.203,0C129.736,0,0,129.736,0,289.203C0,448.67,129.736,578.405,289.203,578.405 c159.467,0,289.202-129.735,289.202-289.202C578.405,129.736,448.67,0,289.203,0z M28.56,289.202 C28.56,145.48,145.481,28.56,289.203,28.56l0,0v521.286l0,0C145.485,549.846,28.56,432.925,28.56,289.202z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_google         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("google");        $class = "brand-google";          return svg($label === auto ? "Google"          : $label,   0,      0,      48,      48,      $align == auto ? false : !!$align, '<defs><path id="a" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></defs><clipPath id="b"><use xlink:href="#a" overflow="visible"/></clipPath><path class="'.$class.'-2" clip-path="url(#b)" d="M0 37V11l17 13z"/><path class="'.$class.'" clip-path="url(#b)" d="M0 11l17 13 7-6.1L48 14V0H0z"/><path class="'.$class.'-3" clip-path="url(#b)" d="M0 37l30-23 7.9 1L48 0v48H0z"/><path class="'.$class.'-4" clip-path="url(#b)" d="M48 48L17 24l-4-3 35-10z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
@@ -13429,14 +13523,13 @@
         
         $title = "";
         
-        if ($title_icon !== false && false === stripos($title_icon, "<img")
-                                  && false === stripos($title_icon, "<amp-img")) $title  = img($title_icon, false, false, array("class" => component_class("img", 'card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
-        if ($title_link !== false && false === stripos($title_link, "<a"))       $title  = a($title,       $title_link,                    component_class("a",   'card-title-link'), external_link);
+        if ($title_icon !== false && false === stripos($title_icon, "<img"))    $title  = img($title_icon, false, false, array("class" => component_class("img", 'card-title-icon'), "style" => "border-radius: 50%; max-width: 2.5rem; position: absolute;"), $title_main);
+        if ($title_link !== false && false === stripos($title_link, "<a"))      $title  = a($title,       $title_link,                    component_class("a",   'card-title-link'), external_link);
         if ($title_main !== false && false === stripos($title_main, "<h")
-                                  && false === stripos($title_main, "#"))        $title .= h($h,           $title_main,   array("class" => component_class("h$h", 'card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
+                                  && false === stripos($title_main, "#"))       $title .= h($h,           $title_main,   array("class" => component_class("h$h", 'card-title-main')/*, "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*//*,  "itemprop" => "headline name"*/));
         if ($title_main !== false &&(false !== stripos($title_main, "<h") ||
-                                     false !== stripos($title_main, "#")))       $title .=                 $title_main;
-        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))       $title .= p(              $title_sub,    array("class" => component_class("p", 'card-title-sub')/*,  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*/));
+                                     false !== stripos($title_main, "#")))      $title .=                 $title_main;
+        if ($title_sub  !== false && false === stripos($title_sub,  "<p"))      $title .= p(              $title_sub,    array("class" => component_class("p", 'card-title-sub')/*,  "style" => "margin-left: ".(($title_icon !== false) ? 56 : 0)."px"*/));
 
         hook_card_set_context("title", $title_main);
 

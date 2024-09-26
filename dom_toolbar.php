@@ -169,8 +169,6 @@
             .menu li                                        { padding: 0; }
             .menu li > *                                    { padding: calc(0.5 * var(--gap)) var(--gap); }
     
-        <?php if (!AMP()) { ?> 
-    
             /* Toolbar */
         
             .toolbar { position: sticky; left: 0; top: calc(var(--header-min-height) - var(--header-height)); }
@@ -190,18 +188,6 @@
             
             #<?= DOM_MENU_ID ?>-open        .menu                     { /*display: none;  */max-height:   0vh; }
             #<?= DOM_MENU_ID ?>-open:target .menu                     { display: flex !important; max-height: 100vh; } /* TODO change to flex ? */
-                
-        <?php } if (AMP()) { ?> 
-    
-            /* AMP DEFAULTS */
-            
-            .menu                                           { display: block } /* AMP DYNAMIC MENU SUPPORTED */
-                                            
-            amp-sidebar                                     { text-align: left; }
-            amp-sidebar .menu                               { position: relative; }
-            amp-sidebar ul                                  { list-style-type: none; padding-left: 0px } 
-    
-        <?php } ?>
 
             [hidden="hidden"] { display: none !important }
 
@@ -251,10 +237,6 @@
             .toolbar-cell .menu                     { color: var(--text-darker-color,           #ddd); background-color: var(--background-lighter-color,    #222); box-shadow: 0px 0px 2px 2px #00000022; }
             .toolbar-cell .menu :is(a, a:visited)   { color: var(--link-color,                  #eee); }
             .toolbar-cell .menu a:hover             { color: var(--link-hover-color,            #fff); background-color: var(--background-darker-color,     #000);;}
-     
-            <?php if (AMP()) { ?> 
-            amp-sidebar                             { background-color: var(--background-color, #111); color: var(--text-color, #eee); }
-            <?php } ?> 
 
             /* Menu list */
 
@@ -409,7 +391,11 @@
                 var toolbars = document.querySelectorAll(".toolbar:not(html[data-css-naked-day] .toolbar)");
                 var toolbar  = toolbars ? toolbars[0] : null;
 
-                if (toolbar)
+                var position = getComputedStyle(toolbar).getPropertyValue("position");
+
+                dom.log("TOOLBAR position ComputedStyle", position);
+
+                if (toolbar && position != "static")
                 {
                     toolbar.style.position = "fixed";
                     toolbar.style.top      = "0px";
@@ -551,11 +537,13 @@
     {
         if (has("ajax")) return "";
 
-        return                                                            ((!!get("toolbar_support_height",      true)) ? (
+        $html =                                                           ((!!get("toolbar_support_height",      true)) ? (
                 script(js_toolbar_height                ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
                 script(js_toolbar_banner_rotation       ()).   "") : ""). ((!!get("script_toolbar_menu",         true)) ? (
                 script(js_toolbar_menu                  ()).   "") : ""). ((!!get("script_framework_material",   true)) ? (
                 script(js_toolbar_framework_material    ()).   "") : "");
+
+        return $html;
     }
 
     // ICONS
@@ -585,7 +573,7 @@
         if (false === $attributes) $attributes = array();
         
         if (!in_array("aria-label", $attributes)                    ) $attributes["aria-label"  ] = $label;/*
-        if (!in_array("alt",        $attributes) && !AMP()          ) $attributes["alt"         ] = $label;*/
+        if (!in_array("alt",        $attributes)                    ) $attributes["alt"         ] = $label;*/
         if (!in_array("id",         $attributes) && (false !== $id) ) $attributes["id"          ] = $id;
 
         if ($encrypted)
@@ -656,6 +644,7 @@
             $attributes[""role"]    = "menuitem";                                   */
             $attributes["tabindex"] = "0";                                          if ($transition_name != "") {
             $attributes["style"]    = "view-transition-name: $transition_name;";    }
+            
         }
 
         return $attributes;
@@ -699,18 +688,8 @@
 
         $html = "";
 
-             if (AMP())                             { $html =  ul($menu_lis, array(/*"role" => "group",*/ "class" => component_class("ul",  'menu-list')/*." ".component_class('menu')*/ /*, "role" => "menu", "aria-hidden" => "true" */                                                )); }
-        else if (get("framework") == "bootstrap")   { $html = div($menu_lis, array(/*"role" => "group",*/ "class" => component_class("div", 'menu-list')                                 /*, "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink" */ )); }
+             if (get("framework") == "bootstrap")   { $html = div($menu_lis, array(/*"role" => "group",*/ "class" => component_class("div", 'menu-list')                                 /*, "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink" */ )); }
         else                                        { $html =  ul($menu_lis, array(/*"role" => "group",*/ "class" => component_class("ul",  'menu-list')                                 /*, "role" => "menu" */                                                                         )); }
-
-        if (AMP() && !!$sidebar)
-        {
-            hook_amp_sidebar(
-                tag('amp-sidebar class="menu" id="'.DOM_MENU_ID.'" layout="nodisplay"', $html)
-                );
-
-            //$html = span("","placeholder-amp-sidebar");
-        }
 
         return $html;
     }
@@ -857,8 +836,8 @@
         hook_title($html);
 
         if ($html !== false && $html != "")
-        {
-            if (false === stripos($html,"<a"))   $html =   a($html, '.');
+        { 
+            if (false === stripos($html,"<a"))   $html =   a($html, '.'); /* */ // CHOCA_WIP
             if (false === stripos($html,"<h1"))  $html =  h1($html);
         }
 
@@ -873,16 +852,7 @@
 
         if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
         
-        $menu_id_amp = DOM_MENU_ID."-static";
-        
-        $html_amp = $html;
-        $html_amp = str_replace(DOM_MENU_ID.'.toogle',  $menu_id_amp.'.toogle',  $html_amp);
-        $html_amp = str_replace('id="'.DOM_MENU_ID.'"', 'id="'.$menu_id_amp.'"', $html_amp);
-
-                   $html  = toolbar_row($html,     array("id" => "toolbar-row-nav",        /*"role" => "menubar",*/ "class" => "toolbar-row-nav"         ));
-        if (AMP()) $html .= toolbar_row($html_amp, array("id" => "toolbar-row-nav-static", /*"role" => "menubar",*/ "class" => "toolbar-row-nav static"  ));
-
-        return $html;
+        return toolbar_row($html, array("id" => "toolbar-row-nav", /*"role" => "menubar",*/ "class" => "toolbar-row-nav"));
     }
 
     function toolbar($html, $attributes = false)
@@ -891,30 +861,9 @@
 
         if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         
-        $amp_observer = "";
-        $amp_anim     = "";
-        
-        if (AMP())
-        {            
-            hook_amp_require("animation");
-            hook_amp_require("position-observer");
-
-            $amp_anim     = eol().'<amp-animation id="toolbarStaticShow" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "visible" } } ] }</script></amp-animation>'
-                          . eol().'<amp-animation id="toolbarStaticHide" layout="nodisplay"><script type="application/json">{ "duration": "0", "fill": "forwards", "animations": [ { "selector": "#toolbar-row-nav-static", "keyframes": { "visibility": "hidden"  } } ] }</script></amp-animation>';
-
-            $amp_observer = eol().'<amp-position-observer target="toolbar-row-nav" intersection-ratios="1" on="enter:toolbarStaticHide.start;exit:toolbarStaticShow.start" layout="nodisplay"></amp-position-observer>';
-        }
-
         return  
-
-            $amp_anim.
             comment("PRE Toolbar").
-            header(
-                $html.
-                $amp_observer, 
-                attributes_add_class($attributes, component_class("header", "toolbar toolbar-container"))
-                ).
-            "";
+            header($html, attributes_add_class($attributes, component_class("header", "toolbar toolbar-container")));
     }
 
 ?>
