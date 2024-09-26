@@ -2151,9 +2151,9 @@
 
         if ($min_indent > 0)
         {
-            foreach ($lines as &$line)
+            foreach ($lines as $l => $line)
             {
-                $line = substr($line, $min_indent);
+                $lines[$l] = substr($line, $min_indent);
             }
         }
 
