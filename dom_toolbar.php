@@ -390,10 +390,7 @@
             {
                 var toolbars = document.querySelectorAll(".toolbar:not(html[data-css-naked-day] .toolbar)");
                 var toolbar  = toolbars ? toolbars[0] : null;
-
-                var position = getComputedStyle(toolbar).getPropertyValue("position");
-
-                dom.log("TOOLBAR position ComputedStyle", position);
+                var position = toolbar  ? getComputedStyle(toolbar).getPropertyValue("position") : "static";
 
                 if (toolbar && position != "static")
                 {
@@ -509,8 +506,8 @@
                                 var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
 
                                 if (toolbar_row_banner)
-                                {
-                                    toolbar_row_banner.style.backgroundColor = "var(--theme-color)";
+                                {/*
+                                    toolbar_row_banner.style.backgroundColor = "var(--theme-color)";*/
                                     toolbar_row_banner.style.backgroundImage = "var(--linear-gradient), url(" + urls[index_url] + ")";
                                     index_url = (index_url + 1) % urls.length;
                                 }

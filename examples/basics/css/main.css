@@ -21,8 +21,8 @@
 }
 .toolbar-row-banner { /*
     background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); */
-    background: center/cover url(<?= dom\unsplash_url_img_random("Random image", 1200, 800) ?>);
     background-color: var(--theme-color);
+    background: center/cover url(<?= dom\unsplash_url_img_random("Random image", 1200, 800) ?>);
     background-blend-mode: hard-light;
 }
 
