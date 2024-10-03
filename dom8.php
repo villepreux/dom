@@ -9025,6 +9025,8 @@
                 --h4-font-weight: 500;
                 --h5-font-weight: 500;
                 --h6-font-weight: 400;
+
+                --gap: min(1rem, 16px); /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
             }
 
             body { font-weight: var(--text-font-weight); }
@@ -9090,105 +9092,13 @@
                 width:          1px;
             }
 
-            /* LETS PUT HERE SOME ADDITIONNAL RESET FROM MIRIAM SUZANNE */
+            body {
+                margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
+            }
 
-  /*html {
-    font-size: max(1em, 20px);
-  }*/
-  body {
-    margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
-  }
-  h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-p,
-li {
-    max-width: var(--measure, 75ch);
-  }
-  [hidden] {
-    display: none !important;
-  }
-  dd,
-dir,
-menu,
-ol,
-ul,
-blockquote,
-figure {
-    padding-inline: var(--gap, 1em);
-  }/*
-  nav,
-header,
-main,
-footer,
-section,
-article,
-details {
-    margin-block: var(--gap, 1em);
-  }*/ /*
-  main {
-    border-block: thick double;
-    padding-block: var(--gap, 1em);
-  }*/
-  table {
-    width: 100%;
-  }
-  summary {
-    cursor: pointer;
-  }
-  p:empty {
-    display: none;
-  }/*
-  input,
-select,
-textarea {
-    display: block;
-    font: inherit;
-    margin-block-end: 1em;
-    width: 100%;
-  }*/
-  textarea {
-    min-height: 6em;
-  }
-  button {
-    cursor: pointer;
-    font: inherit;
-    margin: 0;
-    padding: 0.25em 1em;
-  }
-  [aria-pressed=true] {
-    border: medium solid;
-  }
-  img,
-video,
-audio,
-iframe,
-picture {
-    max-width: 100%;
-    height: auto;
-    aspect-ratio: auto var(--ratio);
-  }
-  video,
-iframe {
-    --ratio: 16 / 9;
-  }
-  svg {
-    fill: var(--fill, var(--svg, currentcolor));
-    stroke: var(--stroke, var(--svg, currentcolor));
-    stroke-width: 0;
-  }
-  [data-icon] {
-    display: inline-block;
-  }
-
-        /* END OF SOME ADDITIONNAL RESET FROM MIRIAM SUZANNE */
-
-
-
-
+            [hidden] {
+                display: none !important;
+            }
 
             /* now that we have light & dark colors system in place,    */
             /* any component that requires it can be shown              */
@@ -9224,63 +9134,63 @@ iframe {
 
             @media (prefers-color-scheme: light) {
                 html {
-                    --Canvas:       var(--bg,       #f8f9fa);
-                    --CanvasText:   var(--text,     #1c1c1c);
-                    --Link:         var(--action,   #00e);
-                    --VisitedText:  var(--action,   #551a8b);
-                    --ActiveText:   var(--active,   #e00);
-                    --ButtonFace:   var(--btn-bg, #e9e9ed);
-                    --ButtonText:   var(--btn-text, #1c1c1c);
-                    --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
-                    --ButtonBorder: var(--btn-border, var(--border, currentColor));
-                    --Field: var(--field-bg, #f8f9fa);
-                    --FieldText: var(--field-text, #1c1c1c);
-                    --Highlight: var(--highlight, #b3d8ff);
-                    --HighlightText: var(--highlight-text, var(--CanvasText));
-                    --SelectedItem: var(--selected, #0063e1);
-                    --SelectedItemText: var(--selected-text, white);
-                    --AccentColor: var(--accent, #7d004f);
-                    --AccentColorText: var(--accent-text, white);
+                    --Canvas:           var(--bg,               #f8f9fa);
+                    --CanvasText:       var(--text,             #1c1c1c);
+                    --Link:             var(--action,           #00e);
+                    --VisitedText:      var(--action,           #551a8b);
+                    --ActiveText:       var(--active,           #e00);
+                    --ButtonFace:       var(--btn-bg,           #e9e9ed);
+                    --ButtonText:       var(--btn-text,         #1c1c1c);
+                    --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                    --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                    --Field:            var(--field-bg,         #f8f9fa);
+                    --FieldText:        var(--field-text,       #1c1c1c);
+                    --Highlight:        var(--highlight,        #b3d8ff);
+                    --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                    --SelectedItem:     var(--selected,         #0063e1);
+                    --SelectedItemText: var(--selected-text,    white);
+                    --AccentColor:      var(--accent,           #7d004f);
+                    --AccentColorText:  var(--accent-text,      white);
                 }
             }
             html[data-theme=dark] {
-                --Canvas:       var(--bg,       #1c1c1c);
-                --CanvasText:   var(--text,     #f8f9fa);
-                --Link:         var(--action,   #8cabff);
-                --VisitedText:  var(--action,   #ffadff);
-                --ActiveText:   var(--active,   #f66);
-      --ButtonFace: var(--btn-bg, #2b2a33);
-      --ButtonFaceHover: var(--btn-hover-bg, #52525e);
-      --ButtonText: var(--btn-text, #fbfbfe);
-      --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
-      --ButtonBorder: var(--btn-border, var(--border, currentColor));
-      --Field: var(--field-bg, #2b2a33);
-      --FieldText: var(--field-text, #fbfbfe);
-      --Highlight: var(--highlight, #3f638b);
-      --HighlightText: var(--highlight-text, var(--CanvasText));
-      --SelectedItem: var(--selected, skyblue);
-      --SelectedItemText: var(--selected-text, black);
-      --AccentColor: var(--accent, #ff5ce4);
-      --AccentColorText: var(--accent-text, black);
+                --Canvas:           var(--bg,               #1c1c1c);
+                --CanvasText:       var(--text,             #f8f9fa);
+                --Link:             var(--action,           #8cabff);
+                --VisitedText:      var(--action,           #ffadff);
+                --ActiveText:       var(--active,           #f66);
+                --ButtonFace:       var(--btn-bg,           #2b2a33);
+                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
+                --ButtonText:       var(--btn-text,         #fbfbfe);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #2b2a33);
+                --FieldText:        var(--field-text,       #fbfbfe);
+                --Highlight:        var(--highlight,        #3f638b);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         skyblue);
+                --SelectedItemText: var(--selected-text,    black);
+                --AccentColor:      var(--accent,           #ff5ce4);
+                --AccentColorText:  var(--accent-text,      black);
             }
             html[data-theme=light] {
-                --Canvas:       var(--bg,       #f8f9fa);
-                --CanvasText:   var(--text,     #1c1c1c);
-                --Link:         var(--action,   #00e);
-                --VisitedText:  var(--action,   #551a8b);
-                --ActiveText:   var(--active,   #e00);
-      --ButtonFace: var(--btn-bg, #e9e9ed);
-      --ButtonText: var(--btn-text, #1c1c1c);
-      --ButtonTextHover: var(--btn-hover-text, var(--ButtonText));
-      --ButtonBorder: var(--btn-border, var(--border, currentColor));
-      --Field: var(--field-bg, #f8f9fa);
-      --FieldText: var(--field-text, #1c1c1c);
-      --Highlight: var(--highlight, #b3d8ff);
-      --HighlightText: var(--highlight-text, var(--CanvasText));
-      --SelectedItem: var(--selected, #0063e1);
-      --SelectedItemText: var(--selected-text, white);
-      --AccentColor: var(--accent, #7d004f);
-      --AccentColorText: var(--accent-text, white);
+                --Canvas:           var(--bg,               #f8f9fa);
+                --CanvasText:       var(--text,             #1c1c1c);
+                --Link:             var(--action,           #00e);
+                --VisitedText:      var(--action,           #551a8b);
+                --ActiveText:       var(--active,           #e00);
+                --ButtonFace:       var(--btn-bg,           #e9e9ed);
+                --ButtonText:       var(--btn-text,         #1c1c1c);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #f8f9fa);
+                --FieldText:        var(--field-text,       #1c1c1c);
+                --Highlight:        var(--highlight,        #b3d8ff);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         #0063e1);
+                --SelectedItemText: var(--selected-text,    white);
+                --AccentColor:      var(--accent,           #7d004f);
+                --AccentColorText:  var(--accent-text,      white);
             }
         
             html { 
@@ -9294,7 +9204,7 @@ iframe {
             a:visited { color: var(--VisitedText);  }
             a:hover   { color: var(--ActiveText);   }
 
-            /* IF RESET */ /*
+            /* Add at least this, if we have a rese before normalize */ /*
             p {
                 margin-block-start:     1em;
                 margin-block-end:       1em;
