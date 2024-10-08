@@ -532,7 +532,8 @@
 
     function scripts_body_toolbar()
     {
-        if (has("ajax")) return "";
+        if (has("ajax"))            return "";
+        if (!!get("no_js_toolbar")) return "";
 
         $html =                                                           ((!!get("toolbar_support_height",      true)) ? (
                 script(js_toolbar_height                ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (

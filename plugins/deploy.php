@@ -115,6 +115,7 @@ function deploy_log()
         }
 
         echo (DEPLOY_CLI ? "" : str_repeat("&#8203;", 4*1024)).PHP_EOL."$str $info ";
+        if (!DEPLOY_CLI) flush();
 
         $__deploy_log_progressbar_size = 0;
         $__deploy_log_line++;
@@ -1080,7 +1081,7 @@ if (!!$cmdline_option_compile)
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
                 $deploy_name = str_replace(".php", ".$target_ext", $name);  
-                deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
+                //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
 
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {

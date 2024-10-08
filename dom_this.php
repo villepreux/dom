@@ -86,12 +86,13 @@ function code_css()
                 margin-bottom:  var(--gap);
             }
 
-            .ide pre {
+            .ide pre, .ide pre[class*=language-] {
                 margin-block:   0;
+                margin:         0 !important; /* as 3rd parties like prism.js set margin directly */
                 padding:        var(--gap);
             }
 
-            .ide code {
+            .ide code, .ide code[class*=language-]  {
                 display:        block;
                 white-space:    pre;
                 padding:        0;
@@ -101,7 +102,7 @@ function code_css()
                 background:     unset;
             }
 
-            :is(.card, details).ide code {            
+            :is(.card, details).ide :is(code, code[class*=language-]) {            
                 border: none;
             }
 
