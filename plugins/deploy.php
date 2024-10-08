@@ -4,9 +4,9 @@ define("DEPLOY_CLI", isset($argv));
 
 #region command-line
 
-function arg_state($flag, $on = 1, $off = 0) { global $argv; return (DEPLOY_CLI ? in_array("--$flag",  $argv) : (array_key_exists($flag, $_GET) && !!$_GET[$flag] )) ? $on : $off; }
-function arg_array($flag)                    { global $argv; $values = array(); if (DEPLOY_CLI) { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $values = array_merge($values, explode(",", $val)); } } else { $values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return $values; }
-function arg_value($flag, $fallback)         { global $argv; $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
+function arg_state($flag, $on = 1, $off = 0) { global $argv; return (in_array("--$flag",  $argv) || (array_key_exists($flag, $_GET) && !!$_GET[$flag] )) ? $on : $off; }
+function arg_array($flag)                    { global $argv; $values = []; $cli_values = []; { foreach ($argv as $arg) { $tag = "--$flag="; $pos = stripos($arg, $tag); if (false === $pos) continue; $val = substr($arg, $pos + strlen($tag)); $cli_values = array_merge($cli_values, explode(",", $val)); } } $get_values = []; { $get_values = array_key_exists($flag, $_GET) ? explode(",", $_GET[$flag]) : array(); } return array_merge($get_values, $cli_values); }
+function arg_value($flag, $fallback)         { $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
 $cmdline_option_static                  = 1;
 $cmdline_option_compare_dates           = arg_state("compare-dates");

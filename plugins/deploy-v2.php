@@ -3,8 +3,9 @@
 namespace build;
 
 require_once(__DIR__."/../dom.php");
-
+use function dom\{is_localhost,bye};
 use \parallel\{Runtime, Future, Channel, Events};
+if (!is_localhost()) bye("ACCESS DENIED");
 
 #region Utilities
 
