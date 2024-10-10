@@ -9000,7 +9000,6 @@
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
             @view-transition { navigation: auto; }
-            * { view-transition-name: var(--view-transition-name); }
 
             html { interpolate-size: allow-keywords; }
 
@@ -11793,17 +11792,23 @@
         return tag('h'.$h, $html, $attributes);
     }
 
+    function p              ($html = "", $attributes = false) { if (is_array($html)) $html = implode(br(), $html);
+
+                                                                                            return  tag('p',                          $html,                                                $attributes                                                         );                      }
+    
     function noscript       ($html = "", $attributes = false) {                             return  tag('noscript',                   $html,                                                $attributes                                                         );                      }
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
     function nav            ($html = "", $attributes = false) {                             return  tag('nav',                        $html,                                                $attributes                                                         );                      }
     function div            ($html = "", $attributes = false) {                             return  tag('div',                        $html,                                                $attributes                                                         );                      }
-    function p              ($html = "", $attributes = false) {                             return  tag('p',                          $html,                                                $attributes                                                         );                      }
     function i              ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return  tag('pre',                        $html,                                                $attributes                                                         );                      }
     function code           ($html = "", $attributes = false) {                             return  tag('code',                       $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return  tag('ul',                         $html,                                                $attributes                                                         );                      }
     function ol             ($html = "", $attributes = false) {                             return  tag('ol',                         $html,                                                $attributes                                                         );                      }
-    function li             ($html = "", $attributes = false) {                             return  tag('li',                         $html,                                                $attributes                                                         );                      }
+
+    function li             ($html = "", $attributes = false) { if (is_array($html)) $html = implode(br(), $html);
+
+                                                                                            return  tag('li',                         $html,                                                $attributes                                                         );                      }
     
     function dlist          ($html = "", $attributes = false) {                             return  tag('dl',                         $html,                                                $attributes                                                         );                      }
     function dterm          ($html = "", $attributes = false) {                             return  tag('dt',                         $html,                                                $attributes                                                         );                      }
@@ -12704,13 +12709,21 @@
         {
             return span($html);
         }
-        else
+        else if (strip_tags($html) == $html)
         {
             $script         = "document.getElementById('".md5($html)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('".md5($html)."').innerHTML = '".$html."';";
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
             $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
 
             return a(str_repeat("x", strlen($html)), url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
+        }
+        else
+        {
+            $script         = "document.getElementById('".md5($html)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."');";
+            $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
+            $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
+
+            return a($html, url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
@@ -12730,10 +12743,10 @@
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a("", "", array("aria-label" => "E-mail", "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
+            return a(str_repeat("x", strlen(strip_tags($text))), url_void(), array("aria-label" => "E-mail", "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
-    
+
     function char_emoji($c) { return !!get("gemini") ? "$c" : span("$c&#xFE0F;", "emoji");   }
     function char_text($c)  { return !!get("gemini") ? "$c" : span("$c&#xFE0E;", "symbol");  }
 
