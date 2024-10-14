@@ -113,7 +113,7 @@
     
             .toolbar                                        { width: 100%; z-index: 1; }
             
-            .toolbar-row                                    { width: 100%; margin-left: 0px !important; margin-right: 0px !important; display: flex; overflow: hidden; }
+            .toolbar-row                                    { width: 100%; margin-left: 0px !important; margin-right: 0px !important; display: flex; /*overflow: hidden;*/ }
             .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
             .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
@@ -140,7 +140,7 @@
             .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)); }
 
             .toolbar-row-nav .toolbar-cell-center,
-            .toolbar-row-nav .toolbar-cell-center *         { flex-shrink: 1; overflow: hidden; text-overflow: ellipsis;  }
+            .toolbar-row-nav .toolbar-cell-center *         { flex-shrink: 1; /*overflow: hidden; text-overflow: ellipsis;*/  }
 
             .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
             .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(var(--gap),  calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width)) + var(--gap)), calc(var(--right-text-margin-ratio) * 100%)); }

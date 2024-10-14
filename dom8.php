@@ -1450,28 +1450,43 @@
 
     function client_language_short()
     {
-        return at("" == client_language() ? false : explode("-", client_language()), 0, "en");
+        return get( "lang", at("" == client_language() ? false : explode("-", client_language()), 0, "en"));
     }
 
     function content_language()
     {
-        return  get( "lang",
+        return  /*get( "lang",*/
                 at("" == get("content-language", "")    ? false : explode(",", get("content-language")  ), 0,
                 at("" == get("html-language",    "")    ? false : explode(",", get("html-language")     ), 0,
                 at("" == client_language()              ? false : explode(",", client_language()        ), 0,
                 "en-US")
-                )));
+                ))/*)*/;
     }
 
     function content_language_short()
     {
         return at("" == content_language() ? false : explode("-", content_language()), 0, "en");
     }
-    
+
+    function span_lang($lang, $html = "", $attributes = false)
+    {
+        return span($html, attributes_add($attributes, attributes(attr("lang", $lang))));
+    }
+
+    function lang_char($countryCode)
+    {
+      //$fn = function ($m) { return chr(ord($m[0]) + 0x1F1A5); };
+      //return preg_replace_callback('/./', $fn, strtoupper($countryCode));
+        return strtoupper($countryCode);
+    }
+
     function T()
     {
+        // T($label, $lang, $text);
+        // Register a new localization string
+
         if (func_num_args() >= 3) 
-        {
+        {           
             list($label, $lang, $text) = func_get_args();
             $key = strtolower("i18n-$lang-$label");
             set($key, $text);
@@ -1481,39 +1496,92 @@
 
         if (func_num_args() == 2)
         {
+            // T($label, [ "FR" => "texte", "EN" => "text", ... ]);
+            // Register a new localization string (several languages variations at once)
+    
             if (is_array(at(func_get_args(), 1)))
             {
                 list($label, $lang_texts) = func_get_args();
                 foreach ($lang_texts as $lang => $text) T($label, $lang, $text);
                 return "";
             }
+            
+            // T("FR", "texte") == "" if FR is not current language, "texte" otherwise
+            // String filtered by langauge
+
             else
             {
                 list($lang, $text) = func_get_args();
                 debug_log("i18n-$lang / $text");
-                return (strtolower(client_language_short()) == strtolower($lang)) ? $text : "";
+                    
+                if (!!get("static"))
+                {
+                    return span_lang(strtolower($lang), $text);
+                }
+                else
+                {
+                    return (strtolower(client_language_short()) == strtolower($lang)) ? $text : "";
+                }
             }
         }
 
         if (func_num_args() == 1)
         {
+            // T([ "FR" => "texte", "EN" => "text", ... ]);
+            // Filter among provided string to return the one corresponding to current language
+            // if not found, return the first one (or "" if empty array)
+    
             if (is_array(at(func_get_args(), 0)))
             {
                 list($lang_texts) = func_get_args();
-                foreach ($lang_texts as $lang => $text) 
-                    if (strtolower(client_language_short()) == strtolower($lang)) return $text;
-                return at($lang_texts, 0, "");
+
+                if (!!get("static"))
+                {
+                    $html = "";
+                    foreach ($lang_texts as $lang => $text) 
+                        $html .= span_lang(strtolower($lang), $text);
+                    return $html;
+                }
+                else
+                {
+                    foreach ($lang_texts as $lang => $text) 
+                        if (strtolower(client_language_short()) == strtolower($lang)) return $text;
+                    return at($lang_texts, 0, "");
+                }
             }
+
+            // T("About") == "A Propos" if a french localized version if found
+            // if not found, returns the label
+    
             else
             {
                 list($label) = func_get_args();
-                foreach (array(client_language_short(), "en") as $lang) {
-                    $key = strtolower("i18n-$lang-$label");
-                    if (has($key)) {
-                        debug_log("i18n / $label -> $key -> ".get($key, ""));
-                        return get($key, "");
+
+                if (!!get("static"))
+                {
+                    $html = "";
+
+                    foreach (array(client_language_short(), "en") as $lang) {
+                        $key = strtolower("i18n-$lang-$label");
+                        if (has($key)) {
+                            debug_log("i18n / $label -> $key -> ".get($key, ""));
+                            $html .= span_lang($lang, get($key, ""));
+                        }
+                    }
+
+                    return "" != $html ? $html : $label;
+                }
+                else
+                {                    
+                    foreach (array(client_language_short(), "en") as $lang) {
+                        $key = strtolower("i18n-$lang-$label");
+                        if (has($key)) {
+                            debug_log("i18n / $label -> $key -> ".get($key, ""));
+                            return get($key, "");
+                        }
                     }
                 }
+
                 return $label;
             }
         }
@@ -1818,7 +1886,7 @@
     function ellipsis($text = "", $footnote = true)
     {
         $ellipsis = "[…]";
-        return " ".span($ellipsis, $text == "" ? false : [ "title" => $text ]).((!$footnote || $text == "") ? "" : (" ".a_footnote("$ellipsis $text $ellipsis")))." ";
+        return " ".span($ellipsis, $text == "" ? false : [ "title" => strip_tags($text)]).((!$footnote || $text == "") ? "" : (" ".a_footnote("$ellipsis $text $ellipsis")))." ";
     }
 
     #endregion
@@ -2542,7 +2610,15 @@
         {
             $hook_links[]           = array("title" => $title, "url" => $url);
             $hook_external_links[]  = array("title" => $title, "url" => $url);
+
+            // TODO On a flag, add this link to a dedicated .json file
         }
+    }
+
+    function external_links()
+    {
+        global $hook_external_links;
+        return $hook_external_links;
     }
 
     function ul_page_external_links()
@@ -5060,7 +5136,7 @@
         $shortcuts_count_max   = 4; // More than that, google chrome is echoing a warning
         $screenshots_count_max = 5;
 
-        $short_title = get("title");
+        $short_title = strip_tags(get("title"));
         $pos = stripos($short_title, " ");
         if (false !== $pos) $short_title = substr($short_title, 0, $pos);
         if (strlen($short_title) > 10) $short_title = substr($short_title, 0, 10);
@@ -5207,9 +5283,9 @@
 
         $json = array_merge($json, array(
 
-            "name"             => get("title"),
+            "name"             => strip_tags(get("title")),
             "short_name"       => $short_title,
-            "description"      => get("description"),
+            "description"      => strip_tags(get("description")),
             
             "background_color" => get("manifest_background_color",   get("background_color")),
             "theme_color"      => get("manifest_theme_color",        get("theme_color", "#000")),
@@ -6142,8 +6218,8 @@
             {
                 $xml = rss_channel(
                 
-                            rss_title           (get("title"))
-                . eol() .   rss_description     (get("keywords", get("title")))
+                            rss_title           (strip_tags(get("title")))
+                . eol() .   rss_description     (get("keywords", strip_tags(get("title"))))
                 . eol() .   rss_link            (get("url")."/"."rss")
                 . eol() .   rss_lastbuilddate   ()
                 . eol() .   rss_copyright       ()
@@ -6151,7 +6227,7 @@
                 . eol() .   rss_image(
                             
                                         rss_url     (get("url")."/".get("image"))
-                            . eol() .   rss_title   (get("title"))
+                            . eol() .   rss_title   (strip_tags(get("title")))
                             . eol() .   rss_link    (get("url")."/"."rss")
                             )
 
@@ -6633,7 +6709,7 @@
     }
     
     function title  ($title = false) { return delayed_component("_".__FUNCTION__, $title); }
-    function _title ($title = false) { return ($title === false) ? tag('title', get("title") . ((get("heading") != '') ? (' - '.get("heading")) : '')) : tag('title', $title); }
+    function _title ($title = false) { return ($title === false) ? tag('title', strip_tags(get("title")) . ((get("heading") != '') ? (' - '.get("heading")) : '')) : tag('title', $title); }
 
     function link_rel_prefetch($url)
     {
@@ -7856,19 +7932,19 @@
         
         return  meta_http_equiv('x-ua-compatible',   'IE=edge')
             .   eol()       
-            .   meta('keywords', get("title").((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
+            .   meta('keywords', strip_tags(get("title")).((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
             
             .   eol()
             .   meta('format-detection',                    'telephone=no')/*
             .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')*/
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
-            .   meta('description',                         get("og_description", get("description", get("title"))))
+            .   meta('description',                         strip_tags(get("og_description", get("description", get("title")))))
             .   meta('author',                              get("author", author))                                                      .(!get("mastodon_user") ? "" : (""
             .   meta('fediverse:creator',                   "@".get("mastodon_user")."@".get("mastodon_domain", "mastodon.social"))     ))
             .   meta('copyright',                           get("author", author).' 2000-'.date('Y'))
             .   meta('generator',                           "DOM ".version)
-            .   meta('title',                               get("title"))
+            .   meta('title',                               strip_tags(get("title")))
 
             .   meta([ 'name' => 'theme-color', 'media' => '(prefers-color-scheme: light)', 'content' => get("theme_color_dark",  get("theme_color", "#000")) ])
             .   meta([ 'name' => 'theme-color', 'media' => '(prefers-color-scheme: dark)',  'content' => get("theme_color_light", get("theme_color", "#000")) ])
@@ -7887,25 +7963,25 @@
             
             .   eol()       
 
-            .   meta_property('og:title',                   get("og_title", get("title")))
-            .   meta_property('og:description',             get("og_description", get("description", get("title"))))
+            .   meta_property('og:title',                   strip_tags(get("og_title", get("title"))))
+            .   meta_property('og:description',             strip_tags(get("og_description", get("description", get("title")))))
             .   meta_property('og:site_name',               get("live_domain", get("og_site_name", get("title"))))
 
             .   meta_property('og:image',                   path(get("canonical").'/'.get("image")))
             .   meta_property('og:url',                     get("canonical"))            
             .   meta_property('og:type',                    'website')
 
-            .   meta_name('og:title',                       get("og_title", get("title")))
-            .   meta_name('og:description',                 get("og_description", get("description", get("title"))))
+            .   meta_name('og:title',                       strip_tags(get("og_title", get("title"))))
+            .   meta_name('og:description',                 strip_tags(get("og_description", get("description", get("title")))))
             .   meta_name('og:site_name',                   get("live_domain", get("og_site_name", get("title"))))
 
             .   eol()       
-            .   meta_name('name',                           get("og_title", get("title")))/*
-            .   meta_name('description',                    get("og_description", get("description", get("title"))))*/
+            .   meta_name('name',                           strip_tags(get("og_title", get("title"))))/*
+            .   meta_name('description',                    strip_tags(get("og_description", get("description", get("title")))))*/
             
             .   eol()       
-            .   meta_itemprop('name',                       get("og_title", get("title")))
-            .   meta_itemprop('description',                get("og_description", get("description", get("title"))))
+            .   meta_itemprop('name',                       strip_tags(get("og_title", get("title"))))
+            .   meta_itemprop('description',                strip_tags(get("og_description", get("description", get("title")))))
 
             .   eol()       
             .   meta('DC.title',                            get("title"))
@@ -7916,8 +7992,8 @@
             .   meta('twitter:card',                        'summary_large_image')      . (has('twitter_page') ? (""
             .   meta('twitter:site',                        get("twitter_page"))        ) : "")
             .   meta('twitter:url',                         get("canonical"))
-            .   meta('twitter:title',                       get("title"))
-            .   meta('twitter:description',                 get("og_description", get("description", get("title"))))
+            .   meta('twitter:title',                       strip_tags(get("title")))
+            .   meta('twitter:description',                 strip_tags(get("og_description", get("description", get("title")))))
             .   meta('twitter:image',                       path(get("canonical").'/'.get("image")))
             
             .   eol()       
@@ -8205,8 +8281,6 @@
             ;
     }
     
-    define("IMPORTANT", ' !important');
-
     function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
     {
         return $selectors == "" ? eol() : str_pad(eol().tab(1).$selectors, $pad)."{ ".$styles." }";
@@ -9099,6 +9173,13 @@
                 display: none !important;
             }
 
+            /* Language */
+
+                     span[lang]                   { display: inline !important }
+            [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
+            [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
+            /* ... */
+
             /* now that we have light & dark colors system in place,    */
             /* any component that requires it can be shown              */
             .requires-color-schemes { display: initial; }
@@ -9584,8 +9665,8 @@
     function css_normalize($layer = "normalize")
     {
         return  css_layer($layer, 
-                    css_normalize_remedy("remedy").
-                    css_normalize_chocapic("chocapic"));
+                css_normalize_remedy("remedy").
+                css_normalize_chocapic("chocapic"));
     }
     
 
@@ -9907,10 +9988,12 @@
             
             body    { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
             header  { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
-            article, details { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
-            :not(details details) summary { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
+            article { background-color: var(--background-color,        #ddd); color: var(--text-on-background-color,        #0d0d0d); }
             footer  { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
+            details:not(details details)         { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
+                   :not(details details) summary { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
+            
             input, select { color: var(--text-color); background: var(--background-lighter-color); }
 
             /* Articles */
@@ -9959,9 +10042,9 @@
             
             /* Links */
     
-            :is(a, button.link)         { font-weight: 600; color: var(--link-color,       #990011); }
-            :is(a, button.link):visited { font-weight: 600; color: var(--link-color,       #990011); }
-            :is(a, button.link):hover   { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a)         { font-weight: 600; color: var(--link-color,       #990011); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):visited { font-weight: 600; color: var(--link-color,       #990011); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):hover   { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
 
             button:not(.transparent) { font-weight: 600; border: none; box-shadow: 2px 2px 4px 2px #00000055; }
 
@@ -10012,8 +10095,10 @@
             /* Forms */
     
             :root           { accent-color:     var(--forms-accent-color); }
-            :focus-visible  { outline-color:    var(--forms-accent-color); }
-            ::marker        { color:            var(--forms-accent-color); }
+            :focus-visible  { outline-color:    var(--focus-visible-outline-color, var(--forms-accent-color)); }
+            ::marker        { color:            var(--marker-color, var(--forms-accent-color)); }
+
+            :focus-visible  { outline-offset: .25em }
     
             :is(::-webkit-calendar-picker-indicator,
                 ::-webkit-clear-button,
@@ -10238,6 +10323,8 @@
             a:not(:is(nav, [role="navigation"]) a)         { text-decoration-thickness: 0.5px }
             a:not(:is(nav, [role="navigation"]) a):hover   { text-decoration-thickness: 1.5px }
 
+            :is(h1,h2,h3,h4,h5,h6) a { text-decoration: inherit; color: inherit; }
+
           /*ins, abbr, acronym      { } */
             u                       { text-decoration-style: wavy; }
     
@@ -10415,7 +10502,7 @@
 
             :is(.card-title, .card-media, .card-text, .card-actions) {
 
-                overflow: hidden;
+                overflow: hidden; /* TODO P0 WE WANT TO AVOIR hidden overflows */
             }
 
             .card-media > * {
@@ -11785,11 +11872,13 @@
         {
             list($h, $html, $anchor) = hook_headline($h, $html, $anchor);
         }
-        
-        $attributes = attributes_add($attributes, attr("class", component_class("h$h")                   ));
-        $attributes = attributes_add($attributes, attr("id",    anchor_name(!!$anchor ? $anchor : $html) ));
 
-        return tag('h'.$h, $html, $attributes);
+        $id = anchor_name(!!$anchor ? $anchor : $html);
+        
+        $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
+        $attributes = attributes_add($attributes, attr("id",    $id));
+
+        return tag('h'.$h, a($html, "#$id"), $attributes);
     }
 
     function p              ($html = "", $attributes = false) { if (is_array($html)) $html = implode(br(), $html);
@@ -14737,7 +14826,7 @@
             
             "id"    => "footnote-".($footnote_index + 1), 
             "class" => "footnote",
-            "title" => (auto === $title ? strip_tags($html) : $title)
+            "title" => strip_tags(auto === $title ? $html : $title)
         
             ));
     }

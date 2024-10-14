@@ -771,7 +771,7 @@ if (!!$cmdline_option_copy)
                 {
                     $os_path = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
                     deploy_log($file_index, $nb_files, "[+] $dst/$name");
-                    deploy_exec("mkdir $os_path");
+                    deploy_exec("mkdir \"$os_path\"");
                 }
             }
             else
@@ -1261,7 +1261,7 @@ if (!!$cmdline_option_compile)
                     {
                         $os_path = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$type") : "$dst/$type";
                         deploy_log($file_index, $nb_files, "[+] $dst/$type");
-                        deploy_exec("mkdir $os_path");
+                        deploy_exec("mkdir \"$os_path\"");
                     }
 
                     $deploy_name =  ($type == "json") ? "rss.json"  : (
