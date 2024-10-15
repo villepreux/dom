@@ -1480,6 +1480,25 @@
         return strtoupper($countryCode);
     }
 
+    function get_language_shots()
+    {
+        $langs = [];
+        $langs["en"] = true;
+        $langs[strtolower(client_language_short())] = true;
+
+        foreach (get_all() as $key => $text)
+        {
+            if (0 === stripos($key, "i18n-"))
+            {
+                list($i18n, $lang, $label) = explode("-", $key);
+
+                $langs[trim(strtolower($lang))] = true;
+            }
+        }
+
+        return array_keys($langs);
+    }
+
     function T()
     {
         // T($label, $lang, $text);
@@ -1561,7 +1580,7 @@
                 {
                     $html = "";
 
-                    foreach (array(client_language_short(), "en") as $lang) {
+                    foreach (get_language_shots() as $lang) {
                         $key = strtolower("i18n-$lang-$label");
                         if (has($key)) {
                             debug_log("i18n / $label -> $key -> ".get($key, ""));
@@ -1573,7 +1592,7 @@
                 }
                 else
                 {                    
-                    foreach (array(client_language_short(), "en") as $lang) {
+                    foreach (get_language_shots() as $lang) {
                         $key = strtolower("i18n-$lang-$label");
                         if (has($key)) {
                             debug_log("i18n / $label -> $key -> ".get($key, ""));
