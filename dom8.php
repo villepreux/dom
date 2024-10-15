@@ -9127,7 +9127,7 @@
                     --AccentColorText:  var(--accent-text,      white);
                 }
             }
-            html[data-theme=dark] {
+            [data-theme=dark] {
                 --Canvas:           var(--bg,               #1c1c1c);
                 --CanvasText:       var(--text,             #f8f9fa);
                 --Link:             var(--action,           #8cabff);
@@ -9147,7 +9147,7 @@
                 --AccentColor:      var(--accent,           #ff5ce4);
                 --AccentColorText:  var(--accent-text,      black);
             }
-            html[data-theme=light] {
+            [data-theme=light] {
                 --Canvas:           var(--bg,               #f8f9fa);
                 --CanvasText:       var(--text,             #1c1c1c);
                 --Link:             var(--action,           #00e);
