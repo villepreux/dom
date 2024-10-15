@@ -9899,9 +9899,9 @@
 
             :is(article, details):not(article article, details details) :is(
 
-                 header, 
-                summary,
-                 footer,
+                header, 
+                summary:not(details details summary),
+                footer,
 
                 blockquote, aside)      { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
 
@@ -10454,9 +10454,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
-            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
-            :is(a, button.link):not(:has(img,picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -10475,22 +10475,63 @@
                 
                 opacity: .4;
             }    
-            a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
-            a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
-            a:not(:has(img,picture,video,audio,svg,iframe)).external:hover:after {
+            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
+            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
+            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:hover:after {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
-                a:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
-                a:not(:has(img,picture,video,audio,svg,iframe)).external:after {
+                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
+                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
+                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:after {
 
                     content: attr(href);
                 }
             }
+
+
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:before, 
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:before, 
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:before {
+
+                display: inline-block;
+                content: '';
+
+                background-color: currentColor;
+                mask: url('data:image/svg+xml;utf8,<svg height="1024" width="768" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M640 768H128V257.90599999999995L256 258V128H0v768h768V576H640V768zM384 128l128 128L320 448l128 128 192-192 128 128V128H384z"/></svg>');
+                mask-size: cover;
+                                
+                position: relative;
+                width:  .60em;
+                height: .75em;
+                top:    0.0em;
+                left:   0.2em;
+
+                margin-right: 0.5em;
+                
+                opacity: .4;
+            }    
+            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
+            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
+            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:hover:before {
+
+                opacity: 1.0;
+            }
+
+            @media print {
+                        
+                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:before, 
+                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:before, 
+                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:before {
+
+                    content: attr(href);
+                }
+            }
+
+
 
             /* Service worker install "call to action" */
             
@@ -11772,7 +11813,7 @@
         $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
         $attributes = attributes_add($attributes, attr("id",    $id));
 
-        return tag('h'.$h, a($html, "#$id"), $attributes);
+        return tag('h'.$h, $html, $attributes);
     }
 
     function p              ($html = "", $attributes = false) { if (is_array($html)) $html = implode(br(), $html);
