@@ -6,55 +6,6 @@
     
     if (!defined("DOM_MENU_ID")) define("DOM_MENU_ID", "menu");
 
-    $__frameworks_toolbar = array(
-
-        'material' => array
-        (
-            'classes' => array
-            (
-                  'toolbar'                   => 'mdc-top-app-bar mdc-top-app-bar--dense mdc-top-app-bar--fixed mdc-top-app-bar--waterfall mdc-top-app-bar--flexible mdc-top-app-bar--flexible-default-behavior mdc-top-app-bar--fixed-lastrow-only'
-                , 'toolbar-row'               => 'mdc-top-app-bar__row row'
-                , 'toolbar-cell'              => 'mdc-top-app-bar__section'
-                , 'toolbar-cell-right'        => 'mdc-top-app-bar__section--align-end'
-                , 'toolbar-cell-left'         => 'mdc-top-app-bar__section--align-start'
-                , 'toolbar-cell-center'       => 'mdc-top-app-bar__section--align-middle'
-                , 'toolbar-cell-shrink'       => 'mdc-top-app-bar__section--shrink-to-fit'
-            
-                , 'toolbar-title'             => 'mdc-top-app-bar__title'
-
-                , 'toolbar-icon'              => 'material-icons mdc-top-app-bar__icon'
-
-                , 'menu-toggle'               => 'mdc-menu-anchor'
-                , 'menu'                      => 'mdc-menu'
-                , 'menu-list'                 => 'mdc-menu__items mdc-list sidebar'
-                , 'menu-list-item'            => 'mdc-list-item'
-                , 'menu-list-item-separator'  => 'mdc-list-divider'
-                
-            )
-        )
-        
-        ,"bootstrap" => array
-        (
-            "classes" => array
-            (
-                'menu-list'             => 'dropdown-menu sidebar'
-              , 'toolbar'               => 'navbar sticky-top'        
-            )
-        )
-        
-        ,"spectre" => array
-        (
-            "classes" => array
-            (
-                'toolbar-row'               => 'navbar'
-              , 'toolbar-cell'              => 'navbar-section'
-
-            )
-        )
-    );
-
-    \dom\init_extend_frameworks_table($__frameworks_toolbar);
-
     function hook_toolbar($row)
     {
         set("toolbar",      true);
