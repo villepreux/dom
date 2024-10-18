@@ -1,6 +1,6 @@
- <?php
+<?php
 
-define("DEPLOY_CLI", isset($argv));
+define("DEPLOY_CLI", isset($argv) || php_sapi_name() == "cli");
 
 #region command-line
 
@@ -9,6 +9,7 @@ function arg_array($flag)                    { global $argv; $cli_values = []; {
 function arg_value($flag, $fallback)         { $values = arg_array($flag); if (0 == count($values)) return $fallback; return $values[0]; }
 
 $cmdline_option_static                  = 1;
+$cmdline_option_cls                     = arg_state("cls");
 $cmdline_option_compare_dates           = arg_state("compare-dates");
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
@@ -23,8 +24,8 @@ $cmdline_option_scrap                   = arg_state("scrap");
 $cmdline_option_beautify                = arg_state("beautify", 1, arg_state("debug"));
 $cmdline_option_os                      = arg_state("unix", "unix", "win");
 $cmdline_option_copy                    = arg_state("copy");
-$cmdline_option_compile                 = arg_state("compile");
-$cmdline_option_mt                      = arg_state("mt");
+$cmdline_option_compile                 = arg_state("compile");/*
+$cmdline_option_mt                      = arg_state("mt");*/
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
@@ -392,11 +393,11 @@ function deploy_diff($str1, $str2, $diff_chunk_length = 16, $prefix = "")
     return "";
 }
 
-function deploy_init_terminal() 
+function deploy_init_terminal($clear_screen = true)
 { 
     global $cmdline_option_github_action, $cmdline_option_compile_one;
 
-    if (!$cmdline_option_github_action && DEPLOY_CLI)
+    if ($clear_screen && !$cmdline_option_github_action && DEPLOY_CLI)
     {
         DIRECTORY_SEPARATOR === '\\' ? popen('cls', 'w') : exec('clear');
     }
@@ -459,7 +460,7 @@ else
 
 if (!deploy_is_localhost()) { die("Can only by run locally"); }
 
-deploy_init_terminal();
+deploy_init_terminal($cmdline_option_cls);
 
 @set_time_limit(24*60*60);
 @ini_set('memory_limit', '-1');
@@ -724,6 +725,10 @@ else
     deploy_log("[i] Auto-Generating files if needed... OK");
 }
 
+if (is_dir('D:\wamp\www\villepreux.net\json'))      die("1.1 JSON folder created!");
+if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("1.2 os_path folder created!");
+if (is_dir('D:\wamp\www\villepreux.net\5'))         die("1.3 5 folder created!");
+
 if (!!$cmdline_option_copy)
 {
     deploy_log("[i] Mirroring...");
@@ -772,6 +777,12 @@ if (!!$cmdline_option_copy)
                     $os_path = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
                     deploy_log($file_index, $nb_files, "[+] $dst/$name");
                     deploy_exec("mkdir \"$os_path\"");
+
+                    if (is_dir('D:\wamp\www\villepreux.net\json'))      die(print_r($roots, true));
+
+                    if (is_dir('D:\wamp\www\villepreux.net\json'))      die("a.1 JSON folder created! ($src/$name -> $dst/$name / $os_path)");
+                    if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("a.2 os_path folder created!");
+                    if (is_dir('D:\wamp\www\villepreux.net\5'))         die("a.3 5 folder created!");
                 }
             }
             else
@@ -814,6 +825,10 @@ if (!!$cmdline_option_copy)
     
     deploy_log("[i] Mirroring... OK");
 }
+
+if (is_dir('D:\wamp\www\villepreux.net\json'))      die("2.1 JSON folder created!");
+if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("2.2 os_path folder created!");
+if (is_dir('D:\wamp\www\villepreux.net\5'))         die("2.3 5 folder created!");
 
 if (!!$cmdline_option_compile_one)
 {
@@ -902,8 +917,8 @@ if (!!$cmdline_option_compile)
     }
 
     // PASS #2 - Run all php commands / idealy in parallel
-
-    $execs = [];
+    /*
+    $execs = [];*/
 
     $file_index = 0;
     $roots = array(array($main_src, $main_dst));
@@ -949,7 +964,7 @@ if (!!$cmdline_option_compile)
                 }
                 
                 $html = false;
-                $derivative_outputs = array();
+                $derivative_outputs = array();/*
 
                 if ($name == "index.php")
                 {
@@ -964,26 +979,27 @@ if (!!$cmdline_option_compile)
                 else
                 {
                     $execs[] = [ getcwd(), false, "php -f $src/$name -- $php_args", false ];
-                }
+                }*/
             }        
         }
     }
-
+/*
     function async_exec($cmd) 
     {
         if (DIRECTORY_SEPARATOR === '\\')
       //if (substr(php_uname(), 0, 7) == "Windows")
         {
-            /*pclose*/(popen("start /b $cmd >nul", "r")); 
+          //pclose(popen("start /b $cmd >nul", "r")); 
+            popen("start /b $cmd >nul", "r"); 
             //deploy_exec($cmd);
         }
         else 
         {
             @exec($cmd . " > /dev/null &");  
         }
-    }
+    }*/
 
-    $sync_async = $cmdline_option_mt ? "ASync" : "Sync";
+    $sync_async = /*$cmdline_option_mt ? "ASync" : */"Sync";
 
     if (is_dir("$main_src/.cache")) 
     {   
@@ -994,7 +1010,7 @@ if (!!$cmdline_option_compile)
         deploy_exec("rmdir /s /q .cache");
         chdir($cwd);    
     }
-
+    /*
     if ($cmdline_option_mt)
     {    
         deploy_log("[i] $sync_async compile: Creating .cache folder $main_src/.cache");
@@ -1056,7 +1072,7 @@ if (!!$cmdline_option_compile)
         sleep(1);
         deploy_log("[i] $sync_async compile: DONE!");
     }
-
+    */
     // PASS #3 - Do all our logic
 
     $file_index = 0;
@@ -1108,11 +1124,11 @@ if (!!$cmdline_option_compile)
                 if ($name == "index.php")
                 {
                     // Assumes index.php are implicitely included from their directory
-                
+                    /*
                     if ($cmdline_option_mt)
                     {
                         $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args", getcwd() ]))).".html");
-                    }
+                    }*/
 
                     if (!$html)
                     {   
@@ -1136,7 +1152,9 @@ if (!!$cmdline_option_compile)
                         chdir($cwd);
                     }
 
-                    foreach ($derivatives as $type)
+                    $has_rss_content = (false !== stripos($html, "application/rss+xml"));
+
+                    if ($has_rss_content) foreach ($derivatives as $type)
                     {
                         if (!!$cmdline_option_verbose)
                         {
@@ -1147,11 +1165,11 @@ if (!!$cmdline_option_compile)
                         $type_arg = "rss=$type";
 
                         $derivative_outputs[$type] = false;
-                          
+                        /*
                         if ($cmdline_option_mt)
                         {
                             $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ]))).".html");
-                        }
+                        }*/
 
                         if (!$derivative_outputs[$type])
                         {
@@ -1189,11 +1207,11 @@ if (!!$cmdline_option_compile)
                     }
     
                     // Assumes other php files have to be able to be included from anywhere
-                                              
+                    /*                     
                     if ($cmdline_option_mt)
                     {
                         $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), false, "php -f $src/$name -- $php_args", false ]))).".html");
-                    }
+                    }*/
 
                     if (!$html)
                     {

@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p};
+use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p};
 use const dom\auto;
 
 const code_tab_src_size = 4;

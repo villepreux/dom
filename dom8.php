@@ -12,7 +12,7 @@
     const author        = "Antoine Villepreux";
     const version       = "0.8.6";
 
-    define("DOM_CLI", isset($argv));
+    define("DOM_CLI", isset($argv) || php_sapi_name() == "cli");
 
     #endregion
     #region HELPERS : CONFIG
@@ -190,16 +190,20 @@
         
             .debug-console {
 
-                min-height:     100vh; 
-                margin:         0; 
-                white-space:    nowrap; 
-                overflow-x:     auto; 
-                background:     black; 
-                color:          green; 
-                width:          100%;
-                font-family:    monospace;
-                line-height:    24px;
+                min-height:         100vh; 
+                margin:             0; 
+                white-space:        nowrap; 
+                overflow-x:         auto; 
+                background-color:   black; 
+                color:              green; 
+                width:              100%;
+                font-family:        monospace;
+                line-height:        24px;
             }
+
+            .debug-console details:not(details details),        
+            .debug-console        :not(details details) summary { background-color: black; color: green; }
+    
 
             .debug-console,
             .debug-console details,
@@ -211,7 +215,7 @@
             }
 
             .debug-console-line,
-            .debug-console summary { list-style: none; margin; 0; margin-inline: 0; }
+            .debug-console summary { color: inherit; background-color: inherit; list-style: none; margin; 0; margin-inline: 0; }
             .debug-console summary::-webkit-details-marker { display: none; height: 0px; margin: 0; padding: 0; }
             .debug-console summary::marker { display: none; height: 0px; margin: 0; padding: 0; }
 
@@ -496,26 +500,48 @@
         return $__dom_internal_included;
     }
 
-    function internal_include($path, $no_display = false)
+    function internal_include($path, $no_echo = false)
     {
-        if ($no_display) ob_start();
+        if ($no_echo) ob_start();
         global $__dom_internal_included; $__dom_internal_included = true;
         if (!!$path) @include($path);
         $__dom_internal_included = false;
-        if ($no_display) ob_end_clean();
+        if ($no_echo) ob_end_clean();
 
         update_dependency_graph($path);
 
         return "";
     }
 
-    function internal_require($path, $no_display = false)
+    function include_backup($context_cwd = false, $no_echo = false, $context_restore_globals = true)
     {
-        if ($no_display) ob_start();
-        if (!!$path) @require($path);
-        if ($no_display) ob_end_clean();
-        
-        update_dependency_graph($path);
+        $cwd = false; if (!!$context_cwd) { $cwd = getcwd(); chdir($context_cwd); }
+        $globals = false; if ($context_restore_globals) $globals = [ "GET" => $_GET ?? null, "POST" => $_POST ?? null, "SESSION" => $_SESSION ?? null ];
+        if ($no_echo) $no_echo = ob_start();
+
+        return [ $context_cwd, $cwd, $no_echo, $context_restore_globals, $globals ]; 
+    }
+
+    function include_restore($backup)
+    {
+        list($context_cwd, $cwd, $no_echo, $context_restore_globals, $globals) = $backup;
+
+        if ($no_echo) ob_end_clean();
+        if ($context_restore_globals && !!$globals) { { if ($globals["GET"]) $_GET = $globals["GET"]; if ($globals["POST"]) $_POST = $globals["POST"]; if ($globals["SESSION"]) $_SESSION = $globals["SESSION"]; } }
+        if (!!$context_cwd && !!$cwd) { chdir($cwd); }
+
+        return "";
+    }
+
+    function internal_require($path, $no_echo = false, $track_dependencies = true, $context_sandbox = false, $context_cwd = false)
+    {
+        $backup = include_backup($context_cwd, $no_echo, $context_sandbox);
+
+        global $argv;
+        if (!!$path) require($path);
+        if ($track_dependencies) update_dependency_graph($path);
+
+        include_restore($backup);
 
         return "";
     }
@@ -2506,6 +2532,7 @@
             $hook_external_links[]  = array("title" => $title, "url" => $url);
 
             // TODO On a flag, add this link to a dedicated .json file
+            set("external_links", array_merge(get("external_links", []), [ array("title" => $title, "url" => $url) ]));
         }
     }
 
@@ -2556,15 +2583,15 @@
         return "";
     }
 
-    $hook_feed_nth_item = 1;
+    $__dom_hooked_feed_items_count = 0;
 
     function hook_feed_item($metadata)
     {           
         if (has("rss"))
         {
-            global $hook_feed_nth_item;
+            global $__dom_hooked_feed_items_count;
             
-            if (!has("id") || get("id") == $hook_feed_nth_item)
+            if (!has("id") || get("id") == (1 + $__dom_hooked_feed_items_count))
             {
                 if ((at($metadata,"post_title") !== false && at($metadata,"post_title") != "")
                 ||  (at($metadata,"post_text")  !== false && at($metadata,"post_text")  != ""))
@@ -2582,7 +2609,7 @@
                 }
             }
             
-            ++$hook_feed_nth_item;
+            ++$__dom_hooked_feed_items_count;
         }
         
         return "";
@@ -4660,6 +4687,8 @@
 
     function redirect($url)
     {   
+        if (has("main") || has("main-include")) return true;
+
         if ("dependency-graph" == get("doctype")) die("[]");
 
         if (!!get("static")) { echo html_refresh_page($url);     return true; }
@@ -4864,7 +4893,7 @@
     }
 
     function output($doc = "")
-    {
+    {   
         if (!!get("binary"))
         {
             die($doc);
@@ -4905,16 +4934,12 @@
 
         $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
 
-        if ($compression) 
-        {
-            while (ob_get_level() > 0) { ob_end_clean() ; } 
-            ob_start("ob_gzhandler");
-        }
+      //if ($compression) while (ob_get_level() > 0) { ob_end_clean() ; }  // WOuld be bad if already nested
+        if ($compression) ob_start("ob_gzhandler");
 
-        echo $doc;
-        
-        cache_stop();
-    
+        echo $doc;   
+
+        cache_stop();    
         generate_all_postprocess();
 
         if ($compression) ob_end_flush();
@@ -7819,6 +7844,28 @@
         return link_rel($type, $path, $attributes);
     }
 
+    function _meta_rss_alternates()
+    {
+        global $__dom_hooked_feed_items_count;
+        if ($__dom_hooked_feed_items_count < 2) return "";
+
+        return
+        
+            eol()
+        .   meta('msapplication-notification',    'frequency=30;'
+                                                . 'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
+                                                . 'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
+                                                . 'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
+                                                . 'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
+                                                . 'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
+        .   eol()
+        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))   . ((!!get("static")) ? '' : (''
+        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
+        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))
+        .   link_rel("canonical",   get("canonical"))
+        ;
+    }
+
     function metas() { return delayed_component("_".__FUNCTION__, false); }
     function _metas()
     {
@@ -7906,25 +7953,16 @@
             .   (path(get("icons_path").'ms-icon-150x150.png'  ) ? (meta('msapplication-square150x150logo',   path(get("icons_path").'ms-icon-150x150.png'  ))) : '')
             .   (path(get("icons_path").'ms-icon-310x150.png'  ) ? (meta('msapplication-wide310x150logo',     path(get("icons_path").'ms-icon-310x150.png'  ))) : '')
             .   (path(get("icons_path").'ms-icon-310x310.png'  ) ? (meta('msapplication-square310x310logo',   path(get("icons_path").'ms-icon-310x310.png'  ))) : '')
-            
-            .   eol()
-            .   meta('msapplication-notification',    'frequency=30;'
-                                                    . 'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
-                                                    . 'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
-                                                    . 'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
-                                                    . 'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
-                                                    . 'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
-                                                               
+                                    
             // TODO FIX HREFLANG ALTERNATE
             // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
             .   eol().comment("Alternate URLs")   
-                // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))   . ((!!get("static")) ? '' : (''
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
-            .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))
-            .   link_rel("canonical",   get("canonical"))
-            
+                
+            // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
+
+            .   delayed_component("_meta_rss_alternates")
+
             .   eol().comment("Icons")
             .   link_rel_icon("img/icon.svg")
             .   link_rel_icon(get("image"), false, false, false, false, /*alternate*/true)
@@ -9887,7 +9925,7 @@
     
             details:not(details details)         { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
                    :not(details details) summary { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
-            
+    
             input, select { color: var(--text-color); background: var(--background-lighter-color); }
 
             /* Articles */
@@ -10613,10 +10651,10 @@
             <?= $grid ?> {
                 padding-block: var(--gap);
             }
-
+            /*
             summary {
                 border-inline-start: 1ch solid transparent;
-            }
+            }*/ /* NO ! Breaks all alignment vs context. Ex. in debug timeline */
 
         <?= HERE("raw_css") ?></style><?php
 
@@ -13104,19 +13142,22 @@
 
                     <?= HERE("raw_html") ?></html><?php $pre_html = HSTOP();
                         
-                    function img_gif_define()
+                    if (!function_exists("\dom\img_gif_define"))
                     {
-                        HSTART(-1) ?><html><?= HERE() ?>
+                        function img_gif_define()
+                        {
+                            HSTART(-1) ?><html><?= HERE() ?>
 
-                        <!-- img-gif web component definition script after last img-gif component on the page //--> 
+                            <!-- img-gif web component definition script after last img-gif component on the page //--> 
 
-                        <script>
+                            <script>
 
-                            customElements.define("img-gif", ImgGif);
+                                customElements.define("img-gif", ImgGif);
 
-                        </script>
+                            </script>
 
-                        <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
+                            <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
+                        }
                     }
                 }
             }
@@ -13204,7 +13245,8 @@
             $id_title   = "title-$id-$__svg_index";
             $id_desc    = "desc-$id-$__svg_index";
             $title      = at($label, "title", "$label");
-            $desc       = at($label, "desc",  "$title svg image");
+          //$desc       = at($label, "desc",  "$title svg image");
+            $desc       = "SVG image";
         }
 
         $html = '<svg'  .' class'           .'="'.  "svg ".$class           .'"'    
@@ -13413,7 +13455,7 @@
     function unsplash_url()             { return "https://unsplash.com";        }
     function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
     
-    function unsplash_url_img_random($search,$w,$h,$random = auto) {
+    function unsplash_url_img_random($search, $w, $h, $random = auto) {
 
         if ($random === false)
         {
@@ -14664,8 +14706,8 @@
     function phpinfo($headline_offset = 0, $display_vars = false, $display_extensions = true) {    
 
         ob_start();
-        \phpinfo();
-        $phpinfo = ob_get_contents();
+            \phpinfo();
+            $phpinfo = ob_get_contents();
         ob_end_clean();
     
         $phpinfo_style = substr($phpinfo, strpos($phpinfo, "<style"), stripos($phpinfo, "</style>") - strpos($phpinfo, "<style") + strlen("</style>"));
