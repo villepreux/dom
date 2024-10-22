@@ -130,8 +130,14 @@ function deploy_log()
     flush();
 }
 
+$__deploy_is_compiled = [];
+
 function deploy_is_compiled($path, $extension = false)
 {
+    global $__deploy_is_compiled;
+    if (isset($__deploy_is_compiled[$path])) return $__deploy_is_compiled[$path];
+    $__deploy_is_compiled[$path] = true;
+
     if (false === $extension)
     {
         $pathinfo  = pathinfo($path);
@@ -145,6 +151,7 @@ function deploy_is_compiled($path, $extension = false)
         return true;
     }
 
+    $__deploy_is_compiled[$path] = false;
     return false;
 }
 
@@ -173,6 +180,14 @@ function deploy_exec($cmd, $die_on_error = true, $output = false)
 
 
     return implode(PHP_EOL, $outputs);
+}
+
+function deploy_compare($a,$b)
+{
+    if ($a < $b) return -1;
+    if ($a > $b) return  1;
+
+    return 0;
 }
 
 function deploy_compare_first_value($a,$b)
@@ -729,6 +744,34 @@ if (is_dir('D:\wamp\www\villepreux.net\json'))      die("1.1 JSON folder created
 if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("1.2 os_path folder created!");
 if (is_dir('D:\wamp\www\villepreux.net\5'))         die("1.3 5 folder created!");
 
+
+{
+    deploy_log("[i] Preparing...");
+
+    $max_path_level = 1;
+    {
+        $roots = array(array($main_src, $main_dst, 0));
+
+        while (count($roots) > 0)
+        {
+            list($src, $dst, $lvl) = array_shift($roots);
+
+            $max_path_level = max($max_path_level, $lvl);
+
+            foreach (deploy_scan($src) as $name)
+            {
+                if (is_dir("$src/$name"))
+                {
+                    $roots[] = array("$src/$name", "$dst/$name", $lvl + 1);
+                }
+            }
+        }
+    }
+
+    deploy_log("[i] Preparing... Path max depth : $max_path_level");
+    $php_args_common .= " path_max_depth=$max_path_level";
+}
+
 if (!!$cmdline_option_copy)
 {
     deploy_log("[i] Mirroring...");
@@ -870,10 +913,10 @@ if (!!$cmdline_option_compile)
 
     $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile") : array();
 
-    // PASS #1 - Compute amount of files to process. So we can track progression
+    // PASS #0 - Compute amount of files to process. So we can track progression
 
-    $dependencies_could_have_been_modified = false;
-    
+    deploy_log("[i] Compiling... Compute amount of files to process...");
+
     $nb_files = 0;
     $roots = array(array($main_src, $main_dst));
 
@@ -894,29 +937,74 @@ if (!!$cmdline_option_compile)
             if (deploy_is_compiled("$src/$name", $extension))
             {
                 $nb_files += 1 + count($derivatives);
-                
-                if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
-                {
-                    $deploy_name = str_replace(".php", ".$target_ext", $name);  
-                    
-                    $t_from = filemtime("$src/$name");
-                    $t_to   = is_file("$dst/$deploy_name") ? filemtime("$dst/$deploy_name") : 0;
-                    
-                    if ($t_to < $t_from) 
-                    {
-                        if ($name != "index.php" || !in_array($src, $root_sources))
-                        {   
-                            deploy_log("$dst/$deploy_name ".date ("Y-m-d H:i:s.", $t_to)." < $src/$name ".date ("Y-m-d H:i:s.", $t_from)."))");
-
-                            $dependencies_could_have_been_modified = true;
-                        }
-                    }
-                }
             }        
         }
     }
 
+    // PASS #1 - Date optimization / Check dependencies
+
+    $dependencies_debug_checked_file = false;
+
+    if ($cmdline_option_compare_dates)
+    {
+        deploy_log("[i] Compiling... Check dependencies...");
+    
+        $dependencies_could_have_been_modified = false;
+        
+        $roots = array(array($main_src, $main_dst));
+
+        while (count($roots) > 0)
+        {
+            $dir = array_shift($roots);
+
+            $src = $dir[0];
+            $dst = $dir[1];
+
+            foreach (deploy_scan($src) as $name)
+            {
+                if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
+
+                $pathinfo  = pathinfo("$src/$name");
+                $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
+                
+                if (deploy_is_compiled("$src/$name", $extension))
+                {
+                    if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
+                    {
+                        $deploy_name = str_replace(".php", ".$target_ext", $name);  
+                        
+                        $t_from = filemtime("$src/$name");
+                        $t_to   = is_file("$dst/$deploy_name") ? filemtime("$dst/$deploy_name") : 0;
+                        
+                        if ($t_to < $t_from) 
+                        {
+                            if ($name != "index.php" || !in_array($src, $root_sources))
+                            {   
+                                deploy_log($file_index, $nb_files, "[i] $deploy_name ".date ("Y-m-d H:i:s.", $t_to)." < $src/$name ".date ("Y-m-d H:i:s.", $t_from)."");
+
+                                $dependencies_debug_checked_file = $name;
+
+                                $dependencies_could_have_been_modified = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    $file_index += 1 + count($derivatives);                
+                }        
+            }
+        }
+
+        if ($dependencies_could_have_been_modified)
+        {
+            deploy_log($nb_files, $nb_files, "[i] Core dependencies could have been modified. Disable date optimization.");
+        }
+    }
+
     // PASS #2 - Run all php commands / idealy in parallel
+    
+    deploy_log("[i] Compiling... Pre-Process files...");
+    
     /*
     $execs = [];*/
 
@@ -1075,6 +1163,8 @@ if (!!$cmdline_option_compile)
     */
     // PASS #3 - Do all our logic
 
+    deploy_log("[i] Compiling... Process files...");
+    
     $file_index = 0;
     $roots = array(array($main_src, $main_dst));
 
@@ -1097,7 +1187,11 @@ if (!!$cmdline_option_compile)
                 $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
 
                 $deploy_name = str_replace(".php", ".$target_ext", $name);  
-                //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
+    
+                if (!!$cmdline_option_verbose)
+                {
+                    deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
+                }
 
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {
@@ -1107,7 +1201,7 @@ if (!!$cmdline_option_compile)
                     if ($t_to >= $t_from) 
                     {
                         deploy_log($file_index, $nb_files);
-                        ++$file_index;
+                        $file_index += 1 + count($derivatives);
                         continue;
                     }
                 }
@@ -1154,53 +1248,60 @@ if (!!$cmdline_option_compile)
 
                     $has_rss_content = (false !== stripos($html, "application/rss+xml"));
 
-                    if ($has_rss_content) foreach ($derivatives as $type)
+                    if ($has_rss_content) 
                     {
-                        if (!!$cmdline_option_verbose)
+                        foreach ($derivatives as $type)
                         {
-                            $deploy_name = str_replace(".php", ".$target_ext", $name);
-                            deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name -> $type COMPILE");
-                        }
-            
-                        $type_arg = "rss=$type";
-
-                        $derivative_outputs[$type] = false;
-                        /*
-                        if ($cmdline_option_mt)
-                        {
-                            $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ]))).".html");
-                        }*/
-
-                        if (!$derivative_outputs[$type])
-                        {
-                            $cwd = getcwd();
-                            chdir($src);
+                            if (!!$cmdline_option_verbose)
                             {
-                                $derivative_outputs[$type] = "";/*
-
-                                if (!!$cmdline_option_test)
-                                {
-                                    $getdata = []; foreach (explode(" ", "$php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1") as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
-                                    $derivative_outputs[$type] = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
-                                }
-                                else*/
-                                {
-                                    $derivative_outputs[$type] = deploy_exec("php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1");
-                                }
-
-                                deploy_compile_error_check($derivative_outputs[$type], "$src/$name $type");
+                                $deploy_name = str_replace(".php", ".$target_ext", $name);
+                                deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name -> $type COMPILE");
                             }
-                            chdir($cwd);
-                        }
+                
+                            $type_arg = "rss=$type";
 
-                        if (false === $derivative_outputs[$type])
-                        {
-                            unset($derivative_outputs[$type]);
+                            $derivative_outputs[$type] = false;
+                            /*
+                            if ($cmdline_option_mt)
+                            {
+                                $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ]))).".html");
+                            }*/
+
+                            if (!$derivative_outputs[$type])
+                            {
+                                $cwd = getcwd();
+                                chdir($src);
+                                {
+                                    $derivative_outputs[$type] = "";/*
+
+                                    if (!!$cmdline_option_test)
+                                    {
+                                        $getdata = []; foreach (explode(" ", "$php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1") as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
+                                        $derivative_outputs[$type] = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
+                                    }
+                                    else*/
+                                    {
+                                        $derivative_outputs[$type] = deploy_exec("php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1");
+                                    }
+
+                                    deploy_compile_error_check($derivative_outputs[$type], "$src/$name $type");
+                                }
+                                chdir($cwd);
+                            }
+
+                            if (false === $derivative_outputs[$type])
+                            {
+                                unset($derivative_outputs[$type]);
+                            }
                         }
                     }
                 }
                 else
                 {
+                    if ($name == $dependencies_debug_checked_file) {
+                        deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND!");
+                    }
+
                     if (!!$cmdline_option_verbose)
                     {
                         deploy_log($file_index, $nb_files, "[i] $dst/$name", "$file_index / $nb_files: $name -> COMPILE");
@@ -1224,13 +1325,26 @@ if (!!$cmdline_option_compile)
                         }
                         else */
                         {
+                            if ($name == $dependencies_debug_checked_file) {
+                                deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND! php -f $src/$name -- $php_args");
+                            }
+        
                             $html = deploy_exec("php -f $src/$name -- $php_args");
+                            
+                            if ($name == $dependencies_debug_checked_file) {
+                                deploy_log($file_index, $nb_files, "---");
+                                echo $html;
+                                deploy_log($file_index, $nb_files, "---");
+                            }        
                         }
                     }
 
-                    if ($extension == "js" && !$html || $html == "")
+                    if (!$html || $html == "")
                     {
-                        $html = '/'.'* empty *'.'/';
+                             if ($extension == "php") { $html = '<!-- '  . 'empty' . ' //-->'; }
+                        else if ($extension == "js" ) { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
+                        else if ($extension == "css") { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
+                        else                          { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
                     }
                     
                     deploy_compile_error_check($html, "$src/$name html");
@@ -1249,9 +1363,25 @@ if (!!$cmdline_option_compile)
 
                     if ($md5_prev != deploy_content($html))
                     {
+                        if (false !== stripos($dst, "/a11y/"))
+                        {
+                            deploy_log($file_index, $nb_files, "[i] ----------------- ");
+                            echo $md5_prev;
+                            file_put_contents("__DIFF_A.txt", $md5_prev);
+                            deploy_log($file_index, $nb_files, "[i] ----------------- ");
+                            echo $html;
+                            file_put_contents("__DIFF_B.txt", $html);
+                            deploy_log($file_index, $nb_files, "[i] ----------------- ");
+                            die;
+                        }
+
                         deploy_log($file_index, $nb_files, "[C] $dst/$deploy_name", deploy_diff(deploy_content($html), $md5_prev));
     
                         file_put_contents("$dst/$deploy_name", $html);
+                    }
+                    else
+                    {
+                        touch("$dst/$deploy_name");
                     }
                 }
 
@@ -1267,8 +1397,11 @@ if (!!$cmdline_option_compile)
                         $deploy_name = str_replace(".php", ".$target_ext", $name);            
                         deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name ".(!$output ? "N/A" : "-> STRUCT $type"));
                     }
-    
-                    deploy_log($file_index, $nb_files);
+                    else
+                    {    
+                        deploy_log($file_index, $nb_files);
+                    }
+
                     ++$file_index;
                     
                     if (!$output) continue;
