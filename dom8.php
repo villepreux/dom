@@ -606,8 +606,9 @@
     }
 
     function host_url   ()                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
-    function url_branch ($params = false, $get = true, $post = true, $session = false)  { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val)) $uri .= "&$key=$val"; } } return trim($uri, "/"); }
     function url        ($params = false)                                               { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
+    function url_branch ($params = false, $get = true, $post = true, $session = false)  { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val) && !($val instanceof \Closure)) { $uri .= "&$key=$val"; } } } return trim($uri, "/"); }
+    function url_leaf   ($params = false, $get = true, $post = true, $session = false)  { $branch = url_branch($params, $get, $post, $session); $sep = strripos($branch, "/"); return $sep === false ? $branch : substr($branch, $sep + 1); }    
 
     function live_url($params = false)
     {
@@ -2345,10 +2346,10 @@
                 $section = $hook_result;
             }
         }
-                
-        if ($h == 1)      $title            = hook_title($title);
-        if ($h == 2) list($title, $section) = hook_section($title, $section);
-        
+
+        if ($h == get("headline-level-title",    1))      $title            = hook_title($title);
+        if ($h == get("headline-level-sections", 2)) list($title, $section) = hook_section($title, $section);
+
         call_user_hook("headline", $title);
 
         return [ $h, $title, $section ];
@@ -2408,7 +2409,7 @@
                 $section = $hook_result;
             }
         }
-        
+
         set(
             "hook_sections", 
             array_merge(
@@ -4935,14 +4936,23 @@
         $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
 
       //if ($compression) while (ob_get_level() > 0) { ob_end_clean() ; }  // WOuld be bad if already nested
-        if ($compression) ob_start("ob_gzhandler");
+        if ($compression) 
+        {
+            ob_start("ob_gzhandler");
+        }
+        {
+            echo $doc;
+            cache_stop();    
+            generate_all_postprocess();
+        }
 
-        echo $doc;   
-
-        cache_stop();    
-        generate_all_postprocess();
-
-        if ($compression) ob_end_flush();
+        if ($compression) 
+        {
+          //ob_end_flush();
+            $doc = ob_get_contents();
+            ob_end_clean();
+            echo $doc;
+        }
     }
 
     #endregion
@@ -9924,7 +9934,7 @@
             footer  { background-color: var(--background-darker-color, #eee); color: var(--text-on-background-darker-color, #000000); }
     
             details:not(details details)         { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
-                   :not(details details) summary { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
+            summary:not(details details summary) { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
     
             input, select { color: var(--text-color); background: var(--background-lighter-color); }
 
@@ -11764,12 +11774,12 @@
         . eol()
         . $html
 
-        . eol().comment("DOM Body boilerplate markup")
-      /*. back_to_top_link()*/
+        . eol().comment("DOM Body boilerplate markup")/*
+        . back_to_top_link()*/
 
         . eol() . comment("DOM Body scripts")
-        . scripts_body()            . (is_callable("dom\\scripts_body_toolbar") ? (""
-        . scripts_body_toolbar()    ) : "")
+        . scripts_body()          /*. (is_callable("dom\\scripts_body_toolbar") ? (""
+        . scripts_body_toolbar()    ) : "")*/
 
         . eol() . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
                                                                     .((!get("htaccess_rewrite_php")) ? (""

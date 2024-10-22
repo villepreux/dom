@@ -65,7 +65,13 @@
             .toolbar                                        { width: 100%; z-index: 1; }
             
             .toolbar-row                                    { width: 100%; margin-left: 0px !important; margin-right: 0px !important; display: flex; /*overflow: hidden;*/ }
+            /*
             .toolbar-row                                    { height: var(--header-toolbar-height); align-items: center; }
+            */
+            /* VARIABLE HEIGHT */
+            .toolbar-row                                    { align-items: center; }
+            .toolbar-row-nav                                { min-height: var(--header-toolbar-height); }
+
             .toolbar-row-banner                             { height: var(--header-height); max-height: var(--header-height); min-height: var(--header-min-height); }
 
             .toolbar-row, 
@@ -76,17 +82,22 @@
 
             .toolbar-row-nav, 
             .toolbar-row-nav *                              { margin: 0; padding: 0; white-space: nowrap; }
-
+            /*
             .toolbar-row-nav, 
-            .toolbar-row-nav :is(section, div, ul)          { display: flex; /*flex-shrink: 0;*/ align-items: center;  scrollbar-width: none; flex-wrap: nowrap; }
+            .toolbar-row-nav :is(section, div, ul)          { display: flex; align-items: center;  scrollbar-width: none; flex-wrap: nowrap; }
+            */
+            /* VARIABLE HEIGHT */
+            .toolbar-row-nav, 
+            .toolbar-row-nav :is(section, div, ul)          { display: flex; align-items: center;  scrollbar-width: none; flex-wrap: wrap; max-width: 100%; }
+
             .toolbar-row-nav,
             .toolbar-row-nav :is(section, div, ul) > *      { flex-shrink: 0; }
             .toolbar-row-nav,
-            .toolbar-row-nav ul                             { gap: var(--gap); }
+            .toolbar-row-nav ul                             { gap: 0 1rem; }
             .toolbar-row-nav li *                           { min-height: var(--line-height); }
             .toolbar-row-nav .toolbar-cell-left .menu-list  { flex-direction: column; align-items: stretch; }
 
-            .toolbar-row-nav :not(:is(section, div, ul, img))   { display: block; }
+            .toolbar-row-nav :not(:is(section,div,ul,img))  { display: block; }
             
             .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)); }
 
@@ -95,6 +106,7 @@
 
             .toolbar-row-nav .toolbar-cell-right            { flex-grow: 1; justify-content: end; } 
             .toolbar-row-nav .toolbar-cell-right            { margin-right: clamp(var(--gap),  calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width)) + var(--gap)), calc(var(--right-text-margin-ratio) * 100%)); }
+            .toolbar-row-nav .toolbar-cell-right            { padding-left: 1rem; }
 
             .toolbar .row.static                            { visibility: hidden; position: fixed; left: 0px; top: 0px; z-index: 999999; } 
 
@@ -102,27 +114,76 @@
 
             .toolbar .menu-entries                          { flex-direction: column; align-items: stretch; }
 
+            .toolbar-duplicate                              { z-index: -1; display: none; opacity: 0; }
+            body > main                                     { margin-top: 0 !important; }
+
+
             .menu-toggle                                    { width: var(--header-toolbar-height); flex-direction: column; }
             .menu-toggle a,       .toolbar-title a,
             .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
 
+            @supports (animation-timeline: scroll()) {
+                /*     
+                @property --toolbar-box-shadow-blur {
+
+                    syntax: "<length>";
+                    inherits: true;
+                    initial-value: 0px;
+                }
+
+                @keyframes toolbar-scroll {
+
+                    0% { --toolbar-box-shadow-blur:  0px; }
+                    100% { --toolbar-box-shadow-blur: 16px; }
+                }
+
+                .toolbar {
+
+                    --toolbar-box-shadow-blur: 0px;
+
+                    animation:          toolbar-scroll ease both;
+                    animation-timeline: scroll();
+                    animation-range:    0px var(--header-height);
+                    animation-duration: 1ms;
+
+                    box-shadow: 0 0 var(--toolbar-box-shadow-blur) 0 black;
+                }
+
+                @keyframes toolbar-row-banner-scroll {
+
+                      0% { height: var(--header-height);        --toolbar-box-shadow-blur:  0px; }
+                    100% { height: var(--header-min-height);    --toolbar-box-shadow-blur: 1rem; }
+                }
+                
+                .toolbar-row-banner {
+
+                    height:             var(--header-height);
+
+                    animation:          toolbar-row-banner-scroll ease both;
+                    animation-timeline: scroll();
+                    animation-range:    0px var(--header-height);
+                    animation-duration: 1ms;
+                }
+                */
+            } /* @supports (animation-timeline: scroll()) */
+
             /* Menu open/close mechanism */
     
-          /*.menu                                           { display: none }*/ /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
-          /*a.menu-switch-link.close                        { display: none }*/
+          /*.menu                       { display: none }*/ /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
+          /*a.menu-switch-link.close    { display: none }*/
     
             /* Menu list */
                 
             #<?= DOM_MENU_ID 
-            ?>-open .menu                                   { position: absolute; left: var(--gap); transform: translateY(var(--header-toolbar-height)); }
-            .menu                                           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
-            .menu ul                                        { padding: 0; gap: 0; list-style-type: none; align-items: stretch; flex-direction: column; }
-            .menu li                                        { padding: 0; }
-            .menu li > *                                    { padding: calc(0.5 * var(--gap)) var(--gap); }
+            ?>-open .menu   { position: absolute; left: var(--gap); transform: translateY(var(--header-toolbar-height)); }
+            .menu           { max-height: 0; transition: max-height 1s ease-out; text-align: left; }
+            .menu ul        { padding: 0; gap: 0; list-style-type: none; align-items: stretch; flex-direction: column; }
+            .menu li        { padding: 0; }
+            .menu li > *    { padding: calc(0.5 * var(--gap)) var(--gap); }
     
             /* Toolbar */
         
-            .toolbar { position: sticky; left: 0; top: calc(var(--header-min-height) - var(--header-height)); }
+            .toolbar:not(.toolbar-duplicate) { position: sticky; left: 0; top: calc(var(--header-min-height) - var(--header-height)); }
             
             /* Menu open/close mechanism */
     
@@ -209,82 +270,6 @@
         return "";
     }*/
 
-    function js_toolbar_framework_material()
-    {
-        if (has("dom_toolbar_no_js")) return "";
-        
-        if ("material" != get("framework")) return "";
-
-        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-
-        /* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
-
-        if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
-
-        /* Adjust toolbar margin */
-
-        document.querySelector(".mdc-top-app-bar").position = "fixed";
-
-        (function()
-        {
-            var pollId = 0;
-
-            pollId = setInterval(function()
-            {
-                var e = document.querySelector(".mdc-top-app-bar");
-
-                if (e != null)
-                { 
-                    var pos = getComputedStyle(e).position;
-
-                    if (pos === "fixed" || pos === "relative")
-                    {
-                        material_init();
-                        clearInterval(pollId);
-                    }
-                }
-
-            }, 250);
-
-            function material_init()
-            {
-                var e = document.querySelector(".mdc-top-app-bar");
-
-                if (e != null && typeof mdc !== "undefined")
-                { 
-                    var toolbar = mdc.topAppBar.MDCTopAppBar.attachTo(e);
-                    toolbar.fixedAdjustElement = document.querySelector(".mdc-top-app-bar--dense-");
-                }
-            }
-
-        })();
-
-        /*  Menu */
-
-        var menuEl = document.querySelector(".mdc-menu");
-
-        if (menuEl != null && typeof mdc !== "undefined")
-        {  
-            var menuToggle = document.querySelector(".menu-toggle");
-            var menu       = new mdc.menu.MDCMenu(menuEl);
-
-            menuToggle.addEventListener("click", function() 
-            { 
-                menu.open = !menu.open; 
-            });
-
-            menuEl.addEventListener("MDCMenu:selected", function(evt) 
-            {
-                const detail = evt.detail;
-
-                detail.item.textContent;
-                detail.index;
-            });
-        }  
-
-        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
-
     function js_toolbar_height()
     {
         if (has("dom_toolbar_no_js") || !!get("no_css")) return "";
@@ -292,7 +277,8 @@
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
             /* TOOLBAR */
-
+            /* Needed until Firefox and Safari support scroll-driven animations */
+            
             var idAnimationFrame = null;
         
             function updateToolbarHeight(animate)
@@ -320,7 +306,7 @@
                         ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) 
                         : target;
 
-                    h = parseInt(Math.max(0, h), 0); /* So it's properly snapped */
+                    h = parseInt(Math.max(0, h), 0);
 
                     toolbar_row_banner.style.height = h + "px";
 
@@ -336,18 +322,22 @@
                 window.cancelAnimationFrame(idAnimationFrame);
                 updateToolbarHeight(true);
             }
-        
+            
             function onInitToolbarHeight()
             {
                 var toolbars = document.querySelectorAll(".toolbar:not(html[data-css-naked-day] .toolbar)");
                 var toolbar  = toolbars ? toolbars[0] : null;
                 var position = toolbar  ? getComputedStyle(toolbar).getPropertyValue("position") : "static";
 
+                var toolbar_duplicate = (toolbars && toolbars.length >= 2) ? toolbars[1] : null;
+
                 if (toolbar && position != "static")
                 {
-                    toolbar.style.position = "fixed";
                     toolbar.style.top      = "0px";
-                    
+                    toolbar.style.position = "fixed";                    
+                    if (toolbar_duplicate)
+                        toolbar_duplicate.style.display = "flow-root";
+                        
                     var under_toolbar_element = document.querySelector("body > main");
 
                     if (under_toolbar_element)
@@ -359,10 +349,19 @@
                         else if (toolbar_banner)                { under_toolbar_element.style.marginTop = "calc(var(--header-height))";                                  }
                         else if (toolbar_nav)                   { under_toolbar_element.style.marginTop = "calc(var(--header-toolbar-height))";                          }
                     }
-
+                    
                     window.cancelAnimationFrame(idAnimationFrame);
                     updateToolbarHeight(false);
                 }
+            }
+
+            function disableToolbarHeight()
+            {
+                window.cancelAnimationFrame(idAnimationFrame);
+
+                document.querySelector(".toolbar"           ).style.position    = "";
+                document.querySelector(".toolbar-row-banner").style.animation   = "";
+                document.querySelector("body > main"        ).style.marginTop   = "";
             }
 
             dom.on_loaded(onInitToolbarHeight);
@@ -489,8 +488,7 @@
         $html =                                                           ((!!get("toolbar_support_height",      true)) ? (
                 script(js_toolbar_height                ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
                 script(js_toolbar_banner_rotation       ()).   "") : ""). ((!!get("script_toolbar_menu",         true)) ? (
-                script(js_toolbar_menu                  ()).   "") : ""). ((!!get("script_framework_material",   true)) ? (
-                script(js_toolbar_framework_material    ()).   "") : "");
+                script(js_toolbar_menu                  ()).   "") : "");
 
         return $html;
     }
@@ -583,15 +581,17 @@
         );
     }
 
-    function menu_li_attributes($item)
+    function menu_li_attributes($item, $add_transition_names = auto)
     {
+        $add_transition_names = (auto == $add_transition_names) ? get("transition_names") : $add_transition_names;
+
         $transition_name = trim(to_classname($item));
 
         $attributes = [];
         {
             $attributes["class"]    = component_class("li", "list-item");               /*
             $attributes[""role"]    = "menuitem";                                   */  /*
-            $attributes["tabindex"] = "0";                                          */  if ($transition_name != "") {
+            $attributes["tabindex"] = "0";                                          */  if ($transition_name != "" && $add_transition_names) {
             $attributes["style"]    = "view-transition-name: $transition_name;";    }
             
         }
@@ -601,7 +601,7 @@
 
     $__ul_menu_index = -1;
 
-    function ul_menu($menu_entries = array(), $default_target = internal_link, $sidebar = auto)
+    function ul_menu($menu_entries = array(), $default_target = internal_link, $sidebar = auto, $add_transition_names = auto)
     {
         if (!!get("gemini")) return "";
         
@@ -630,7 +630,7 @@
                     $target     = get($menu_entry, "target",     get($menu_entry, 2, $default_target));
                     $attributes = get($menu_entry, "attributes", get($menu_entry, 3, false));
 
-                    $menu_lis .= li(a(span($item), $link, $attributes, $target), menu_li_attributes($item));
+                    $menu_lis .= li(a(span($item), $link, $attributes, $target), menu_li_attributes($item, $add_transition_names));
                 }
             }
         }
@@ -758,7 +758,7 @@
     function  ul_menu_auto($sidebar = auto) { return delayed_component("_".__FUNCTION__, $sidebar); }
     function _ul_menu_auto($sidebar = auto) { $sections = get("hook_sections"); return (!is_array($sections) || count($sections) < 2) ? "" : ul_menu($sections, internal_link, $sidebar); }
 
-    function  menu_toggle_auto($sidebar = auto) { return menu_toggle(ul_menu_auto(), $sidebar); }
+    function menu_toggle_auto($sidebar = auto) { return menu_toggle(ul_menu_auto(), $sidebar); }
 
     function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shrink_to_fit = false, $sidebar = auto)
     {
@@ -811,9 +811,20 @@
 
         if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         
+        $attributes1 = $attributes;
+        $attributes2 = attributes_add($attributes, attributes(attr("style", "view-transition-name: toolbar") ));
+
+        set("transition_names", true);  $toolbar1 = header($html, attributes_add_class($attributes1, component_class("header", "toolbar toolbar-container")));
+        set("transition_names", false); $toolbar2 = header($html, attributes_add_class($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate")));
+        del("transition_names");
+
         return  
             comment("PRE Toolbar").
-            header($html, attributes_add_class($attributes, component_class("header", "toolbar toolbar-container")));
+            $toolbar1.
+            $toolbar2.
+            scripts_body_toolbar().
+            script('onInitToolbarHeight();')
+            ;
     }
 
 ?>
