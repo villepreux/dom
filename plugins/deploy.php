@@ -10,7 +10,7 @@ function arg_value($flag, $fallback)         { $values = arg_array($flag); if (0
 
 $cmdline_option_static                  = 1;
 $cmdline_option_cls                     = arg_state("cls");
-$cmdline_option_compare_dates           = arg_state("compare-dates");
+$cmdline_option_compare_dates           = arg_state("compare-dates", 1, arg_state("horo"));
 $cmdline_option_gemini                  = arg_state("gemini");
 $cmdline_option_gemini_local_bin        = arg_state("gemini-local-bin");
 $cmdline_option_output                  = arg_value("output", arg_state("gemini") ? ".gemini" : ".static");
@@ -437,6 +437,19 @@ function deploy_compile_error_check($html, $src)
 
             if (!$cmdline_option_compile_one)
             {
+                $msg = "Unknown error";
+                if (false !== stripos($html, "127.0.0.1")) $msg = "Localhost detected 127.0.0.1";
+                if (false !== stripos($html, "Notice:"  ) && false !== stripos($html, "Call Stack:")) $msg = "PHP Notice";
+                if (false !== stripos($html, "Warning:" ) && false !== stripos($html, "Call Stack:")) $msg = "PHP Warning";
+                if (false !== stripos($html, "Error:"   ) && false !== stripos($html, "Call Stack:")) $msg = "PHP Error";
+                if (false !== stripos($html, "[COMPILE ERROR]"  )) $msg = "INTERNAL [COMPILE ERROR]";
+        
+                error_log("-----------------------");
+                error_log(PHP_EOL.$html);
+                error_log("-----------------------");
+                error_log("Error while compiling $src ($msg)");
+                error_log("-----------------------");
+                
                 if (strlen($html) > 200*80) 
                 {
                     $html = substr($html, 0, 200*80/2).PHP_EOL.PHP_EOL."[...]".PHP_EOL.PHP_EOL.substr($html, strlen($html) - (200*80/2));
@@ -444,16 +457,10 @@ function deploy_compile_error_check($html, $src)
 
                 $html_lines = explode(PHP_EOL, $html);
 
-                error_log(PHP_EOL."-----------------------");
-                foreach ($html_lines as $html) error_log(PHP_EOL.$html);
-                error_log(PHP_EOL."-----------------------");
-                error_log(PHP_EOL."Error while compiling $src");
-                error_log(PHP_EOL."-----------------------");
-                
-                echo(PHP_EOL."-----------------------");
-                echo(PHP_EOL."Error while compiling $src");
                 echo(PHP_EOL."-----------------------");
                 foreach ($html_lines as $html) echo(PHP_EOL.$html);
+                echo(PHP_EOL."-----------------------");
+                echo(PHP_EOL."Error while compiling $src ($msg)");
                 echo(PHP_EOL."-----------------------");
             }
             
@@ -978,11 +985,18 @@ if (!!$cmdline_option_compile)
                         
                         if ($t_to < $t_from) 
                         {
-                            if ($name != "index.php" || !in_array($src, $root_sources))
+                            /* On check des fichiers qu'on considère dépendances probables de tout le monde
+                             *  - tous les fichiers non index.php
+                             *  - tous les fichiers racine
+                             */
+                            if ($name != "index.php" || in_array($src, $root_sources))
                             {   
                                 deploy_log($file_index, $nb_files, "[i] $deploy_name ".date ("Y-m-d H:i:s.", $t_to)." < $src/$name ".date ("Y-m-d H:i:s.", $t_from)."");
 
-                                $dependencies_debug_checked_file = $name;
+                                $dependencies_debug_checked_file = "$src/$name";
+
+                                //file_put_contents("__DIFF_A.txt", deploy_content_file("http://localhost/$domain_src/$src/$name"));
+                                //file_put_contents("__DIFF_B.txt", deploy_content_file("$dst/$name"));
 
                                 $dependencies_could_have_been_modified = true;
                                 break;
@@ -1027,15 +1041,17 @@ if (!!$cmdline_option_compile)
             
             if (deploy_is_compiled("$src/$name", $extension))
             {
-                $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
-
                 $deploy_name = str_replace(".php", ".$target_ext", $name);  
-                //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
+
+                if (!!$cmdline_option_verbose)
+                {
+                    //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
+                }
 
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {
                     $t_from = filemtime("$src/$name");
-                    $t_to   = is_file("$dst/$deploy_name") ? ("$dst/$deploy_name") : 0;
+                    $t_to   = is_file("$dst/$deploy_name") ? filemtime("$dst/$deploy_name") : 0;
                     
                     if ($t_to >= $t_from) 
                     {
@@ -1045,10 +1061,12 @@ if (!!$cmdline_option_compile)
                     }
                 }
     
+                $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
+
                 if (!!$cmdline_option_verbose)
                 {
                     $deploy_name = str_replace(".php", ".$target_ext", $name);            
-                    //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "$file_index / $nb_files: $name -> COMPILE");
+                  //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "$file_index / $nb_files: $name -> COMPILE");
                 }
                 
                 $html = false;
@@ -1071,7 +1089,7 @@ if (!!$cmdline_option_compile)
             }        
         }
     }
-/*
+    /*
     function async_exec($cmd) 
     {
         if (DIRECTORY_SEPARATOR === '\\')
@@ -1184,8 +1202,6 @@ if (!!$cmdline_option_compile)
             
             if (deploy_is_compiled("$src/$name", $extension))
             {
-                $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
-
                 $deploy_name = str_replace(".php", ".$target_ext", $name);  
     
                 if (!!$cmdline_option_verbose)
@@ -1196,24 +1212,43 @@ if (!!$cmdline_option_compile)
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {
                     $t_from = filemtime("$src/$name");
-                    $t_to   = is_file("$dst/$deploy_name") ? ("$dst/$deploy_name") : 0;
+                    $t_to   = is_file("$dst/$deploy_name") ? filemtime("$dst/$deploy_name") : 0;
                     
                     if ($t_to >= $t_from) 
                     {
-                        deploy_log($file_index, $nb_files);
+                        /*if (!!$cmdline_option_verbose)
+                        {
+                            deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "OLD");
+                        }
+                        else*/
+                        {
+                            deploy_log($file_index, $nb_files);
+                        }
+
                         $file_index += 1 + count($derivatives);
                         continue;
                     }
+
+                    if (!!$cmdline_option_verbose)
+                    {
+                        deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "NEW ($t_to < $t_from)");
+                    }
                 }
-    
-                if (!!$cmdline_option_verbose)
+                
+                $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/", str_replace($main_src,"/",$src));
+
+                /*if (!!$cmdline_option_verbose)
                 {
-                    $deploy_name = str_replace(".php", ".$target_ext", $name);            
+                    $deploy_name = str_replace(".php", ".$target_ext", $name);
                     deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "$file_index / $nb_files: $name -> COMPILE");
-                }
+                }*/
                 
                 $html = false;
                 $derivative_outputs = array();
+
+                if ("$src/$name" == $dependencies_debug_checked_file) {
+                    deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND!");
+                }
 
                 if ($name == "index.php")
                 {
@@ -1224,8 +1259,13 @@ if (!!$cmdline_option_compile)
                         $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args", getcwd() ]))).".html");
                     }*/
 
-                    if (!$html)
+                    if (false === $html)
                     {   
+                        /*if (!!$cmdline_option_verbose)
+                        {
+                            deploy_log($file_index, $nb_files, "[i] $dst/$name", "$file_index / $nb_files: $name -> COMPILE");
+                        }*/
+        
                         $cwd = getcwd();
                         chdir($src);
                         {
@@ -1267,7 +1307,7 @@ if (!!$cmdline_option_compile)
                                 $derivative_outputs[$type] = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), $src, "php -f $name -- $php_args $type_arg rss_date_granularity_daily=1 rss_date_granularity_file=1", getcwd() ]))).".html");
                             }*/
 
-                            if (!$derivative_outputs[$type])
+                            if (false === $derivative_outputs[$type])
                             {
                                 $cwd = getcwd();
                                 chdir($src);
@@ -1298,14 +1338,10 @@ if (!!$cmdline_option_compile)
                 }
                 else
                 {
-                    if ($name == $dependencies_debug_checked_file) {
-                        deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND!");
-                    }
-
-                    if (!!$cmdline_option_verbose)
+                    /*if (!!$cmdline_option_verbose)
                     {
                         deploy_log($file_index, $nb_files, "[i] $dst/$name", "$file_index / $nb_files: $name -> COMPILE");
-                    }
+                    }*/
     
                     // Assumes other php files have to be able to be included from anywhere
                     /*                     
@@ -1314,7 +1350,7 @@ if (!!$cmdline_option_compile)
                         $html = @file_get_contents("$main_src/.cache/".md5(base64_encode(json_encode([ getcwd(), false, "php -f $src/$name -- $php_args", false ]))).".html");
                     }*/
 
-                    if (!$html)
+                    if (false === $html)
                     {
                         $html = "";/*
 
@@ -1325,13 +1361,13 @@ if (!!$cmdline_option_compile)
                         }
                         else */
                         {
-                            if ($name == $dependencies_debug_checked_file) {
+                            if ("$src/$name" == $dependencies_debug_checked_file) {
                                 deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND! php -f $src/$name -- $php_args");
                             }
         
                             $html = deploy_exec("php -f $src/$name -- $php_args");
                             
-                            if ($name == $dependencies_debug_checked_file) {
+                            if ("$src/$name" == $dependencies_debug_checked_file) {
                                 deploy_log($file_index, $nb_files, "---");
                                 echo $html;
                                 deploy_log($file_index, $nb_files, "---");
@@ -1350,7 +1386,7 @@ if (!!$cmdline_option_compile)
                     deploy_compile_error_check($html, "$src/$name html");
                 }
 
-                if ($html)
+                if (false !== $html)
                 {
                     $deploy_name = str_replace(".php", ".$target_ext", $name);
 
@@ -1362,7 +1398,7 @@ if (!!$cmdline_option_compile)
                     }
 
                     if ($md5_prev != deploy_content($html))
-                    {
+                    {   /*
                         if (false !== stripos($dst, "/a11y/"))
                         {
                             deploy_log($file_index, $nb_files, "[i] ----------------- ");
@@ -1373,7 +1409,7 @@ if (!!$cmdline_option_compile)
                             file_put_contents("__DIFF_B.txt", $html);
                             deploy_log($file_index, $nb_files, "[i] ----------------- ");
                             die;
-                        }
+                        }*/
 
                         deploy_log($file_index, $nb_files, "[C] $dst/$deploy_name", deploy_diff(deploy_content($html), $md5_prev));
     
@@ -1381,7 +1417,16 @@ if (!!$cmdline_option_compile)
                     }
                     else
                     {
+                        if ("$src/$name" == $dependencies_debug_checked_file) {
+                            deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file: TOUCH $dst/$deploy_name!");
+                        }
                         touch("$dst/$deploy_name");
+                    }
+                }
+                else
+                {
+                    if ("$src/$name" == $dependencies_debug_checked_file) {
+                        deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file: !html");
                     }
                 }
 
@@ -1395,7 +1440,7 @@ if (!!$cmdline_option_compile)
                     if (!!$cmdline_option_verbose)
                     {
                         $deploy_name = str_replace(".php", ".$target_ext", $name);            
-                        deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name ".(!$output ? "N/A" : "-> STRUCT $type"));
+                        deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name -> $type", "$file_index / $nb_files: $name ".(false === $output ? "N/A" : "-> STRUCT $type"));
                     }
                     else
                     {    
@@ -1457,6 +1502,7 @@ if (!!$cmdline_option_compile)
 
     // DONE
     
+    deploy_log($nb_files, $nb_files);
     deploy_log("[i] Compiling... OK");
 }
 
