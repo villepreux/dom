@@ -488,39 +488,44 @@ deploy_init_terminal($cmdline_option_cls);
 @ini_set('memory_limit', '-1');
 
 $root_sources = array("$main_src");
-foreach (array("portfolio/web", "dom/examples") as $path)
-    $root_sources = array_merge($root_sources, array_map(
-        function($name) use ($main_src, $path) { return "$main_src/$path/$name"; }, 
-        deploy_subdirs("$main_src/$path")
-        ));
+{
+    foreach (array("portfolio/web", "dom/examples") as $path)
+        $root_sources = array_merge($root_sources, array_map(
+            function($name) use ($main_src, $path) { return "$main_src/$path/$name"; }, 
+            deploy_subdirs("$main_src/$path")
+            ));
+}
 
-$php_args_common = 
+$php_args_common = "";
+{
+    $php_args_common = 
 
-        "beautify"                      ."=".   "$cmdline_option_beautify".
-    " "."minify"                        ."=".   "$cmdline_option_minify".
-    " "."noajax"                        ."=".   "1".                        // (SLOWER!)
-  //" "."masonry"                       ."=".   "0".                        // (Slower final website)
-    " "."static"                        ."=".   "1".                        // Hint to inform the site that it is a static version
-    " "."scrap"                         ."=".   "$cmdline_option_scrap".    // Hint to inform it can scrap if needed, as it's a precompiled site (MUCH SLOWER!)
-    " "."spa"                           ."=".   "$cmdline_option_spa".      // Hint to inform we want a Single Page Application (EXPERIMENTAL / WIP)
-    " "."HTTP_ACCEPT_LANGUAGE"          ."=".   "fr".                       // Make assumptions on Netlify server
-    " "."SERVER_NAME"                   ."=".   "$server_name".
-    " "."SERVER_PORT"                   ."=".   "80".
-    " "."HTTPS"                         ."=".   "on".
-    " "."HTTP_HOST"                     ."=".   "$server_http_host".
-    " "."rand_seed"                     ."=".   "666".
-    " "."path_max_depth"                ."=".   "32".
-    " "."rss_date_granularity_daily"    ."=".   "1".
-    " "."rss_date_granularity_file"     ."=".   "1".
-    " "."live_domain"                   ."=".   "$server_name".
+            "beautify"                      ."=".   "$cmdline_option_beautify".
+        " "."minify"                        ."=".   "$cmdline_option_minify".
+        " "."noajax"                        ."=".   "1".                        // (SLOWER!)
+    //" "."masonry"                       ."=".   "0".                        // (Slower final website)
+        " "."static"                        ."=".   "1".                        // Hint to inform the site that it is a static version
+        " "."scrap"                         ."=".   "$cmdline_option_scrap".    // Hint to inform it can scrap if needed, as it's a precompiled site (MUCH SLOWER!)
+        " "."spa"                           ."=".   "$cmdline_option_spa".      // Hint to inform we want a Single Page Application (EXPERIMENTAL / WIP)
+        " "."HTTP_ACCEPT_LANGUAGE"          ."=".   "fr".                       // Make assumptions on Netlify server
+        " "."SERVER_NAME"                   ."=".   "$server_name".
+        " "."SERVER_PORT"                   ."=".   "80".
+        " "."HTTPS"                         ."=".   "on".
+        " "."HTTP_HOST"                     ."=".   "$server_http_host".
+        " "."rand_seed"                     ."=".   "666".
+        " "."path_max_depth"                ."=".   "32".
+        " "."rss_date_granularity_daily"    ."=".   "1".
+        " "."rss_date_granularity_file"     ."=".   "1".
+        " "."live_domain"                   ."=".   "$server_name".
 
-    "";
+        "";
 
-if (!!$cmdline_option_debug)                $php_args_common .= " debug=1";
-if (!!$cmdline_option_profiling)            $php_args_common .= " profiling=1";
-if (!!$cmdline_option_fast)                 $php_args_common .= " fast=1";
-if (!!$cmdline_option_output
-&&    $cmdline_option_output != "static")   $php_args_common .= " $cmdline_option_output=1";
+    if (!!$cmdline_option_debug)                $php_args_common .= " debug=1";
+    if (!!$cmdline_option_profiling)            $php_args_common .= " profiling=1";
+    if (!!$cmdline_option_fast)                 $php_args_common .= " fast=1";
+    if (!!$cmdline_option_output
+    &&    $cmdline_option_output != "static")   $php_args_common .= " $cmdline_option_output=1";
+}
 
 $cmdline_values = [
 
@@ -747,11 +752,7 @@ else
     deploy_log("[i] Auto-Generating files if needed... OK");
 }
 
-if (is_dir('D:\wamp\www\villepreux.net\json'))      die("1.1 JSON folder created!");
-if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("1.2 os_path folder created!");
-if (is_dir('D:\wamp\www\villepreux.net\5'))         die("1.3 5 folder created!");
-
-
+// Pre-parsing to detect any possible optimization based on actual sources
 {
     deploy_log("[i] Preparing...");
 
@@ -875,10 +876,6 @@ if (!!$cmdline_option_copy)
     
     deploy_log("[i] Mirroring... OK");
 }
-
-if (is_dir('D:\wamp\www\villepreux.net\json'))      die("2.1 JSON folder created!");
-if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("2.2 os_path folder created!");
-if (is_dir('D:\wamp\www\villepreux.net\5'))         die("2.3 5 folder created!");
 
 if (!!$cmdline_option_compile_one)
 {
@@ -1723,5 +1720,3 @@ if (!!$cmdline_option_netlify)
 }
 
 deploy_log("[i] DONE!");
-
-?>

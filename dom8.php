@@ -1299,6 +1299,9 @@
         return $attributes;
     }
     
+    /**
+     * DEPRECATED - USE attributes_add
+     */
     function attributes_add_class($attributes, $classname, $add_first = false)
     {
         $attributes = attributes_as_string($attributes);
@@ -11101,6 +11104,7 @@
                     e.setAttribute("src",      "<?= url_img_loading() ?>");
                 }
 
+                e.classList.add("has-issued-error");
                 e.classList.add("loading");
                 e.classList.add("reloading");
 
@@ -11931,8 +11935,8 @@
     function radio          ($group, $id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('radio')),               attr("name" , $group), attr("id" , $id), attr("type", "radio") ) ));  }
     function radio_label    ($group, $id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','radio-label')), attr("for", $id)                           ) ));  }
 
-    function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes_add_class(  $attributes, component_class('button'))                             );                      }
-    function button_label   ($html = "", $attributes = false) {                             return  tag('span',                       $html,                     attributes_add_class(  $attributes, component_class('label','button-label'))                       );                      }
+    function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes(  $attributes, attributes(attr("class", component_class('button'))))                            );                      }
+    function button_label   ($html = "", $attributes = false) {                             return  tag('span',                       $html,                     attributes(  $attributes, attributes(attr("class", component_class('label','button-label'))))                      );                      }
     
     function input          ($html = "", $type = "", $id = "", $attributes = false) {       return  tag('input',                      "",                                   attributes_add( $attributes, attributes(attr("type",    $type),
                                                                                                                                                                                                                     attr("value",   $html),
@@ -11971,7 +11975,7 @@
 
         $profiler = debug_track_timing();
         
-        $attributes = attributes_add_class($attributes, component_class("main").' '.component_class("main","content"));
+        $attributes = attributes_add($attributes, attributes(attr("class", component_class("main")), attr("class", component_class("main","content"))));
 
         global $__dom_is_first_main;
         
@@ -12979,12 +12983,24 @@
     
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true)
     {
+        $debug_this = (false !== stripos($path, "coryd") && auto !== $lazy);
+
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
         if (auto === $lazy_src)         $lazy_src       = false;
         if (auto === $content)          $content        = '';
         if (auto === $src_attribute)    $src_attribute  = 'src';
+
+        $img_nth = get("img_nth", 1);
+
+        $preload = false;
+            
+        if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
+        {
+            $lazy    = false;
+            $preload = true;
+        }
 
         if (is_array($path)) 
         {
@@ -13024,16 +13040,6 @@
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
-        $img_nth = get("img_nth", 1);
-
-        $preload = false;
-            
-        if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
-        {
-            $lazy    = false;
-            $preload = true;
-        }
-
         hook_img($path, $alt, $preload);
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
@@ -13044,9 +13050,11 @@
         else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
         else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
 
-             if (auto === $lazy)  { /* $attributes = attributes_add_class($attributes, "img"); */ }
-        else if (true === $lazy)  {    $attributes = attributes_add_class($attributes, /*"img lazy loading"*/ "lazy loading"); }
-        else                      { /* $attributes = attributes_add_class($attributes, "img"); */ }
+             if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+        else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
+        else                      { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+
+        //if ($debug_this) bye([ "alt" => $alt, "lazy" => $lazy, "path" => $path, "attributes" => $attributes, "preload" => $preload ]);
 
         global $hook_need_lazy_loding;
         if ($lazy === true) $hook_need_lazy_loding[] = $path;
