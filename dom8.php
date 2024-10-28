@@ -1693,7 +1693,7 @@
         return $content;
     }
 
-    function post($api, $url, $params = array(), $header = array(), $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null)
+    function post($api, $url, $params = array(), $header = array(), $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null)
     {
         $curl_user_agent = $user_agent;
     
@@ -1739,11 +1739,12 @@
                 $curl_options[CURLOPT_POSTFIELDS] = json_encode($params);
         }
     
-        $curl       =           curl_init();
-        $result_opt =           curl_setopt_array($curl, $curl_options);
-        $response   =           curl_exec($curl);
-        $code       = (string)  curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error      =           curl_error($curl);
+        $curl           =           curl_init();
+        $result_opt     =           curl_setopt_array($curl, $curl_options);
+        $response       =           curl_exec($curl);
+        $code           = (string)  curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error          =           curl_error($curl);
+        $error_details  = [ "url" => $curl_url, "options" => $curl_options, "error" => $error, "code" => $code ];
 
         update_dependency_graph($curl_url);
     
@@ -12136,7 +12137,7 @@
             ? iframe($url, $title, "codepen", $w, $h, $lazy)
 
             : ( iframe(path("empty.html"), $title, "codepen", $w, $h, $lazy).
-                script_lazy_load($url, ".codepen")
+                script_lazy_load($url, "iframe.codepen")
             );
     }
 

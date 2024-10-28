@@ -626,7 +626,7 @@ function corresponding_post($permalink)
 {
     foreach (array_user_statuses() as $post)
     {
-      //if (false != stripos(at($post, "content"), link_to_complete_article($permalink))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
         if (false != stripos(at($post, "content"), $permalink)) // Not good at desambiguating articles
         {
             return $post;
@@ -642,14 +642,32 @@ function excerpt($html)
     return $html;
 }
 
-function link_to_complete_article($permalink = false)
+function href_complete_article($permalink = false)
 {
-    $permalink = !$permalink ? live_permalink() : $permalink;
-  //return "Read complete article here: ".live_permalink();
-    return "Read ".a("complete article here", live_permalink(), [ "data-article" => "corresponding" ]);
+    return !$permalink ? live_permalink() : $permalink;
 }
 
-function post_excerpt()
+function a_read_complete_article($permalink = false)
+{
+    return a("complete article here", href_complete_article($permalink), [ "data-article" => "corresponding" ]);
+}
+
+function text_read_complete_article($permalink = false)
+{
+    return "Read complete article here: ".href_complete_article($permalink);
+}
+
+function html_read_complete_article($permalink = false)
+{
+    return "Read ".a_read_complete_article($permalink);
+}
+
+function p_read_complete_article($permalink = false)
+{
+    return p(html_read_complete_article($permalink));
+}
+
+function post_excerpt($text_limit = 500)
 {
     // https://mastodon.social/settings/applications/5328602
 
@@ -659,13 +677,36 @@ function post_excerpt()
 
     $api_url = "https://".get("mastodon_domain", "mastodon.social");
 
-    $body = get("mastondon/excerpt").p(link_to_complete_article());
-    del("mastondon/excerpt");
+    $body = "";
+
+    $excerpt = get("mastondon/excerpt"); del("mastondon/excerpt");
+    $link    = p_read_complete_article();
+    $body    = $excerpt.PHP_EOL.$link;
+
+    if (mb_strlen($body) > $text_limit)
+    {    
+        $excerpt = strip_tags($excerpt);
+        $link    = text_read_complete_article();
+        $body    = $excerpt.PHP_EOL.$link;
+    }
+
+    if (mb_strlen($body) > $text_limit)
+    {    
+        $excerpt = mb_substr($excerpt, 0, $text_limit - 3/*...*/ - 2/*PHP_EOL*/ - mb_strlen($link))."...";
+        $body    = $excerpt.PHP_EOL.$link;
+    }
+
+    if (mb_strlen($body) > $text_limit)
+    {
+        $link = href_complete_article();
+        $body = $excerpt.PHP_EOL.$link;
+    }
 
     $code  = null;
     $error = null;
+    $error_details = [];
 
-    $response = \dom\post($api_url, "api/v1/statuses", 
+    $response = \dom\post($api_url, "api/v1/statuses"/*."?access_token=$mastodon_villapirorum_app_token"*/, 
 
         array(
             "status"            => $body,
@@ -677,10 +718,18 @@ function post_excerpt()
             'Authorization'     => "Bearer $mastodon_villapirorum_app_token",
             "Idempotency-Key"   => live_permalink()
         ),
-        "POST", false, false, "DOM", $code, $error
+        "POST", false, false, "DOM", $code, $error, $error_details
         );
 
-    return \dom\pre(json_encode(array("response" => $response, "code" => $code, "error" => $error, "body" => htmlentities($body)), JSON_PRETTY_PRINT));
+    return \dom\pre(json_encode(array(
+        
+        "response"  => $response, 
+        "code"      => $code, 
+        "error"     => $error, /*
+        "details"   => $error_details, */
+        "body"      => htmlentities($body)
+    
+        ), JSON_PRETTY_PRINT));
 }
 
 function article_excerpt_autopost_and_comments() 
