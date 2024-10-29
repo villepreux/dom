@@ -605,10 +605,10 @@
         return get("live_domain", server_server_name());
     }
 
-    function host_url   ()                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
-    function url        ($params = false)                                               { $branch = url_branch($params); return ($branch == "") ? host_url() : host_url()."/".$branch; }
-    function url_branch ($params = false, $get = true, $post = true, $session = false)  { $uri = explode('?', server_request_uri(), 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val) && !($val instanceof \Closure)) { $uri .= "&$key=$val"; } } } return trim($uri, "/"); }
-    function url_leaf   ($params = false, $get = true, $post = true, $session = false)  { $branch = url_branch($params, $get, $post, $session); $sep = strripos($branch, "/"); return $sep === false ? $branch : substr($branch, $sep + 1); }    
+    function host_url   ()                                                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
+    function url        ($params = false, $get = true, $post = true, $session = false, $url = false, $host = false)     { $host = !!$host ? $host : host_url(); $branch = url_branch($params, $get, $post, $session, $url); return ($branch == "") ? $host : "$host/$branch"; }
+    function url_branch ($params = false, $get = true, $post = true, $session = false, $url = false)                    { $url = !!$url ? $url : server_request_uri(); $uri = explode('?', $url, 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val) && !($val instanceof \Closure)) { $uri .= "&$key=$val"; } } } return trim($uri, "/"); }
+    function url_leaf   ($params = false, $get = true, $post = true, $session = false, $url = false)                    { $branch = url_branch($params, $get, $post, $session, $url); $sep = strripos($branch, "/"); return $sep === false ? $branch : substr($branch, $sep + 1); }    
 
     function live_url($params = false)
     {
@@ -5050,7 +5050,7 @@
             
             if ($size === false)
             {
-                $size = is_localhost() ? getimagesize($src) : @getimagesize($src);
+                $size = !!get("debug") ? getimagesize($src) : @getimagesize($src);
             }
             
             /*if ($size === false)
@@ -10518,12 +10518,26 @@
             figcaption { text-align: center; }
     
             /* UTILITY CLASSES */
+
+            /* EXPERIMENTAL / WIP / LINK ICONS ALL THE THINGS ! */
+            a > img.link-icon:not(.no-link-icons a > img) {
+                
+                display: inline !important; 
+                width:  16px !important; 
+                height: 16px !important; 
+                margin-inline-end: .25em !important;
+                vertical-align: middle !important;
+            }
+            .no-link-icons a > img.link-icon {
+                
+                display: none !important;
+            }
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -10542,27 +10556,27 @@
                 
                 opacity: .4;
             }    
-            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:hover:after {
+            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
+            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
+            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:after {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img,picture,video,audio,svg,iframe)).external:after {
+                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                     content: attr(href);
                 }
             }
 
 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:before {
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                 display: inline-block;
                 content: '';
@@ -10581,18 +10595,18 @@
                 
                 opacity: .4;
             }    
-            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:hover:before {
+            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
+            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
+            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:before {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="//"]:before, 
-                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe))[href^="http"]:before, 
-                a[data-icon-pos="start"]:not(:has(img,picture,video,audio,svg,iframe)).external:before {
+                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                     content: attr(href);
                 }
@@ -12783,12 +12797,35 @@
                             attributes_as_string($external_attributes);
         }
 
-        //if (false !== stripos($attributes, "hidden") && false !== stripos($attributes, "rel")) die($attributes);
-        //if (false !== stripos($url, "selfie")) die($attributes);
-
         hook_link($html, $url, $target);
+
+        $favicon = "";
+        {     
+            if ($target == external_link && false === stripos($html, "<"))
+            {
+                $attributes_array = to_attributes($attributes);
+                $data_icon_pos = at($attributes_array, "data-icon-pos");
+
+                if ($data_icon_pos != "start")
+                {
+                    $href = at($attributes_array, "href");
+
+                    if (!!$href && 0 === stripos($href, "http"))
+                    {
+                        $href  = str_replace([ "https://", "http://" ], "", $href);
+                        $pos   = stripos($href, "?"); if (false !== $pos) $href = substr($href, 0, $pos);
+                        $pos   = stripos($href, "/"); if (false !== $pos) $href = substr($href, 0, $pos);
+                        $href  = trim($href, "/");
+                        $parts = explode(".", $href);
+                        if (is_array($parts) && count($parts) >= 2) $href = $parts[count($parts) - 2].".".$parts[count($parts) - 1];
+
+                        $favicon = img("https://icons.duckduckgo.com/ip9/$href.ico", 16, 16, "link-icon");
+                    }
+                }
+            }
+        }
         
-        return tag('a', $html, $attributes);
+        return tag('a', $favicon.$html, $attributes);
     }
 
     function a_encrypted($html, $url = false, $attributes = false, $target = external_link)
