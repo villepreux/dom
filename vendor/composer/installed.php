@@ -3,7 +3,7 @@
         'name' => 'villepreux/dom',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '45ca8aae5daf26f196a32ad4545f0c3e1abceeb7',
+        'reference' => 'b9a9cc23d4a5a73271b562f8e8d5a64538d142d9',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -64,6 +64,15 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'scrivo/highlight.php' => array(
+            'pretty_version' => 'v9.18.1.10',
+            'version' => '9.18.1.10',
+            'reference' => '850f4b44697a2552e892ffe71490ba2733c2fc6e',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../scrivo/highlight.php',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'symfony/deprecation-contracts' => array(
             'pretty_version' => 'v2.5.2',
             'version' => '2.5.2.0',
@@ -85,7 +94,7 @@
         'villepreux/dom' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '45ca8aae5daf26f196a32ad4545f0c3e1abceeb7',
+            'reference' => 'b9a9cc23d4a5a73271b562f8e8d5a64538d142d9',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

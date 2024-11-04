@@ -9,6 +9,7 @@ class ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         'a4a119a56e50fbb293281d9a48007e0e' => __DIR__ . '/..' . '/symfony/polyfill-php80/bootstrap.php',
+        'b6ec61354e97f32c0ae683041c78392a' => __DIR__ . '/..' . '/scrivo/highlight.php/HighlightUtilities/functions.php',
     );
 
     public static $prefixLengthsPsr4 = array (
@@ -51,6 +52,20 @@ class ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91
         'Dflydev\\DotAccessData\\' => 
         array (
             0 => __DIR__ . '/..' . '/dflydev/dot-access-data/src',
+        ),
+    );
+
+    public static $prefixesPsr0 = array (
+        'H' => 
+        array (
+            'Highlight\\' => 
+            array (
+                0 => __DIR__ . '/..' . '/scrivo/highlight.php',
+            ),
+            'HighlightUtilities\\' => 
+            array (
+                0 => __DIR__ . '/..' . '/scrivo/highlight.php',
+            ),
         ),
     );
 
@@ -124,6 +139,7 @@ class ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91
         return \Closure::bind(function () use ($loader) {
             $loader->prefixLengthsPsr4 = ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91::$prefixLengthsPsr4;
             $loader->prefixDirsPsr4 = ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91::$prefixesPsr0;
             $loader->classMap = ComposerStaticInit9a061c11aa3adb57133e08a4d4346e91::$classMap;
 
         }, null, ClassLoader::class);

@@ -3,6 +3,7 @@
     "type":         "library",
     "description":  "DOM.PHP helps building websites by providing html-like server side php components.",
     "require": {
-        "league/commonmark": "^2.4"
+        "league/commonmark": "^2.4",
+        "scrivo/highlight.php": "v9.18.1.10"
     }
 }

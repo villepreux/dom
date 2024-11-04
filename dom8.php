@@ -600,6 +600,38 @@
     #region HELPERS : CURRENT URL
     ######################################################################################################################################
 
+    /* TODO
+
+    Distinguer
+     - Outils d'extraction d'info d'une URL
+     - Fonction basées sur l'URL du host courant (le vrai, qui peut etre différent entre local et live)
+     - Fonctions basées sur l'URL live (meme si on est local)
+     - Fonctions basées sur l'URL local (meme si on est live) (est-ce utile ? un cas d'utilisation ? oui: switch-to-local)
+
+    Préciser ce que ca fait en mode "simulé" (cad par ex. je suis en localhost mais je simule la présence live via les set("live_domain") et cie
+
+    Distinguer pour chaque fonction les version relative et absolue
+
+    Avoir un get_root_url() qui envoit a la racine du site
+
+    Gérer le cas du "//" qui renvoit pas forcément a la racine du site dans le cas du localhost multisite
+
+    */
+
+
+    function get_url_domain($url)
+    {        
+        $url   = str_replace([ "https://", "http://" ], "", $url);
+        $pos   = stripos($url, "?"); if (false !== $pos) $url = substr($url, 0, $pos);
+        $pos   = stripos($url, "/"); if (false !== $pos) $url = substr($url, 0, $pos);
+        $url   = trim($url, "/");
+        $parts = explode(".", $url);
+
+        if (is_array($parts) && count($parts) >= 2) $url = $parts[count($parts) - 2].".".$parts[count($parts) - 1];
+
+        return $url;
+    }
+
     function live_domain()
     {
         return get("live_domain", server_server_name());
@@ -674,7 +706,7 @@
         set("geo_position_x",                   48.862808);
         set("geo_position_y",                    2.348237);
 
-        set("support_service_worker",           true);
+      //set("support_service_worker",           true);
         
       //set("fonts",                            "Roboto:300,400,500");
             
@@ -725,20 +757,20 @@
 
         // Can be modified at browser URL level
 
-        set("canonical",                        get("canonical",    url()   ));
-        set("framework",                        get("framework",    "NONE"  ));
-        set("generate",                         get("generate",     false   ));
-        set("cache",                            get("cache",        false   ));
-        set("minify",                           get("minify",       true    )); // Performances first
-        set("page",                             get("page",         1       ));
-        set("n",                                get("n",            12      ));
+        if (false !== get("canonical",    url()   )) set("canonical",    get("canonical",    url()   ));
+        if (false !== get("framework",    false   )) set("framework",    get("framework",    false   ));
+        if (false !== get("generate",     false   )) set("generate",     get("generate",     false   ));
+        if (false !== get("cache",        false   )) set("cache",        get("cache",        false   ));
+        if (false !== get("minify",       true    )) set("minify",       get("minify",       true    )); // Performances first
+        if (false !== get("page",         1       )) set("page",         get("page",         1       ));
+        if (false !== get("n",            12      )) set("n",            get("n",            12      ));
 
         // Options that impact others
 
         if (!!get("beautify"))  {   set("minify",  false);      }
         if (!!get("gemini"))    {   set("static",  true);
                                     set("noajax",  true);
-                                    set("nolazy",  true);        }
+                                    set("nolazy",  true);       }
     }
 
     #endregion
@@ -2650,9 +2682,9 @@
 
     function pagination_is_within()
     {
-        if (false === get("page",false)) return true;
+        if (false === get("page", 1)) return true;
 
-        $n = (int)get("n",   10);
+        $n = (int)get("n", 12);
         $p = (int)get("page", 1);
 
         $min = ($p-1) * $n;
@@ -3623,7 +3655,7 @@
     {
         $profiler = debug_track_timing();
         
-        $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page") * get("n"), $post_filter, $tags_in, $tags_out);
+        $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page", 1) * get("n", 12), $post_filter, $tags_in, $tags_out);
         $posts   = array();
 
         $tags_in    = explode(',',$tags_in);
@@ -3823,7 +3855,7 @@
         { 
             if (!pagination_is_within()) continue;
             
-            $photo          =        $photo_nth;
+            $photo          =    $photo_nth;
             $photo_id       = at($photo_nth, "id",      $photo_id);
             $photo_secret   = at($photo_nth, "secret",  $photo_secret);
             $photo_server   = at($photo_nth, "server",  $photo_server);
@@ -3932,7 +3964,7 @@
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
     //  $content    = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, false,                          $post_filter, $tags_in, $tags_out);
-        $content    = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page") * get("n"), $post_filter, $tags_in, $tags_out);
+        $content    = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page", 1) * get("n", 12), $post_filter, $tags_in, $tags_out);
                 
         $thumbs     = array();
 
@@ -4291,7 +4323,7 @@
         $profiler = debug_track_timing();
            
         $username   = ($username === false) ? get("facebook_page")  : $username;        
-        $content    = json_facebook_articles($username, false, get("page") * get("n"));
+        $content    = json_facebook_articles($username, false, get("page", 1) * get("n", 12));
         $posts      = array();
 
         $tags_in    = explode(',',$tags_in);
@@ -4774,9 +4806,9 @@
         $binary_types = array("png","jpg");
         $binary = in_array($doctype, $binary_types);
 
-        set("doctype",  $doctype);
-        set("encoding", $encoding);
-        set("binary",   $binary);        
+                        set("doctype",  $doctype);
+                        set("encoding", $encoding);
+        if ($binary)    set("binary",   $binary);        
 
         $types = array
         (
@@ -9891,7 +9923,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_light_dark_switch($css_light, $css_dark)
+    function css_light_dark_switch($css_light, $css_dark, $need_nesting = false)
     {  
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
@@ -9902,8 +9934,17 @@
                 <?= $css_dark ?> 
             }
 
-            [data-theme="light"] <?= $css_light ?> 
-            [data-theme="dark"]  <?= $css_dark  ?> 
+            <?php if ($need_nesting) { ?>
+
+            [data-theme="light"] { <?= $css_light ?>  }
+            [data-theme="dark"]  { <?= $css_dark  ?>  }
+
+            <?php } else { ?>
+
+            [data-theme="light"] <?= $css_light ?>
+            [data-theme="dark"]  <?= $css_dark  ?>
+
+            <?php } ?>
 
         <?php heredoc_flush("raw_css"); ?></style><?php return heredoc_stop(null);
     }
@@ -11433,11 +11474,11 @@
                 script_google_analytics           ().               ((!!get("script_document_events",       true)) ? (
                 script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
                 script(js_back_to_top             ()).   "") : ""). (($images_loading                            ) ? (
-                script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",              true)) ? (
+                script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",             false)) ? (
                 script(js_sliders                 ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
-                script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",           true)) ? (
-                script(js_pwa_install             ()).   "") : ""). ((!!get("script_framework_material",    true)) ? (
-                script(js_framework_material      ()).   "") : ""). ((!!get("script_scan_and_print",        true)) ? (
+                script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",          false)) ? (
+                script(js_pwa_install             ()).   "") : ""). ((!!get("script_framework_material",   false)) ? (
+                script(js_framework_material      ()).   "") : ""). ((!!get("script_scan_and_print",       false)) ? (
                 script(js_scan_and_print_body     ()).   "") : ""). ((!!get("webmentions",                 false)) ? (
                 script(js_webmentions             ()).   "") : "")
                 ;
@@ -12734,6 +12775,30 @@
 
         return $extended_link;
     }
+
+    function img_favicon_from_link($html, $attributes, $target)
+    {   
+        if ($target != external_link)       return "";
+        if (false !== stripos($html, "<"))  return "";
+
+        $attributes_array = to_attributes($attributes);
+        $href = at($attributes_array, "href");
+        $ipos = at($attributes_array, "data-icon-pos");
+
+        if ($ipos == "start")               return "";
+        if (!$href)                         return "";
+        if (0 !== stripos($href, "http"))   return "";
+
+        $domain = get_url_domain($href);
+
+        // Trouver le chemin vers le dossier img racine
+        // Construire le path vers image favicon dans ce dossier
+        // Si image existe pas la générer et la save
+        // QUESTION est ce que c'est un truc qui doit se faire sur le flag generate ?
+        // retourner l'img<> vers cette image locale
+
+        return img("https://icons.duckduckgo.com/ip9/$domain.ico", 16, 16, "link-icon");
+    }
   
     function a($html, $url = false, $external_attributes = false, $target = false, $noopener = true, $noreferrer = true)
     {
@@ -12799,31 +12864,7 @@
 
         hook_link($html, $url, $target);
 
-        $favicon = "";
-        {     
-            if ($target == external_link && false === stripos($html, "<"))
-            {
-                $attributes_array = to_attributes($attributes);
-                $data_icon_pos = at($attributes_array, "data-icon-pos");
-
-                if ($data_icon_pos != "start")
-                {
-                    $href = at($attributes_array, "href");
-
-                    if (!!$href && 0 === stripos($href, "http"))
-                    {
-                        $href  = str_replace([ "https://", "http://" ], "", $href);
-                        $pos   = stripos($href, "?"); if (false !== $pos) $href = substr($href, 0, $pos);
-                        $pos   = stripos($href, "/"); if (false !== $pos) $href = substr($href, 0, $pos);
-                        $href  = trim($href, "/");
-                        $parts = explode(".", $href);
-                        if (is_array($parts) && count($parts) >= 2) $href = $parts[count($parts) - 2].".".$parts[count($parts) - 1];
-
-                        $favicon = img("https://icons.duckduckgo.com/ip9/$href.ico", 16, 16, "link-icon");
-                    }
-                }
-            }
-        }
+        $favicon = img_favicon_from_link($html, $attributes, $target);
         
         return tag('a', $favicon.$html, $attributes);
     }

@@ -228,7 +228,16 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             }
         }
 
-        $code = htmlentities($code);
+        $hl = @new \Highlight\Highlighter();
+
+        try {
+            $highlighted = $hl->highlight($lang, $code);
+            $code = $highlighted->value;
+        }
+        catch (DomainException $e) {
+            $code = htmlentities($code);
+        }
+
         $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
     
         if ($lang == "php")
