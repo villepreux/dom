@@ -5549,17 +5549,17 @@
 
     $__generated = array(
 
-        array("path" => "manifest.json",                 "generate" => false, "function" => "string_manifest"),
-        array("path" => "browserconfig.xml",             "generate" => false, "function" => "string_ms_browserconfig"),
-        array("path" => "badge.xml",                     "generate" => false, "function" => "string_ms_badge"),
-        array("path" => "robots.txt",                    "generate" => false, "function" => "string_robots"),
-        array("path" => "human.txt",                     "generate" => false, "function" => "string_human"),
-        array("path" => ".well-known/gpc.json",          "generate" => false, "function" => "string_gpc"),
-        array("path" => ".well-known/dnt-policy.txt",    "generate" => false, "function" => "string_dnt_policy"),
-        array("path" => "loading.svg",                   "generate" => false, "function" => "string_loading_svg"),
-        array("path" => "offline.html",                  "generate" => false, "function" => "string_offline_html"),
-        array("path" => "sw.js",                         "generate" => false, "function" => "string_service_worker"),
-        array("path" => "install-service-worker.html",   "generate" => false, "function" => "string_service_worker_install")
+        array("path" => "manifest.json",                 "generate" => false, "function" => "string_manifest"               ),
+        array("path" => "browserconfig.xml",             "generate" => false, "function" => "string_ms_browserconfig"       ),
+        array("path" => "badge.xml",                     "generate" => false, "function" => "string_ms_badge"               ),
+        array("path" => "robots.txt",                    "generate" => false, "function" => "string_robots"                 ),
+        array("path" => "human.txt",                     "generate" => false, "function" => "string_human"                  ),
+        array("path" => ".well-known/gpc.json",          "generate" => false, "function" => "string_gpc"                    ),
+        array("path" => ".well-known/dnt-policy.txt",    "generate" => false, "function" => "string_dnt_policy"             ),
+        array("path" => "loading.svg",                   "generate" => false, "function" => "string_loading_svg"            ),
+        array("path" => "offline.html",                  "generate" => false, "function" => "string_offline_html"           ),
+        array("path" => "sw.js",                         "generate" => false, "function" => "string_service_worker"         ),
+        array("path" => "install-service-worker.html",   "generate" => false, "function" => "string_service_worker_install" ),
 
         );
 
@@ -5569,15 +5569,15 @@
 
         foreach ($__generated as &$generated)
         { 
-            if (true == get("generate", auto))
+            if (true === get("generate", auto) || 1 === get("generate", auto))
             {
                 $generated["generate"] = true;
             }
-            else if (false == get("generate", auto))
+            else if (false === get("generate", auto) || 0 === get("generate", auto))
             {
                 $generated["generate"] = false;
             }
-            else if (auto == get("generate", auto))
+            else if (auto === get("generate", auto))
             {
                 // Unless generation is requested, do not generate each file that is already accessible
                 // Even if it accesses a parent/inherited file

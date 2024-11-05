@@ -725,6 +725,11 @@ if (!!$cmdline_option_test)
 
 if (!!$cmdline_option_generate)
 {
+    dom\del("generate");
+}
+
+if (!!$cmdline_option_generate)
+{
     deploy_log("[i] Generating files...");
 
     $cwd = getcwd();
