@@ -401,9 +401,9 @@ function deploy_diff($str1, $str2, $diff_chunk_length = 16, $prefix = "")
     $len2 = $len($str2);
 
     for ($c = 0; $c < min($len1, $len2); ++$c)
-    if ($str1[$c] != $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $c,    $diff_chunk_length)."] VS [".deploy_substr($str2, $c,    $diff_chunk_length)."]");
-    if ($len1     <  $len2)     return $prefix.(str_pad(            $len1, 7, " ", STR_PAD_LEFT).": [".   str_repeat(" ",          $diff_chunk_length)."] VS [".deploy_substr($str2, $len1, $diff_chunk_length)."]");
-    if ($len2     <  $len1)     return $prefix.(str_pad(            $len2, 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $len2, $diff_chunk_length)."] VS [".   str_repeat(" ",          $diff_chunk_length)."]");
+    if ($str1[$c] != $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $c,    $diff_chunk_length)."] != [".deploy_substr($str2, $c,    $diff_chunk_length)."]");
+    if ($len1     <  $len2)     return $prefix.(str_pad(            $len1, 7, " ", STR_PAD_LEFT).": [".   str_repeat(" ",          $diff_chunk_length)."] <  [".deploy_substr($str2, $len1, $diff_chunk_length)."]");
+    if ($len2     <  $len1)     return $prefix.(str_pad(            $len2, 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $len2, $diff_chunk_length)."] >  [".   str_repeat(" ",          $diff_chunk_length)."]");
 
     return "";
 }

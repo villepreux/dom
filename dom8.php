@@ -2487,18 +2487,26 @@
     $hook_images         = array();
     $hook_image_preloads = array();
     
-    function hook_img($src, $alt, $preload)
+    function hook_img($src_srcset_sizes, $alt, $preload)
     {
-        if ($src === false) return;
+        if ($src_srcset_sizes === false) return;
+        
+        if (is_array($src_srcset_sizes))
+        {
+            $src = at($src_srcset_sizes, "url", at($src_srcset_sizes, "src", at($src_srcset_sizes, 0)));
+        }
+        else
+        {
+            $src = $src_srcset_sizes;
+        }
 
         global $hook_images;
 
         $found = false; foreach ($hook_images as $image) { if ($src == $image["src"]) { $found = true; break; } }
 
-        if (!$found)
-        {
-            $hook_images[] = [ "src" => $src, "alt" => $alt ];
-        }
+        if ($found) return false;
+
+        $hook_images[] = [ "src" => $src, "alt" => $alt ];
 
         if ($preload)
         {
@@ -2506,21 +2514,18 @@
 
             if (!in_array($src, $hook_image_preloads) && false === stripos($src, ".svg"))
             {
-                $hook_image_preloads[] = $src;
+                $hook_image_preloads[] = $src_srcset_sizes;
             }
         }
-    }
 
-    function hooked_image_preload($src)
-    {
-        return link_rel_image_preload($src);
+        return true;
     }
 
     function link_rel_image_preloads() { return delayed_component("_".__FUNCTION__); }
     function _link_rel_image_preloads()
     {
-        global $hook_image_preloads;
-        return wrap_each($hook_image_preloads, "", "hooked_image_preload", false);
+        global $hook_image_preloads; 
+        return wrap_each($hook_image_preloads, "", "link_rel_image_preload", false);
     }
 
     // Links
@@ -6693,8 +6698,17 @@
         return link_rel("prefetch", $url);
     }
 
-    function link_rel_image_preload($url)
+    function link_rel_image_preload($url, $srcset = false, $sizes = false)
     {
+        if (is_array($url))
+        {
+            $_ = $url;
+
+            $url    = array_shift($_);
+            $srcset = at($_, "srcset", at($_, 0));
+            $sizes  = at($_, "sizes",  at($_, 1));
+        }
+
         $mime = "image/png";
         {
             $size = cached_getimagesize($url);
@@ -6712,7 +6726,21 @@
             }
         }
 
-        return link_rel("preload", $url, array("as" => "image", "type" => $mime));
+        $attributes = [ "as" => "image", "type" => $mime ];
+
+        // ex. imagesrcset="wolf_400px.jpg 400w, wolf_800px.jpg 800w, wolf_1600px.jpg 1600w" imagesizes="50vw">
+
+        if (is_array($srcset))
+        {
+            $attributes["imagesrcset"] = implode(", ", array_map(function($name_w) { list($name, $w) = $name_w; return "$name $w"."w"; }, $srcset));
+        }
+
+        if (is_array($sizes))
+        {
+            $attributes["imagesizes"] = implode(", ", array_map(function($condition_size) { return implode(" ", $condition_size); }, $srcset));
+        }
+
+        return link_rel("preload", $url, $attributes);
     }
 
     /* COOKIES */
@@ -8068,7 +8096,7 @@
     function meta_itemprop(     $itemprop, $content, $pan = 0) { return meta(array("itemprop"   => $itemprop, "content" => $content)/*, false, array(40,80)*/); }
     
     function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))  return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
-    function link_rel($rel, $link, $type = false, $pan = 0) { if (!$link || $link == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $link), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
+    function link_rel($rel, $href, $type = false, $pan = 0) { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
     
     function manifest($filename = "manifest.json") 
     {
@@ -10576,9 +10604,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -10597,27 +10625,27 @@
                 
                 opacity: .4;
             }    
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:after {
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:after {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                     content: attr(href);
                 }
             }
 
 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                 display: inline-block;
                 content: '';
@@ -10636,18 +10664,18 @@
                 
                 opacity: .4;
             }    
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:before {
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:before {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                     content: attr(href);
                 }
@@ -12783,8 +12811,9 @@
 
         $attributes_array = to_attributes($attributes);
         $href = at($attributes_array, "href");
-        $ipos = at($attributes_array, "data-icon-pos");
+        $ipos = at($attributes_array, "data-favicon");
 
+        if (!$ipos)                         return "";
         if ($ipos == "start")               return "";
         if (!$href)                         return "";
         if (0 !== stripos($href, "http"))   return "";
@@ -13119,11 +13148,13 @@
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
-        hook_img($path, $alt, $preload);
+        if (hook_img($path, $alt, $preload))
+        {
+            set("img_nth", $img_nth + 1);
+        }
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
-
-        set("img_nth", $img_nth + 1);
+        
 
              if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
         else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
