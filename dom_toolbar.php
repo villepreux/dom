@@ -645,9 +645,9 @@
 
     function menu_switch() { 
 
-        if (get("framework") == "material")  return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu",        /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                                                               ));
-        if (get("framework") == "bootstrap") return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
-        if (get("framework") == "spectre")   return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
+      //if (get("framework") == "material")  return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu",        /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                                                               ));
+      //if (get("framework") == "bootstrap") return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
+      //if (get("framework") == "spectre")   return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
                                         $a_toggle = a(span("☰", "menu-switch-symbol menu-toggle-content"), "#".DOM_MENU_ID."-open",    array("class" => "menu-switch-link open nav-link material-icons"/*, "name" => "menu-close"*/,   /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                     ));
                                         $a_close  = a(span("✕", "menu-close-symbol menu-close-content"),   "#".DOM_MENU_ID."-close",   array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden"/*, "aria-label" => "Menu Toggle"*/));
         
@@ -802,7 +802,7 @@
 
         if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
         
-        return toolbar_row($html, array("id" => "toolbar-row-nav", /*"role" => "menubar",*/ "class" => "toolbar-row-nav"));
+        return toolbar_row($html, array(/*"id" => "toolbar-row-nav",*/ /*"role" => "menubar",*/ "class" => "toolbar-row-nav"));
     }
 
     function toolbar($html, $attributes = false)
@@ -818,6 +818,8 @@
         set("transition_names", true);  $toolbar1 = header($html, attributes_add_class($attributes1, component_class("header", "toolbar toolbar-container")));
         set("transition_names", false); $toolbar2 = header($html, attributes_add_class($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate")));
         del("transition_names");
+
+        $toolbar2 = str_replace('id="', 'id="duplicate-', $toolbar2);
 
         return  
             comment("PRE Toolbar").

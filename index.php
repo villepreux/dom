@@ -1,7 +1,7 @@
 <?php
 
-require_once(__DIR__."/dom_html.php");
-use function dom\{set,get,is_localhost,init,output,HSTART,HERE,HSTOP,markdown,path,include_file,head,body,main,style};
+require_once(__DIR__."/dom.php");
+use function dom\{init,output,HSTART,HERE,HSTOP,markdown,path,include_file,head,body,main,style};
 
 init();
 

@@ -1,0 +1,29 @@
+{
+    "name": "Hello Cards!",
+    "short_name": "Hello",
+    "description": "",
+    "theme_color": "#000",
+    "shortcuts": [
+        {
+            "name": "Back to examples",
+            "url": "..?&utm_source=homescreen"
+        }
+    ],
+    "screenshots": [],
+    "start_url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/cards?&utm_source=homescreen",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "launch_handler": {
+        "client_mode": [
+            "navigate-existing",
+            "auto"
+        ]
+    },
+    "related_applications": [
+        {
+            "platform": "web",
+            "url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/cards"
+        }
+    ],
+    "icons": []
+}

@@ -1,0 +1,24 @@
+{
+    "name": "Hello World!",
+    "short_name": "Hello",
+    "description": "",
+    "theme_color": "#000",
+    "shortcuts": [],
+    "screenshots": [],
+    "start_url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/hello-world?&utm_source=homescreen",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "launch_handler": {
+        "client_mode": [
+            "navigate-existing",
+            "auto"
+        ]
+    },
+    "related_applications": [
+        {
+            "platform": "web",
+            "url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/hello-world"
+        }
+    ],
+    "icons": []
+}

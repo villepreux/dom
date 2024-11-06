@@ -28,6 +28,7 @@ $cmdline_option_compile                 = arg_state("compile");/*
 $cmdline_option_mt                      = arg_state("mt");*/
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
+$cmdline_option_clean                   = arg_state("clean");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
 $cmdline_option_spa                     = arg_state("spa");
@@ -487,7 +488,7 @@ deploy_init_terminal($cmdline_option_cls);
 @set_time_limit(24*60*60);
 @ini_set('memory_limit', '-1');
 
-$root_sources = array("$main_src");
+$root_sources = array("$main_src", "$main_src/dom"); // TODO Generate this list from at_root() ?
 {
     foreach (array("portfolio/web", "dom/examples") as $path)
         $root_sources = array_merge($root_sources, array_map(
@@ -536,6 +537,7 @@ $cmdline_values = [
     "cmdline_option_copy"          ,
     "cmdline_option_compile"       ,
     "cmdline_option_generate"      ,
+    "cmdline_option_clean"         ,
     "cmdline_option_netlify"       ,
     "cmdline_option_spa"           ,
     "cmdline_option_lunr"          ,
@@ -723,28 +725,26 @@ if (!!$cmdline_option_test)
     */
 }
 
-if (!!$cmdline_option_generate)
-{
-    dom\del("generate");
-}
+if (!!$cmdline_option_generate) dom\del("generate");
+if (!!$cmdline_option_clean)    dom\del("clean");
 
-if (!!$cmdline_option_generate)
+if (!!$cmdline_option_clean)
 {
-    deploy_log("[i] Generating files...");
+    deploy_log("[i] Clean files (main root)...");
 
     $cwd = getcwd();
     chdir($main_src);
     {
         $php_args = "$php_args_common REQUEST_URI=/";
-        deploy_exec("php -f index.php -- $php_args generate=1");
+        deploy_exec("php -f index.php -- $php_args clean=1 clean_exit=1");
     }    
     chdir($cwd);
 
-    deploy_log("[i] Generating files... OK");
+    deploy_log("[i] Clean files (main root)... OK");
 }
 else
 {
-    deploy_log("[i] Auto-Generating files if needed...");
+    deploy_log("[i] Auto-Clean files (main root) if needed...");
 
     $cwd = getcwd();
     chdir($main_src);
@@ -754,7 +754,117 @@ else
     }    
     chdir($cwd);
 
-    deploy_log("[i] Auto-Generating files if needed... OK");
+    deploy_log("[i] Auto-Clean files (main root) if needed... OK");
+}
+
+if (!!$cmdline_option_clean)
+{
+    deploy_log("[i] Cleaning files...");
+
+    $nb_files = 0;
+
+    $roots = array(array($main_src, $main_dst, 0));
+
+    while (count($roots) > 0)
+    {
+        $dir = array_shift($roots);
+
+        $src = $dir[0];
+        $dst = $dir[1];
+
+        foreach (deploy_scan($src) as $name)
+        {
+            if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
+
+            if ($name == "index.php" && !in_array($src, $root_sources))
+            {
+                ++$nb_files;
+            }
+        }
+    }
+
+    $file_index = 0;
+
+    $roots = array(array($main_src, $main_dst, 0));
+
+    while (count($roots) > 0)
+    {
+        $dir = array_shift($roots);
+
+        $src = $dir[0];
+        $dst = $dir[1];
+
+        foreach (deploy_scan($src) as $name)
+        {
+            if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
+         
+            if ($name == "index.php" && !in_array($src, $root_sources))
+            {
+                $path_src_to_dst = rtrim(str_replace("//", "/", (substr_count($src, "/") <= 0 ? "" : str_repeat("../", substr_count($src, "/") - 1))."$dst/"), "/");
+    
+                $cwd = getcwd();
+                chdir($src);
+                {
+                    $deleted_files = array();
+                    foreach (deploy_subfiles(".") as $parsed_name) $deleted_files[$parsed_name] = true;
+                    $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst))." clean=1 clean_exit=1";
+                    deploy_exec("php -f $name -- $php_args", /*false*/true); 
+                    foreach (deploy_subfiles(".") as $parsed_name) unset($deleted_files[$parsed_name]);
+
+                    foreach (array_keys($deleted_files) as $filename)
+                    {
+                        deploy_log($file_index, $nb_files, "[x] Cleaning files... $src/$filename");
+                    }
+
+                    $deleted_files = array();
+                    foreach (deploy_subfiles($path_src_to_dst) as $parsed_name) $deleted_files[$parsed_name] = true;
+                    $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst))." clean=1 clean_exit=1 clean_dst=$path_src_to_dst";
+                    deploy_exec("php -f $name -- $php_args", /*false*/true); 
+                    foreach (deploy_subfiles($path_src_to_dst) as $parsed_name) unset($deleted_files[$parsed_name]);
+
+                    foreach (array_keys($deleted_files) as $filename)
+                    {
+                        deploy_log($file_index, $nb_files, "[x] Cleaning files... $dst/$filename");
+                    }
+                }
+                chdir($cwd);
+
+                deploy_log($file_index, $nb_files);
+                ++$file_index;
+            }              
+        }
+    }
+
+    deploy_log("[i] Cleaning files...OK");
+}
+
+if (!!$cmdline_option_generate)
+{
+    deploy_log("[i] Generating files (main root)...");
+
+    $cwd = getcwd();
+    chdir($main_src);
+    {
+        $php_args = "$php_args_common REQUEST_URI=/";
+        deploy_exec("php -f index.php -- $php_args generate=1 static=0");
+    }    
+    chdir($cwd);
+
+    deploy_log("[i] Generating files (main root)... OK");
+}
+else
+{
+    deploy_log("[i] Auto-Generating files (main root) if needed...");
+
+    $cwd = getcwd();
+    chdir($main_src);
+    {
+        $php_args = "$php_args_common REQUEST_URI=/";
+        deploy_exec("php -f index.php -- $php_args");
+    }    
+    chdir($cwd);
+
+    deploy_log("[i] Auto-Generating files (main root) if needed... OK");
 }
 
 // Pre-parsing to detect any possible optimization based on actual sources
@@ -833,12 +943,6 @@ if (!!$cmdline_option_copy)
                     $os_path = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
                     deploy_log($file_index, $nb_files, "[+] $dst/$name");
                     deploy_exec("mkdir \"$os_path\"");
-
-                    if (is_dir('D:\wamp\www\villepreux.net\json'))      die(print_r($roots, true));
-
-                    if (is_dir('D:\wamp\www\villepreux.net\json'))      die("a.1 JSON folder created! ($src/$name -> $dst/$name / $os_path)");
-                    if (is_dir('D:\wamp\www\villepreux.net\$os_path'))  die("a.2 os_path folder created!");
-                    if (is_dir('D:\wamp\www\villepreux.net\5'))         die("a.3 5 folder created!");
                 }
             }
             else
@@ -860,12 +964,18 @@ if (!!$cmdline_option_copy)
                     }
                     else
                     {
-                        if (!is_file("$dst/$name") || (deploy_content_file("$src/$name") != deploy_content_file("$dst/$name"))) 
+                        $src_content = deploy_content_file("$src/$name");
+                        $dst_content = deploy_content_file("$dst/$name");
+
+                        $new    = !is_file("$dst/$name");
+                        $update = ($src_content != $dst_content);
+
+                        if ($new || $update) 
                         {
                             $os_path_src = ($cmdline_option_os == "win") ? str_replace("/","\\","$src/$name") : "$src/$name";
                             $os_path_dst = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
 
-                            deploy_log($file_index, $nb_files, "[+] $dst/$name",deploy_diff(deploy_content_file("$src/$name"), deploy_content_file("$dst/$name")));
+                            deploy_log($file_index, $nb_files, ($new ? "[+]" : "[u]")." $dst/$name",deploy_diff($src_content, $dst_content));
 
                             if ($cmdline_option_os == "win")  deploy_exec("copy" ." \"$os_path_src\" \"$os_path_dst\"");
                             if ($cmdline_option_os == "unix") deploy_exec("cp"   ." \"$os_path_src\" \"$os_path_dst\"");
@@ -1248,7 +1358,8 @@ if (!!$cmdline_option_compile)
                 $html = false;
                 $derivative_outputs = array();
 
-                if ("$src/$name" == $dependencies_debug_checked_file) {
+                if ("$src/$name" == $dependencies_debug_checked_file) 
+                {
                     deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file FOUND!");
                 }
 
@@ -1271,17 +1382,7 @@ if (!!$cmdline_option_compile)
                         $cwd = getcwd();
                         chdir($src);
                         {
-                            $html = "";
-                            /*
-                            if (!!$cmdline_option_test)
-                            {
-                                $getdata = []; foreach (explode(" ", $php_args) as $arg) { list($var,$val) = explode("=", $arg); $getdata[$var] = $val; } $getdata = http_build_query($getdata);
-                                $html = file_get_contents("http://localhost/villepreux.net/$src/$name?$getdata");
-                            }
-                            else*/
-                            {
-                                $html = deploy_exec("php -f $name -- $php_args");
-                            }
+                            $html = deploy_exec("php -f $name -- $php_args");
     
                             deploy_compile_error_check($html, "$src/$name");
                         }
@@ -1413,7 +1514,7 @@ if (!!$cmdline_option_compile)
                             die;
                         }*/
 
-                        deploy_log($file_index, $nb_files, "[C] $dst/$deploy_name", deploy_diff(deploy_content($html), $md5_prev));
+                        deploy_log($file_index, $nb_files, "[c] $dst/$deploy_name", deploy_diff($md5_prev, deploy_content($html)));
     
                         file_put_contents("$dst/$deploy_name", $html);
                     }
@@ -1479,7 +1580,7 @@ if (!!$cmdline_option_compile)
 
                     if ($md5_prev != deploy_content($html_redirect))
                     {
-                        deploy_log($file_index, $nb_files, "[C] $dst/$type/index.$target_ext", deploy_diff(deploy_content($html_redirect), $md5_prev));
+                        deploy_log($file_index, $nb_files, "[c] $dst/$type/index.$target_ext", deploy_diff($md5_prev, deploy_content($html_redirect)));
                         file_put_contents("$dst/$type/index.$target_ext", $html_redirect);
                     } 
 
@@ -1494,7 +1595,7 @@ if (!!$cmdline_option_compile)
 
                     if ($md5_prev != deploy_content($output))
                     {
-                        deploy_log($file_index, $nb_files, "[C] $dst/$deploy_name", deploy_diff(deploy_content($output), $md5_prev));
+                        deploy_log($file_index, $nb_files, "[c] $dst/$deploy_name", deploy_diff($md5_prev, deploy_content($output)));
                         file_put_contents("$dst/$deploy_name", $output);
                     }  
                 }
@@ -1510,7 +1611,7 @@ if (!!$cmdline_option_compile)
 
 if (!!$cmdline_option_generate)
 {
-    deploy_log("[i] generating files...");
+    deploy_log("[i] generating root files...");
 
     $nb_files = 0;
 
@@ -1546,58 +1647,77 @@ if (!!$cmdline_option_generate)
         {
             if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
 
-            if (false !== stripos($name, "portfolio")) continue;
-
             if ($name == "index.php" && in_array($src, $root_sources))
             {
                 $cwd = getcwd();
                 chdir($src);
                 {
+                    // Generate local "php" files
+
+                    $dst_files_before = array();
+                    $parse_dir = ".";
+                    foreach (deploy_subfiles($parse_dir) as $parsed_name) { $dst_files_before[$parsed_name] = deploy_content_file("$parse_dir/$parsed_name"); }
+                    $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst))." generate=1 static=0";
+                    deploy_exec("php -f $name -- $php_args", /*false*/true); 
+                    $dst_files_after = array();
+                    foreach (deploy_subfiles($parse_dir) as $parsed_name) { $dst_files_after[$parsed_name] = deploy_content_file("$parse_dir/$parsed_name"); }
+
+                    foreach ($dst_files_before as $dst_name => $_) if (!array_key_exists($dst_name, $dst_files_after))  $dst_files_after[$dst_name]  = false;
+                    foreach ($dst_files_after  as $dst_name => $_) if (!array_key_exists($dst_name, $dst_files_before)) $dst_files_before[$dst_name] = false;
+                    ksort($dst_files_before);
+                    ksort($dst_files_after);
+
+                    foreach ($dst_files_after as $dst_name => $content_after)
+                    {
+                        $content_before = $dst_files_before[$dst_name];
+
+                        if (!$content_before)
+                        {
+                            deploy_log($file_index, $nb_files, "[+] $src/$dst_name");
+                        }
+                        else if (!$content_after)
+                        {
+                            deploy_log($file_index, $nb_files, "[x] $src/$dst_name");
+                        }
+                        else if ($content_after != $content_before)
+                        {
+                            deploy_log($file_index, $nb_files, "[u] $src/$dst_name", deploy_diff($content_before, $content_after));
+                        }
+                    }
+
+                    // Generate dist static files
+
                     $path_src_to_dst = rtrim(str_replace("//", "/", (substr_count($src, "/") <= 0 ? "" : str_repeat("../", substr_count($src, "/") - 1))."$dst/"), "/");
 
-                    //die(PHP_EOL.PHP_EOL."src=$src / dst=$dst / path_src_to_dst=$path_src_to_dst");
-                    
                     $dst_files_before = array();
-
                     $parse_dir = $path_src_to_dst;
-
-                    foreach (deploy_subfiles($parse_dir) as $parsed_name)
-                    {
-                        $dst_files_before[] = array($parsed_name, deploy_content_file("$parse_dir/$parsed_name"));
-                    }
-                    
+                    foreach (deploy_subfiles($parse_dir) as $parsed_name) { $dst_files_before[$parsed_name] = deploy_content_file("$parse_dir/$parsed_name"); }
                     $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst))." generate=1 generate_dst=$path_src_to_dst";
-
                     deploy_exec("php -f $name -- $php_args", /*false*/true); 
-
-                    //deploy_compile_error_check($html, "$src/$name html");
-
                     $dst_files_after = array();
-                    
-                    foreach (deploy_subfiles($parse_dir) as $parsed_name)
+                    foreach (deploy_subfiles($parse_dir) as $parsed_name) { $dst_files_after[$parsed_name] = deploy_content_file("$parse_dir/$parsed_name"); }
+
+                    foreach ($dst_files_before as $dst_name => $_) if (!array_key_exists($dst_name, $dst_files_after))  $dst_files_after[$dst_name]  = false;
+                    foreach ($dst_files_after  as $dst_name => $_) if (!array_key_exists($dst_name, $dst_files_before)) $dst_files_before[$dst_name] = false;
+                    ksort($dst_files_before);
+                    ksort($dst_files_after);
+
+                    foreach ($dst_files_after as $dst_name => $content_after)
                     {
-                        $dst_files_after[] = array($parsed_name, deploy_content_file("$parse_dir/$parsed_name"));
-                    }
+                        $content_before = $dst_files_before[$dst_name];
 
-                    usort($dst_files_before, "deploy_compare_first_value");
-                    usort($dst_files_after,  "deploy_compare_first_value");
-
-                    $i = 0;
-
-                    for ($j = 0; $j < count($dst_files_after); ++$j)
-                    {
-                        if ($i >= count($dst_files_before) || $dst_files_after[$j][0] != $dst_files_before[$i][0])
+                        if (!$content_before)
                         {
-                            deploy_log($file_index, $nb_files, "[G] $dst/".$dst_files_after[$j][0], deploy_diff($dst_files_after[$i][0], $dst_files_before[$j][0]));
-                            continue;
+                            deploy_log($file_index, $nb_files, "[+] $dst/$dst_name");
                         }
-                        
-                        if ($dst_files_after[$j][1] != $dst_files_before[$i][1])
+                        else if (!$content_after)
                         {
-                            deploy_log($file_index, $nb_files, "[U] $dst/".$dst_files_after[$j][0], deploy_diff($dst_files_after[$i][1], $dst_files_before[$j][1]));
+                            deploy_log($file_index, $nb_files, "[x] $dst/$dst_name");
                         }
-
-                        ++$i;
+                        else if ($content_after != $content_before)
+                        {
+                            deploy_log($file_index, $nb_files, "[u] $dst/$dst_name", deploy_diff($content_before, $content_after));
+                        }
                     }
                 }
                 chdir($cwd);
@@ -1608,12 +1728,12 @@ if (!!$cmdline_option_generate)
         }
     }
 
-    deploy_log("[i] generating files...OK");
+    deploy_log("[i] generating root files...OK");
 }
 
 if (!!$cmdline_option_generate || !!$cmdline_option_generate_index_files)
 {
-    deploy_log("[i] generating index files...");
+    deploy_log("[i] generating missing index.$target_ext files...");
 
     $nb_dirs = 0;
 
@@ -1654,7 +1774,7 @@ if (!!$cmdline_option_generate || !!$cmdline_option_generate_index_files)
         }
     }
 
-    deploy_log("[i] generating index files...OK");
+    deploy_log("[i] generating missing index.$target_ext files...OK");
 }
 
 if (!!$cmdline_option_lunr)
