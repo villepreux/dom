@@ -4723,7 +4723,7 @@
     }
 
     function redirect($url)
-    {   
+    {
         if (has("main") || has("main-include")) return true;
 
         if ("dependency-graph" == get("doctype")) die("[]");
@@ -10576,9 +10576,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
-            :is(a, button.link):not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
@@ -10597,27 +10597,27 @@
                 
                 opacity: .4;
             }    
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
-            a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:after {
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:after, 
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:after, 
+            a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:after {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
-                a:not([data-icon-pos="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+                a:not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                     content: attr(href);
                 }
             }
 
 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
-            :is(a, button.link)[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+            :is(a, button.link)[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                 display: inline-block;
                 content: '';
@@ -10636,18 +10636,18 @@
                 
                 opacity: .4;
             }    
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
-            a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:before {
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:hover:before, 
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:hover:before, 
+            a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:hover:before {
 
                 opacity: 1.0;
             }
 
             @media print {
                         
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
-                a[data-icon-pos="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:before, 
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:before, 
+                a[data-favicon="start"]:not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:before {
 
                     content: attr(href);
                 }
@@ -12781,10 +12781,12 @@
         if ($target != external_link)       return "";
         if (false !== stripos($html, "<"))  return "";
 
-        $attributes_array = to_attributes($attributes);
-        $href = at($attributes_array, "href");
-        $ipos = at($attributes_array, "data-icon-pos");
+        $attributes = to_attributes($attributes);
 
+        $href = at($attributes, "href");
+        $ipos = at($attributes, "data-favicon");
+
+        if (!$ipos)                         return "";
         if ($ipos == "start")               return "";
         if (!$href)                         return "";
         if (0 !== stripos($href, "http"))   return "";
@@ -12822,6 +12824,8 @@
         }
         
         $extended_link = href($url, $target);
+
+        // TODO Gérer les attributs copmme un tableau
 
         $internal_attributes = array();
 
