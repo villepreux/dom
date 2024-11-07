@@ -1,0 +1,20 @@
+<!doctype html><html>
+    <head>
+        <title>Installing service worker</title>
+        <script>var swsource = "sw.js";
+
+if ("serviceWorker" in navigator)
+{
+navigator.serviceWorker.register(swsource).then(function(reg)
+{
+dom.log("SW", "ServiceWorker scope: ", reg.scope);
+})
+.catch(function(err)
+{
+dom.log("SW", "ServiceWorker registration failed: ", err);
+});
+};</script>
+    </head>
+    <body>
+    </body>
+</html>

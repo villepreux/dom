@@ -1,0 +1,43 @@
+{
+    "id": "villapirorum",
+    "name": "..",
+    "short_name": "..",
+    "description": "",
+    "background_color": "#22ccee",
+    "theme_color": "#ff6eff",
+    "shortcuts": [
+        {
+            "name": "\ud83c\udfe0\ufe0e",
+            "url": "..?&utm_source=homescreen"
+        },
+        {
+            "name": "basics",
+            "url": "..\/basics?&utm_source=homescreen"
+        },
+        {
+            "name": "cards",
+            "url": "..\/cards?&utm_source=homescreen"
+        },
+        {
+            "name": "complete",
+            "url": "..\/complete?&utm_source=homescreen"
+        }
+    ],
+    "screenshots": [],
+    "start_url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/others?&utm_source=homescreen",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "launch_handler": {
+        "client_mode": [
+            "navigate-existing",
+            "auto"
+        ]
+    },
+    "related_applications": [
+        {
+            "platform": "web",
+            "url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/others"
+        }
+    ],
+    "icons": []
+}
