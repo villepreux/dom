@@ -504,7 +504,7 @@
     {
         if ($no_echo) ob_start();
         global $__dom_internal_included; $__dom_internal_included = true;
-        if (!!$path) @include($path);
+        if (!!$path) include($path);
         $__dom_internal_included = false;
         if ($no_echo) ob_end_clean();
 
@@ -5902,11 +5902,14 @@
 
         $content = "";
 
-        if ($silent_errors) { @internal_include($filename); $content = @ob_get_clean(); }
-        else                {  internal_include($filename); $content =  ob_get_clean(); }
+        if (!!$filename && is_file($filename))
+        {
+            if ($silent_errors) { @internal_include($filename); $content = @ob_get_clean(); }
+            else                {  internal_include($filename); $content =  ob_get_clean(); }
+                        
+            if (false !== $content) { return $content; }
+        }
         
-        if (false !== $content) { return $content; }
-
         if ($silent_errors) { $content = @file_get_contents($filename); }
         else                { $content =  file_get_contents($filename); }
 
@@ -13345,7 +13348,7 @@
         
         HSTART() ?><html><?= HERE() ?>
         
-        <?php if ($has_video) { ?><img-gif<?= $attributes ?>><?php } ?>
+        <?php if ($has_video) { ?><img-gif><?php } ?>
 
             <?php if ($has_video) { ?><noscript><?php } ?>
                 
@@ -13355,7 +13358,7 @@
                     <?php if ($has_webp) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
                     <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
 
-                    <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"">
+                    <img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"">
 
                 </picture>
 
