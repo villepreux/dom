@@ -10269,12 +10269,12 @@
             }
 
             /* To debug scrollbar width detection */
-            body:before {
+            /*body:before {
                 content: counter(val) "px";
                 counter-reset: val var(--scrollbar-width-unitless);
                 position: fixed; top: 0px; left: 0px;
                 z-index: 999;
-                }
+            }*/
 
             /**
              * Current "standard" hack to get viewport dimentions without unit
