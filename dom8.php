@@ -698,8 +698,6 @@
         set("default_image_ratio_w",            "300");
         set("default_image_ratio_h",            "200");
 
-        set("default_scrollbar_width",          "17px"); // It's a css env var
-
         set("image",                            "image.jpg");
         set("geo_region",                       "FR-75");
         set("geo_placename",                    "Paris");
@@ -10172,15 +10170,11 @@
         
             /* Scrollbars */
 
-            /* Dimensions setting cannot be dissociated from color setting */
-            
-               *                            {  scrollbar-width: var(--scrollbar-width, 17px); }
-               *::-webkit-scrollbar         {            width: var(--scrollbar-width, 17px); }
-        
-            /* *                            {  scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff); }
-            */ *::-webkit-scrollbar-thumb   { background-color: var(--scrollbar-accent-color, #990011); }
-               *::-webkit-scrollbar-track   { background-color: #ffffff00; }
-            body::-webkit-scrollbar-track   { background-color: var(--scrollbar-background-color, #ffffff); }
+            html { 
+                /* We let width to the end user and discover it with --scrollbar-width */
+                scrollbar-gutter: stable;
+                scrollbar-color: var(--scrollbar-accent-color, #990011) var(--scrollbar-background-color, #ffffff);
+            }
         
             /* Editable styles */
             
@@ -10233,7 +10227,18 @@
         $grid = ":is(.grid, *:has(> .card + .card))";
 
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
-          
+
+            @property --scrollbar-width {
+                syntax: "<length>";
+                inherits: true;
+                initial-value: 0px; 
+            }
+
+            html {
+
+                container-type: size;
+            }
+
             /* My own base/remedy css  */
 
             :root {
@@ -10249,13 +10254,27 @@
                 --right-text-margin-ratio:  calc(1.0 - var(--left-text-margin-ratio));
 
                 --gap:                      16px; /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
-                --scrollbar-width:          17px;        
+                --scrollbar-width:          calc(100vw - 100cqw);
+                --scrollbar-width-unitless: tan(atan2(var(--scrollbar-width),1px));
                 --scroll-margin:            var(--gap);
                 --margin-gap:               var(--gap);
                 
                 --grid-default-min-width:   calc(var(--line-height) + var(--gap));
 
             }
+            
+            body { /* Can only be "discovered" on the body element */
+                --scrollbar-width:          calc(100vw - 100cqw);
+                --scrollbar-width-unitless: tan(atan2(var(--scrollbar-width),1px));
+            }
+
+            /* To debug scrollbar width detection */
+            body:before {
+                content: counter(val) "px";
+                counter-reset: val var(--scrollbar-width-unitless);
+                position: fixed; top: 0px; left: 0px;
+                z-index: 999;
+                }
 
             /**
              * Current "standard" hack to get viewport dimentions without unit
