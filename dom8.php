@@ -10399,8 +10399,8 @@
 
             body                    { text-underline-offset: 0.24em; } /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
     
-            body                    { word-break: break-word; text-wrap: pretty; }
-            <?= $grid ?> *          { word-break: normal; /*overflow: hidden;*/ text-overflow: ellipsis;  } /* TODO: WHy that ? */
+            body                    { word-break: break-word; text-wrap: pretty;   } /*
+            <?= $grid ?> *          { word-break: normal; text-overflow: ellipsis; } */ /* TODO: WHy that ? */
         
             body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
                  h1,h2,h3,h4,h5,h6  { text-wrap: balance; }

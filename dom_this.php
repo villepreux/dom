@@ -77,7 +77,7 @@ function code_css()
 
         @layer ide {
 
-            .ide:not(:is(.card.ide, details .ide)) {
+            .ide:not(:is(.card.ide, details .ide, article .ide)) {
                 width:          fit-content;
                 max-width:      stretch;
                 max-width:      -moz-available;
@@ -180,13 +180,16 @@ function code_section($code, $client_source_url, $title, $attributes = false)
     }
 }
 
-function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false)
+function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = true)
 {
     $profiler = debug_track_timing();
 
     if (auto === $syntax_highlight) $syntax_highlight = !get("gemini");
 
-    $code = code_sanitize($code);
+    if ($code_sanitize)
+    {
+        $code = code_sanitize($code);
+    }
 
     if ($syntax_highlight)
     {
@@ -195,7 +198,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         if ($lang == "php")
         {
             // Extract other languages embeded inside php
-
+            
             foreach ([ "HERE", "dom\HERE", "heredoc_flush", "dom\heredoc_flush"] as $here_func)
             foreach ([
 
@@ -239,7 +242,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
         }
 
         $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
-    
+
         if ($lang == "php")
         {
             // Re-inject other languages
@@ -272,7 +275,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     return code_section($code, $client_source_url, $title, $attributes);
 }
 
-function this($title = "", $attributes = false, $include_client_source = false, $syntax_highlight = auto)
+function this($title = "", $attributes = false, $include_client_source = false, $syntax_highlight = auto, $code_sanitize = true)
 {
     if (!!get("no-code")) return "";
 
@@ -283,5 +286,5 @@ function this($title = "", $attributes = false, $include_client_source = false, 
     $caller_source_content = @file_get_contents($caller_source_filename);
     if (false == $caller_source_content) $caller_source_content = $caller_source_filename;
 
-    return code($caller_source_content, $title, $attributes, "php", $syntax_highlight, $include_client_source ? dom\live_url() : false);
+    return code($caller_source_content, $title, $attributes, "php", $syntax_highlight, $include_client_source ? dom\live_url() : false, $code_sanitize);
 }
