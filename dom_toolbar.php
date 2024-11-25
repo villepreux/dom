@@ -813,7 +813,7 @@
         
         $attributes1 = $attributes;
         $attributes2 = attributes_add($attributes, attributes(attr("style", "view-transition-name: toolbar") ));
-        $attributes2 = attributes_add($attributes, attributes(attr("aria-hidden", "true") ));
+        $attributes2 = attributes_add($attributes, attributes(/*attr("hidden", true), */attr("aria-hidden", "true") ));
 
         set("transition_names", true);  $toolbar1 = header($html, attributes_add_class($attributes1, component_class("header", "toolbar toolbar-container")));
         set("transition_names", false); $toolbar2 = header($html, attributes_add_class($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate")));
