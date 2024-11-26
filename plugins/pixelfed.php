@@ -13,8 +13,8 @@ function api($url, $token = auto, $timeout = 7)
     content(
         $url, 
         [ "timeout" => $timeout, "header" => [ "Authorization" => TOKEN_PIXELFED ] ], 
-        /*auto_fix*/false, 
-        /*debug_error_output*/false, 
+        /*auto_fix*/true, 
+        /*debug_error_output*/true, 
         /*methods_order*/[ "curl" ], 
         /*profiling_annotation*/false
     );
