@@ -671,28 +671,16 @@
     {
         // Cannot be modified at browser URL level
 
-      //set("title",                             "Blog"); // Will be deducted/overriden from document headlines, if any
-        del("title");
+        del("title");                                       // Will be deducted/overriden from document headlines, if any
 
-        set("keywords",                          "");
+        set("keywords",                          ""); 
 
-      //set("url",                               url());                              if (path("DTD/xhtml-target.dtd", path("xhtml-target.dtd")))
-      //set("DTD",                              'PUBLIC "-//W3C//DTD XHTML-WithTarget//EN" "'.path("DTD/xhtml-target.dtd", path("xhtml-target.dtd")).'"');
-
-        set("normalize",                        false);/*
-        set("normalize",                        "sanitize");
-        set("reset",                            "evergreen");*/
+        set("normalize",                        false);
 
         set("icons_path",                       "img/icons/");
 
         // Default to an AA (light) contrasted theme 
-        /*
-        set("theme_color",                      "#990011"); 
-        set("accent_color",                     "#112299");
-        set("background_color",                 "#f2f2f2");
-        set("text_color",                       "#0d0d0d");
-        set("link_color",                       "#aa4455"); */
-        
+                
         set("css_layers_support",               true);
     
         set("default_image_ratio_w",            "300");
@@ -703,21 +691,6 @@
         set("geo_placename",                    "Paris");
         set("geo_position_x",                   48.862808);
         set("geo_position_y",                    2.348237);
-
-      //set("support_service_worker",           true);
-        
-      //set("fonts",                            "Roboto:300,400,500");
-            
-      //set("twitter_user",                     "me");
-      //set("twitter_page",                     get("twitter_user", "me"));
-      //set("linkedin_page",                    "me");
-      //set("facebook_page",                    "me");
-      //set("tumblr_blog",                      "blog");
-      //set("instagram_user",                   "self");
-      //set("pinterest_user",                   "blog");
-      //set("pinterest_board",                  "blog");
-      //set("flickr_user",                      "blog");
-      //set("messenger_id",                     "me");
             
         set("exclude_pinterest_pins_ids",       "");
         set("exclude_tumblr_slugs",             "");
