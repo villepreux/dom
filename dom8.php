@@ -618,6 +618,27 @@
 
     */
 
+    
+    function url_code($url, $headers = array(), $userAgent = false, $proxy = false)
+    {
+        if (!!$userAgent) $headers[] = "User-Agent: $userAgent";
+
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,    true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER,        $headers);
+        curl_setopt($ch, CURLOPT_HEADER,            true);
+        curl_setopt($ch, CURLOPT_NOBODY,            true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION,    true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,    false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,    false);   
+        
+        if (!!$proxy) curl_setopt($ch, CURLOPT_PROXY, $proxy);
+
+        $response = curl_exec($ch);
+
+        return (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    }
 
     function get_url_domain($url)
     {        
@@ -1809,7 +1830,7 @@
     function precat()                       { $args = func_get_args(); return precat_FUNC_ARGS($args); }
     function precat_FUNC_ARGS($args)        { return wrap_each(array_reverse($args),''); }
     function cat()                          { $args = func_get_args(); return cat_FUNC_ARGS($args); }
-    function cat_FUNC_ARGS($args)           { return wrap_each($args,''); }
+    function cat_FUNC_ARGS($args)           { return wrap_each($args, ""); }
     function quote($txt, $quote = false)    { return ($quote === false) ? ((false === strpos($txt, '"')) ? ('"'.$txt.'"') : ("'".$txt."'")) : ($quote.$txt.$quote); }
     
     function ellipsis($text = "", $footnote = true)
@@ -1994,19 +2015,29 @@
     #endregion
     #region Array / String utilities
 
-    function wrap_each($a, $glue = "", $transform = "self", $flatten_array = true)
+    function wrap_each($a, $glue = auto, $transform = auto, $flatten_array = auto)
     {
         $args = func_get_args();
+
+        array_shift($args); // $a               array
+        array_shift($args); // $glue            string
+        array_shift($args); // $transform       callable
+        array_shift($args); // $flatten_array   boolean
+
+        if ((is_callable($glue) || is_callable("dom\\$glue")) && auto === $transform && auto === $flatten_array)
+        {
+            swap($glue, $transform);
+        }
+
+        $glue           = auto === $glue            ? ""        : $glue;
+        $transform      = auto === $transform       ? "self"    : $transform;
+        $flatten_array  = auto === $flatten_array   ? true      : $flatten_array;
+        
         return wrap_each_FUNC_ARGS($a, $glue, $transform, $flatten_array, $args);
     }
 
     function wrap_each_FUNC_ARGS($a, $glue, $transform, $flatten_array, $args)
     {
-        array_shift($args); // $a
-        array_shift($args); // $glue
-        array_shift($args); // $transform
-        array_shift($args); // $flatten_array
-        
         $a          = is_array($a)         ? $a         : array($a);
         $transforms = is_array($transform) ? $transform : array($transform);
 
@@ -2015,8 +2046,6 @@
 
         foreach ($a as $e)
         {
-            if ($flatten_array && is_array($e)) { $e = wrap_each($e,","); }
-
             foreach ($transforms as $transform) 
             {
                 $e_args = $args;
@@ -2033,6 +2062,8 @@
                 $e = call_user_func_array($transform, array_merge(array($e), $e_args, array($i)));
             }
             
+            if ($flatten_array && is_array($e)) { $e = wrap_each($e,","); }
+
             $html .= (($i++ > 0) ? $glue : '') . $e;
         } 
             
@@ -11228,13 +11259,15 @@
                     e.classList.remove("lazy");
                     e.classList.add("lazy-observed");
                     
-                    interaction_observer.observe(e); 
+                    if (interaction_observer) {
+                        interaction_observer.observe(e); 
+                    }
 
-                    }, 1000);
+                }, 1000);
             }
                 
             function img_observer_callback(changes, observer) { 
-            
+
                 for (change of changes) {
                     
                     if (change.isIntersecting)
@@ -11302,10 +11335,12 @@
                 
             function observe_lazy_element(e,i)
             {
-                e.classList.remove("lazy");
-                e.classList.add("lazy-observed");
+                if (interaction_observer) {
 
-                interaction_observer.observe(e);        
+                    e.classList.remove("lazy");
+                    e.classList.add("lazy-observed");
+                    interaction_observer.observe(e);        
+                }
             }
       
             function scan_images() 
@@ -11313,18 +11348,27 @@
                 dom.log("Scanning images");*/
 
                 /* Handle images loading errors */
-                document.querySelectorAll("img").forEach(function (e) { e.addEventListener("error", on_img_error); });
+                document.querySelectorAll("img").forEach(function (e) { 
+                    e.removeEventListener( "error", on_img_error); 
+                    e.addEventListener(    "error", on_img_error); 
+                });
 
                 /* Scan for lazy elements and make them observed elements */
-                document.querySelectorAll("source.lazy[data-srcset]" ).forEach(observe_lazy_element);
-                document.querySelectorAll(   "img.lazy[data-src]"    ).forEach(observe_lazy_element);
-                document.querySelectorAll("iframe.lazy[data-src]"    ).forEach(observe_lazy_element);
+                if (interaction_observer) {
+                    
+                    /* (re)create images intersection observer */
+                    var options = { rootMargin: '0px 0px 0px 0px' };
+                    interaction_observer = new IntersectionObserver(img_observer_callback, options);
+
+                    document.querySelectorAll("source[data-srcset]" ).forEach(observe_lazy_element);
+                    document.querySelectorAll(   "img[data-src]"    ).forEach(observe_lazy_element);
+                    document.querySelectorAll("iframe[data-src]"    ).forEach(observe_lazy_element);
+                }
             }
 
             on_loaded(function () {
 
                 /* Create images intersection observer */
-                /*var options = { rootMargin: '100px 100px 100px 100px' };*/
                 var options = { rootMargin: '0px 0px 0px 0px' };
                 interaction_observer = new IntersectionObserver(img_observer_callback, options);
 
@@ -11382,29 +11426,6 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_sliders()
-    {
-        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-                
-            /* SLIDERS */
-            
-            function updateSlider()
-            {
-            }
-            
-            function initSliders()
-            {
-                document.querySelectorAll(".slider").forEach(function (e) { 
-
-                    /* TODO */
-                });
-            }
-
-            on_loaded(initSliders);
-            
-        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
-
     function js_on_document_events_head()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
@@ -11445,13 +11466,13 @@
             function on_resize(callback, first) { /* on_loaded(function () */ { if (!!first) dom.resize_callbacks.unshift(callback); else dom.resize_callbacks.push(callback);                                                                  } /* ); */ }
             function on_ajax(callback,   first) { /*  on_ready(function () */ { if (!!first)   dom.ajax_callbacks.unshift(callback); else   dom.ajax_callbacks.push(callback);                                                                  } /* ); */ }
             
-            function on_first_interraction(callback)
+            function on_first_interraction(callback, userdata)
             {
                 return on_loaded(function() { 
 
                     if (window.location.hash != "") {
 
-                        callback();
+                        callback(userdata);
 
                     } else {
 
@@ -11462,7 +11483,7 @@
                             if (!scrolled) {
 
                                 scrolled = true;
-                                callback();
+                                callback(userdata);
                             }
                         });
                     }
@@ -11531,8 +11552,7 @@
                 script_google_analytics           ().               ((!!get("script_document_events",       true)) ? (
                 script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
                 script(js_back_to_top             ()).   "") : ""). (($images_loading                            ) ? (
-                script(js_images_loading          ()).   "") : ""). ((!!get("support_sliders",             false)) ? (
-                script(js_sliders                 ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
+                script(js_images_loading          ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
                 script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",          false)) ? (
                 script(js_pwa_install             ()).   "") : ""). ((!!get("script_framework_material",   false)) ? (
                 script(js_framework_material      ()).   "") : ""). ((!!get("script_scan_and_print",       false)) ? (
