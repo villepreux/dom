@@ -73,6 +73,11 @@ function neighborhood($account_id, $limit)
             if (isset($known_set[at($new_neighbor, "id")])) continue;
             $known_set[at($new_neighbor, "id")] = true;
             $neighbors[] = $new_neighbor;
+            
+          /*$account  = account(  at($new_neighbor, "id"));
+            $statuses = statuses( at($new_neighbor, "id"));
+            if (false !== stripos(json_encode($account), "belajkorpoj.art")) \dom\bye([ "statuses" => statuses(at($new_neighbor, "id")), "account" => $account ]);*/
+
         }
 
         if (count($neighbors) >= $limit) break;
