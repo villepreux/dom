@@ -6,20 +6,7 @@ require_once(__DIR__."/../dom.php");
 use function \dom\{at,content};
 use const \dom\{auto};
 
-function api($url, $token = auto, $timeout = 7, &$debug_error_output = null)
-{
-    $token = auto === $token ? constant("TOKEN_PIXELFED") : $token;
-
-    return json_decode(content(
-
-        $url, 
-        [ "timeout" => $timeout, "header" => [ "Authorization" => TOKEN_PIXELFED ] ], 
-        /*auto_fix*/false, 
-        $debug_error_output, 
-        /*methods_order*/[ "curl" ]
-
-    ), true);
-}
+#region Direct API calls wrappers
 
 function verify_credentials($token = auto, $timeout = 7, &$debug_error_output = null)
 {
@@ -56,3 +43,60 @@ function following($account_id = auto, $token = auto, $timeout = 7, &$debug_erro
 
     return api("https://pixelfed.social/api/v1/accounts/$account_id/following", $token, $timeout, $debug_error_output);
 }
+
+#endregion
+#region Extensions to the API
+
+function neighborhood($account_id, $limit)
+{
+    $neighbors = [];
+
+    $accounts_parse_queue = following($account_id);
+    $parsed_set = [ $account_id => true ];
+
+    $known_set = [ $account_id => true ];
+    foreach ($accounts_parse_queue as $followed) $known_set[at($followed, "id")] = true;
+    
+    while (count($accounts_parse_queue) > 0)
+    {
+        $target_account_id = at(array_shift($accounts_parse_queue), "id");
+        if (isset($parsed_set[$target_account_id])) continue;        
+        $parsed_set[$target_account_id] = true;
+        $new_neighbors = following($target_account_id);
+        if (!is_array($new_neighbors)) continue;
+
+        $accounts_parse_queue = array_merge($accounts_parse_queue, $new_neighbors);
+
+        foreach ($new_neighbors as $new_neighbor)
+        {
+            if (count($neighbors) >= $limit) break;            
+            if (isset($known_set[at($new_neighbor, "id")])) continue;
+            $known_set[at($new_neighbor, "id")] = true;
+            $neighbors[] = $new_neighbor;
+        }
+
+        if (count($neighbors) >= $limit) break;
+    }
+
+    return $neighbors;
+}
+
+#endregion
+#region API Wrapper
+
+function api($url, $token = auto, $timeout = 7, &$debug_error_output = null)
+{
+    $token = auto === $token ? constant("TOKEN_PIXELFED") : $token;
+
+    return json_decode(content(
+
+        $url, 
+        [ "timeout" => $timeout, "header" => [ "Authorization" => TOKEN_PIXELFED ] ], 
+        /*auto_fix*/false, 
+        $debug_error_output, 
+        /*methods_order*/[ "curl" ]
+
+    ), true);
+}
+
+#endregion
