@@ -1,7 +1,7 @@
 <?php 
 
 /**
- * Blod post excerpt auto-positing on Mastodon
+ * Blog post excerpt auto-positing on Mastodon
  * +
  * Blog post commenting via Mastodon comments
  * Inspired by https://cassidyjames.com/blog/fediverse-blog-comments-mastodon/
@@ -770,3 +770,34 @@ function article_excerpt_autopost_and_comments()
 }
 
 #endregion Components: Autopublish
+
+function url_lookup($webfinger, $host = false, $username = false)
+{
+    list($host, $username) = valid_host_username($host, $username);
+    if (!$host || !$webfinger) return false;
+
+    return "https://$host/api/v1/accounts/lookup/?acct=$webfinger";
+}
+
+function lookup($webfinger, $token = auto, $timeout = 7, &$debug_error_output = null, $host = false, $username = false)
+{
+    return api(url_lookup($webfinger, $host, $username), $token, $timeout, $debug_error_output);
+}
+
+function api($url, $token = auto, $timeout = 7, &$debug_error_output = null)
+{
+    $token = auto === $token ? constant("TOKEN_MASTODON") : $token;
+
+    return json_decode(\dom\content(
+
+        $url, 
+        [ "timeout" => $timeout, "header" => [ "Authorization" => $token ] ], 
+        /*auto_fix*/false, 
+        $debug_error_output, 
+        /*methods_order*/[ "curl" ]
+
+    ), true);
+}
+
+
+

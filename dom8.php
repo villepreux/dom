@@ -5397,24 +5397,51 @@
     function string_offline_html($force_minify = false)
     {
         heredoc_start(-3); ?><html><?php heredoc_flush(null); ?> 
-        
+
             <!doctype html><html>
+
                 <head>
-                    <title>Please wait...</title>
+
                     <meta charset="utf-8">
                     <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
+                    
+                    <title>Please wait...</title>
+
                     <meta name="format-detection" content="telephone=no">
                     <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1">
                     <meta http-equiv="refresh" content="3">
+                    
                     <style>
-                        body { margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: <?= string_system_font_stack("\'") ?>; padding-top: calc(50vh - 2em - 64px); }
-                        svg  { opacity: 0; animation: fade-in 3s; } @keyframes fade-in { 0% { opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { opacity: 0; } }
+
+                        :root { color-scheme: light dark; }
+                        body  { margin: 0; height: 100vb; display: flex; justify-content: center; align-items: center; flex-direction: column; color: light-dark(#222, #DDD); background-color: light-dark(#DDD, #222); font-family: "Arial Narrow", "AvenirNextCondensed-Bold", "Futura-CondensedExtraBold", HelveticaNeue-CondensedBold, "Ubuntu Condensed", "Liberation Sans Narrow", "Franklin Gothic Demi Cond", sans-serif-condensed, Arial, "Trebuchet MS", "Lucida Grande", Tahoma, Verdana, sans-serif; }
+                        svg   { opacity: 0; animation: fade-in 3s; }
+                        
+                        @keyframes fade-in { 0% { opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { opacity: 0; } }
+
                     </style>
+
                 </head>
+
                 <body>
+
                     <p>Offline<br>Please wait...</p>
-                    <p><?= string_loading_svg($force_minify) ?></p>
+
+                    <p><svg viewBox="0 0 100 100" width="100" height="100" class="lds-spinner" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
+                        <g transform="rotate(360 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(396 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(432 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.7s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(108 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(144 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(180 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(216 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(252 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.2s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(288 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.1s" repeatCount="indefinite"></animate></rect></g>
+                        <g transform="rotate(324 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.0s" repeatCount="indefinite"></animate></rect></g>
+                    </svg></p>
+
                 </body>
+
             </html>
 
         <?php heredoc_flush("raw_html", $force_minify); ?></html><?php return heredoc_stop(null);

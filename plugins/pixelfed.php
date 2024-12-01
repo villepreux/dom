@@ -96,7 +96,7 @@ function api($url, $token = auto, $timeout = 7, &$debug_error_output = null)
     return json_decode(content(
 
         $url, 
-        [ "timeout" => $timeout, "header" => [ "Authorization" => TOKEN_PIXELFED ] ], 
+        [ "timeout" => $timeout, "header" => [ "Authorization" => $token ] ], 
         /*auto_fix*/false, 
         $debug_error_output, 
         /*methods_order*/[ "curl" ]
