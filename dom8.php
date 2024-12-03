@@ -4943,7 +4943,7 @@
         return $in;
     }
 
-    function output($doc = "")
+    function output($doc = "", $attributes = false)
     {   
         if (!!get("binary"))
         {
@@ -4962,7 +4962,7 @@
 
         if ("html" == get("doctype", false))
         {
-            if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc);
+            if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc, $attributes);
         }
 
         if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = placeholder_replace("DOM_HOOK_RSS_1"       , _rss      (true), $doc);
