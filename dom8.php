@@ -2360,38 +2360,33 @@
 
     $__last_headline_level = false;
 
-    function hook_headline($h, $title, $section = false)
+    function hook_headline($h, $title, $anchor = false)
     {
         global $__last_headline_level;
         $__last_headline_level = (int)$h;
 
-        $f = get("hook_headline_filter");
-        
-        if (!!$f && is_callable($f))
+        $link_to = $title;
+
+        $short_title_bgn = stripos($title, "{{");
+        $short_title_end = stripos($title, "}}");
+
+        if (false !== $short_title_bgn && false !== $short_title_end)
         {
-            $hook_result = $f($title, false === $section ? $title : $section);
-            
-            if (false === $hook_result)
+            $link_to = substr($title, $short_title_bgn + 2, $short_title_end - $short_title_bgn - 2);
+            $title   = str_replace([ "{{", "}}" ], "", $title);
+
+            if ($anchor === false)
             {
-                return [ $title, $section ];
-            }
-            
-            if (is_array($hook_result))
-            {
-                list($title, $section) = $hook_result;
-            }
-            else
-            {
-                $section = $hook_result;
+                $anchor = $link_to;
             }
         }
 
-        if ($h == get("headline-level-title",    1))      $title            = hook_title($title);
-        if ($h == get("headline-level-sections", 2)) list($title, $section) = hook_section($title, $section);
+        if ($h == get("headline-level-title", 1))          $title                     = hook_headline_to_title($title);
+        if ($h == get("headline-level-toc",   2)) list($h, $title, $link_to, $anchor) = hook_headline_to_toc_link($h, $title, $link_to, $anchor);
 
         call_user_hook("headline", $title);
 
-        return [ $h, $title, $section ];
+        return [ $h, $title, $anchor ];
     }
 
     function get_last_headline_level()
@@ -2413,7 +2408,7 @@
         return strip_tags($html);
     }
 
-    function hook_title($title)
+    function hook_markup_to_title($title)
     {
         if (!!$title && false === get("title", false))
         {
@@ -2424,45 +2419,29 @@
         return $title;
     }
 
-    function hook_section($title, $section = false)
+    function hook_toolbar_nav_title_to_title($title)
+    {
+        return hook_markup_to_title($title);
+    }
+
+    function hook_headline_to_title($title)
+    {
+        return hook_markup_to_title($title);
+    }
+
+    function hook_headline_to_toc_link($h, $title, $link_to, $anchor)
     {                  
-        if (false === $section) $section = $title;
+        if (false === $link_to) $link_to = $title;
+        if (false === $anchor)  $anchor  = $link_to;
 
-        $f = get("hook_section_filter");
-        
-        if (!!$f && is_callable($f))
-        {
-            $hook_result = $f(false === $section ? $title : $section);
-            
-            if (false === $hook_result)
-            {
-                return [ $title, $section ];
-            }
-            
-            if (is_array($hook_result))
-            {
-                list($title, $section) = $hook_result;
-            }
-            else
-            {
-                $section = $hook_result;
-            }
-        }
+        set("hook_sections", array_merge(get("hook_sections", []), [
+                    
+            [                 trim(clean_from_tags($link_to)), 
+              "#".anchor_name(trim(clean_from_tags($anchor)))  ]
 
-        set(
-            "hook_sections", 
-            array_merge(
-                get("hook_sections", array()), 
-                array(
-                    array(
-                        trim(clean_from_tags($section)), 
-                        "#".anchor_name(trim(clean_from_tags($section)))
-                        )
-                    )
-                )
-            );
+            ]));
 
-        return [ $title, $section ];
+        return [ $h, $title, $link_to, $anchor ];
     }
     
     function hook_heading($heading)

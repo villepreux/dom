@@ -783,7 +783,7 @@
 
     function toolbar_nav_title($html, $attributes = false)
     {
-        hook_title($html);
+        hook_toolbar_nav_title_to_title($html);
 
         if ($html !== false && $html != "")
         { 
