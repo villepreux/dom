@@ -10404,7 +10404,7 @@
             }
     
             /* Typography */
-
+            
             html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
             body                    { text-underline-offset: 0.24em; } /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
@@ -10424,6 +10424,8 @@
           /*ins, abbr, acronym      { } */
             u                       { text-decoration-style: wavy; }
     
+            h1, p, button { text-box: trim-both cap alphabetic; }
+
             kbd {
                 display:        inline-block;
                 border:         2px solid currentColor;
