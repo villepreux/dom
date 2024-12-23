@@ -5336,13 +5336,16 @@
         <?php heredoc_flush("raw"); ?></html><?php return heredoc_stop(null);
     }
 
-    function string_gpc()
+    function string_gpc($y = auto, $m = auto, $d = 1)
     {
         return json_encode([
 
             "gpc"           => true,
             "version"       => 1,
-            "lastUpdate"    => date("Y-m-d")
+            "lastUpdate"    => date("".
+                (auto === $y ? "Y" : ($y < 1000 ? "0$y" : $y))."-".
+                (auto === $m ? "m" : ($m <   10 ? "0$m" : $m))."-".
+                (auto === $d ? "d" : ($d <   10 ? "0$d" : $d)))
         ]);
     }
 
