@@ -12458,7 +12458,7 @@
             $size = cached_getimagesize($photo_url);
             list($w, $h) = (is_array($size) ? array_values($size) : array(false, false));
 
-            $images .= call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", auto, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
+            $images .= eol().call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", auto, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
         }
 
         if (!is_callable($wrapper)) $wrapper = "dom\\$wrapper";
@@ -13221,7 +13221,6 @@
         }
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
-        
 
              if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
         else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
