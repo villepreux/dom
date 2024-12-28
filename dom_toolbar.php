@@ -583,9 +583,8 @@
 
     function menu_li_attributes($item, $add_transition_names = auto)
     {
-        $add_transition_names = (auto == $add_transition_names) ? get("transition_names") : $add_transition_names;
-
-        $transition_name = trim(to_classname($item));
+        $add_transition_names = (auto === $add_transition_names) ? get("transition_names") : $add_transition_names;
+            $transition_name  = trim(to_classname($item));
 
         $attributes = [];
         {
@@ -812,14 +811,20 @@
         if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
         
         $attributes1 = $attributes;
-        $attributes2 = attributes_add($attributes, attributes(attr("style", "view-transition-name: toolbar") ));
-        $attributes2 = attributes_add($attributes, attributes(/*attr("hidden", true), */attr("aria-hidden", "true") ));
+        $attributes1 = attributes_add($attributes1, component_class("header", "toolbar toolbar-container"));
 
-        set("transition_names", true);  $toolbar1 = header($html, attributes_add_class($attributes1, component_class("header", "toolbar toolbar-container")));
-        set("transition_names", false); $toolbar2 = header($html, attributes_add_class($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate")));
+        $attributes2 = $attributes;
+        $attributes2 = attributes_add($attributes2, attributes(attr("style", "view-transition-name-@: toolbar") ));
+        $attributes2 = attributes_add($attributes2, attributes(attr("aria-hidden", "true") ));
+        $attributes2 = attributes_add($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate"));
+
+        set("transition_names", true);  $toolbar1 = header($html, $attributes1);
+        set("transition_names", false); $toolbar2 = header($html, $attributes2);
         del("transition_names");
 
-        $toolbar2 = str_replace('id="', 'id="duplicate-', $toolbar2);
+        $toolbar2 = str_replace('id="',                     'id="duplicate-',                   $toolbar2);
+        $toolbar2 = str_replace('view-transition-name:',    'view-transition-name-duplicate:',  $toolbar2);
+        $toolbar2 = str_replace('view-transition-name-@:',  'view-transition-name:',            $toolbar2);
 
         return  
             comment("PRE Toolbar").
