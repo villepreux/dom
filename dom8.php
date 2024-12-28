@@ -2434,10 +2434,11 @@
         if (false === $link_to) $link_to = $title;
         if (false === $anchor)  $anchor  = $link_to;
 
+        $id = anchor_name($anchor);
+
         set("hook_sections", array_merge(get("hook_sections", []), [
                     
-            [                 trim(clean_from_tags($link_to)), 
-              "#".anchor_name(trim(clean_from_tags($anchor)))  ]
+            [ $link_to, "#$id" ]
 
             ]));
 
@@ -8852,7 +8853,7 @@
 
             category: accessibility
             */
-            /* @media (prefers-reduced-motion: reduce) {
+            @media (prefers-reduced-motion: reduce) {
             *, ::before, ::after {
                 animation-delay: -1ms !important;
                 animation-duration: 1ms !important;
@@ -8862,7 +8863,7 @@
                 transition-delay: 0s !important;
                 transition-duration: 0s !important;
             }
-            } */
+            }
 
 
             /* @docs
@@ -12030,6 +12031,7 @@
         }
 
         $id = anchor_name(!!$anchor ? $anchor : $html);
+        //if ($h == 2) bye(pre(htmlentities("$h, $html, $anchor, $id")));
         
         $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
         $attributes = attributes_add($attributes, attr("id",    $id));
@@ -13033,7 +13035,19 @@
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
     
-    function anchor_name($name, $tolower = auto) { return to_classname($name, $tolower); }
+    function anchor_name($name, $tolower = auto) { 
+
+        $lang_span_tag_en = '<span lang="en">';
+        $lang_span_pos_en = stripos($name, $lang_span_tag_en);
+
+        if (false !== $lang_span_pos_en)
+        {
+            $name = substr($name, $lang_span_pos_en + strlen($lang_span_tag_en));
+            $name = substr($name, 0, stripos($name, "<"));
+        }
+        
+        return to_classname($name, $tolower);
+    }
 
     function anchor($name, $character = false, $tolower = auto)
     {
@@ -15037,7 +15051,7 @@
     }
       
     function address($html)     { return tag("address", $html); }
-    function author($author)    { return address(a($author, url_top(), array("rel" => "author")), array("class" => "author")); }
+    function author($author)    { return address(span($author, url_top(), array("rel" => "author")), array("class" => "author")); }
 
     function h_card($photo = auto, $bio = auto, $name = auto, $url = auto, $attributes = false, $me = false)
     {
