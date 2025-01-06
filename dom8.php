@@ -12404,82 +12404,6 @@
                 "wikipedia-api-parse"
                 );
     }
-        
-    function json_google_photo_album_from_content($url)
-    {
-        $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
-        $context = stream_context_create($options);
-        $html    = @file_get_contents($url, false, $context);
-
-        update_dependency_graph($url);
-        
-        if ($html)
-        {
-            $tag_bgn = ", data:";
-            $tag_end = ", sideChannel";
-            
-            $pos_bgn = strrpos($html, $tag_bgn, 0);
-            $pos_end =  strpos($html, $tag_end, $pos_bgn);
-            
-            if (false !== $pos_bgn && false !== $pos_end)
-            {
-                $json   = substr($html, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
-                $result = json_decode($json, true);
-                return $result;
-            }
-        }
-        
-        return false;
-    }
-    
-    function photo_album($url, $wrapper = "div", $img_wrapper = "self", $link_to_google = true, $randomize = false, $img_precompute_size = true)
-    {
-        $photo_urls = array();
-        {
-            if (is_array($url))
-            {
-                $photo_urls = $url;
-            }
-            else
-            {
-                $results = json_google_photo_album_from_content($url);
-                $photos  = at($results, 1, array());
-
-                foreach ($photos as $i => $photo_result)
-                {
-                    $photo_urls[] = at(at($photo_result, 1), 0);
-                }    
-            }
-        }
-
-        if ($randomize)
-        {
-            shuffle($photo_urls);
-        }
-
-        $images = "";
-        
-        foreach ($photo_urls as $i => $photo_url)
-        {
-            if (!is_callable($img_wrapper)) $img_wrapper = "dom\\$img_wrapper";
-            
-            $size = cached_getimagesize($photo_url);
-            list($w, $h) = (is_array($size) ? array_values($size) : array(false, false));
-
-            $images .= eol().call_user_func($img_wrapper, img($photo_url, $w, $h, false, "Photo", auto, false, '', $img_precompute_size), $photo_url, $i + 1, $w, $h);
-        }
-
-        if (!is_callable($wrapper)) $wrapper = "dom\\$wrapper";
-            
-        $album = call_user_func($wrapper, $images);
-
-        if ($link_to_google)
-        {
-            $album = a($album, $url, external_link);
-        }
-
-        return $album;
-    }
 
     function embed_instagram_card($id, $account_codename = false, $account_label = false)
     {
@@ -14286,7 +14210,6 @@
             .   cards_async                 ()
             
             .   google_calendar_async       ()
-            .   photo_album_async           ()
         ;
 
         foreach (registered_asyncs() as $registered_async)
@@ -14313,7 +14236,6 @@
     function cells_card_async ($source = false, $type = false, $ids = false, $filter = "", $tags_in = false, $tags_out = false,                      $async_params = false) { return !$async_params ? ajax_call("dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell")     : ajax_call($async_params, "dom\cards", $source, $type, $ids, $filter, $tags_in, $tags_out, "cell");     }
     
     function google_calendar_async                            ($ids = false, $w = false, $h = false)                                                 { return ajax_call("dom\google_calendar", $ids, $w, $h); }
-    function photo_album_async                                ($ids = false, $wrapper = "div", $img_wrapper = "self")                                { return ajax_call("dom\photo_album",     $ids, $wrapper, $img_wrapper); }
 
     #endregion
     #region WIP API : DOM : RSS
