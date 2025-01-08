@@ -3,7 +3,7 @@ Do Not Track Compliance Policy
 Version 1.0
 
 This domain complies with user opt-outs from tracking via the "Do Not Track"
-or "DNT" header  [http://www.w3.org/TR/tracking-dnt/].  This file will always
+or "DNT" header  [https://www.w3.org/TR/tracking-dnt/].  This file will always
 be posted via HTTPS at https://example-domain.com/.well-known/dnt-policy.txt
 to indicate this fact.
 
@@ -136,7 +136,7 @@ the following specific situations:
      send a tracking value status header "Tk: C" as described in section 6.2
      of the W3C Tracking Preference Expression draft:
 
-     http://www.w3.org/TR/tracking-dnt/#tracking-status-value
+     https://www.w3.org/TR/tracking-dnt/#tracking-status-value
 
 2. TRANSACTIONS         
 
