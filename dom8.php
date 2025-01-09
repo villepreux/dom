@@ -13606,7 +13606,7 @@
     function unsplash_url()             { return "https://unsplash.com";        }
     function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
     
-    function unsplash_url_img_random($search, $w, $h, $random = auto) {
+    function url_img_random($search, $w, $h, $random = auto) {
 
         if ($random === false)
         {
@@ -13652,6 +13652,11 @@
         else                        $random = "&$random";
 
         return "https://source.unsplash.com/".$w."x".$h."/?".trim(strtolower(str_replace(" ", ",", "$search")))."$random.jpg";*/
+    }
+
+    function unsplash_url_img_random($search, $w, $h, $random = auto) 
+    {
+        return url_img_random($search, $w, $h, $random = auto);
     }
 
     function unsplash_url_img($id, $w = false, $h = false, $author = false)

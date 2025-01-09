@@ -1,7 +1,8 @@
-<?php require_once(__DIR__."/../dom.php"); use function dom\{unsplash_url_img}; ?>
 
 /* Theme colors */
+
 :root {
+
     --light-theme-color:        #806;
     --light-accent-color:       #03c;
     --light-link-color:         #858;
@@ -14,45 +15,46 @@
 }
 
 /* Page header & Toolbar */
+
 :root {
+
     --header-height:         256px;
     --header-min-height:       0px;
     --header-toolbar-height:  64px;
 }
-.toolbar-row-banner { /*
-    background: center/cover url(<?= unsplash_url_img("Baz9Oss6Hj8", 1200, 800, "tylerhendy") ?>); */
+.toolbar-row-banner { 
+
     background-color: var(--theme-color);
-    background: center/cover url(<?= dom\unsplash_url_img_random("Random image", 1200, 800) ?>);
+    background: center/cover url(https://picsum.photos/id/25/1600/800);
     background-blend-mode: hard-light;
 }
 
-/* Articles look */
+/* Cards grid */
 
-.article {     
-    --border-radius: .5em; 
-    border-radius: var(--border-radius);
-    box-shadow: 0px 0px 8px 4px #0003; 
-} 
-
-/* Cards */
 .grid { 
+
     grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr))
 }
 
-/* Aside look */
+/* Aside */
+
 aside { 
+
     border-color: var(--accent-color);
     margin: var(--gap);
 }
 
-/* On large screens, put aside on the side */
 @media screen and (min-width: 1300px) {
+
     :root {
+
         --left-text-margin-ratio: 0.3
     }
+
     aside {
+
         position: absolute;
         right:    0;
-        width:    calc(calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))) - calc(2 * var(--gap)));
+        width:    min(40ch, calc(calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))) - calc(2 * var(--gap))));
     }
 }

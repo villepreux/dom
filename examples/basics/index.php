@@ -1,7 +1,7 @@
 <?php include "dom.php"; // Include framework and then import needed functions
 
-use function dom\{init,output,content,lorem_ipsum,unsplash_img}; // Utilities
-use function dom\{html,rss,jsonfeed,head,body,toolbar,header,main,footer,section,article,aside,h2,grid,p,img,a}; // Markup
+use function dom\{init,output,content,lorem_ipsum,url_img_random}; // Utilities
+use function dom\{html,rss,jsonfeed,toolbar,main,footer,article,aside,h2,grid,p,img,a}; // Markup
 use function dom\{card,card_title,card_media,card_text}; // Cards
 use function dom\{svg_rss,svg_facebook}; // SVGs
 
@@ -18,8 +18,7 @@ output( // Output
                 lorem_ipsum(1)).
             grid(str_repeat(card(
                 card_title("We love cards").
-              //card_media(unsplash_img("Baz9Oss6Hj8", 300, 200, "tylerhendy", "Example image")).
-                card_media(img(dom\unsplash_url_img_random("Random image", 300, 200))).
+                card_media(img(url_img_random("Random image", 300, 200))).
                 card_text(
                     p("Cards seem to be a popular web component nowadays.").
                     p("So we got it. And we also got social networks accounts cards pulling."))), 4)).

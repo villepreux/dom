@@ -218,7 +218,8 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
                     $pos_bgn = stripos($code, $tag_bgn, $pos_end); if ($pos_bgn === false) break;
                     $pos_end = stripos($code, $tag_end, $pos_bgn); if ($pos_end === false) break;
 
-                    $placeholder = comment("CODE-EMBED-".count($embeds));
+                  //$placeholder = comment("CODE-EMBED-".count($embeds));
+                    $placeholder = "CODEEMBED".count($embeds)."CODEEMBED";
                     $embed = substr($code, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
                     $code = substr($code, 0, $pos_bgn + strlen($tag_bgn)).$placeholder.substr($code, $pos_end);
                     $pos_end = $pos_bgn + strlen($tag_bgn) + strlen($tag_end) + strlen($placeholder);
@@ -231,11 +232,18 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
             }
         }
 
-        $hl = @new \Highlight\Highlighter();
-
         try {
-            $highlighted = $hl->highlight($lang, $code);
-            $code = $highlighted->value;
+            if (class_exists("\Highlight\Highlighter")) {
+                $hl = @new \Highlight\Highlighter();
+                if ($hl) {
+                    $highlighted = $hl->highlight($lang, $code);
+                    $code = $highlighted->value;
+                } else {
+                    $code = htmlentities($code);
+                }
+            } else {
+                $code = htmlentities($code);
+            }
         }
         catch (DomainException $e) {
             $code = htmlentities($code);
@@ -256,8 +264,11 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
                 $embed = htmlentities($embed);
                 $embed = dom\code($embed, [ "class" => "language-$embed_lang",  "style" => "padding-left: {$embed_indent}ch" ]);
 
-                $placeholder = htmlentities(comment("CODE-EMBED-$index"));
+              //$placeholder = comment("CODE-EMBED-$index");
+                $placeholder = "CODEEMBED".$index."CODEEMBED";
+                $placeholder = htmlentities($placeholder);
                 $embed = '</code>'.$embed.'<code class="language-'.$lang.'" spellcheck=false>';
+
                 $code  = str_replace($placeholder, $embed, $code);
             }
         }

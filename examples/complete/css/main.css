@@ -1,9 +1,5 @@
 <?php require_once(__DIR__."/../dom.php");
-
-use function dom\unsplash_url_img;
-
-$unsplash_id       = "_noSmX8Kgoo";
-$unsplash_author   = "jezar";
+use function dom\url_img_random;
 
 ?>
 
@@ -35,20 +31,14 @@ $unsplash_author   = "jezar";
     background-color: var(--theme-color);
     background-blend-mode: luminosity;
     background-size: cover; 
-    background-position: center; /*
-    background-image: url(<?= unsplash_url_img($unsplash_id, 1200, 800, $unsplash_author) ?>);*/
-    background-image: url(<?= dom\unsplash_url_img_random("Random image", 1200, 800) ?>);
+    background-position: center; 
+    background-image: url(<?= url_img_random("Random image", 1200, 800) ?>);
 }
-/*
-@media screen and (max-width: 900px) { .toolbar-row-banner { background-image: url(<?= unsplash_url_img($unsplash_id, 900, 600, $unsplash_author) ?>); } }
-@media screen and (max-width: 700px) { .toolbar-row-banner { background-image: url(<?= unsplash_url_img($unsplash_id, 720, 480, $unsplash_author) ?>); } }
-@media screen and (max-width: 500px) { .toolbar-row-banner { background-image: url(<?= unsplash_url_img($unsplash_id, 480, 320, $unsplash_author) ?>); } }
-@media screen and (max-width: 300px) { .toolbar-row-banner { background-image: url(<?= unsplash_url_img($unsplash_id, 300, 200, $unsplash_author) ?>); } }
-*/
-@media screen and (max-width: 900px) { .toolbar-row-banner { background-image: url(<?= dom\unsplash_url_img_random("Random image", 900, 600) ?>); } }
-@media screen and (max-width: 700px) { .toolbar-row-banner { background-image: url(<?= dom\unsplash_url_img_random("Random image", 720, 480) ?>); } }
-@media screen and (max-width: 500px) { .toolbar-row-banner { background-image: url(<?= dom\unsplash_url_img_random("Random image", 480, 320) ?>); } }
-@media screen and (max-width: 300px) { .toolbar-row-banner { background-image: url(<?= dom\unsplash_url_img_random("Random image", 300, 200) ?>); } }
+
+@media screen and (max-width: 900px) { .toolbar-row-banner { background-image: url(<?= url_img_random("Random image", 900, 600) ?>); } }
+@media screen and (max-width: 700px) { .toolbar-row-banner { background-image: url(<?= url_img_random("Random image", 720, 480) ?>); } }
+@media screen and (max-width: 500px) { .toolbar-row-banner { background-image: url(<?= url_img_random("Random image", 480, 320) ?>); } }
+@media screen and (max-width: 300px) { .toolbar-row-banner { background-image: url(<?= url_img_random("Random image", 300, 200) ?>); } }
 
 @media screen and (max-width: 700px) { 
     

@@ -23,7 +23,7 @@ output(head().body(
                 card_text(p("See ".a("example","complete")." in fullscreen")))
             ).
         section(
-            p(a("Back", "..")." | ".a("More examples", "others"))
+            p(a("Back", ".."))
             )
         ).
     style((function () { HSTART(-3) ?><style><?= HERE() ?>
