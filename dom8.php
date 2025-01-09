@@ -10781,6 +10781,7 @@
                 display: flex;
                 flex-wrap: wrap;
                 gap: var(--gap);
+                align-items: center;
             }
 
             /* Icons */
