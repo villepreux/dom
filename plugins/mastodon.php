@@ -586,6 +586,12 @@ function section_mastodon_comments($post_id = auto, $host = false, $username = f
         $post_id = get("mastodon-post-id", get("mastodon-post"));
     }
 
+    if (is_array($post_id))
+    {
+        $host       = array_shift($post_id);
+        $post_id    = array_shift($post_id);
+    }
+
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return "";
     

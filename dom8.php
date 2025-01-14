@@ -6747,6 +6747,9 @@
 
     function link_rel_prefetch($url)
     {
+        if (false !== stripos($url, "://") && 0 !== stripos($url, "http")) return "";
+        if (0 === stripos($url, "#")) return "";
+
         return link_rel("prefetch", $url);
     }
 
@@ -8128,9 +8131,6 @@
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
-            /*
-            .   eol().comment("Prefetched pages")
-            .   link_rel_prefetchs()*/
             ;
     }
     
