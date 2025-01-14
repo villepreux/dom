@@ -19,7 +19,7 @@
     ######################################################################################################################################
 
     function at($a, $k, $d = false)                                                                         { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
-    function get_all(                                       $get = true, $post = true, $session = false)    { $a = array(); if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
+    function get_all(                                       $get = true, $post = true, $session = false)    { $a = []; if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
     function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session)); }
     function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session), $k_or_a, $d_or_k); }
     function del($k)                                                                                        { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
@@ -33,7 +33,7 @@
     {
         function getallheaders()
         {
-            $headers = array();
+            $headers = [];
 
             foreach (get_server_vars() as $name => $value)
             {
@@ -53,8 +53,8 @@
 
     $__server_vars = array("SERVER","GET");
 
-    function set_server_vars($a, $b = false)    { global $__server_vars; $__server_vars = array(); if ($a !== false) $__server_vars[] = $a; if ($b !== false) $__server_vars[] = $b; }
-    function get_server_vars()                  { global $__server_vars; $vars = array(); foreach ($__server_vars as $name) { if ($name == "GET") $vars = array_merge($vars, $_GET); if ($name == "SERVER") $vars = array_merge($vars, $_SERVER); } return $vars; }
+    function set_server_vars($a, $b = false)    { global $__server_vars; $__server_vars = []; if ($a !== false) $__server_vars[] = $a; if ($b !== false) $__server_vars[] = $b; }
+    function get_server_vars()                  { global $__server_vars; $vars = []; foreach ($__server_vars as $name) { if ($name == "GET") $vars = array_merge($vars, $_GET); if ($name == "SERVER") $vars = array_merge($vars, $_SERVER); } return $vars; }
 
     function server_http_accept_language        ($default = "en")                   { return        at(get_server_vars(), 'HTTP_ACCEPT_LANGUAGE',               $default);  }
     function server_server_name                 ($default = "localhost")            { return        at(get_server_vars(), 'SERVER_NAME',                        $default);  }
@@ -65,9 +65,9 @@
     function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
 
-    function do_not_track()
+    function do_not_track($static_default = true)
     {
-        if (!!get("static")) return true; // PHP do not track detection would not work for static website
+        if (!!get("static")) return $static_default; // PHP do not track detection would not work for static website
 
         return server_http_do_not_track()
             || header_global_privacy_control()
@@ -87,10 +87,10 @@
     #region HELPERS : DEBUG : LOG & PROFILING
     ######################################################################################################################################
     
-    $__profiling            = array();
+    $__profiling            = [];
     $__profiling_level      = 0;
-    $__profiling_timeline   = array();
-    $__debug_logs           = array();
+    $__profiling_timeline   = [];
+    $__debug_logs           = [];
 
     function debug_log($msg = "")
     {
@@ -117,7 +117,7 @@
 
     function debug_console($logs = true, $profiling = true, $profiling_totals_only = false)
     {
-        $report = array();
+        $report = [];
         {
             if ($logs)
             {
@@ -137,7 +137,7 @@
             {
                 global $__profiling;
 
-                $totals = array();
+                $totals = [];
 
                 $id_key = "function";
 
@@ -199,25 +199,23 @@
                 width:              100%;
                 font-family:        monospace;
                 line-height:        24px;
+                    
+                details:not(details details),        
+                       :not(details details) summary { background-color: black; color: green; }
+
+                &, details, summary {
+                    
+                    display:        flex;
+                    flex-direction: column;
+                    flex-wrap:      nowrap;
+                }
+
+                .debug-console-line,
+                summary { color: inherit; background-color: inherit; list-style: none; margin; 0; margin-inline: 0; }
+                summary::-webkit-details-marker { display: none; height: 0px; margin: 0; padding: 0; }
+                summary::marker { display: none; height: 0px; margin: 0; padding: 0; }
+
             }
-
-            .debug-console details:not(details details),        
-            .debug-console        :not(details details) summary { background-color: black; color: green; }
-    
-
-            .debug-console,
-            .debug-console details,
-            .debug-console summary {
-                
-                display:        flex;
-                flex-direction: column;
-                flex-wrap:      nowrap;
-            }
-
-            .debug-console-line,
-            .debug-console summary { color: inherit; background-color: inherit; list-style: none; margin; 0; margin-inline: 0; }
-            .debug-console summary::-webkit-details-marker { display: none; height: 0px; margin: 0; padding: 0; }
-            .debug-console summary::marker { display: none; height: 0px; margin: 0; padding: 0; }
 
             ").div($html, "debug-console");
     }
@@ -228,7 +226,7 @@
                      ((PHP_VERSION_ID >= 50306) ? debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT)     : 
                      ((PHP_VERSION_ID >= 50205) ? debug_backtrace(true)                               : 
                                                   debug_backtrace()                                   )));
-                                                  
+
         if ($shift_current_call) array_shift($callstack);
         return $callstack;
     }
@@ -238,7 +236,7 @@
         $callstack = debug_callstack($shift_current_call);
         if ($shift_current_call) array_shift($callstack);
 
-        $functions = array();
+        $functions = [];
         foreach ($callstack as $call) $functions[] = $call["function"];        
         return $functions;
     }
@@ -248,7 +246,7 @@
 
     class debug_track_delta_scope
     {
-        public $profiling = array();
+        public $profiling = [];
 
         function __construct($annotation = false, $function = false)
         {
@@ -367,7 +365,7 @@
 
     function at_root($path = ".")
     {
-        foreach (get("root_hints", array()) as $root_hint_file)
+        foreach (get("root_hints", []) as $root_hint_file)
         {
             if (file_exists("$path/$root_hint_file")) 
             {
@@ -619,7 +617,7 @@
     */
 
     
-    function url_code($url, $headers = array(), $userAgent = false, $proxy = false)
+    function url_code($url, $headers = [], $userAgent = false, $proxy = false)
     {
         if (!!$userAgent) $headers[] = "User-Agent: $userAgent";
 
@@ -796,7 +794,7 @@
     function ajax_param_encode2 ($p)                                                { return (is_array($p))                                     ? implode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
     function ajax_param_decode2 ($p)                                                { return (false !== strpos($p, DOM_AJAX_PARAMS_SEPARATOR2)) ? explode(DOM_AJAX_PARAMS_SEPARATOR2, $p) : $p; }
 
-    function ajax_param_encode  ($prefix, $params = array())                        {                                               return $prefix . '-' .                     implode(DOM_AJAX_PARAMS_SEPARATOR1, array_map("dom\ajax_param_encode2", $params)); }
+    function ajax_param_encode  ($prefix, $params = [])                             {                                               return $prefix . '-' .                     implode(DOM_AJAX_PARAMS_SEPARATOR1, array_map("dom\ajax_param_encode2", $params)); }
     function ajax_param_decode  ($prefix, $params)                                  { $params = substr($params, strlen($prefix)+1); return array_map("dom\ajax_param_decode2", explode(DOM_AJAX_PARAMS_SEPARATOR1, $params)); }
 
     function ajax_placeholder   ($ajax_params, $html = "")                          { return div($html, ajax_classes($ajax_params)); }
@@ -931,7 +929,7 @@
 
     function heredoc_start($tab_offset = 0, $tab = "    ")
     {
-        if (false === get("heredoc")) set("heredoc", array());
+        if (false === get("heredoc")) set("heredoc", []);
 
         $heredoc_stack = get("heredoc");
 
@@ -1199,7 +1197,7 @@
     {   
         if (false === $attributes)
         {
-            return array();
+            return [];
         }
 
         if (is_array($attributes)) 
@@ -1218,7 +1216,7 @@
         
         if (!!$xml)
         {
-            $attributes = at(@json_decode(@json_encode($xml), true), "@attributes", array());
+            $attributes = at(@json_decode(@json_encode($xml), true), "@attributes", []);
         }
         else
         {
@@ -1248,7 +1246,7 @@
         $attributes1 = to_attributes($attributes1);
         $attributes2 = to_attributes($attributes2);
 
-        $attributes = array();
+        $attributes = [];
 
         foreach ($attributes1 as $name1 => $values1)
         {
@@ -1314,7 +1312,7 @@
 
     function attributes()
     {
-        $attributes = array();
+        $attributes = [];
         
         foreach (func_get_args() as $attribute)
         {
@@ -1546,7 +1544,7 @@
 
         function array_is_list($arr)
         {
-            if ($arr === array()) 
+            if ($arr === []) 
             {
                 return true;
             }
@@ -1633,7 +1631,7 @@
         if (0 == count($header)) $header = false;
 
         $content           = false;
-        $curl_debug_errors = array();
+        $curl_debug_errors = [];
 
         foreach ($methods_order as $method)
         {        
@@ -1718,7 +1716,7 @@
         return $content;
     }
 
-    function post($api, $url, $params = array(), $header = array(), $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null)
+    function post($api, $url, $params = [], $header = [], $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null)
     {
         $curl_user_agent = $user_agent;
     
@@ -1741,7 +1739,7 @@
         $curl_url           = "$api/$url".$url_params;
         $curl_http_header   = array_map(function ($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
     
-        $curl_options = array();
+        $curl_options = [];
         {
             $curl_options[CURLOPT_URL            ] = $curl_url;
             $curl_options[CURLOPT_RETURNTRANSFER ] = true;
@@ -1798,7 +1796,7 @@
 
     function array_hashtags($text)
     {
-        $hashtags = array();
+        $hashtags = [];
 
         $text = preg_replace('/#(\w+)/', '{$1}', $text);
         
@@ -1945,7 +1943,7 @@
         return (string)$x;
     }
 
-    function to_html($x, $transform = "self", $k = "", $sibblings = array(), $wrapper = "table")
+    function to_html($x, $transform = "self", $k = "", $sibblings = [], $wrapper = "table")
     {
         if (is_array($x))
         {
@@ -2323,13 +2321,13 @@
     #region WIP HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
-    $__user_hooks = array();
+    $__user_hooks = [];
 
     function add_hook($hook_id, $hook_callback, $hook_userdata)
     {
         global $__user_hooks;
 
-        if (!array_key_exists($hook_id, $__user_hooks)) $__user_hooks[$hook_id] = array();
+        if (!array_key_exists($hook_id, $__user_hooks)) $__user_hooks[$hook_id] = [];
         $__user_hooks[$hook_id][] = array("id" => $hook_id, "callback" => $hook_callback, "userdata" => $hook_userdata);
     }
 
@@ -2467,8 +2465,8 @@
     
     // Images
 
-    $hook_images         = array();
-    $hook_image_preloads = array();
+    $hook_images         = [];
+    $hook_image_preloads = [];
     
     function hook_img($src_srcset_sizes, $alt, $preload)
     {
@@ -2513,10 +2511,10 @@
 
     // Links
     
-    $hook_links             = array();
-    $hook_shortcut_links    = array();
-    $hook_prefetch_links    = array();
-    $hook_external_links    = array();
+    $hook_links             = [];
+    $hook_shortcut_links    = [];
+    $hook_prefetch_links    = [];
+    $hook_external_links    = [];
     
     function hook_link($title, $url, $target)
     {
@@ -2598,7 +2596,7 @@
     {
         $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : rss_auto_date(date(DATE_RSS)));
         
-        set("rss_items", array_merge(get("rss_items", array()), array(array
+        set("rss_items", array_merge(get("rss_items", []), array(array
         (
             "title"         => $title
         ,   "link"          => $url
@@ -2698,7 +2696,7 @@
 
     function doc_find_classes($dom, $classname, $tag = false)
     {
-        $results = array();
+        $results = [];
         if (is_array($dom)) { $nodes = array($dom); while (count($nodes) > 0) { $node = array_shift($nodes); if (!is_array($node)) continue; if ($node["class"] == $classname && (false === $tag || $node["tag"] == $tag)) { $results[] = $node; } $nodes = array_merge($node["children"], $nodes); } }
         return $results;
     }
@@ -2706,7 +2704,7 @@
     function doc_find_tags($dom, $tags)
     {
         if (!is_array($tags)) $tags = array($tags);
-        $results = array();
+        $results = [];
         if (is_array($dom)) { $nodes = array($dom); while (count($nodes) > 0) { $node = array_shift($nodes); if (!is_array($node)) continue; if (in_array($node["tag"], $tags)) {  $results[] = $node; } $nodes = array_merge($node["children"], $nodes); } }
         return $results;
     }
@@ -2753,7 +2751,7 @@
 
     function doc_remove_classes($dom, $classname)
     {
-        $children = array();
+        $children = [];
 
         foreach ($dom["children"] as $node)
         {
@@ -2774,7 +2772,7 @@
 
     function doc_remove_tags($dom, $tag)
     {
-        $children = array();
+        $children = [];
 
         foreach ($dom["children"] as $node)
         {
@@ -2795,11 +2793,11 @@
 
     function doc_attributes($dom)
     {
-        if (!is_array($dom)) return array();
+        if (!is_array($dom)) return [];
 
         $core_keys = array("tag", "children", "depth", "index");
 
-        $attributes = array();
+        $attributes = [];
 
         foreach ($dom as $key => $value)
         {
@@ -2810,16 +2808,16 @@
         return $attributes;
     }
 
-    function doc_children($dom)             { if (!is_array($dom)) return array(); return $dom["children"]; }
-    function doc_tag($dom)                  { if (!is_array($dom)) return "";      return $dom["tag"];      }
-    function doc_class($dom)                { if (!is_array($dom)) return "";      return $dom["class"];    }
+    function doc_children($dom)             { if (!is_array($dom)) return []; return $dom["children"]; }
+    function doc_tag($dom)                  { if (!is_array($dom)) return ""; return $dom["tag"];      }
+    function doc_class($dom)                { if (!is_array($dom)) return ""; return $dom["class"];    }
     function doc_attribute($dom,$attribute) { if (!is_array($dom) || !array_key_exists($attribute, $dom)) return false; return $dom[$attribute]; }
 
     function doc_inner_html($dom, $excluded_tags = false, $exclude_attributes = true, $hook = false, $hook_userdata = false, $depth = 0)
     {
         if (!is_array($dom)) return $dom;
 
-        if (false === $excluded_tags)  $excluded_tags = array();
+        if (false === $excluded_tags)  $excluded_tags = [];
         if (!is_array($excluded_tags)) $excluded_tags = array($excluded_tags);
         if (in_array($dom["tag"], $excluded_tags)) return "";
 
@@ -2849,7 +2847,7 @@
     {
         ++$index;
 
-        $obj = array("tag" => "", "id" => "", "class" => "", "children" => array(), "depth" => $depth, "index" => $index);
+        $obj = array("tag" => "", "id" => "", "class" => "", "children" => [], "depth" => $depth, "index" => $index);
 
         if (property_exists($element,'tagName'))
         {
@@ -2892,7 +2890,7 @@
     {
         $profiler = debug_track_timing($pin);
         
-        if ($token === false && !defined("TOKEN_PINTEREST")) return array();
+        if ($token === false && !defined("TOKEN_PINTEREST")) return [];
         
         $token      = ($token === false) ? constant("TOKEN_PINTEREST") : $token;
         $fields     = array("id","link","note","url","image","media","metadata","attribution","board","color","original_link","counts","creator","created_at");
@@ -2905,9 +2903,9 @@
     {
         $profiler = debug_track_timing($username.": ".$board);
         
-        if ($token    === false && !defined("TOKEN_PINTEREST")) return array();
-        if ($username === false && !has("pinterest_user"))  return array();
-        if ($board    === false && !has("pinterest_board")) return array();
+        if ($token    === false && !defined("TOKEN_PINTEREST")) return [];
+        if ($username === false && !has("pinterest_user"))      return [];
+        if ($board    === false && !has("pinterest_board"))     return [];
         
         $token      = ($token    === false) ? constant("TOKEN_PINTEREST")   : $token;
         $username   = ($username === false) ? get("pinterest_user")         : $username;
@@ -2918,7 +2916,7 @@
 
         if (at($result, "status") == "failure")
         {
-            return array();
+            return [];
         }
         
         return $result;
@@ -2928,8 +2926,8 @@
     {
         $profiler = debug_track_timing($blogname);
         
-        if ($token    === false && !defined("TOKEN_TUMBLR")) return array();
-        if ($blogname === false && !has("tumblr_blog"))  return array();
+        if ($token    === false && !defined("TOKEN_TUMBLR")) return [];
+        if ($blogname === false && !has("tumblr_blog"))      return [];
         
         $blogname   = ($blogname === false) ? get("tumblr_blog")        : $blogname;
         $token      = ($token    === false) ? constant("TOKEN_TUMBLR")  : $token;    
@@ -2960,7 +2958,7 @@
     {
         $profiler = debug_track_timing($username);        
         $end_point = endpoint_facebook($username, $fields_page, $fields_post, $fields_attachements, $token);
-        if ($end_point === false) return array();
+        if ($end_point === false) return [];
         
         $result = array_open_url($end_point, "json");
         /*
@@ -2968,10 +2966,10 @@
                                                           || (at(at($result, "error"), "code", "") ==  200 ) 
                                                           || (at(at($result, "error"), "code", "") ==   10 )))
         {
-            $result = array("data" => array());
+            $result = array("data" => []);
         
         //  $json_articles_page = json_facebook_from_content("https://www.facebook.com/pg/".get("facebook_page")."/posts/?ref=page_internal");
-        //  $json_articles_page = at($json_articles_page, "require", array());
+        //  $json_articles_page = at($json_articles_page, "require", []);
             $json_articles_page = json_facebook_from_content("https://www.facebook.com/".get("facebook_page"));
 
             return array_merge(array("DEBUG" => "TEST"), is_array($json_articles_page) ? $json_articles_page : array($json_articles_page));
@@ -3008,8 +3006,8 @@
     {
         $profiler = debug_track_timing($username.": ".$post_id);
         
-        if ($token    === false && !defined("TOKEN_FACEBOOK"))  return array();
-        if ($username === false && !has("facebook_page"))   return array();
+        if ($token    === false && !defined("TOKEN_FACEBOOK"))  return [];
+        if ($username === false && !has("facebook_page"))       return [];
         
         $username               = ($username            === false) ? get("facebook_page")  : $username;
         $fields_attachements    = ($fields_attachements === false) ? array("media","url") : ((!is_array($fields_attachements)) ? array($fields_attachements) : $fields_attachements);
@@ -3045,7 +3043,7 @@
                 $result = doc_load_from_html($html);
 
                 $nodes  = array($result);
-                $result = array();
+                $result = [];
 
                 while (count($nodes) > 0)
                 {
@@ -3187,8 +3185,8 @@
     {
         $profiler = debug_track_timing($page);
         
-        if ($token  === false && !defined("TOKEN_FACEBOOK"))    return array();
-        if ($page   === false && !has("facebook_page"))     return array();
+        if ($token  === false && !defined("TOKEN_FACEBOOK"))    return [];
+        if ($page   === false && !has("facebook_page"))         return [];
         
         $token  = ($token   === false) ? constant("TOKEN_FACEBOOK") : $token;
         $page   = ($page    === false) ? get("facebook_page")       : $page;
@@ -3204,7 +3202,7 @@
         if ((false !== $page) && ((false === $result) || (at(at($result, "meta"),  "code", "") == "200") 
                                                       || (at(at($result, "error"), "code", "") ==  200 )))
         {
-            $result = array("data" => array());
+            $result = array("data" => []);
         
             $json_articles_page = json_facebook_articles_from_content("https://www.facebook.com/pg/".get("facebook_page")."/notes/?ref=page_internal");
             $json_articles_page = at($json_articles_page, "require");
@@ -3274,8 +3272,8 @@
     {
         $profiler = debug_track_timing($username);
 
-        if ($token    === false && !defined("TOKEN_INSTAGRAM")) return array();
-        if ($username === false && !has("instagram_user"))  return array();
+        if ($token    === false && !defined("TOKEN_INSTAGRAM")) return [];
+        if ($username === false && !has("instagram_user"))      return [];
         
         $token      = ($token    === false) ? constant("TOKEN_INSTAGRAM")   : $token;
         $username   = ($username === false) ? get("instagram_user")         : $username;
@@ -3391,7 +3389,7 @@
                     if ($mode == "tag_html")            $page_url = false;
                     if ($mode == "username_html")       $page_url = false;
                     
-                    $result = array("data" => array());
+                    $result = array("data" => []);
                 
                     foreach ($edges as $edge)
                     {
@@ -3450,9 +3448,9 @@
         return $result;
     }
 
-    function __json_flickr($method, $params = array(), $token = false)
+    function __json_flickr($method, $params = [], $token = false)
     {
-        if ($token === false && !defined("TOKEN_FLICKR")) return array();
+        if ($token === false && !defined("TOKEN_FLICKR")) return [];
 
         $token      = ($token === false) ? constant("TOKEN_FLICKR") : $token;
         $method     = (0 === stripos($method, "flickr.")) ? $method : ("flickr.".$method);
@@ -3465,13 +3463,13 @@
         return $json;
     }
     
-    function json_flickr_no_user_fallback($method, $params = array(), $user_id = false, $token = false)
+    function json_flickr_no_user_fallback($method, $params = [], $user_id = false, $token = false)
     {
         //bye([ $method, $params, $user_id, $token]);
 
         $profiler = debug_track_timing($user_id);
         
-        if ($token === false && !defined("TOKEN_FLICKR")) return array();
+        if ($token === false && !defined("TOKEN_FLICKR")) return [];
 
         if (false !== $user_id)
         {
@@ -3492,11 +3490,11 @@
         return __json_flickr($method, $params, $token);
     }
     
-    function json_flickr($method, $params = array(), $user_id = false, $token = false)
+    function json_flickr($method, $params = [], $user_id = false, $token = false)
     {
         $profiler = debug_track_timing($user_id);
         
-        if ($user_id === false && !has("flickr_user"))  return array();
+        if ($user_id === false && !has("flickr_user"))  return [];
         $user_id = ($user_id === false) ? get("flickr_user") : $user_id;
 
         return json_flickr_no_user_fallback($method, $params, $user_id, $token);
@@ -3527,12 +3525,12 @@
     {
         $profiler = debug_track_timing();
         
-        $posts = array();
+        $posts = [];
         
         $social_index = 0;
         
         if ($sources !== false && !is_array($sources)) $sources = array($sources);
-        if ($sources === false)                        $sources = array();
+        if ($sources === false)                        $sources = [];
         
         foreach ($sources as $source)
         {   
@@ -3573,12 +3571,12 @@
     {
         $profiler = debug_track_timing();
         
-        $posts = array();
+        $posts = [];
         
         $social_index = 0;
         
         if ($sources !== false && !is_array($sources)) $sources = array($sources);
-        if ($sources === false)                        $sources = array();
+        if ($sources === false)                        $sources = [];
         
         foreach ($sources as $source)
         {   
@@ -3648,12 +3646,12 @@
         $profiler = debug_track_timing();
         
         $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page", 1) * get("n", 12), $post_filter, $tags_in, $tags_out);
-        $posts   = array();
+        $posts   = [];
 
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
 
-        foreach (at($content, "data",  array()) as $item)
+        foreach (at($content, "data",  []) as $item)
         {
             if (!pagination_is_within()) continue;
             
@@ -3670,11 +3668,11 @@
 
             if (get("carousel") && array_key_exists("carousel_media", $item))
             {
-                $sub_items = at($item, "carousel_media", array());
+                $sub_items = at($item, "carousel_media", []);
                 
                 if (count($sub_items) > 0)
                 {
-                    $images = array();
+                    $images = [];
                                     
                     foreach ($sub_items as $sub_item)
                     {
@@ -3749,11 +3747,11 @@
 
         if (get("carousel") && array_key_exists("carousel_media", $item))
         {
-            $sub_items = at($item, "carousel_media", array());
+            $sub_items = at($item, "carousel_media", []);
             
             if (count($sub_items) > 0)
             {
-                $images = array();
+                $images = [];
                                 
                 foreach ($sub_items as $sub_item)
                 {
@@ -3791,7 +3789,7 @@
             $photo_key    = $photo_key[1];
         }
     
-        $photos         = array();
+        $photos         = [];
         $photo          = false;
         $photo_id       = false;
         $photo_secret   = false;
@@ -3811,7 +3809,7 @@
         {        
             if (false !== $photoset_key)
             {
-                $data           = json_flickr("photosets.getList", array(), $username);
+                $data           = json_flickr("photosets.getList", [], $username);
                 $photosets      = at(at($data,"photosets"),"photoset");
                 $photoset       = false;
                 $photoset_id    = false;
@@ -3836,12 +3834,12 @@
             }
             else
             {
-                $data   = json_flickr("people.getPhotos", array(), $username); 
+                $data   = json_flickr("people.getPhotos", [], $username); 
                 $photos = at(at($data,"photos"),"photo");
             }
         }
         
-        $posts = array();
+        $posts = [];
         
         if (is_array($photos)) foreach ($photos as $photo_nth)
         { 
@@ -3863,7 +3861,7 @@
             $photo_description = (false === $photo_description || "" == $photo_description) ? $photo_title : $photo_description;
             $photo_timestamp   = at(at(at($data,"photo"),"dates"),"posted");
             $photo_page        = false;
-            $photo_urls        = at(at(at($data,"photo"),"urls"),"url", array());
+            $photo_urls        = at(at(at($data,"photo"),"urls"),"url", []);
             
             foreach ($photo_urls as $url)
             {
@@ -3958,9 +3956,9 @@
     //  $content    = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, false,                          $post_filter, $tags_in, $tags_out);
         $content    = json_instagram_medias(($username === false) ? get("instagram_user") : $username, false, false, get("page", 1) * get("n", 12), $post_filter, $tags_in, $tags_out);
                 
-        $thumbs     = array();
+        $thumbs     = [];
 
-        foreach (at($content, "data",  array()) as $item)
+        foreach (at($content, "data",  []) as $item)
         {
             $item_tags = array_hashtags(get(get($item, "caption"), "text"));
             
@@ -3997,10 +3995,10 @@
         
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
-        $content    = json_tumblr_blog($blogname, "posts"); // if ($content["meta"]["msg"] != 'OK') return array();
-        $posts      = array();
+        $content    = json_tumblr_blog($blogname, "posts"); // if ($content["meta"]["msg"] != 'OK') return [];
+        $posts      = [];
         
-        foreach (at(at($content, "response"), "posts", array()) as $item)
+        foreach (at(at($content, "response"), "posts", []) as $item)
         {   
             if (!pagination_is_within()) continue;
             
@@ -4008,7 +4006,7 @@
             
             $filtered = $item["id"] == "$post" || "" == "$post" || false == "$post";
             $excluded = in_array(get($item,"slug"), explode(',',get("exclude_tumblr_slugs", "")));
-            $tagged   = is_array_filtered(at($item, "tags", array()), $tags_in, $tags_out);            
+            $tagged   = is_array_filtered(at($item, "tags", []), $tags_in, $tags_out);            
             $indirect = ((false !== stripos(get($item, "link_url"),      "instagram.com")) 
                       || (false !== stripos(get($item, "permalink_url"), "instagram.com"))) && (has("instagram_posts") /*|| (get("filter", "default") == "default")*/);
                     
@@ -4023,13 +4021,13 @@
             {
                 if (!!get("carousel"))
                 {
-                    $post_photo_captions = array();
-                    $post_photo_imgs     = array();
+                    $post_photo_captions = [];
+                    $post_photo_imgs     = [];
                     
-                    foreach (get($item, "photos", array()) as $photo)
+                    foreach (get($item, "photos", []) as $photo)
                     {
                         $post_photo_captions [] =        at($photo, "caption");
-                        $post_photo_imgs     [] = at(at($photo, "original_size", array()), "url");
+                        $post_photo_imgs     [] = at(at($photo, "original_size", []), "url");
                     }
                 }
                 else
@@ -4037,10 +4035,10 @@
                     $post_photo_captions = "";
                     $post_photo_imgs     = false;
                     
-                    foreach (get($item, "photos", array()) as $photo)
+                    foreach (get($item, "photos", []) as $photo)
                     {
-                        $post_photo_captions =        at($photo, "caption");
-                        $post_photo_imgs     = at(at($photo, "original_size", array()), "url");
+                        $post_photo_captions =    at($photo, "caption");
+                        $post_photo_imgs     = at(at($photo, "original_size", []), "url");
                         
                         break;
                     }
@@ -4069,9 +4067,9 @@
             }
             else if (at($item, "type") == "video")
             {
-                $post_video = array();
+                $post_video = [];
                 {
-                    $item_videos = at($item, "player", array());                    
+                    $item_videos = at($item, "player", []);                    
                     if (count($item_videos) > 0) $post_video = $item_videos[count($item_videos) - 1];
                 }
                 
@@ -4110,9 +4108,9 @@
         $board      = ($board    === false) ? get("pinterest_board") : $board;
         $content    = json_pinterest_posts($username, $board);
         
-        $pins = array();
+        $pins = [];
         
-        foreach (at($content, "data", array()) as $item)
+        foreach (at($content, "data", []) as $item)
         {
             if (!pagination_is_within()) continue;
             
@@ -4159,7 +4157,7 @@
         
         $blogname   = ($blogname === false) ? get("tumblr_blog") : $blogname;
         $content    = json_tumblr_blog($blogname, "info");
-        $item       = at(at($content, "response"), "blog", array());
+        $item       = at(at($content, "response"), "blog", []);
         
         $metadata = array
         (
@@ -4189,7 +4187,7 @@
 
         $username   = ($username === false) ? get("facebook_page")  : $username;        
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
-        $posts      = array();
+        $posts      = [];
         /*
         return array(array
         (
@@ -4214,15 +4212,15 @@
         $post_exclude_article_body = in_array("ARTICLE", $tags_out);
         if ($post_exclude_article_body) { unset($tags_out[array_search("ARTICLE",$tags_out)]); }
             
-        foreach (at(at($content, "posts"), "data", array()) as $item_index => $item)
+        foreach (at(at($content, "posts"), "data", []) as $item_index => $item)
         {
-            if (!pagination_is_within())                                                                                                    continue;
-            if ($item["id"] != "$post" && "" != "$post" && false != "$post")                                                                    continue;
+            if (!pagination_is_within())                                                                                                continue;
+            if ($item["id"] != "$post" && "" != "$post" && false != "$post")                                                            continue;
             if (in_array(    get($item,"id"),        explode(',',get("exclude_facebook_post_ids",  ""))))                               continue;
             if (in_array(md5(get($item, "message")), explode(',',get("exclude_facebook_text_md5s", ""))))                               continue;
-            if ((false !== stripos(get($item, "caption"), "instagram.com"))                            && (instagram_posts_presence()))     continue;
-            if ((false !== stripos(at(at(at($item,"attachments"),"data"),"url", 
-                            at(at(at(at($item,"attachments"),"data"),0),"url")), "instagram.com")) && (instagram_posts_presence())) continue;
+            if ((false !== stripos(get($item, "caption"), "instagram.com"))                            && (instagram_posts_presence())) continue;
+            if ((false !== stripos(at(at(at($item,"attachments"),"data"),   "url", 
+                                at(at(at(at($item,"attachments"),"data"),0),"url")), "instagram.com")) && (instagram_posts_presence())) continue;
 
             $item_post          = json_facebook_post(at($item,"id"), $username);            
             $post_message       = at($item_post, "description", get($item, "message"));
@@ -4230,7 +4228,7 @@
                 
             $post_article       = false; foreach ($articles as $article) if ($article["post_title"] == $post_title) $post_article = $article;
             
-            $post_article_tags  = ($post_article !== false) ? array("ARTICLE") : array();
+            $post_article_tags  = ($post_article !== false) ? array("ARTICLE") : [];
             
             if (!is_array_filtered(array_merge($post_article_tags, array_hashtags($post_message)), $tags_in, $tags_out)) continue;
             
@@ -4257,7 +4255,7 @@
                 $pos = strripos($video_id, "/");
                 if (false !== $pos) $video_id = substr($video_id, $pos + 1);
                 
-                $video = json_facebook_post($video_id, $username, array("embed_html", "embeddable"), array());
+                $video = json_facebook_post($video_id, $username, array("embed_html", "embeddable"), []);
                 
                 if (false !== $video)
                 {
@@ -4285,7 +4283,7 @@
             $metadata = array
             (
                 "TYPE"              => "facebook"
-            ,   "user_name"         => get(get($item_post, "from", array()), "name")
+            ,   "user_name"         => get(get($item_post, "from", []), "name")
             ,   "user_url"          => url_facebook_page($content["id"])
             ,   "user_img_url"      => $content["picture"]["data"]["url"]
             ,   "post_title"        => $post_title
@@ -4316,7 +4314,7 @@
            
         $username   = ($username === false) ? get("facebook_page")  : $username;        
         $content    = json_facebook_articles($username, false, get("page", 1) * get("n", 12));
-        $posts      = array();
+        $posts      = [];
 
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
@@ -4331,11 +4329,11 @@
         ,   "LAZY"              => true
         );*/
             
-        foreach (at($content, "data", array()) as $item_index => $item)
+        foreach (at($content, "data", []) as $item_index => $item)
         {
-            if (!pagination_is_within())                                                                        continue;            
-            if ($item["id"] != "$post" && "" != "$post" && false != "$post")                                        continue;            
-            if (in_array(    get($item,"id"),        explode(',',get("exclude_facebook_article_ids", "")))) continue;
+            if (!pagination_is_within())                                                             continue;            
+            if ($item["id"] != "$post" && "" != "$post" && false != "$post")                         continue;            
+            if (in_array(    get($item,"id"), explode(',',get("exclude_facebook_article_ids", "")))) continue;
             
             $item_post = json_facebook_article(at($item,"id"), $username);      
             
@@ -4384,9 +4382,9 @@
             
         $username   = ($username === false) ? get("facebook_page")  : $username;        
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
-        $thumbs     = array();
+        $thumbs     = [];
 
-        foreach (at(at($content, "posts"), "data", array()) as $item)
+        foreach (at(at($content, "posts"), "data", []) as $item)
         {
             $filtered = $item["id"] == "$post_filter" || "" == "$post_filter" || false == "$post_filter";
             $excluded =              in_array(    get($item,"id"),        explode(',',get("exclude_facebook_post_ids",  "")));
@@ -4500,11 +4498,11 @@
 
     function _array_rss_posts($type, $url, $post_img_url_fallback)
     {
-        $posts = array();
+        $posts = [];
         
-        foreach (at(array_open_url($url, "xml"), array("channel","item"), array()) as $item)
+        foreach (at(array_open_url($url, "xml"), array("channel","item"), []) as $item)
         {   
-            $cats = at($item, "category", array());
+            $cats = at($item, "category", []);
             if (!is_array($cats)) $cats = [ $cats ];
 
             $metadata = array
@@ -4577,8 +4575,8 @@
 
     // Get array of cards
 
-    function array_imgs_from_metadata  ($metadatas, $attributes = false) { if (!is_array($metadatas)) return  img_from_metadata($metadatas, $attributes); $imgs  = array(); foreach ($metadatas as $metadata) { $imgs  [] =  img_from_metadata($metadata, $attributes); } return $imgs;  }
-    function array_cards_from_metadata ($metadatas, $attributes = false) { if (!is_array($metadatas)) return card_from_metadata($metadatas, $attributes); $cards = array(); foreach ($metadatas as $metadata) { $cards [] = card_from_metadata($metadata, $attributes); } return $cards; }
+    function array_imgs_from_metadata  ($metadatas, $attributes = false) { if (!is_array($metadatas)) return  img_from_metadata($metadatas, $attributes); $imgs  = []; foreach ($metadatas as $metadata) { $imgs  [] =  img_from_metadata($metadata, $attributes); } return $imgs;  }
+    function array_cards_from_metadata ($metadatas, $attributes = false) { if (!is_array($metadatas)) return card_from_metadata($metadatas, $attributes); $cards = []; foreach ($metadatas as $metadata) { $cards [] = card_from_metadata($metadata, $attributes); } return $cards; }
 
     $__card_headline = 2;
     function get_card_headline() { global $__card_headline; return $__card_headline; }
@@ -5029,7 +5027,7 @@
         return tag("badge", false, array("value" => "available"), true, true);
     }
 
-    $__cached_getimagesize = array();
+    $__cached_getimagesize = [];
 
     function cached_getimagesize($src)
     {
@@ -5100,7 +5098,7 @@
         if (false !== $pos) $short_title = substr($short_title, 0, $pos);
         if (strlen($short_title) > 10) $short_title = substr($short_title, 0, 10);
         
-        $icons = array();
+        $icons = [];
 
         foreach (array(36 => 0.75, 48 => 1.0, 72 => 1.5, 96 => 2.0, 144 => 3.0, 192 => 4.0, 512 => 4.0) as $w => $density)
         {
@@ -5122,7 +5120,7 @@
         if (false === stripos($start_url, "?")) $start_url .= "?";
         $start_url .= "&utm_source=homescreen";
 
-        $shortcuts = array();
+        $shortcuts = [];
 
         $fallback_icons = parse_icons(get("icons_path")."android-icon", 96);
 
@@ -5139,7 +5137,7 @@
         }
         else
         {
-            $fallback_icons = array();
+            $fallback_icons = [];
         }
 
         // TODO add a way to specify specific shortcuts icons
@@ -5168,7 +5166,7 @@
         {
             if (!$screenshots) { $screenshots = get("screenshots"); }
             if (!$screenshots) { $screenshots = get("support_header_backgrounds"); }
-            if (!$screenshots) { $screenshots = array(); foreach ($hook_images as $image) $screenshots[] = $image["src"]; }
+            if (!$screenshots) { $screenshots = []; foreach ($hook_images as $image) $screenshots[] = $image["src"]; }
 
             if (!!$screenshots)
             {
@@ -5176,7 +5174,7 @@
 
                 foreach ($screenshots as $s => &$src)
                 {
-                    $src = array("src" => $src, "sizes" => array(), "type" => false);
+                    $src = array("src" => $src, "sizes" => [], "type" => false);
                 }
 
                 if (count($screenshots) > 0)
@@ -5233,7 +5231,7 @@
             $screenshots[$widest_screenshot_index]["form_factor"] = "wide";
         }
 
-        $json = array();
+        $json = [];
 
         if (!!get(\dom\manifest_id))
         {
@@ -5974,7 +5972,7 @@
 
         if (!is_object($e)) return $e;
 
-        $a = array("name" => $e->getName(), "attributes" => array(), "children" => array(), "value" => strval($e));
+        $a = array("name" => $e->getName(), "attributes" => [], "children" => [], "value" => strval($e));
 
         foreach ($e->attributes() as $attribute => $value)
         {
@@ -6017,11 +6015,11 @@
             {
                 if (is_callable($dom_func))
                 {
-                    $attributes = array();
+                    $attributes = [];
 
                     foreach ($node_attributes as $node_attribute)
                     {
-                        $attributes[$node_attribute["name"]] = at($attributes, $node_attribute["name"], array());
+                        $attributes[$node_attribute["name"]] = at($attributes, $node_attribute["name"], []);
                         $attributes[$node_attribute["name"]][] = $node_attribute["value"];
                     }
 
@@ -6112,8 +6110,8 @@
      * CSS tags
      */
      
-    $hook_css_vars = array(); function hook_css_var($var) { global $hook_css_vars; $hook_css_vars[$var] = $var; return "DOM_HOOK_CSS_VAR_".$var; }
-    $hook_css_envs = array(); function hook_css_env($var) { global $hook_css_envs; $hook_css_envs[$var] = $var; return "DOM_HOOK_CSS_ENV_".$var; }
+    $hook_css_vars = []; function hook_css_var($var) { global $hook_css_vars; $hook_css_vars[$var] = $var; return "DOM_HOOK_CSS_VAR_".$var; }
+    $hook_css_envs = []; function hook_css_env($var) { global $hook_css_envs; $hook_css_envs[$var] = $var; return "DOM_HOOK_CSS_ENV_".$var; }
 
     function css_postprocess($css)
     {
@@ -6230,7 +6228,7 @@
         {
             if ($json === false)
             {
-                $json = json_encode(rss_sanitize(get("rss_items", array())));
+                $json = json_encode(rss_sanitize(get("rss_items", [])));
             }
             
             return $json;
@@ -6265,7 +6263,7 @@
                             . eol() .   rss_link    (get("url")."/"."rss")
                             )
 
-                . eol() .   wrap_each(get("rss_items", array()), eol(), "rss_item_from_item_info", false)
+                . eol() .   wrap_each(get("rss_items", []), eol(), "rss_item_from_item_info", false)
                 );
             }
 
@@ -6297,7 +6295,7 @@
         {
             if ($xml === false)
             {
-                foreach (get("rss_items", array()) as $item_info)
+                foreach (get("rss_items", []) as $item_info)
                 {
                     $xml = tile_item_from_item_info($item_info);
                     break;
@@ -6311,7 +6309,7 @@
         }
     }
     function diff($old, $new){
-        $matrix = array();
+        $matrix = [];
         $maxlen = 0;
         foreach($old as $oindex => $ovalue){
             $nkeys = array_keys($new, $ovalue);
@@ -6354,12 +6352,12 @@
         {
             while (true)
             {
-                $delayed_components = get("delayed_components", array());
+                $delayed_components = get("delayed_components", []);
                 del("delayed_components");
 
                 if (count($delayed_components) <= 0) break;
 
-                $priorities = array();
+                $priorities = [];
 
                 foreach ($delayed_components as $index => $delayed_component_and_param)
                 {
@@ -6467,7 +6465,7 @@
         else if ($no_head)              { $html = head().     $html;  }
         else if ($no_body)              { $html =        body($html); }
         
-        if (has("ajax")) $_POST = array();
+        if (has("ajax")) $_POST = [];
 
         if (!!get("gemini"))
         {
@@ -6736,7 +6734,7 @@
         // ! DIRTY HACK
         $callback = str_replace("_dom\\", "_", $callback);
 
-        $delayed_components = get("delayed_components", array());
+        $delayed_components = get("delayed_components", []);
         $index = count($delayed_components);
         set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior, $trim))));
         return placeholder($callback.($behavior == "all" ? $index : ""), $eol);
@@ -6877,15 +6875,14 @@
         /**
          * @var array set of links to be checked for mentions.
          */
-        private $_links = array();
-
-        private $_headers = array();
-        private $_body = array();
-        private $_rels = array();
-        private $_supportsPingback = array();
-        private $_supportsWebmention = array();
-        private $_pingbackServer = array();
-        private $_webmentionServer = array();
+        private $_links                 = [];
+        private $_headers               = [];
+        private $_body                  = [];
+        private $_rels                  = [];
+        private $_supportsPingback      = [];
+        private $_supportsWebmention    = [];
+        private $_pingbackServer        = [];
+        private $_webmentionServer      = [];
 
         private static $_proxy = false;
         private static $_userAgent = false;
@@ -7149,7 +7146,7 @@
          * @param array $additional extra optional stuff that will be included in payload.
          * @return array
          */
-        public static function sendWebmentionToEndpoint($endpoint, $source, $target, $additional = array())
+        public static function sendWebmentionToEndpoint($endpoint, $source, $target, $additional = [])
         {
 
             self::_debug("sendWebmentionToEndpoint: Sending webmention now!");
@@ -7173,7 +7170,7 @@
          * @return array|bool
          * @see MentionClient::sendWebmentionToEndpoint()
          */
-        public function sendWebmention($sourceURL, $targetURL, $additional = array())
+        public function sendWebmention($sourceURL, $targetURL, $additional = [])
         {
 
             // If we haven't discovered the webmention endpoint yet, do it now
@@ -7202,7 +7199,7 @@
                 preg_match_all("/<a[^>]+href=.(https?:\/\/[^'\"]+)/i", $input, $matches);
                 return array_unique($matches[1]);
             } elseif (is_array($input) && array_key_exists('items', $input) && array_key_exists(0, $input['items'])) {
-                $links = array();
+                $links = [];
 
                 // Find links in the content HTML
                 $item = $input['items'][0];
@@ -7222,7 +7219,7 @@
 
                 return array_unique($links);
             } else {
-                return array();
+                return [];
             }
         }
 
@@ -7244,7 +7241,7 @@
          */
         public static function findLinksInJSON($input)
         {
-            $links = array();
+            $links = [];
             // This recursively iterates over the whole input array and searches for
             // everything that looks like a URL regardless of its depth or property name
             foreach (new \RecursiveIteratorIterator(new \RecursiveArrayIterator($input)) as $key => $value) {
@@ -7341,7 +7338,7 @@
          * @return array
          * @codeCoverageIgnore
          */
-        protected static function _head($url, $headers = array())
+        protected static function _head($url, $headers = [])
         {
             if (self::$_userAgent)
                 $headers[] = 'User-Agent: ' . self::$_userAgent;
@@ -7374,7 +7371,7 @@
          * @return array with keys 'code' 'headers' and 'body'
          * @codeCoverageIgnore
          */
-        protected static function _get($url, $headers = array())
+        protected static function _get($url, $headers = [])
         {
             if (self::$_userAgent)
                 $headers[] = 'User-Agent: ' . self::$_userAgent;
@@ -7409,7 +7406,7 @@
          * @return array
          * @codeCoverageIgnore
          */
-        protected static function _post($url, $body, $headers = array())
+        protected static function _post($url, $body, $headers = [])
         {
             if (self::$_userAgent)
                 $headers[] = 'User-Agent: ' . self::$_userAgent;
@@ -7445,7 +7442,7 @@
          */
         protected static function _parse_headers($headers)
         {
-            $retVal = array();
+            $retVal = [];
             $fields = explode("\r\n", preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', $headers));
             foreach ($fields as $field) {
                 if (preg_match('/([^:]+): (.+)/m', $field, $match)) {
@@ -7850,10 +7847,10 @@
         if ($ext  === false || $ext  === auto) $ext  = "png";
         if ($type === false || $type === auto) $type = false;
 
-        if (is_array($name)) { $icons = array(); foreach ($name as $i => $_) { $icon = parse_icons($_,    $size, $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
-        if (is_array($size)) { $icons = array(); foreach ($size as $i => $_) { $icon = parse_icons($name, $_,    $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
-        if (is_array($ext))  { $icons = array(); foreach ($ext  as $i => $_) { $icon = parse_icons($name, $size, $media, $_,   $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
-        if (is_array($type)) { $icons = array(); foreach ($type as $i => $_) { $icon = parse_icons($name, $size, $media, $ext, $_   , $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($name)) { $icons = []; foreach ($name as $i => $_) { $icon = parse_icons($_,    $size, $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($size)) { $icons = []; foreach ($size as $i => $_) { $icon = parse_icons($name, $_,    $media, $ext, $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($ext))  { $icons = []; foreach ($ext  as $i => $_) { $icon = parse_icons($name, $size, $media, $_,   $type, $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
+        if (is_array($type)) { $icons = []; foreach ($type as $i => $_) { $icon = parse_icons($name, $size, $media, $ext, $_   , $alternate); if (null !== $icon) $icons[] = $icon; } return $icons; }
 
         if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "splash"))   $type = "apple-touch-startup-image";
         if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
@@ -7872,7 +7869,7 @@
 
             if (is_array($media))
             {
-                $media_clean = array();
+                $media_clean = [];
 
                 if (array_key_exists(0,             $media)) $media_clean["width"]       = $media[0];
                 if (array_key_exists(1,             $media)) $media_clean["height"]      = $media[1];
@@ -7902,7 +7899,7 @@
         $name   = (!!$dir)  ? "$dir/$name"  : $name;
         $name   = (!!$size) ? "$name-$size" : $name;
 
-        $attributes = array();
+        $attributes = [];
 
         if (!!$size)                            $attributes["sizes"] = $size;
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext".(($ext=="svg")?"+xml":"");
@@ -7943,7 +7940,7 @@
 
             if (is_array($media))
             {
-                $media_clean = array();
+                $media_clean = [];
 
                 if (array_key_exists(0,             $media)) $media_clean["width"]       = $media[0];
                 if (array_key_exists(1,             $media)) $media_clean["height"]      = $media[1];
@@ -7972,7 +7969,7 @@
         $name   = (!!$dir)  ? "$dir/$name"  : $name;
         $name   = (!!$size) ? "$name-$size" : $name;
 
-        $attributes = array();
+        $attributes = [];
 
         if (!!$size)                            $attributes["sizes"] = $size;
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext".(($ext=="svg")?"+xml":"");
@@ -8148,7 +8145,7 @@
     function meta_itemprop(     $itemprop, $content, $pan = 0) { return meta(array("itemprop"   => $itemprop, "content" => $content)/*, false, array(40,80)*/); }
     
     function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))  return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
-    function link_rel($rel, $href, $type = false, $pan = 0) { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : array()), $pan); }
+    function link_rel($rel, $href, $type = false, $pan = 0) { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : []), $pan); }
     
     function manifest($filename = "manifest.json") 
     {
@@ -8301,9 +8298,9 @@
     function script_ajax_body()     { return script(js_ajax_body());     }
     function script_inside_iframe() { return script(js_inside_iframe()); }
     
-    function schema($type, $properties = array(), $parent_schema = false)
+    function schema($type, $properties = [], $parent_schema = false)
     {
-        return array_merge(($parent_schema === false) ? array() : $parent_schema, array("@context" => "https://schema.org", "@type" => $type), $properties);
+        return array_merge(($parent_schema === false) ? [] : $parent_schema, array("@context" => "https://schema.org", "@type" => $type), $properties);
     }
     
     function link_style_google_fonts($fonts = false, $async = true)
@@ -11451,11 +11448,11 @@
             var event_ready  = false;
             var event_loaded = false;
 
-            dom.ready_callbacks  = Array();
-            dom.loaded_callbacks = Array();
-            dom.scroll_callbacks = Array();
-            dom.resize_callbacks = Array();
-            dom.ajax_callbacks   = Array();
+            dom.ready_callbacks  = [];
+            dom.loaded_callbacks = [];
+            dom.scroll_callbacks = [];
+            dom.resize_callbacks = [];
+            dom.ajax_callbacks   = [];
 
             function process_callbacks(callbacks, log, clear, event)
             {
@@ -11466,11 +11463,11 @@
 
             dom.clear_callbacks = function ()
             {
-                dom.ready_callbacks  = Array();
-                dom.loaded_callbacks = Array();
-                dom.scroll_callbacks = Array();
-                dom.resize_callbacks = Array();
-                dom.ajax_callbacks   = Array();
+                dom.ready_callbacks  = [];
+                dom.loaded_callbacks = [];
+                dom.scroll_callbacks = [];
+                dom.resize_callbacks = [];
+                dom.ajax_callbacks   = [];
             };
 
             function process_ready_callbacks()  { process_callbacks(dom.ready_callbacks,  "READY",  true); }
@@ -11554,7 +11551,7 @@
             ;
     }
     
-    $hook_need_lazy_loding = array();
+    $hook_need_lazy_loding = [];
 
     function scripts_body()
     {
@@ -11613,7 +11610,7 @@
 
             )))
         {
-            $dom = array();
+            $dom = [];
 
             while (true)
             {
@@ -11726,14 +11723,14 @@
 
         //$debug = false;
 
-        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", ""), 'toolbar-title ')
-        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", "")) == 'toolbar-title' )
+        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", ""), 'toolbar-title ')
+        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", "")) == 'toolbar-title' )
         {
             $html .= "<toolbar-title>";
         }
 
-        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", ""), 'toolbar ')
-        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", array())) : at($attributes, "class", "")) == 'toolbar' )
+        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", ""), 'toolbar ')
+        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", "")) == 'toolbar' )
         {
             $html .= "<toolbar>";
         }
@@ -11757,7 +11754,7 @@
                 
                     }, $hook_images)).PHP_EOL.PHP_EOL;
 
-                $hook_images = array();
+                $hook_images = [];
             }
         }
 
@@ -11773,7 +11770,7 @@
                 
                     }, $hook_links)).PHP_EOL.PHP_EOL;
 
-                $hook_links = array();
+                $hook_links = [];
             }            
         }
 
@@ -11898,7 +11895,7 @@
             "logo"      => get("canonical").'/'.get("image")
         );
         
-        $properties_person_same_as = array();
+        $properties_person_same_as = [];
         
         if (has("pinterest_user"))      $properties_person_same_as[] = url_pinterest_user       (get("pinterest_user"));
       //if (has("pinterest_board"))     $properties_person_same_as[] = url_pinterest_board      (get("pinterest_user"), get("pinterest_board"));       // ($username = false, $board = false);
@@ -12758,7 +12755,7 @@
 
     // LINKS
 
-    $__includes = array();
+    $__includes = [];
 
     function href($link, $target = false)
     {
@@ -12785,7 +12782,7 @@
             }
             else
             {
-                foreach (get("forwarded_flags", array()) as $forward_flag)
+                foreach (get("forwarded_flags", []) as $forward_flag)
                 {
                     if (get($forward_flag) !== false
                     &&  false === stripos($extended_link,"?$forward_flag") 
@@ -12852,7 +12849,7 @@
 
         // TODO Gérer les attributs copmme un tableau
 
-        $internal_attributes = array();
+        $internal_attributes = [];
 
                                                         $internal_attributes["href"]                = ($url === false) ? url_top() : $extended_link; 
                                                         $internal_attributes["target"]              = $target;
@@ -13425,7 +13422,7 @@
 
     // https://materialdesignicons.com/
 
-    $used_colors = array();
+    $used_colors = [];
 
     function import_color($color)
     {
@@ -13487,7 +13484,7 @@
         $fn       = "dom\color_$brand"; // For php 5.6 compatibility
 
         if (!is_callable($fn)) $fn = "dom\\$fn";
-        $colors = array();
+        $colors = [];
         if (is_callable($fn)) $colors = $fn();
 
         $colors   = is_array($colors) ? $colors : array($colors);
@@ -13634,7 +13631,7 @@
             $url    = at($info, "url");
 
             $copyright  = array("id" => $id, "author" => $author, "url" => $url);
-            $copyrights = get("unsplash_copyrights", array());
+            $copyrights = get("unsplash_copyrights", []);
 
             if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
 
@@ -13670,7 +13667,7 @@
         if (!!$author)  $author = trim($author);
 
         $copyright  = array($id, $author);
-        $copyrights = get("unsplash_copyrights", array());
+        $copyrights = get("unsplash_copyrights", []);
 
         if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
 
@@ -13718,7 +13715,7 @@
             $photo_key    = $photo_key[1];
         }
     
-        $photos         = array();
+        $photos         = [];
         $photo          = false;
         $photo_id       = false;
         $photo_secret   = false;
@@ -13728,7 +13725,7 @@
         
         if (false !== $photoset_key)
         {
-            $data           = json_flickr("photosets.getList", array(), $username, $token);
+            $data           = json_flickr("photosets.getList", [], $username, $token);
             $photosets      = at(at($data,"photosets"),"photoset");
             $photoset       = false;
             $photoset_id    = false;
@@ -13753,7 +13750,7 @@
         }
         else
         {
-            $data   = json_flickr("people.getPhotos", array(), $username, $token);
+            $data   = json_flickr("people.getPhotos", [], $username, $token);
             $photos = at(at($data,"photos"),"photo");
         }
         
@@ -13816,7 +13813,7 @@
 
     #region Hook - feed context recording
 
-    $__hook_card_context = array();
+    $__hook_card_context = [];
 
     function hook_card_set_context($key, $val)
     {
@@ -13833,7 +13830,7 @@
         if (count($__hook_card_context) > 0)
         {
             rss_record_item(at($__hook_card_context, "title"), at($__hook_card_context, "text"));
-            $__hook_card_context = array();
+            $__hook_card_context = [];
         }
 
         return $html;
@@ -13948,7 +13945,7 @@
 
         $short_label = extract_start(at($metadata, "post_title"), 8, array("\n","!","?",".",array("#",1),","," "));
 
-        $data = array();
+        $data = [];
 
         $data["content"] = has($metadata, "post_embed") ? $metadata["post_embed"] : '';
 
@@ -14160,7 +14157,7 @@
      * User async functions Registration System
      */
 
-    $__asyncs = array();
+    $__asyncs = [];
 
     function register_async($f)      { global $__asyncs; $__asyncs[$f] = true; }
     function registered_asyncs()     { global $__asyncs; return array_keys($__asyncs); }
@@ -14407,7 +14404,7 @@
         return $v1;
     }
     
-    function hsl_to_hex($hsl = array())
+    function hsl_to_hex($hsl = [])
     {
         if (empty($hsl)
         || !isset($hsl["H"])
@@ -14791,7 +14788,7 @@
 
             if (!!get("static") /*&& !get("fast")*/) // TODO Currently too slow for non static websites
             {       
-                $corrected = array();
+                $corrected = [];
 
                 foreach ($color as $c)
                 {
@@ -14941,7 +14938,7 @@
      
     function a_footnote($html, $index = false, $async = false, $title = auto)
     {
-        $footnotes = get("footnotes", array());
+        $footnotes = get("footnotes", []);
 
         if ($index === false)
         {
@@ -14949,7 +14946,7 @@
             foreach ($footnotes as $f => $footnote) if ($footnote == $html) $index = $f;
         }
 
-        $footnote_index = false !== $index ? $index : count(get("footnotes", array()));
+        $footnote_index = false !== $index ? $index : count(get("footnotes", []));
         $footnotes[$footnote_index] = $html;
         set("footnotes", $footnotes);
 
@@ -14967,7 +14964,7 @@
     {
         $html = "";
 
-        $footnotes = get("footnotes", array());
+        $footnotes = get("footnotes", []);
 
         foreach ($footnotes as $i => $footnote)
         {
