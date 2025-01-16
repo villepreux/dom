@@ -9237,7 +9237,7 @@
             }
 
             [hidden] {
-                display: none !important;
+                display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
             }
 
             /* Language */
@@ -9358,6 +9358,37 @@
                 margin-inline-start:    0;
                 margin-inline-end:      0;
             } */
+
+            select {
+
+                &, &::picker(select) {
+
+                    appearance: base-select;
+                }
+                
+                &::picker(select) {
+
+                    transition: 
+                        display allow-discrete 1s, 
+                        opacity 1s, 
+                        overlay 1s allow-discrete;
+                }
+                
+                &:not(:open)::picker(select) {
+
+                    opacity: 0;
+                }
+                
+                &:open::picker(select) {
+
+                    opacity: 1;
+                    
+                    @starting-style {
+                        
+                        opacity: 0;
+                    }
+                }
+            }
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }

@@ -187,21 +187,21 @@
             
             /* Menu open/close mechanism */
     
-            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js")) /* When no JS there is no :target use */ { ?>
+            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js") || !get("script_toolbar_menu", true)) /* When no JS there is no :target use */ { ?>
             #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.open   { display: inline-block !important;  }
             <?php } ?>
             #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.open   { display: none !important; }/*
             
             #<?= DOM_MENU_ID ?>-open        a.menu-switch-link.close  { display: none !important;  }*/
 
-            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js")) /* When no JS there is no :target use */ { ?>
+            <?php if (!!get("dom_toolbar_no_js") || !!get("no_js") || !get("script_toolbar_menu", true)) /* When no JS there is no :target use */ { ?>
             #<?= DOM_MENU_ID ?>-open:target a.menu-switch-link.close  { display: inline-block !important; }
             <?php } ?>
             
             #<?= DOM_MENU_ID ?>-open        .menu                     { /*display: none;  */max-height:   0vh; }
             #<?= DOM_MENU_ID ?>-open:target .menu                     { display: flex !important; max-height: 100vh; } /* TODO change to flex ? */
 
-            [hidden="hidden"] { display: none !important }
+            .toolbar [hidden="hidden"] { display: none !important }
 
             /* Scrollbar */
 
@@ -765,19 +765,11 @@
         
         if (false !== $html && false === stripos($html, "menu-toggle")) $html = menu_toggle($html);
         if (false === $html)                                            $html = menu_toggle_auto($sidebar);
-        
-        return toolbar_section(
 
-            ($html === false) ? '' : $html,
-
-            attributes(
-              /*attr("role", "menu"),*/
-                attr("class",
-                    component_class("div", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
-                    component_class("div", "toolbar-cell-right-shrink")    ) : "")
-                    )
-                )
-            );
+        return toolbar_section(($html === false) ? '' : $html, attributes(attr("class",
+            component_class("div", "toolbar-cell-left") .          ($menu_entries_shrink_to_fit ? (' '.
+            component_class("div", "toolbar-cell-right-shrink")    ) : "")
+            )));
     }
 
     function toolbar_nav_title($html, $attributes = false)

@@ -9,7 +9,7 @@ init(); // Initialize framework
 
 output( // Output
     html( // HTML document
-        toolbar("Basic example!"). // Using the toolbar custom component
+        toolbar("Example!"). // Using the toolbar custom component
         main( // My main content section
             article( // Some random content
                 h2("First Headline").
