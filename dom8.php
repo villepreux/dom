@@ -1580,10 +1580,17 @@
 
     function url_exists($url)
     {
-        $headers = @get_headers($url);
+        $context = stream_context_create( [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ],
+        ]);
+
+        $headers = @get_headers($url, false, $context);
         if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
         
-        $headers = @get_headers("$url/");
+        $headers = @get_headers("$url/", false, $context);
         if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
 
         return false;
@@ -1682,22 +1689,23 @@
 
                     update_dependency_graph($url);
 
-                    if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""))
+                    if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""/* || $content == "error code: 520"*/))
                     {
-                        $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : " - Empty result");
+                        $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : ($content == "" ? " - Empty result" : "Error detected!"));
                         $curl_debug_errors[] = to_string(curl_getinfo($curl));
                     }
 
                     curl_close($curl);
                 }
             }
+            
+            if (!!$content && "" != $content && false !== stripos($content, '<title>403 Forbidden</title>'              )) $content = false;
+            if (!!$content && "" != $content && false !== stripos($content, '<title>404 Not found</title>'              )) $content = false;
+            if (!!$content && "" != $content && false !== stripos($content, '<title>401 Unauthorized</title>'           )) $content = false;
+            if (!!$content && "" != $content && false !== stripos($content, '<title>500 Interval server error</title>'  )) $content = false;
+            if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
+            if (!!$content && "" != $content && false !== stripos($content, 'error code: 520'                           )) $content = false;
         }
-
-        if (!!$content && "" != $content && false !== stripos($content, '<title>403 Forbidden</title>'              )) $content = false;
-        if (!!$content && "" != $content && false !== stripos($content, '<title>404 Not found</title>'              )) $content = false;
-        if (!!$content && "" != $content && false !== stripos($content, '<title>401 Unauthorized</title>'           )) $content = false;
-        if (!!$content && "" != $content && false !== stripos($content, '<title>500 Interval server error</title>'  )) $content = false;
-        if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
 
         if ($auto_fix)
         {    
@@ -9232,6 +9240,15 @@
                 padding:        0;
             }
 
+            .sr-only, .sceen-reader-only, .sceen-readers-only {
+                position:absolute;
+                left:-10000px;
+                top:auto;
+                width:1px;
+                height:1px;
+                overflow:hidden;
+            }
+
             body {
                 margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
             }
@@ -12253,7 +12270,12 @@
         }
 
         return tag("main", cosmetic(eol(1)).$html.cosmetic(eol(1)), $attributes); 
-    }       
+    }
+    
+    function sup($html, $attributes = false)
+    {
+        return tag("sup", $html, $attributes); 
+    }
 
     function footer     ($html = "", $attributes = false) { $profiler = debug_track_timing(); return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
     
