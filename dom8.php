@@ -9767,6 +9767,88 @@
                 css_normalize_chocapic("chocapic"));
     }
     
+    function css_pseudorandom()
+    {
+        return "@layer pseudorandom {
+        
+            :root { --pseudorand-prime-2: 1; --pseudorand-prime-3: 1; --pseudorand-prime-5: 1; --pseudorand-prime-7: 1; --pseudorand-prime-11: 1; --pseudorand-prime-13: 1; --pseudorand-prime-17: 1; --pseudorand-prime-19: 1; --pseudorand-prime-23: 1; --pseudorand-prime-29: 1; --pseudorand-prime-31: 1; --pseudorand-prime-37: 1; --pseudorand-prime-41: 1; --pseudorand-prime-43: 1; --pseudorand-prime-47: 1; --pseudorand-prime-53: 1; --pseudorand-prime-59: 1; --pseudorand-prime-61: 1; --pseudorand-prime-67: 1; --pseudorand-prime-71: 1; --pseudorand-prime-73: 1; --pseudorand-prime-79: 1; --pseudorand-prime-83: 1; --pseudorand-prime-89: 1; --pseudorand-prime-97: 1; --pseudorand-prime-101: 1; --pseudorand-prime-103: 1; --pseudorand-prime-107: 1; --pseudorand-prime-109: 1; --pseudorand-prime-113: 1; --pseudorand-prime-127: 1; --pseudorand-prime-131: 1; --pseudorand-prime-137: 1; --pseudorand-prime-139: 1; --pseudorand-prime-149: 1; --pseudorand-prime-151: 1; --pseudorand-prime-157: 1; --pseudorand-prime-163: 1; --pseudorand-prime-167: 1; --pseudorand-prime-173: 1; --pseudorand-prime-179: 1; --pseudorand-prime-181: 1; --pseudorand-prime-191: 1; --pseudorand-prime-193: 1; --pseudorand-prime-197: 1; --pseudorand-prime-199: 1; --pseudorand-prime-211: 1; --pseudorand-prime-223: 1; --pseudorand-prime-227: 1; --pseudorand-prime-229: 1; --pseudorand-prime-233: 1; --pseudorand-prime-239: 1; --pseudorand-prime-241: 1; }
+        
+            * { 
+            
+                &:nth-child(2n)   { --pseudorand-prime-2:     2; }
+                &:nth-child(4n)   { --pseudorand-prime-2:     4; }  
+                &:nth-child(8n)   { --pseudorand-prime-2:     8; }  
+                &:nth-child(16n)  { --pseudorand-prime-2:    16; }
+                &:nth-child(32n)  { --pseudorand-prime-2:    32; }  
+                &:nth-child(64n)  { --pseudorand-prime-2:    64; }  
+                &:nth-child(128n) { --pseudorand-prime-2:   128; }  
+                &:nth-child(3n)   { --pseudorand-prime-3:     3; }  
+                &:nth-child(9n)   { --pseudorand-prime-3:     9; }  
+                &:nth-child(27n)  { --pseudorand-prime-3:    27; }  
+                &:nth-child(81n)  { --pseudorand-prime-3:    81; }  
+                &:nth-child(243n) { --pseudorand-prime-3:   243; }  
+                &:nth-child(5n)   { --pseudorand-prime-5:     5; }  
+                &:nth-child(25n)  { --pseudorand-prime-5:    25; }  
+                &:nth-child(125n) { --pseudorand-prime-5:   125; }  
+                &:nth-child(7n)   { --pseudorand-prime-7:     7; }  
+                &:nth-child(49n)  { --pseudorand-prime-7:    49; }  
+                &:nth-child(11n)  { --pseudorand-prime-11:   11; }
+                &:nth-child(121n) { --pseudorand-prime-11:  121; }  
+                &:nth-child(13n)  { --pseudorand-prime-13:   13; }  
+                &:nth-child(169n) { --pseudorand-prime-13:  169; }  
+                &:nth-child(17n)  { --pseudorand-prime-17:   17; }  
+                &:nth-child(19n)  { --pseudorand-prime-19:   19; }  
+                &:nth-child(23n)  { --pseudorand-prime-23:   23; }  
+                &:nth-child(29n)  { --pseudorand-prime-29:   29; }  
+                &:nth-child(31n)  { --pseudorand-prime-31:   31; }  
+                &:nth-child(37n)  { --pseudorand-prime-37:   37; }  
+                &:nth-child(41n)  { --pseudorand-prime-41:   41; }  
+                &:nth-child(43n)  { --pseudorand-prime-43:   43; }  
+                &:nth-child(47n)  { --pseudorand-prime-47:   47; }  
+                &:nth-child(53n)  { --pseudorand-prime-53:   53; }  
+                &:nth-child(59n)  { --pseudorand-prime-59:   59; }  
+                &:nth-child(61n)  { --pseudorand-prime-61:   61; }  
+                &:nth-child(67n)  { --pseudorand-prime-67:   67; }  
+                &:nth-child(71n)  { --pseudorand-prime-71:   71; }  
+                &:nth-child(73n)  { --pseudorand-prime-73:   73; }  
+                &:nth-child(79n)  { --pseudorand-prime-79:   79; }  
+                &:nth-child(83n)  { --pseudorand-prime-83:   83; }  
+                &:nth-child(89n)  { --pseudorand-prime-89:   89; }  
+                &:nth-child(97n)  { --pseudorand-prime-97:   97; }  
+                &:nth-child(101n) { --pseudorand-prime-101: 101; }  
+                &:nth-child(103n) { --pseudorand-prime-103: 103; }  
+                &:nth-child(107n) { --pseudorand-prime-107: 107; }  
+                &:nth-child(109n) { --pseudorand-prime-109: 109; }  
+                &:nth-child(113n) { --pseudorand-prime-113: 113; }  
+                &:nth-child(127n) { --pseudorand-prime-127: 127; }  
+                &:nth-child(131n) { --pseudorand-prime-131: 131; }  
+                &:nth-child(137n) { --pseudorand-prime-137: 137; }  
+                &:nth-child(139n) { --pseudorand-prime-139: 139; }  
+                &:nth-child(149n) { --pseudorand-prime-149: 149; }  
+                &:nth-child(151n) { --pseudorand-prime-151: 151; }  
+                &:nth-child(157n) { --pseudorand-prime-157: 157; }  
+                &:nth-child(163n) { --pseudorand-prime-163: 163; }  
+                &:nth-child(167n) { --pseudorand-prime-167: 167; }  
+                &:nth-child(173n) { --pseudorand-prime-173: 173; }  
+                &:nth-child(179n) { --pseudorand-prime-179: 179; }  
+                &:nth-child(181n) { --pseudorand-prime-181: 181; }  
+                &:nth-child(191n) { --pseudorand-prime-191: 191; }  
+                &:nth-child(193n) { --pseudorand-prime-193: 193; }  
+                &:nth-child(197n) { --pseudorand-prime-197: 197; }  
+                &:nth-child(199n) { --pseudorand-prime-199: 199; }  
+                &:nth-child(211n) { --pseudorand-prime-211: 211; }  
+                &:nth-child(223n) { --pseudorand-prime-223: 223; }  
+                &:nth-child(227n) { --pseudorand-prime-227: 227; }  
+                &:nth-child(229n) { --pseudorand-prime-229: 229; }  
+                &:nth-child(233n) { --pseudorand-prime-233: 233; }  
+                &:nth-child(239n) { --pseudorand-prime-239: 239; }  
+                &:nth-child(241n) { --pseudorand-prime-241: 241; }  
+            
+                --rand: calc(1  * var(--pseudorand-prime-2)  * var(--pseudorand-prime-3)  * var(--pseudorand-prime-5)  * var(--pseudorand-prime-7)  * var(--pseudorand-prime-11)  * var(--pseudorand-prime-13)  * var(--pseudorand-prime-17)  * var(--pseudorand-prime-19)  * var(--pseudorand-prime-23)  * var(--pseudorand-prime-29)  * var(--pseudorand-prime-31)  * var(--pseudorand-prime-37)  * var(--pseudorand-prime-41)  * var(--pseudorand-prime-43)  * var(--pseudorand-prime-47)  * var(--pseudorand-prime-53)  * var(--pseudorand-prime-59)  * var(--pseudorand-prime-61)  * var(--pseudorand-prime-67)  * var(--pseudorand-prime-71)  * var(--pseudorand-prime-73)  * var(--pseudorand-prime-79)  * var(--pseudorand-prime-83)  * var(--pseudorand-prime-89)  * var(--pseudorand-prime-97)  * var(--pseudorand-prime-101)  * var(--pseudorand-prime-103)  * var(--pseudorand-prime-107)  * var(--pseudorand-prime-109)  * var(--pseudorand-prime-113)  * var(--pseudorand-prime-127)  * var(--pseudorand-prime-131)  * var(--pseudorand-prime-137)  * var(--pseudorand-prime-139)  * var(--pseudorand-prime-149)  * var(--pseudorand-prime-151)  * var(--pseudorand-prime-157)  * var(--pseudorand-prime-163)  * var(--pseudorand-prime-167)  * var(--pseudorand-prime-173)  * var(--pseudorand-prime-179)  * var(--pseudorand-prime-181)  * var(--pseudorand-prime-191)  * var(--pseudorand-prime-193)  * var(--pseudorand-prime-197)  * var(--pseudorand-prime-199)  * var(--pseudorand-prime-211)  * var(--pseudorand-prime-223)  * var(--pseudorand-prime-227)  * var(--pseudorand-prime-229)  * var(--pseudorand-prime-233)  * var(--pseudorand-prime-239)  * var(--pseudorand-prime-241));
+            }
+
+        }";
+    }
 
     #endregion
     #region Color vars
