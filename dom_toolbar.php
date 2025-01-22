@@ -581,9 +581,9 @@
         );
     }
 
-    function menu_li_attributes($item, $add_transition_names = auto)
+    function menu_li_attributes($item, $__add_transition_names = auto)
     {
-        $add_transition_names = (auto === $add_transition_names) ? get("transition_names") : $add_transition_names;
+        $add_transition_names = (auto === $__add_transition_names) ? get("transition_names") : $__add_transition_names;
             $transition_name  = trim(to_classname($item));
 
         $attributes = [];
