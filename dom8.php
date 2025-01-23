@@ -2418,8 +2418,7 @@
     {
         if (!!$title && false === get("title", false))
         {
-            $title = trim(clean_from_tags($title));
-            set("title", $title);
+            set("title", trim(strip_tags($title)));
         }        
 
         return $title;
@@ -2439,7 +2438,7 @@
     {                  
         if (false === $link_to) $link_to = $title;
         if (false === $anchor)  $anchor  = $link_to;
-
+        
         $id = anchor_name($anchor);
 
         set("hook_sections", array_merge(get("hook_sections", []), [
@@ -5504,10 +5503,11 @@
     function string_system_font_stack($quote = '"', $type = false)
     {
         if ($quote === true || $quote === false || (is_string($quote) && strlen($quote) > 1)) { $type = $quote; $quote = '"'; }
-        if ($type == true)  $type = "condensed";
-        if ($type == false) $type = "neogrotestque";
+        if (!is_string($type) && $type == true)  $type = "condensed";
+        if (!is_string($type) && $type == false) $type = "neogrotestque";
 
         $fn = "\dom\array_system_font_stack_$type";
+     
         if (is_callable($fn)) return implode(", ", get("font_stack_$type", $fn($quote)));
 
         return string_system_font_stack($quote, "humanist");
