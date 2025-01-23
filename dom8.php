@@ -190,7 +190,7 @@
         
             .debug-console {
 
-                min-height:         100vh; 
+                min-height:         100dvh; 
                 margin:             0; 
                 white-space:        nowrap; 
                 overflow-x:         auto; 
@@ -10585,7 +10585,7 @@
             
             /* Main content inflate (makes footer sticky) */
     
-            body        { display: flex; flex-direction: column; gap: 0; min-height: 100vh; } 
+            body        { display: flex; flex-direction: column; gap: 0; min-height: 100dvh; } 
 
             /* V1 */
             /*
