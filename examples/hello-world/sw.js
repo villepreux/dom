@@ -1,4 +1,6 @@
-/*importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");*/
+ 
+
+  /*importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");*/
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js");
 
 if (workbox)
@@ -18,3 +20,4 @@ else
 {
     dom.log("Could not load workbox framework!");
 }
+

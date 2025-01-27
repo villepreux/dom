@@ -1,7 +1,11 @@
+ 
+
 <!doctype html><html>
     <head>
         <title>Installing service worker</title>
-        <script>var swsource = "sw.js";
+        <script> 
+
+var swsource = "sw.js";
 
 if ("serviceWorker" in navigator)
 {
@@ -13,8 +17,11 @@ dom.log("SW", "ServiceWorker scope: ", reg.scope);
 {
 dom.log("SW", "ServiceWorker registration failed: ", err);
 });
-};</script>
+};
+
+</script>
     </head>
     <body>
     </body>
 </html>
+

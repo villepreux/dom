@@ -948,7 +948,7 @@
         return "";
     }
 
-    function heredoc_flush($transform = false, $transform_force_minify = false, $transform_trim = true)
+    function heredoc_flush($transform = false, $transform_force_minify = false, $transform_trim = auto)
     {
         $heredoc_stack = get("heredoc");
         $output        = ob_get_contents();
@@ -969,7 +969,14 @@
 
         if (null !== $transform)
         {
-            if ($heredoc_stack[count($heredoc_stack)-1]["tab_offset"] != 0) $output = modify_tab($output, $heredoc_stack[count($heredoc_stack)-1]["tab_offset"], $heredoc_stack[count($heredoc_stack)-1]["tab"]);
+            if ($heredoc_stack[count($heredoc_stack)-1]["tab_offset"] != 0) 
+            {
+                $output = modify_tab(
+                    $output, 
+                    $heredoc_stack[count($heredoc_stack)-1]["tab_offset"], 
+                    $heredoc_stack[count($heredoc_stack)-1]["tab"]
+                );
+            }
             
             if (!!$transform) 
             {
@@ -986,7 +993,7 @@
         ob_start();
     }
 
-    function heredoc_stop($transform = false, $transform_force_minify = false, $transform_trim = true)
+    function heredoc_stop($transform = false, $transform_force_minify = false, $transform_trim = auto)
     {
         heredoc_flush($transform, $transform_force_minify, $transform_trim);
         ob_end_clean();
@@ -1029,7 +1036,7 @@
         $svg_light = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjYWEyMjAwKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICM1NWRkZmYpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
         $svg_dark  = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjZmY2ZWZmKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICMyMmNjZWUpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
 
-        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
+        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?>
 
             var dom = function () {}; /* TODO put all dom js utilities in there */
 
@@ -5943,12 +5950,12 @@
     
     function raw            ($html, $force_minify = false, $trim = true)  { return $html; }
 
-    function raw_svg        ($html, $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify") { $html =   minify_html   ($html); } return !$trim ? $html : trim($html ); }
-    function raw_html       ($html, $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; if ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify") { $html = /*minify_html*/ ($html); } return !$trim ? $html : trim($html ); }
-    function raw_js         ($js,   $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; if ((!!get("minify") || !!get("minify_js"   ) || $force_minify) && $force_minify != "unminify") { $js   =   minify_js     ($js);   } return !$trim ? $js   : trim($js   ); }
-    function raw_css        ($css,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; if ((!!get("minify") || !!get("minify_css"  ) || $force_minify) && $force_minify != "unminify") { $css  =   minify_css    ($css);  } return !$trim ? $css  : trim($css  ); }
-    function raw_php        ($php,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return "";                                  if ((!!get("minify") || !!get("minify_php"  ) || $force_minify) && $force_minify != "unminify") { $php  =   minify_php    ($php);  } return !$trim ? $php  : trim($php  ); }
-    function raw_xml        ($xml,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_xml"))  return ''; if ((!!get("minify") || !!get("minify_xml"  ) || $force_minify) && $force_minify != "unminify") { $xml  = /*minify_xml*/  ($xml);  } return !$trim ? $xml  : trim($xml  ); }
+    function raw_svg        ($html, $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; $minify = ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $html =   minify_html   ($html); } $trim = auto === $trim ? true    : $trim; return !$trim ? $html : trim($html ); }
+    function raw_html       ($html, $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_html")) return ''; $minify = ((!!get("minify") || !!get("minify_html" ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $html = /*minify_html*/ ($html); } $trim = auto === $trim ? true    : $trim; return !$trim ? $html : trim($html ); }
+    function raw_js         ($js,   $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_js"))   return ''; $minify = ((!!get("minify") || !!get("minify_js"   ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $js   =   minify_js     ($js);   } $trim = auto === $trim ? $minify : $trim; return !$trim ? $js   : trim($js   ); }
+    function raw_css        ($css,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_css"))  return ''; $minify = ((!!get("minify") || !!get("minify_css"  ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $css  =   minify_css    ($css);  } $trim = auto === $trim ? $minify : $trim; return !$trim ? $css  : trim($css  ); }
+    function raw_php        ($php,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return "";                                  $minify = ((!!get("minify") || !!get("minify_php"  ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $php  =   minify_php    ($php);  } $trim = auto === $trim ? true    : $trim; return !$trim ? $php  : trim($php  ); }
+    function raw_xml        ($xml,  $force_minify = false, $trim = true)  { if (!!get("gemini")) return ""; if (!!get("no_xml"))  return ''; $minify = ((!!get("minify") || !!get("minify_xml"  ) || $force_minify) && $force_minify != "unminify"); if ($minify) { $xml  = /*minify_xml*/  ($xml);  } $trim = auto === $trim ? true    : $trim; return !$trim ? $xml  : trim($xml  ); }
     
     function include_html   ($filename, $force_minify = false, $silent_errors = auto, $trim = true) { return (has("rss") || !!get("no_html")) ? '' : raw_html   (include_file($filename, $silent_errors), $force_minify, $trim); }
     function include_css    ($filename, $force_minify = false, $silent_errors = auto, $trim = true) { return (has("rss") || !!get("no_css"))  ? '' : raw_css    (include_file($filename, $silent_errors), $force_minify, $trim); }
@@ -6532,7 +6539,7 @@
      */
     function head_user_preferences()
     {
-        return  eol().comment("DOM Head user preferences handling").
+        return eol().comment("User preferences").
 
             script((function() { HSTART(-3) ?><script><?= HERE() ?>
 
@@ -6561,7 +6568,7 @@
                     }
                 }                            
         
-            <?= HERE("raw_js") ?></script><?php return HSTOP(); })());        
+            <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
 
     /**
@@ -6569,9 +6576,8 @@
      */
     function head_pragma_directives()
     {
-        return  eol().comment("DOM Head pragma directives") 
+        return  eol().comment("Pragma directives") 
             .   meta_charset('utf-8')
-            .   eol()
             .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
             ;        
     }
@@ -6579,35 +6585,35 @@
     /* 10 Title */
     function head_title()
     {
-        return title();
+        return eol().comment("Title").title();
     }
 
     /* 9 */
     function head_preconnect_hints()
     {
-        return  eol().comment("DOM Head preconnect hints").                             (!get("unsplash-preconnect") ? '' : (
-                eol().'<link rel="preconnect" href="https://source.unsplash.com">'.     '')).
-                "";
+        return  eol().comment("Preconnect hints").                              (!get("unsplash-preconnect") ? '' : (
+                eol().link_rel("preconnect", "https://source.unsplash.com").    '')).
+                eol().comment("...");
     }
 
     /* 8 */
     function head_asynchronous_scripts($scripts = true)
     {
-        return  eol().comment("DOM Head Asynchronous scripts").
-                scripts_head($scripts).
+        return  eol().comment("Asynchronous scripts"). // <script async src>
+                scripts_head($scripts). // !TODO !WARNING not really async scripts !
                 "";
     }
 
     /* 7 */
     function head_import_styles()
     {
-        return eol().comment("DOM Head Import styles");
+        return eol().comment("Import styles");
     }
 
     /* 6 */
     function head_synchronous_scripts($scripts = true)
     {
-        return eol().comment("DOM Head Synchronous scripts");
+        return eol().comment("Synchronous scripts");
     }
 
     /* 5 */
@@ -6621,19 +6627,22 @@
             );
 
         return 
-            eol().comment("DOM Head Synchronous styles").
+            eol().comment("Synchronous styles").
 
             // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
             eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
             eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
 
-            eol().comment("DOM Head styles").
-            link_styles($async_css). // if $async_css == false otherwise move to #2
-            (!$styles ? "" : styles()).
-            (!$path_css ? "" : (
-                eol(). comment("DOM Head project-specific main stylesheet").    (!get("htaccess_rewrite_php") ? (
-                style_file($path_css).                                          "") : (
-                link_style($path_css).                                          "")).
+            eol().comment("styles").
+
+            (!!$async_css ? "" : link_styles($async_css)). // if $async_css == false otherwise move to #2
+            ( !$styles    ? "" : styles()).
+            ( !$path_css  ? "" : (
+
+                eol(). comment("Project-specific main stylesheet").           (!get("htaccess_rewrite_php") ? (
+                style_file($path_css).                                  "") : (
+                link_style($path_css).                                  "")).
+
             ""));
     }
 
@@ -6649,23 +6658,26 @@
     {
         if (!$scripts) return "";
 
-        return  eol().comment("DOM Head Deferred scripts").
+        return  eol().comment("Deferred scripts").
                 //script_google_analytics should be call here if needed
                 "";
     }
 
     /* 2 */
-    function head_prefetch_and_prerender_hints()
+    function head_prefetch_and_prerender_hints($async_css = false)
     {
-        return  eol().comment("DOM Head Prefetch and prerender hints").
+        return  eol().comment("Prefetch and prerender hints").
                 eol().comment("Prefetched pages").
-                link_rel_prefetchs();   
+                link_rel_prefetchs().
+
+                (!$async_css ? "" : link_styles($async_css)). // if $async_css == true otherwise move to #5
+            "";   
     }
 
     /* 1 */
     function head_everything_else($scripts = true)
     {
-        return  eol().comment("DOM Head Metadata").
+        return  eol().comment("Everything else").
                       metas().
                 eol().link_rel_manifest().      (!get("webmentions") ? "" : (
                 eol().link_rel_webmentions().   "")).
@@ -6691,7 +6703,7 @@
             eol().head_synchronous_styles($async_css, $styles).
             eol().head_preload_hints().
             eol().head_deferred_scripts($scripts).
-            eol().head_prefetch_and_prerender_hints().
+            eol().head_prefetch_and_prerender_hints($async_css).
             eol().head_everything_else($scripts).            
             "";
     }
@@ -8111,11 +8123,11 @@
 
             .   eol().comment("Icons")
             .   link_rel_icon("img/icon.svg")
-            .   link_rel_icon(get("image"), false, false, false, false, /*alternate*/true)
+            .   link_rel_icon(get("image"), false, false, false, false, $alternate = true)/*
 
             .   eol().comment("'Fav' Icons")
             .   link_rel_icon(array(
-            
+             
                     get("icons_path")."favicon",
                     get("icons_path")."android-icon",
                     get("icons_path")."apple-icon",
@@ -8123,7 +8135,7 @@
 
                     array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512),
                     
-                    false, false, false, false, /*alternate*/true)
+                    false, false, false, false, $alternate = true)*/
 
             .   eol().comment("Apple-splash icons")
             .   link_rel_icon(get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
@@ -8197,19 +8209,19 @@
         else if (!is_array($layers)) $layers = array(explode(",", trim(str_replace(" ", "", $layers))));
         return "@layer ".implode(", ", $layers).";";
     }
-    
+
     function css_layer_bgn($layer)
     {
         if (false === $layer || !get("css_layers_support")) return "";
         return "@layer $layer {".eol(2);
     }
-    
+
     function css_layer_end($layer = false)
     {
         if (!get("css_layers_support")) return "";
         return eol()."}".(!$layer ? "" : " /* @layer $layer */");
     }
-    
+
     function css_layer($layer, $css = "")
     {
         if (false === $layer || !get("css_layers_support")) return $css;
@@ -8252,20 +8264,20 @@
     function script_js_as_is($js = "", $type = "text/javascript", $attributes = false)
     {
         if (!!get("no_js"))    return '';
-        if (!$js || $js == "") return ''; 
+        if (!$js || $js == "") return '';
 
-        if ($type != "text/javascript") 
+        if ($type != "text/javascript")
             $attributes = attributes_add($attributes, array("type" => $type));
 
         return tag('script', eol().$js.eol(), $attributes);
     }
 
-    function script($js = "", $type = "text/javascript",  $force_minify = false)
+    function script($js = "", $type = "text/javascript",  $force_minify = false, $trim = auto)
     {
         $profiler = debug_track_timing();         
         if (!$js || $js == "") return ''; 
 
-        return script_js_as_is(raw_js($js, $force_minify), $type);
+        return script_js_as_is(raw_js($js, $force_minify, $trim), $type);
     }
 
     function script_file($filename = "", $type = auto, $force = auto,  $force_minify = auto, $silent_errors = auto, $attributes = auto)
@@ -9268,7 +9280,9 @@
             /* any component that requires it can be shown              */
             .requires-color-schemes { display: initial; }
             
-            html { color-scheme: light dark; }
+            html                     { color-scheme: light dark; }
+            html[data-theme="light"] { color-scheme: light;      }
+            html[data-theme="dark"]  { color-scheme: dark;       }
 
             /* Have "Sytem Colors" variables that support [data-theme] */
             /* (that is, ie. a data-theme=light whereas the use chose dark on this site) */ 
@@ -11089,8 +11103,12 @@
     function js_scan_and_print_head()
     {
         if (has("ajax")) return '';
+
+        heredoc_start(-3); ?><script><?php heredoc_flush(null); ?> 
+
+            var scan_and_print = function() { alert("Images are not loaded yet"); };
         
-        return 'var scan_and_print = function() { alert("Images are not loaded yet"); };';
+        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
     function js_scan_and_print_body()
@@ -12067,18 +12085,19 @@
         
         $body = ''
 
-        . if_browser('lte IE 9', eol().p('You are using an '.strong('outdated').' browser. Please '.a('upgrade your browser', "https://browsehappy.com/").' to improve your experience and security.', 'browserupgrade'))
-        
+      //Not needed anymore, as we assume evergreen browser in many parts of this framework
+      //. if_browser('lte IE 9', eol().p('You are using an '.strong('outdated').' browser. Please '.a('upgrade your browser', "https://browsehappy.com/").' to improve your experience and security.', 'browserupgrade'))
+
         . (get("support_metadata_person",       false) ? script_json_ld($properties_person)         : "")
         . (get("support_metadata_organization", false) ? script_json_ld($properties_organization)   : "")
-        
+
         . eol()
         . $html
 
-        . eol().comment("DOM Body boilerplate markup")/*
+        . eol().comment("Body boilerplate markup")/*
         . back_to_top_link()*/
 
-        . eol() . comment("DOM Body scripts")
+        . eol() . comment("Body scripts")
         . scripts_body()          /*. (is_callable("dom\\scripts_body_toolbar") ? (""
         . scripts_body_toolbar()    ) : "")*/
 
@@ -14958,8 +14977,8 @@
     // HEREDOC SNIPPET HELPER
 
     function HSTART($offset = 0, $tab = "    ") { return heredoc_start($offset, $tab); }
-    function HSTOP($out = null, $transform_force_minify = false, $transform_trim = true)  { return heredoc_stop($out,  $transform_force_minify, $transform_trim); }
-    function HERE($out  = null, $transform_force_minify = false, $transform_trim = true)  { return heredoc_flush($out, $transform_force_minify, $transform_trim); }
+    function HSTOP($out = null, $transform_force_minify = false, $transform_trim = auto)  { return heredoc_stop($out,  $transform_force_minify, $transform_trim); }
+    function HERE($out  = null, $transform_force_minify = false, $transform_trim = auto)  { return heredoc_flush($out, $transform_force_minify, $transform_trim); }
 
     #endregion
 
