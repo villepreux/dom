@@ -1101,28 +1101,6 @@
                         }
 
                      });
-            
-              /*$.ajax
-                ({
-                    url:    url
-                ,   type:  "GET"
-                ,   async: true
-
-                ,   success: function(res) {
-                        if (onsuccess) {
-                            if (cb) { onsuccess(res); }
-                            else    { cb = function() { onsuccess(res); }; }
-                            }
-                        }
-
-                ,   complete: function() {
-                        if (period > 0) {
-                            setTimeout(function() {
-                                ajax(url, onsuccess, period, onstart, mindelay);
-                                }, period);
-                            }
-                        }
-                });*/
             };
             
             var pop_ajax_call = function()
@@ -2544,6 +2522,8 @@
             if (0 === stripos($url, "javascript") ) return;
         }
 
+        if (!!get("dom/disable-links-hooks")) return;
+
         global $hook_links, $hook_shortcut_links, $hook_prefetch_links, $hook_external_links;
 
         $found_url = false;
@@ -2606,15 +2586,15 @@
         return "";
     }
 
-    function rss_record_item($title = "", $text = "", $img = "", $url = "", $date = false, $timestamp = false)
+    function rss_record_item($title = "", $description = "", $img = "", $link = "", $date = false, $timestamp = false)
     {
         $timestamp = !!$timestamp ? $timestamp : strtotime(!!$date ? $date : rss_auto_date(date(DATE_RSS)));
         
         set("rss_items", array_merge(get("rss_items", []), array(array
         (
             "title"         => $title
-        ,   "link"          => $url
-        ,   "description"   => $text
+        ,   "link"          => $link
+        ,   "description"   => $description
         ,   "img_url"       => $img
         ,   "timestamp"     =>                $timestamp
         ,   "date"          => date(DATE_RSS, $timestamp)
@@ -2627,7 +2607,7 @@
     $__dom_hooked_feed_items_count = 0;
 
     function hook_feed_item($metadata)
-    {           
+    {   
         if (has("rss"))
         {
             global $__dom_hooked_feed_items_count;
@@ -5917,7 +5897,8 @@
      * Special helper / low level components
      */
     
-    function self($html) { return $html; }
+    function empty_string($_)   { return "";    }
+    function self($html)        { return $html; }
 
     function include_file($filename, $silent_errors = auto)
     {
@@ -6258,7 +6239,7 @@
     function _rss($xml = false)
     {
         $profiler = debug_track_timing();
-        
+
         if ("rss" == get("doctype", "html"))
         {
             if ($xml === false)
@@ -8002,26 +7983,49 @@
         return link_rel($type, $path, $attributes);
     }
 
-    function _meta_rss_alternates()
+    function meta_alternates_rss($path = "/", $auto_skip_if_no_hooked_feed_items = true)
     {
-        global $__dom_hooked_feed_items_count;
-        if ($__dom_hooked_feed_items_count < 2) return "";
+        if ($auto_skip_if_no_hooked_feed_items)
+        {
+            global $__dom_hooked_feed_items_count;
+            if ($__dom_hooked_feed_items_count < 2) return "";
+        }
 
         return
         
-            eol()
-        .   meta('msapplication-notification',    'frequency=30;'
-                                                . 'polling-uri' .'='.urlencode('/?rss=tile&id=1').';'
-                                                . 'polling-uri2'.'='.urlencode('/?rss=tile&id=2').';'
-                                                . 'polling-uri3'.'='.urlencode('/?rss=tile&id=3').';'
-                                                . 'polling-uri4'.'='.urlencode('/?rss=tile&id=4').';'
-                                                . 'polling-uri5'.'='.urlencode('/?rss=tile&id=5').';'.' cycle=1')
-        .   eol()
-        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/rss.xml" : "/?rss"     ), array("type" => "application/rss+xml", "title" => "RSS"))   . ((!!get("static")) ? '' : (''
-        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/en"      : "/?lang=en" ), array("hreflang" => "en-US"))
-        .   link_rel("alternate",   get("canonical").(!!get("static") ? "/fr"      : "/?lang=fr" ), array("hreflang" => "fr-FR"))                               ))
-        .   link_rel("canonical",   get("canonical"))
-        ;
+            eol().
+            eol().comment("$path page RSS links").                                                                          (!!get("static") ? "" : (
+            meta('msapplication-notification',    'frequency=30;'
+                                                . 'polling-uri' .'='.urlencode($path.'?rss=tile&id=1').';'
+                                                . 'polling-uri2'.'='.urlencode($path.'?rss=tile&id=2').';'
+                                                . 'polling-uri3'.'='.urlencode($path.'?rss=tile&id=3').';'
+                                                . 'polling-uri4'.'='.urlencode($path.'?rss=tile&id=4').';'
+                                                . 'polling-uri5'.'='.urlencode($path.'?rss=tile&id=5').';'.' cycle=1').     "")).
+            eol().
+            link_rel("alternate",   get("canonical").$path.(!!get("static") ? "rss.xml" : "?rss"     ), array("type" => "application/rss+xml", "title" => "RSS")).
+            "";
+    }
+
+    function meta_alternates_lang($path = "/")
+    {
+        if (!!get("static")) return "";
+
+        return  eol().
+                link_rel("alternate",   get("canonical").$path.("?lang=en" ), array("hreflang" => "en-US")).
+                link_rel("alternate",   get("canonical").$path.("?lang=fr" ), array("hreflang" => "fr-FR"));
+    }
+
+    function meta_alternates_canonical($path = "/")
+    {
+        return  eol().
+                link_rel("canonical",   get("canonical").$path);
+    }
+
+    function _meta_rss_alternates()
+    {
+        return  meta_alternates_rss().
+                meta_alternates_lang().
+                meta_alternates_canonical();
     }
 
     function metas() { return delayed_component("_".__FUNCTION__, false); }
@@ -8086,7 +8090,8 @@
             .   meta('DC.title',                            get("title"))
             .   meta('DC.format',                           'text/html')
             .   meta('DC.language',                         get("dc-language", content_language()))
-            
+
+          /*    LEAVING THE NAZI BAR...
             .   eol()       
             .   meta('twitter:card',                        'summary_large_image')      . (has('twitter_page') ? (""
             .   meta('twitter:site',                        get("twitter_page"))        ) : "")
@@ -8094,6 +8099,7 @@
             .   meta('twitter:title',                       strip_tags(get("title")))
             .   meta('twitter:description',                 strip_tags(get("og_description", get("description", get("title")))))
             .   meta('twitter:image',                       path(get("canonical").'/'.get("image")))
+            */
             
             .   eol()       
             .   meta('application-name',                    get("live_domain", get("og_site_name", get("title"))))  . ((has("pinterest_site_verification") || has("google_site_verification")) ? (""
@@ -8116,9 +8122,7 @@
             // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
             .   eol().comment("Alternate URLs")   
-                
             // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
-
             .   delayed_component("_meta_rss_alternates")
 
             .   eol().comment("Icons")
@@ -8546,10 +8550,10 @@
 
     function css_reset($layer = "reset")
     {
-        return css_reset_new_reset("$layer.new-reset");
+        return css_reset_new_reset("new-reset");
     }
 
-    function css_normalize_remedy_quotes($layer = "normalize.remedy.quotes")
+    function css_normalize_remedy_quotes($layer = "quotes")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
@@ -8803,7 +8807,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_remedy_reminders($layer = "normalize.remedy.reminders")
+    function css_normalize_remedy_reminders($layer = "reminders")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
@@ -8915,7 +8919,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_remedy_core($layer = "normalize.remedy.core")
+    function css_normalize_remedy_core($layer = "core")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
@@ -9156,7 +9160,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_chocapic($layer = "normalize.remedy.chocapic")
+    function css_normalize_chocapic($layer = "chocapic")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
@@ -9424,7 +9428,7 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
-    function css_normalize_remedy($layer = "normalize.remedy")
+    function css_normalize_remedy($layer = "remedy")
     {
         return 
             css_layer($layer, 
@@ -9432,7 +9436,7 @@
                 css_normalize_remedy_reminders( "reminders"));
     }
 
-    function css_normalize_normalize($layer = "normalize.normalize")
+    function css_normalize_normalize($layer = "normalize")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
             
@@ -9794,8 +9798,9 @@
     function css_normalize($layer = "normalize")
     {
         return  css_layer($layer, 
-                css_normalize_remedy("remedy").
-                css_normalize_chocapic("chocapic"));
+                    css_normalize_remedy("remedy").
+                    css_normalize_chocapic("chocapic")
+                );
     }
     
     function css_pseudorandom()
@@ -10083,7 +10088,7 @@
     {
         return css_root(
 
-          //eol(1)."color-scheme: light dark;". // Moved to normalize.remedy.chocapic
+          //eol(1)."color-scheme: light dark;". // Moved to normalize.chocapic
 
             eol(2).css_vars_color_scheme_light_base().
             eol(2).css_vars_color_scheme_light_brands().            (is_callable("dom\\css_vars_color_scheme_light_brands_toolbar") ? (
@@ -13011,7 +13016,6 @@
         if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
         if ($target == external_link && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
       //if ($target == external_link)                   $internal_attributes["crossorigin"]         = "anonymous"; // Not allowed on <a>
-        if (!!get("turbo") && !!get("turbo_links"))     $internal_attributes["data-turbo-action"]   = "replace";
 
         if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
 
@@ -14408,11 +14412,10 @@
         
         if (!is_array(at($item_info,"img_url",false))) $item_info["img_url"] = array(at($item_info,"img_url"));
         
-        $rss =  
-                    rss_title       (at($item_info,"title",get("title")))
-        . eol() .   rss_link        (get("canonical"))
-        . eol() .   rss_description (at($item_info,"description",""))
-        . eol() .   rss_pubDate     (at($item_info,"timestamp", 0));
+        $rss =  rss_title       (at($item_info, "title",        get("title")        )).eol().
+                rss_link        (at($item_info, "link",         get("canonical")    )).eol().
+                rss_description (at($item_info, "description",  ""                  )).eol().
+                rss_pubDate     (at($item_info, "timestamp",    0                   ));
         
         foreach ($item_info["img_url"] as $img_url)
         {       
@@ -14423,8 +14426,7 @@
             }
         }
         
-        $rss .= eol() . raw('<source url="'.get("canonical")."/?rss".'">RSS</source>')
-        //   .  eol() . raw('<guid isPermaLink="true">https://web.cyanide-studio.com/rss/bb2/xml/?&amp;limit_matches=50&amp;limit_leagues=50&amp;days_leagues=7&amp;days_matches=1&amp;id=3518</guid>')
+        $rss .= eol() . raw('<source url="'.get("canonical")."/".(!!get("static") ? "rss.xml" : "?rss").'">RSS</source>')
         ;
 
         return rss_item($rss);
@@ -15246,19 +15248,32 @@
 
         $boilerplate_prefix = '';
         $boilerplate_suffix = '';
+        $boilerplate_encode = function($content) { return print_r($content, true); };
 
         if (!DOM_CLI)
-        {
-            $boilerplate_prefix = '<style> :root { color-scheme: light dark; } </style><pre>';
-            $boilerplate_suffix = '</pre>';    
+        {            
+            if ("html" == get("doctype", "html"))
+            {
+                $boilerplate_prefix = '<style> :root { color-scheme: light dark; } </style><pre>';
+                $boilerplate_suffix = '</pre>';    
+            }
+            else if ("xml" == get("doctype", "html")
+                 ||  "rss" == get("doctype", "html"))
+            {
+                $path_css = path("css/rss.css");
+
+                $boilerplate_prefix = '<?xml version="1.0" encoding="UTF-8"?>'.(!!$path_css ? ('<?xml-stylesheet href="'.$path_css.'" type="text/css" ?>') : '').'<xml><![CDATA[';
+                $boilerplate_suffix = ']]></xml>';
+                $boilerplate_encode = function($content) { return json_encode($content, JSON_PRETTY_PRINT); };
+            }
         }
 
         if (count($args) == 1)
         {
-            die($boilerplate_prefix.print_r($args[0], true).$boilerplate_suffix);
+            die($boilerplate_prefix.$boilerplate_encode($args[0]).$boilerplate_suffix);
         }
 
-        die($boilerplate_prefix.$args[0].print_r($args[1], true).$boilerplate_suffix);
+        die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
     ######################################################################################################################################
