@@ -13549,24 +13549,24 @@
         if (!$has_title)
         {
             $id         = to_classname($label);
-            $id_title   = "title-$id-$svg_nth";
-            $id_desc    = "desc-$id-$svg_nth";
+            $id_title   = "title-$id-$svg_nth";/*
+            $id_desc    = "desc-$id-$svg_nth";*/
             $title      = at($label, "title", "$label");
           //$desc       = at($label, "desc",  "$title svg image");
-            $desc       = "SVG image";
+          /*$desc       = "SVG image";*/
         }
 
-        $html = '<svg'  .' class'           .'="'.  "svg ".$class           .'"'    
-                        .' role'            .'="'.  "img"                   .'"'            .(($label!="" && $label!=false)                ? (''
-                        .' aria-label'      .'="'.  $label                  .'"'    ):'')   .(($label!="" && $label!=false && !$has_title) ? (''
-                        .' aria-labelledby' .'="'.  "$id_title $id_desc"    .'"'    ):'')
-                        .' viewBox'         .'="'.  "$x $y $w $h"           .'"'
-                        .' width'           .'="'.  min(24, $w-$x)          .'"'
-                        .' height'          .'="'.  min(24, $h-$y)          .'"'
-                        .' style'           .'="'.  "fill: currentColor"    .'"'
-                        .'>'                                                                .(($label!="" && $label!=false && !$has_title)?(''
+        $html = '<svg'  .' class'           .'="'.  "svg ".$class               .'"'    
+                        .' role'            .'="'.  "img"                       .'"'            .(($label!="" && $label!=false)                ? (''
+                        .' aria-label'      .'="'.  $label                      .'"'    ):'')   .(($label!="" && $label!=false && !$has_title) ? (''
+                        .' aria-labelledby' .'="'.  "$id_title"/*." $id_desc"*/ .'"'    ):'')
+                        .' viewBox'         .'="'.  "$x $y $w $h"               .'"'
+                        .' width'           .'="'.  min(24, $w-$x)              .'"'
+                        .' height'          .'="'.  min(24, $h-$y)              .'"'
+                        .' style'           .'="'.  "fill: currentColor"        .'"'
+                        .'>'                                                                    .(($label!="" && $label!=false && !$has_title)?(''
                         .'<title id="'.$id_title.'">'.$title.'</title>'
-                        .'<desc id="'.$id_desc.'">'.$desc.'</desc>'                 ):'')
+                      /*.'<desc id="'.$id_desc.'">'.$desc.'</desc>'*/                   ):'')
 
                     .$svg_body.
 
