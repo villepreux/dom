@@ -183,7 +183,7 @@
     
             /* Toolbar */
         
-            .toolbar:not(.toolbar-duplicate) { position: sticky; left: 0; top: calc(var(--header-min-height) - var(--header-height)); }
+            .toolbar:not(.toolbar-duplicate) { position: sticky; left: 0; top: min(0px, calc(var(--header-min-height) - var(--header-height))); }
             
             /* Menu open/close mechanism */
     
