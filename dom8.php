@@ -8232,10 +8232,17 @@
         return "@layer $layer {".($css != "" ? (eol(2).$css.eol()) : "")."}";
     }
 
+    $__style_css_hooks = [];
+
     function style_css_as_is($css = "", $attributes = false)
     {
         if (!$css || $css == "") return '';
-        return tag('style',  eol().$css.eol(), $attributes);
+        //return tag('style',  eol().$css.eol(), $attributes);
+        
+        global $__style_css_hooks;
+        $__style_css_hooks[] = [ $css, $attributes ];
+
+        return "";
     }
 
     function style($css = "", $force_minify = false, $attributes = false) // TODO attributes at 2nd position
@@ -11010,7 +11017,6 @@
         $styles .= eol().comment("Layers").      style(css_layers()    );
       //$styles .= eol().comment("Reset").       style(css_reset()     );
         $styles .= eol().comment("Normalize").   style(css_normalize() );
-        $styles .= eol().comment("Default").     style(css_default()   );
 
         /*
         $styles .= eol().comment("Base-Layout"). style(css_base_layout()              );
@@ -11018,22 +11024,45 @@
                                                  style(css_base_colors_vars()         ).
                                                  style(css_base_colors()              );*/
 
-        if (!!get("wip")) return $styles;
-        
-        // TODO: We cannot be dependent here of a plugin
-
-        if (!get("no_css_toolbar"))
+        if (!get("wip")) 
         {        
-            $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "");
-            $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "");
-        }
-        
-        if (!get("no_css_brands"))
-        {        
-            $styles .= eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "");
-        }
+            $styles .= eol().comment("Default").     style(css_default()   );
             
-        return $styles;
+            // TODO: We cannot be dependent here of a plugin
+
+            if (!get("no_css_toolbar"))
+            {        
+                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout()) : "");
+                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors()) : "");
+            }
+            
+            if (!get("no_css_brands"))
+            {        
+                $styles .= eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "");
+            }
+        }
+
+        return delayed_component("_".__FUNCTION__);
+        //return $styles;
+    }
+
+    function _styles()
+    {
+        $css_bundles = [];
+        global $__style_css_hooks;
+        foreach ($__style_css_hooks as list($css, $attributes)) {
+            if (0 == count($css_bundles) || $attributes !== $css_bundles[count($css_bundles) - 1]["attributes"]) {
+                $css_bundles[] = [ "attributes" => $attributes, "css" => [] ];
+            }
+            $css_bundles[count($css_bundles) - 1]["css"][] = $css;
+        }
+        $styles = [];
+        foreach ($css_bundles as $css_bundle) {
+            $css = implode(PHP_EOL.PHP_EOL, $css_bundle["css"]);
+            $styles[] = tag('style', eol().$css.eol(), $css_bundle["attributes"]);
+        }
+        
+        return implode(eol(), $styles);
     }
 
     function scripts_head($scripts)
@@ -11735,7 +11764,11 @@
     function html_comment_end()  { return " //-->"; }
     function html_comment($text) { return html_comment_bgn().$text.html_comment_end(); }
 
-    function comment($text)          { return (has("rss") || !!get("gemini")) ? "" : html_comment($text); }
+    function css_comment_bgn()  { return "/* ";  }
+    function css_comment_end()  { return " */"; }
+    function css_comment($text) { return css_comment_bgn().$text.css_comment_end(); }
+
+    function comment($text) { return (has("rss") || !!get("gemini")) ? "" : html_comment($text); }
     
     function placeholder($text, $eol = 0)  { return eol($eol).html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
 
