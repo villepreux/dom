@@ -8245,11 +8245,11 @@
         return "";
     }
 
-    function style($css = "", $force_minify = false, $attributes = false) // TODO attributes at 2nd position
+    function style($css = "", $force_minify = false, $attributes = false, $trim = auto) // TODO attributes at 2nd position
     {
         $profiler = debug_track_timing();
         if (!$css || $css == "") return '';
-        return style_css_as_is(raw_css($css, $force_minify), $attributes);
+        return style_css_as_is(raw_css($css, $force_minify, $trim), $attributes);
     }
 
     function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
@@ -8818,631 +8818,9 @@
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
-            /* @docs
-            label: Reminders
-            version: 0.1.0-beta.2
-
-            note: |
-            All the remedies in this file are commented out by default,
-            because they could cause harm as general defaults.
-            These should be used as reminders
-            to handle common styling issues
-            in a way that will work for your project and users.
-            Read, explore, uncomment, and edit as needed.
-
-            category: file
-            */
-
-
-            /* @docs
-            label: List Style
-
-            note: |
-            List styling is not usually desired in navigation,
-            but this also removes list-semantics for screen-readers
-
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/15
-
-            category: navigation
-            */
-            /* nav ul {
-            list-style: none;
-            } */
-
-
-            /* @docs
-            label: List Voiceover
-
-            note: |
-            1. Add zero-width-space to prevent VoiceOver disable
-            2. Absolute position ensures no extra space
-
-            links:
-            - https://unfetteredthoughts.net/2017/09/26/voiceover-and-list-style-type-none/
-
-            category: navigation
-            */
-            /* nav li:before {
-            content: "\200B";
-            position: absolute;
-            } */
-
-
-            /* @docs
-            label: Reduced Motion
-
-            note: |
-            1. Immediately jump any animation to the end point
-            2. Remove transitions & fixed background attachment
-
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/11
-
-            category: accessibility
-            */
-            @media (prefers-reduced-motion: reduce) {
-            *, ::before, ::after {
-                animation-delay: -1ms !important;
-                animation-duration: 1ms !important;
-                animation-iteration-count: 1 !important;
-                background-attachment: initial !important;
-                scroll-behavior: auto !important;
-                transition-delay: 0s !important;
-                transition-duration: 0s !important;
-            }
-            }
-
-
-            /* @docs
-            label: Line Heights
-
-            note: |
-            The default `normal` line-height is tightly spaced,
-            but takes font-metrics into account,
-            which is important for many fonts.
-            Looser spacing may improve readability in latin type,
-            but may cause problems in some scripts --
-            from cusrive/fantasy fonts to
-            [Javanese](https://jsbin.com/bezasax/1/edit?html,css,output),
-            [Persian](https://jsbin.com/qurecom/edit?html,css,output),
-            and CJK languages.
-
-            links:
-            - https://github.com/mozdevs/cssremedy/issues/7
-            - https://jsbin.com/bezasax/1/edit?html,css,output
-            - https://jsbin.com/qurecom/edit?html,css,output
-
-            todo: |
-            - Use `:lang(language-code)` selectors?
-            - Add typography remedies for other scripts & languages...
-
-            category: typography
-            */
-            /* html { line-height: 1.5; }
-            h1, h2, h3, h4, h5, h6 { line-height: 1.25; }
-            caption, figcaption, label, legend { line-height: 1.375; } */
-
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
-
-    function css_normalize_remedy_core($layer = "core")
-    {
-        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
-
-            /* @docs
-            label: Core Remedies
-            version: 0.1.0-beta.2
-
-            note: |
-            These remedies are recommended
-            as a starter for any project.
-
-            category: file
-            */
-
-
-            /* @docs
-            label: Box Sizing
-
-            note: |
-            Use border-box by default, globally.
-
-            category: global
-            */
-            *, ::before, ::after { box-sizing: border-box; }
-
-
-            /* @docs
-            label: Line Sizing
-
-            note: |
-            Consistent line-spacing,
-            even when inline elements have different line-heights.
-
-            links:
-            - https://drafts.csswg.org/css-inline-3/#line-sizing-property
-
-            category: global
-            */
-            html { line-sizing: normal; }
-
-
-            /* @docs
-            label: Body Margins
-
-            note: |
-            Remove the tiny space around the edge of the page.
-
-            category: global
-            */
-            body { margin: 0; }
-
-
-            /* @docs
-            label: Hidden Attribute
-
-            note: |
-            Maintain `hidden` behaviour when overriding `display` values.
-
-            category: global
-            */
-            [hidden] { display: none; }
-
-
-            /* @docs
-            label: Heading Sizes
-
-            note: |
-            Switch to rem units for headings
-
-            category: typography
-            */
-            h1 { font-size: 2rem; }
-            h2 { font-size: 1.5rem; }
-            h3 { font-size: 1.17rem; }
-            h4 { font-size: 1.00rem; }
-            h5 { font-size: 0.83rem; }
-            h6 { font-size: 0.67rem; }
-
-
-            /* @docs
-            label: H1 Margins
-
-            note: |
-            Keep h1 margins consistent, even when nested.
-
-            category: typography
-            */
-            h1 { margin: 0.67em 0; }
-
-
-            /* @docs
-            label: Pre Wrapping
-
-            note: |
-            Overflow by default is bad...
-
-            category: typography
-            */
-            pre { white-space: pre-wrap; }
-
-
-            /* @docs
-            label: Horizontal Rule
-
-            note: |
-            1. Solid, thin horizontal rules
-            2. Remove Firefox `color: gray`
-            3. Remove default `1px` height, and common `overflow: hidden`
-
-            category: typography
-            */
-            hr {
-            border-style: solid;
-            border-width: 1px 0 0;
-            color: inherit;
-            height: 0;
-            overflow: visible;
-            }
-
-
-            /* @docs
-            label: Responsive Embeds
-
-            note: |
-            1. Block display is usually what we want
-            2. The `vertical-align` removes strange space-below in case authors overwrite the display value
-            3. Responsive by default
-            4. Audio without `[controls]` remains hidden by default
-
-            category: embedded elements
-            */
-            img, svg, video, canvas, audio, iframe, embed, object {
-            display: block;
-            vertical-align: middle;
-            max-width: 100%;
-            }
-            audio:not([controls]) { display:none; }
-
-
-            /* @docs
-            label: Responsive Images
-
-            note: |
-            These new elements display inline by default,
-            but that's not the expected behavior for either one.
-            This can interfere with proper layout and aspect-ratio handling.
-
-            1. Remove the unnecessary wrapping `picture`, while maintaining contents
-            2. Source elements have nothing to display, so we hide them entirely
-
-            category: embedded elements
-            */
-            picture { display: contents; }
-            source { display: none; }
-
-
-            /* @docs
-            label: Aspect Ratios
-
-            note: |
-            Maintain intrinsic aspect ratios when `max-width` is applied.
-            `iframe`, `embed`, and `object` are also embedded,
-            but have no intrinsic ratio,
-            so their `height` needs to be set explicitly.
-
-            category: embedded elements
-            */
-            img, svg, video, canvas {
-            height: auto;
-            }
-
-
-            /* @docs
-            label: Audio Width
-
-            note: |
-            There is no good reason elements default to 300px,
-            and audio files are unlikely to come with a width attribute.
-
-            category: embedded elements
-            */
-            audio { width: 100%; }
-
-            /* @docs
-            label: Image Borders
-
-            note: |
-            Remove the border on images inside links in IE 10 and earlier.
-
-            category: legacy browsers
-            */
-            img { border-style: none; }
-
-
-            /* @docs
-            label: SVG Overflow
-
-            note: |
-            Hide the overflow in IE 10 and earlier.
-
-            category: legacy browsers
-            */
-            svg { overflow: hidden; }
-
-
-            /* @docs
-            label: HTML5 Elements
-
-            note: |
-            Default block display on HTML5 elements.
-            For oldIE to apply this styling one needs to add some JS as well (i.e. `document.createElement("main")`)
-
-            links:
-            - https://www.sitepoint.com/html5-older-browsers-and-the-shiv/
-
-            category: legacy browsers
-            */
-            article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section {
-                display: block;
-            }
-
-
-            /* @docs
-            label: Checkbox & Radio Inputs
-
-            note: |
-            1. Add the correct box sizing in IE 10
-            2. Remove the padding in IE 10
-
-            category: legacy browsers
-            */
-            [type='checkbox'],
-            [type='radio'] {
-            box-sizing: border-box;
-            padding: 0;
-            }
-         
-        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
-    }
-
-    function css_normalize_chocapic($layer = "chocapic")
-    {
-        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
-            
-            @view-transition { navigation: auto; }
-
-            html { interpolate-size: allow-keywords; }
-
-            .requires-color-schemes { display: none; }
-
-            :root {
-
-                --h1-font-size: 2.00rem;
-                --h2-font-size: 1.50rem;
-                --h3-font-size: 1.20rem;
-                --h4-font-size: 1.10rem;
-                --h5-font-size: 1.05rem;
-                --h6-font-size: 1.00rem;
-                
-                --text-font-weight: 400;
-
-                --h1-font-weight: 600;
-                --h2-font-weight: 600;
-                --h3-font-weight: 500;
-                --h4-font-weight: 500;
-                --h5-font-weight: 500;
-                --h6-font-weight: 400;
-
-                --gap: min(1rem, 16px); /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
-            }
-
-            body { font-weight: var(--text-font-weight); }
-
-            h1 { font-size: var(--h1-font-size); font-weight: var(--h1-font-weight); }
-            h2 { font-size: var(--h2-font-size); font-weight: var(--h2-font-weight); }
-            h3 { font-size: var(--h3-font-size); font-weight: var(--h3-font-weight); }
-            h4 { font-size: var(--h4-font-size); font-weight: var(--h4-font-weight); }
-            h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
-            h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
-
-            @property --100vw { syntax: "<length>"; initial-value: 0px; inherits: false; }
-            :root { --100vw: 100vw; --unitless-viewport-width: tan(atan2(var(--100vw), 1px));  }
-            /*
-            :root {
-                    
-               --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
-               --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
-
-               --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
-               --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
-               --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
-
-               --root-font-size: var(--fluid-font-size);
-            }*/
-
-            html { 
-
-                font-size: var(--root-font-size); 
-                
-                hanging-punctuation: first allow-end last; 
-
-                -webkit-font-smoothing: antialiased; 
-                -moz-osx-font-smoothing: grayscale; 
-                
-                --line-height: clamp(1.35rem, 1.60rem + 1.70vw, 1.50rem);
-                line-height: var(--line-height); 
-               
-            }
-
-            body { /*
-                line-height: 1.5;*/
-                font-family: <?= string_system_font_stack() ?>; 
-                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
-            }
-
-            a {
-                font-weight: 600;
-            }
-
-            /* assume explicitly small images are inline */
-            <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
-            <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
-            <?php } ?>
-
-            .visually-hidden:not(:focus):not(:active) {
-                clip:           rect(0 0 0 0);
-                clip-path:      inset(50%);
-                height:         1px;
-                overflow:       hidden;
-                position:       absolute;
-                white-space:    nowrap;
-                width:          1px;
-                margin:         0;
-                padding:        0;
-            }
-
-            .sr-only, .sceen-reader-only, .sceen-readers-only {
-                position:absolute;
-                left:-10000px;
-                top:auto;
-                width:1px;
-                height:1px;
-                overflow:hidden;
-            }
-
-            body {
-                margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
-            }
-
-            [hidden] {
-                display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
-            }
-
-            /* Language */
-
-                     span[lang]                   { display: inline !important }
-            [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
-            [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
-            /* ... */
-
-            /* now that we have light & dark colors system in place,    */
-            /* any component that requires it can be shown              */
-            .requires-color-schemes { display: initial; }
-            
-            html                     { color-scheme: light dark; }
-            html[data-theme="light"] { color-scheme: light;      }
-            html[data-theme="dark"]  { color-scheme: dark;       }
-
-            /* Have "Sytem Colors" variables that support [data-theme] */
-            /* (that is, ie. a data-theme=light whereas the use chose dark on this site) */ 
-
-            /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
-
-            html {
-                --Canvas:           var(--bg,               #1c1c1c);
-                --CanvasText:       var(--text,             #f8f9fa);
-                --Link:             var(--action,           #8cabff);
-                --VisitedText:      var(--action,           #ffadff);
-                --ActiveText:       var(--active,           #ff6666);
-                --ButtonFace:       var(--btn-bg,           #2b2a33);
-                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
-                --ButtonText:       var(--btn-text,         #fbfbfe);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #2b2a33);
-                --FieldText:        var(--field-text,       #fbfbfe);
-                --Highlight:        var(--highlight,        #3f638b);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         skyblue);
-                --SelectedItemText: var(--selected-text,    black);
-                --AccentColor:      var(--accent,           #ff5ce4);
-                --AccentColorText:  var(--accent-text,      black);
-                }
-
-            @media (prefers-color-scheme: light) {
-                html {
-                    --Canvas:           var(--bg,               #f8f9fa);
-                    --CanvasText:       var(--text,             #1c1c1c);
-                    --Link:             var(--action,           #00e);
-                    --VisitedText:      var(--action,           #551a8b);
-                    --ActiveText:       var(--active,           #e00);
-                    --ButtonFace:       var(--btn-bg,           #e9e9ed);
-                    --ButtonText:       var(--btn-text,         #1c1c1c);
-                    --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                    --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                    --Field:            var(--field-bg,         #f8f9fa);
-                    --FieldText:        var(--field-text,       #1c1c1c);
-                    --Highlight:        var(--highlight,        #b3d8ff);
-                    --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                    --SelectedItem:     var(--selected,         #0063e1);
-                    --SelectedItemText: var(--selected-text,    white);
-                    --AccentColor:      var(--accent,           #7d004f);
-                    --AccentColorText:  var(--accent-text,      white);
-                }
-            }
-            [data-theme=dark] {
-                --Canvas:           var(--bg,               #1c1c1c);
-                --CanvasText:       var(--text,             #f8f9fa);
-                --Link:             var(--action,           #8cabff);
-                --VisitedText:      var(--action,           #ffadff);
-                --ActiveText:       var(--active,           #f66);
-                --ButtonFace:       var(--btn-bg,           #2b2a33);
-                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
-                --ButtonText:       var(--btn-text,         #fbfbfe);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #2b2a33);
-                --FieldText:        var(--field-text,       #fbfbfe);
-                --Highlight:        var(--highlight,        #3f638b);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         skyblue);
-                --SelectedItemText: var(--selected-text,    black);
-                --AccentColor:      var(--accent,           #ff5ce4);
-                --AccentColorText:  var(--accent-text,      black);
-            }
-            [data-theme=light] {
-                --Canvas:           var(--bg,               #f8f9fa);
-                --CanvasText:       var(--text,             #1c1c1c);
-                --Link:             var(--action,           #00e);
-                --VisitedText:      var(--action,           #551a8b);
-                --ActiveText:       var(--active,           #e00);
-                --ButtonFace:       var(--btn-bg,           #e9e9ed);
-                --ButtonText:       var(--btn-text,         #1c1c1c);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #f8f9fa);
-                --FieldText:        var(--field-text,       #1c1c1c);
-                --Highlight:        var(--highlight,        #b3d8ff);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         #0063e1);
-                --SelectedItemText: var(--selected-text,    white);
-                --AccentColor:      var(--accent,           #7d004f);
-                --AccentColorText:  var(--accent-text,      white);
-            }
-        
-            html { 
-
-                color-scheme:       light dark;
-                background-color:   var(--Canvas);
-                color:              var(--CanvasText);
-            }
-
-            a         { color: var(--Link);         }
-            a:visited { color: var(--VisitedText);  }
-            a:hover   { color: var(--ActiveText);   }
-
-            /* Add at least this, if we have a rese before normalize */ /*
-            p {
-                margin-block-start:     1em;
-                margin-block-end:       1em;
-                margin-inline-start:    0;
-                margin-inline-end:      0;
-            } */
-
-            select {
-
-                &, &::picker(select) {
-
-                    appearance: base-select;
-                }
-                
-                &::picker(select) {
-
-                    transition: 
-                        display allow-discrete 1s, 
-                        opacity 1s, 
-                        overlay 1s allow-discrete;
-                }
-                
-                &:not(:open)::picker(select) {
-
-                    opacity: 0;
-                }
-                
-                &:open::picker(select) {
-
-                    opacity: 1;
-                    
-                    @starting-style {
-                        
-                        opacity: 0;
-                    }
-                }
-            }
-
-        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
-    }
-
-    function css_normalize_remedy($layer = "remedy")
-    {
-        return 
-            css_layer($layer, 
-                css_normalize_remedy_core(      "core").
-                css_normalize_remedy_reminders( "reminders"));
-    }
-
+    
     function css_normalize_normalize($layer = "normalize")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
@@ -9804,10 +9182,400 @@
 
     function css_normalize($layer = "normalize")
     {
-        return  css_layer($layer, 
-                    css_normalize_remedy("remedy").
-                    css_normalize_chocapic("chocapic")
-                );
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+        
+            /* CSS Normalize */
+
+            @view-transition { 
+                
+                navigation: auto; 
+            }
+
+            @property --100vw { 
+                
+                syntax:         "<length>"; 
+                initial-value:  0px; 
+                inherits:       false; 
+            }
+
+            :root {
+
+                --h1-font-size: 2.00rem;
+                --h2-font-size: 1.50rem;
+                --h3-font-size: 1.20rem;
+                --h4-font-size: 1.10rem;
+                --h5-font-size: 1.05rem;
+                --h6-font-size: 1.00rem;
+                
+                --text-font-weight: 400;
+
+                --h1-font-weight: 600;
+                --h2-font-weight: 600;
+                --h3-font-weight: 500;
+                --h4-font-weight: 500;
+                --h5-font-weight: 500;
+                --h6-font-weight: 400;
+
+                --gap: min(1rem, 16px);
+                --h1-block-start-margin: 0.67em;
+
+                --100vw: 100vw; 
+                --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
+            }
+
+            *, ::before, ::after { 
+                
+                box-sizing: border-box; 
+            }
+
+            html { 
+
+                interpolate-size:   allow-keywords;
+                line-sizing:        normal;
+                color-scheme:       light dark;
+                
+                &[data-theme="light"] { color-scheme: light;      }
+                &[data-theme="dark"]  { color-scheme: dark;       }
+
+
+            }
+
+            body { 
+                
+                margin: 0;
+                font-weight: var(--text-font-weight);
+            }
+
+            h1 { font-size: var(--h1-font-size); font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margi) 0; }
+            h2 { font-size: var(--h2-font-size); font-weight: var(--h2-font-weight); }
+            h3 { font-size: var(--h3-font-size); font-weight: var(--h3-font-weight); }
+            h4 { font-size: var(--h4-font-size); font-weight: var(--h4-font-weight); }
+            h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
+            h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
+
+            pre { 
+                
+                white-space: pre-wrap; 
+            }
+
+            hr {
+            
+                border-style:   solid;
+                border-width:   1px 0 0;
+                color:          inherit;
+                height:         0;
+                overflow:       visible;
+            }
+
+            :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden]) {
+
+                display:        block;
+                vertical-align: middle;
+                max-width:      100%;
+            }
+
+            audio:not([controls]) { 
+                
+                display: none;
+            }
+
+            picture { 
+                
+                display: contents;
+            }
+
+            source { 
+                
+                display: none;
+            }
+
+            img, svg, video, canvas {
+
+                height: auto;
+            }
+
+            audio { 
+                
+                width: 100%; 
+            }
+
+            img { 
+                
+                border-style: none; 
+            }
+
+            svg { 
+                
+                overflow: hidden; 
+            }
+
+            :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden]) {
+
+                display: block;
+            }
+
+            [type='checkbox'], [type='radio'] {
+
+                box-sizing: border-box;
+                padding:    0;
+            }         
+            /* 
+            nav ul {
+
+                list-style: none;
+
+                li:before {
+
+                    content: "\200B";
+                    position: absolute;
+                }
+            } */
+
+            @media (prefers-reduced-motion: reduce) {
+
+                *, ::before, ::after {
+                    
+                    animation-delay:           -1ms     !important;
+                    animation-duration:         1ms     !important;
+                    animation-iteration-count:  1       !important;
+                    background-attachment:      initial !important;
+                    scroll-behavior:            auto    !important;
+                    transition-delay:           0s      !important;
+                    transition-duration:        0s      !important;
+                }
+            }
+            /* 
+            html                                { line-height: 1.500; }
+            h1, h2, h3, h4, h5, h6              { line-height: 1.250; }
+            caption, figcaption, label, legend  { line-height: 1.375; } */
+
+            /*
+            :root {
+                    
+               --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
+               --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
+
+               --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
+               --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
+               --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
+
+               --root-font-size: var(--fluid-font-size);
+            }*/
+
+            html { 
+                --root-font-size:           <?= css_clamp(16.0, 20, 600, 1200, 16) ?>;
+
+                font-size: var(--root-font-size); 
+                
+                hanging-punctuation: first allow-end last; 
+
+                -webkit-font-smoothing: antialiased; 
+                -moz-osx-font-smoothing: grayscale; 
+                
+                --line-height: clamp(1.35rem, 1.60rem + 1.70vw, 1.50rem);
+                line-height: var(--line-height); 
+               
+            }
+
+            body { /*
+                line-height: 1.5;*/
+                font-family: <?= string_system_font_stack() ?>; 
+                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
+            }
+
+            a {
+                font-weight: 600;
+            }
+
+            /* assume explicitly small images are inline */
+            <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
+            <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
+            <?php } ?>
+
+            .visually-hidden:not(:focus):not(:active) {
+                clip:           rect(0 0 0 0);
+                clip-path:      inset(50%);
+                height:         1px;
+                overflow:       hidden;
+                position:       absolute;
+                white-space:    nowrap;
+                width:          1px;
+                margin:         0;
+                padding:        0;
+            }
+
+            .sr-only, .sceen-reader-only, .sceen-readers-only {
+                position:absolute;
+                left:-10000px;
+                top:auto;
+                width:1px;
+                height:1px;
+                overflow:hidden;
+            }
+
+            body {
+                margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
+            }
+
+            [hidden] {
+                display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
+            }
+
+            /* Language */
+
+                     span[lang]                   { display: inline !important }
+            [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
+            [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
+            /* ... */
+
+            .requires-color-schemes { display: none; }
+
+            html                     { color-scheme: light dark; }
+            html[data-theme="light"] { color-scheme: light;      }
+            html[data-theme="dark"]  { color-scheme: dark;       }
+
+            /* now that we have light & dark colors system in place,    */
+            /* any component that requires it can be shown              */
+            .requires-color-schemes { display: initial; }
+            
+            /* Have "Sytem Colors" variables that support [data-theme] */
+            /* (that is, ie. a data-theme=light whereas the use chose dark on this site) */ 
+
+            /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
+
+            html {
+                --Canvas:           var(--bg,               #1c1c1c);
+                --CanvasText:       var(--text,             #f8f9fa);
+                --Link:             var(--action,           #8cabff);
+                --VisitedText:      var(--action,           #ffadff);
+                --ActiveText:       var(--active,           #ff6666);
+                --ButtonFace:       var(--btn-bg,           #2b2a33);
+                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
+                --ButtonText:       var(--btn-text,         #fbfbfe);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #2b2a33);
+                --FieldText:        var(--field-text,       #fbfbfe);
+                --Highlight:        var(--highlight,        #3f638b);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         skyblue);
+                --SelectedItemText: var(--selected-text,    black);
+                --AccentColor:      var(--accent,           #ff5ce4);
+                --AccentColorText:  var(--accent-text,      black);
+                }
+
+            @media (prefers-color-scheme: light) {
+                html {
+                    --Canvas:           var(--bg,               #f8f9fa);
+                    --CanvasText:       var(--text,             #1c1c1c);
+                    --Link:             var(--action,           #00e);
+                    --VisitedText:      var(--action,           #551a8b);
+                    --ActiveText:       var(--active,           #e00);
+                    --ButtonFace:       var(--btn-bg,           #e9e9ed);
+                    --ButtonText:       var(--btn-text,         #1c1c1c);
+                    --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                    --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                    --Field:            var(--field-bg,         #f8f9fa);
+                    --FieldText:        var(--field-text,       #1c1c1c);
+                    --Highlight:        var(--highlight,        #b3d8ff);
+                    --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                    --SelectedItem:     var(--selected,         #0063e1);
+                    --SelectedItemText: var(--selected-text,    white);
+                    --AccentColor:      var(--accent,           #7d004f);
+                    --AccentColorText:  var(--accent-text,      white);
+                }
+            }
+            [data-theme=dark] {
+                --Canvas:           var(--bg,               #1c1c1c);
+                --CanvasText:       var(--text,             #f8f9fa);
+                --Link:             var(--action,           #8cabff);
+                --VisitedText:      var(--action,           #ffadff);
+                --ActiveText:       var(--active,           #f66);
+                --ButtonFace:       var(--btn-bg,           #2b2a33);
+                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
+                --ButtonText:       var(--btn-text,         #fbfbfe);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #2b2a33);
+                --FieldText:        var(--field-text,       #fbfbfe);
+                --Highlight:        var(--highlight,        #3f638b);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         skyblue);
+                --SelectedItemText: var(--selected-text,    black);
+                --AccentColor:      var(--accent,           #ff5ce4);
+                --AccentColorText:  var(--accent-text,      black);
+            }
+            [data-theme=light] {
+                --Canvas:           var(--bg,               #f8f9fa);
+                --CanvasText:       var(--text,             #1c1c1c);
+                --Link:             var(--action,           #00e);
+                --VisitedText:      var(--action,           #551a8b);
+                --ActiveText:       var(--active,           #e00);
+                --ButtonFace:       var(--btn-bg,           #e9e9ed);
+                --ButtonText:       var(--btn-text,         #1c1c1c);
+                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
+                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
+                --Field:            var(--field-bg,         #f8f9fa);
+                --FieldText:        var(--field-text,       #1c1c1c);
+                --Highlight:        var(--highlight,        #b3d8ff);
+                --HighlightText:    var(--highlight-text,   var(--CanvasText));
+                --SelectedItem:     var(--selected,         #0063e1);
+                --SelectedItemText: var(--selected-text,    white);
+                --AccentColor:      var(--accent,           #7d004f);
+                --AccentColorText:  var(--accent-text,      white);
+            }
+        
+            html { 
+
+                color-scheme:       light dark;
+                background-color:   var(--Canvas);
+                color:              var(--CanvasText);
+            }
+
+            a         { color: var(--Link);         }
+            a:visited { color: var(--VisitedText);  }
+            a:hover   { color: var(--ActiveText);   }
+
+            /* Add at least this, if we have a rese before normalize */ /*
+            p {
+                margin-block-start:     1em;
+                margin-block-end:       1em;
+                margin-inline-start:    0;
+                margin-inline-end:      0;
+            } */
+
+            select {
+
+                &, &::picker(select) {
+
+                    appearance: base-select;
+                }
+                
+                &::picker(select) {
+
+                    transition: 
+                        display allow-discrete 1s, 
+                        opacity 1s, 
+                        overlay 1s allow-discrete;
+                }
+                
+                &:not(:open)::picker(select) {
+
+                    opacity: 0;
+                }
+                
+                &:open::picker(select) {
+
+                    opacity: 1;
+                    
+                    @starting-style {
+                        
+                        opacity: 0;
+                    }
+                }
+            }
+
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
     
     function css_pseudorandom()
@@ -10992,11 +10760,7 @@
             <?= $grid ?> {
                 padding-block: var(--gap);
             }
-            /*
-            summary {
-                border-inline-start: 1ch solid transparent;
-            }*/ /* NO ! Breaks all alignment vs context. Ex. in debug timeline */
-
+            
         <?= HERE("raw_css") ?></style><?php
 
         return  css_layer($layer, 
@@ -11014,20 +10778,13 @@
     function styles()
     {
         $styles  = "";
-        $styles .= eol().comment("Layers").      style(css_layers()    );
-      //$styles .= eol().comment("Reset").       style(css_reset()     );
-        $styles .= eol().comment("Normalize").   style(css_normalize() );
-
-        /*
-        $styles .= eol().comment("Base-Layout"). style(css_base_layout()              );
-        $styles .= eol().comment("Base-Colors"). style(css_base_colors_vars_schemes() ).
-                                                 style(css_base_colors_vars()         ).
-                                                 style(css_base_colors()              );*/
+        $styles .= eol().style(css_layers()    );
+        $styles .= eol().style(css_normalize() );
 
         if (!get("wip")) 
         {        
             $styles .= eol().comment("Default").     style(css_default()   );
-            
+
             // TODO: We cannot be dependent here of a plugin
 
             if (!get("no_css_toolbar"))
@@ -11038,7 +10795,7 @@
             
             if (!get("no_css_brands"))
             {        
-                $styles .= eol().comment("Base-Brands").         (is_callable("dom\\css_brands")         ? style(css_brands())         : "");
+                $styles .= eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? style(css_brands()) : "");
             }
         }
 
