@@ -690,6 +690,8 @@
     {
         // Cannot be modified at browser URL level
 
+        set("wip");
+
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
         set("keywords",                          ""); 
@@ -9200,6 +9202,19 @@
 
             :root {
 
+                --100vw: 100vw; 
+                --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
+
+                /*
+                --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
+                --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
+                --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
+                --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
+                --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
+                --root-font-size: var(--fluid-font-size);*/
+
+                --root-font-size: <?= css_clamp(16.0, 20.0, 600, 1200, 16) ?>;
+
                 --h1-font-size: 2.00rem;
                 --h2-font-size: 1.50rem;
                 --h3-font-size: 1.20rem;
@@ -9215,12 +9230,11 @@
                 --h4-font-weight: 500;
                 --h5-font-weight: 500;
                 --h6-font-weight: 400;
+                
+                --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
                 --gap: min(1rem, 16px);
                 --h1-block-start-margin: 0.67em;
-
-                --100vw: 100vw; 
-                --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
             }
 
             *, ::before, ::after { 
@@ -9229,29 +9243,48 @@
             }
 
             html { 
-
-                interpolate-size:   allow-keywords;
-                line-sizing:        normal;
-                color-scheme:       light dark;
                 
-                &[data-theme="light"] { color-scheme: light;      }
-                &[data-theme="dark"]  { color-scheme: dark;       }
+                color-scheme: light dark;
 
+                &[data-theme^="light"] { color-scheme: light; }
+                &[data-theme^="dark"]  { color-scheme: dark;  }
+                
+                interpolate-size: allow-keywords;
+                
+                -webkit-font-smoothing:  antialiased; 
+                -moz-osx-font-smoothing: grayscale; 
 
+                line-sizing:            normal;
+                hanging-punctuation:    first allow-end last; 
+                font-size:              var(--root-font-size);
+                line-height:            var(--line-height); 
+
+                scrollbar-gutter: stable;
             }
 
             body { 
                 
-                margin: 0;
+                margin:  0;
+                padding: var(--gap, 1em) var(--margin, var(--gap, 1em));
+                min-height: calc(min(100svh, 100dvh) - 2* var(--gap, 1em));
+
                 font-weight: var(--text-font-weight);
+                font-family: <?= string_system_font_stack() ?>; 
+                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
+                
+                &:not(body:has(>header, >footer)) {
+
+                    justify-items: center;
+                    align-content: center; 
+                }
             }
 
-            h1 { font-size: var(--h1-font-size); font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margi) 0; }
-            h2 { font-size: var(--h2-font-size); font-weight: var(--h2-font-weight); }
-            h3 { font-size: var(--h3-font-size); font-weight: var(--h3-font-weight); }
-            h4 { font-size: var(--h4-font-size); font-weight: var(--h4-font-weight); }
-            h5 { font-size: var(--h5-font-size); font-weight: var(--h5-font-weight); }
-            h6 { font-size: var(--h6-font-size); font-weight: var(--h6-font-weight); }
+            h1 { font-size: var(--h1-font-size); /*line-height: 1.250;*/ font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margi) 0; }
+            h2 { font-size: var(--h2-font-size); /*line-height: 1.250;*/ font-weight: var(--h2-font-weight); }
+            h3 { font-size: var(--h3-font-size); /*line-height: 1.250;*/ font-weight: var(--h3-font-weight); }
+            h4 { font-size: var(--h4-font-size); /*line-height: 1.250;*/ font-weight: var(--h4-font-weight); }
+            h5 { font-size: var(--h5-font-size); /*line-height: 1.250;*/ font-weight: var(--h5-font-weight); }
+            h6 { font-size: var(--h6-font-size); /*line-height: 1.250;*/ font-weight: var(--h6-font-weight); }
 
             pre { 
                 
@@ -9313,12 +9346,11 @@
 
                 display: block;
             }
+            
+            a {
 
-            [type='checkbox'], [type='radio'] {
-
-                box-sizing: border-box;
-                padding:    0;
-            }         
+                font-weight: 600; /* For a11y */
+            }  
             /* 
             nav ul {
 
@@ -9330,6 +9362,12 @@
                     position: absolute;
                 }
             } */
+
+            [type='checkbox'], [type='radio'] {
+
+                box-sizing: border-box;
+                padding:    0;
+            }       
 
             @media (prefers-reduced-motion: reduce) {
 
@@ -9344,55 +9382,16 @@
                     transition-duration:        0s      !important;
                 }
             }
-            /* 
-            html                                { line-height: 1.500; }
-            h1, h2, h3, h4, h5, h6              { line-height: 1.250; }
-            caption, figcaption, label, legend  { line-height: 1.375; } */
-
-            /*
-            :root {
-                    
-               --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
-               --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
-
-               --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
-               --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
-               --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
-
-               --root-font-size: var(--fluid-font-size);
-            }*/
-
-            html { 
-                --root-font-size:           <?= css_clamp(16.0, 20, 600, 1200, 16) ?>;
-
-                font-size: var(--root-font-size); 
-                
-                hanging-punctuation: first allow-end last; 
-
-                -webkit-font-smoothing: antialiased; 
-                -moz-osx-font-smoothing: grayscale; 
-                
-                --line-height: clamp(1.35rem, 1.60rem + 1.70vw, 1.50rem);
-                line-height: var(--line-height); 
-               
-            }
-
-            body { /*
-                line-height: 1.5;*/
-                font-family: <?= string_system_font_stack() ?>; 
-                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
-            }
-
-            a {
-                font-weight: 600;
-            }
 
             /* assume explicitly small images are inline */
             <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
             <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
             <?php } ?>
 
+            /* Utilities TODO : in dedicated layer ? */
+
             .visually-hidden:not(:focus):not(:active) {
+
                 clip:           rect(0 0 0 0);
                 clip-path:      inset(50%);
                 height:         1px;
@@ -9405,19 +9404,17 @@
             }
 
             .sr-only, .sceen-reader-only, .sceen-readers-only {
-                position:absolute;
-                left:-10000px;
-                top:auto;
-                width:1px;
-                height:1px;
-                overflow:hidden;
-            }
 
-            body {
-                margin: var(--gap, 1em) var(--margin, var(--gap, 1em));
+                position:   absolute;
+                left:       -10000px;
+                top:        auto;
+                width:      1px;
+                height:     1px;
+                overflow:   hidden;
             }
 
             [hidden] {
+
                 display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
             }
 
@@ -9426,108 +9423,40 @@
                      span[lang]                   { display: inline !important }
             [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
             [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
-            /* ... */
 
-            .requires-color-schemes { display: none; }
+            /* COLORS */
 
-            html                     { color-scheme: light dark; }
-            html[data-theme="light"] { color-scheme: light;      }
-            html[data-theme="dark"]  { color-scheme: dark;       }
+            /*  Here we have light & dark colors system in place, so any component that requires it can be shown */
+            .requires-color-schemes[hidden] { display: initial; }
 
-            /* now that we have light & dark colors system in place,    */
-            /* any component that requires it can be shown              */
-            .requires-color-schemes { display: initial; }
-            
             /* Have "Sytem Colors" variables that support [data-theme] */
-            /* (that is, ie. a data-theme=light whereas the use chose dark on this site) */ 
-
+            /* (that is, ie. a data-theme^=light whereas the use chose dark on this site) */ 
             /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
 
             html {
-                --Canvas:           var(--bg,               #1c1c1c);
-                --CanvasText:       var(--text,             #f8f9fa);
-                --Link:             var(--action,           #8cabff);
-                --VisitedText:      var(--action,           #ffadff);
-                --ActiveText:       var(--active,           #ff6666);
-                --ButtonFace:       var(--btn-bg,           #2b2a33);
-                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
-                --ButtonText:       var(--btn-text,         #fbfbfe);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #2b2a33);
-                --FieldText:        var(--field-text,       #fbfbfe);
-                --Highlight:        var(--highlight,        #3f638b);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         skyblue);
-                --SelectedItemText: var(--selected-text,    black);
-                --AccentColor:      var(--accent,           #ff5ce4);
-                --AccentColorText:  var(--accent-text,      black);
-                }
 
-            @media (prefers-color-scheme: light) {
-                html {
-                    --Canvas:           var(--bg,               #f8f9fa);
-                    --CanvasText:       var(--text,             #1c1c1c);
-                    --Link:             var(--action,           #00e);
-                    --VisitedText:      var(--action,           #551a8b);
-                    --ActiveText:       var(--active,           #e00);
-                    --ButtonFace:       var(--btn-bg,           #e9e9ed);
-                    --ButtonText:       var(--btn-text,         #1c1c1c);
-                    --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                    --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                    --Field:            var(--field-bg,         #f8f9fa);
-                    --FieldText:        var(--field-text,       #1c1c1c);
-                    --Highlight:        var(--highlight,        #b3d8ff);
-                    --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                    --SelectedItem:     var(--selected,         #0063e1);
-                    --SelectedItemText: var(--selected-text,    white);
-                    --AccentColor:      var(--accent,           #7d004f);
-                    --AccentColorText:  var(--accent-text,      white);
-                }
-            }
-            [data-theme=dark] {
-                --Canvas:           var(--bg,               #1c1c1c);
-                --CanvasText:       var(--text,             #f8f9fa);
-                --Link:             var(--action,           #8cabff);
-                --VisitedText:      var(--action,           #ffadff);
-                --ActiveText:       var(--active,           #f66);
-                --ButtonFace:       var(--btn-bg,           #2b2a33);
-                --ButtonFaceHover:  var(--btn-hover-bg,     #52525e);
-                --ButtonText:       var(--btn-text,         #fbfbfe);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #2b2a33);
-                --FieldText:        var(--field-text,       #fbfbfe);
-                --Highlight:        var(--highlight,        #3f638b);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         skyblue);
-                --SelectedItemText: var(--selected-text,    black);
-                --AccentColor:      var(--accent,           #ff5ce4);
-                --AccentColorText:  var(--accent-text,      black);
-            }
-            [data-theme=light] {
-                --Canvas:           var(--bg,               #f8f9fa);
-                --CanvasText:       var(--text,             #1c1c1c);
-                --Link:             var(--action,           #00e);
-                --VisitedText:      var(--action,           #551a8b);
-                --ActiveText:       var(--active,           #e00);
-                --ButtonFace:       var(--btn-bg,           #e9e9ed);
-                --ButtonText:       var(--btn-text,         #1c1c1c);
-                --ButtonTextHover:  var(--btn-hover-text,   var(--ButtonText));
-                --ButtonBorder:     var(--btn-border,       var(--border, currentColor));
-                --Field:            var(--field-bg,         #f8f9fa);
-                --FieldText:        var(--field-text,       #1c1c1c);
-                --Highlight:        var(--highlight,        #b3d8ff);
-                --HighlightText:    var(--highlight-text,   var(--CanvasText));
-                --SelectedItem:     var(--selected,         #0063e1);
-                --SelectedItemText: var(--selected-text,    white);
-                --AccentColor:      var(--accent,           #7d004f);
-                --AccentColorText:  var(--accent-text,      white);
+                --Canvas:           light-dark(var(--bg,              #f8f9fa),                     var(--bg,               #1c1c1c));
+                --CanvasText:       light-dark(var(--text,            #1c1c1c),                     var(--text,             #f8f9fa));
+                --Link:             light-dark(var(--action,          #0000ee),                     var(--action,           #8cabff));
+                --VisitedText:      light-dark(var(--action,          #551a8b),                     var(--action,           #ffadff));
+                --ActiveText:       light-dark(var(--active,          #ee0000),                     var(--active,           #ff6666));
+                --ButtonFace:       light-dark(var(--btn-bg,          #e9e9ed),                     var(--btn-bg,           #2b2a33));
+                --ButtonFaceHover:  light-dark(var(--btn-hover-bg,    #ffffff),                     var(--btn-hover-bg,     #52525e));
+                --ButtonText:       light-dark(var(--btn-text,        #1c1c1c),                     var(--btn-text,         #fbfbfe));
+                --ButtonTextHover:  light-dark(var(--btn-hover-text,    var(--ButtonText)),           var(--btn-hover-text,     var(--ButtonText)));
+                --ButtonBorder:     light-dark(var(--btn-border,        var(--border, currentColor)), var(--btn-border,         var(--border, currentColor)));
+                --Field:            light-dark(var(--field-bg,        #f8f9fa),                     var(--field-bg,         #2b2a33));
+                --FieldText:        light-dark(var(--field-text,      #1c1c1c),                     var(--field-text,       #fbfbfe));
+                --Highlight:        light-dark(var(--highlight,       #b3d8ff),                     var(--highlight,        #3f638b));
+                --HighlightText:    light-dark(var(--highlight-text,    var(--CanvasText)),           var(--highlight-text,     var(--CanvasText)));
+                --SelectedItem:     light-dark(var(--selected,        #0063e1),                     var(--selected,           skyblue));
+                --SelectedItemText: light-dark(var(--selected-text,   #ffffff),                     var(--selected-text,      black));
+                --AccentColor:      light-dark(var(--accent,          #7d004f),                     var(--accent,           #ff5ce4));
+                --AccentColorText:  light-dark(var(--accent-text,     #ffffff),                     var(--accent-text,        black));
             }
         
             html { 
 
-                color-scheme:       light dark;
                 background-color:   var(--Canvas);
                 color:              var(--CanvasText);
             }
@@ -9899,11 +9828,11 @@
 
             /* Provide a way to dynamically change theme via a data-theme attribute */
 
-            [data-theme='light'] {
+            [data-theme^='light'] {
                 <?= css_vars_color_scheme("light", 1) ?> 
             }
 
-            [data-theme='dark'] {
+            [data-theme^='dark'] {
                 <?= css_vars_color_scheme("dark", 1) ?> 
             }
 
@@ -9937,13 +9866,13 @@
 
             <?php if ($need_nesting) { ?>
 
-            [data-theme="light"] { <?= $css_light ?>  }
-            [data-theme="dark"]  { <?= $css_dark  ?>  }
+            [data-theme^="light"] { <?= $css_light ?>  }
+            [data-theme^="dark"]  { <?= $css_dark  ?>  }
 
             <?php } else { ?>
 
-            [data-theme="light"] <?= $css_light ?>
-            [data-theme="dark"]  <?= $css_dark  ?>
+            [data-theme^="light"] <?= $css_light ?>
+            [data-theme^="dark"]  <?= $css_dark  ?>
 
             <?php } ?>
 
