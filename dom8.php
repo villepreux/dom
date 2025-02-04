@@ -6613,9 +6613,9 @@
             ( !$styles    ? "" : styles()).
             ( !$path_css  ? "" : (
 
-                eol(). comment("Project-specific main stylesheet").           (!get("htaccess_rewrite_php") ? (
-                style_file($path_css).                                  "") : (
-                link_style($path_css).                                  "")).
+                eol(). comment("Project-specific main stylesheet").                                                 (!get("htaccess_rewrite_php") ? (
+                style_file($path_css, false, auto,     [ "data-css-layer" => "app", "media" => "screen"  ]).       "") : (
+                link_style($path_css, "screen", false, [ "data-css-layer" => "app"  ]).                            "")).
 
             ""));
     }
@@ -9182,6 +9182,10 @@
 
     function settings()
     {
+        $char_system = "💻︎"; // ⚙
+        $char_dark   = "☾"; 
+        $char_light  = "☀︎"; // 💡︎
+
         return 
 
             details(summary("User settings").form(
@@ -9190,9 +9194,9 @@
 
                     legend("Color-scheme preferences").
 
-                    radio("setting-theme", "setting-theme-system",  "💻︎", [ "aria-label" => "System" ] ). // ⚙
-                    radio("setting-theme", "setting-theme-dark",    "☾", [ "aria-label" => "Dark"   ] ). 
-                    radio("setting-theme", "setting-theme-light",   "☀︎", [ "aria-label" => "Light"  ] ).  // 💡︎
+                    radio("setting-theme", "setting-theme-system"   ).label($char_system, "setting-theme-system", [ "aria-label" => "System" ]).
+                    radio("setting-theme", "setting-theme-dark"     ).label($char_dark,   "setting-theme-dark",   [ "aria-label" => "Dark"   ]).
+                    radio("setting-theme", "setting-theme-light"    ).label($char_light,  "setting-theme-light",  [ "aria-label" => "Light"  ]).
                     
                     "", "theme").
 
@@ -9200,12 +9204,13 @@
 
                     legend("CSS layers preferences").
                     
-                    radio("setting-css", "setting-css-spec",        "Spec"      ).
-                    radio("setting-css", "setting-css-browser",     "Browser"   ).
-                    radio("setting-css", "setting-css-normalize",   "Normalize" ).
-                    radio("setting-css", "setting-css-default",     "Default"   ).
-                    radio("setting-css", "setting-css-theme",       "Theme"     ).
-                    radio("setting-css", "setting-css-utilities",   "Utilities" ).
+                    radio("setting-css", "setting-css-spec"         ).label("Spec",       "setting-css-spec"      ).
+                    radio("setting-css", "setting-css-browser"      ).label("Browser",    "setting-css-browser"   ).
+                    radio("setting-css", "setting-css-normalize"    ).label("Normalize",  "setting-css-normalize" ).
+                    radio("setting-css", "setting-css-default"      ).label("Default",    "setting-css-default"   ).
+                    radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     ).
+                    radio("setting-css", "setting-css-utilities"    ).label("Utilities",  "setting-css-utilities" ).
+                    radio("setting-css", "setting-css-app"          ).label("App",        "setting-css-app"       ).
                     
                     "", "css").
                 
@@ -9220,14 +9225,16 @@
 
                 /* Handle user interractions */
 
-                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");        document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
-                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" ); document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
-                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  ); document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
-
-                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="spec"]\'      ).setAttribute("media", "screen");  });
-                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="browser"]\'   ).setAttribute("media", "screen");  });
-                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen");  });
-                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-layout="default"]\').setAttribute("media", "screen");  });
+                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");             document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
+                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
+                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
+                
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="spec"]\'      ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="browser"]\'   ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen");  });
+              /*document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.setAttribute("data-css", "app" );          document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="app"]\').setAttribute("media", "screen");  });*/
+                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="app"]\').setAttribute("media", "screen");  });
 
                 ');
     }
@@ -9502,6 +9509,16 @@
                 font-weight: 600; /* For a11y */
             }  
 
+            details {
+                
+                summary {
+
+                    display: list-item;
+                    padding: var(--gap);
+                    cursor:  pointer;
+
+                }
+            }
             
 
             [type='checkbox'], [type='radio'] {
@@ -10938,10 +10955,10 @@
         $scripts = "";
 
         $styles .= eol().style(css_layers()     );
-        $styles .= eol().style(css_spec(),      false, [ "data-layout" => "spec",       "media" => "print"  ]);
-        $styles .= eol().style(css_browser(),   false, [ "data-layout" => "browser",    "media" => "screen" ]);
-        $styles .= eol().style(css_normalize(), false, [ "data-layout" => "normalize",  "media" => "screen" ]);
-        $styles .= eol().style(css_default(),   false, [ "data-layout" => "default",    "media" => "screen" ]);
+        $styles .= eol().style(css_spec(),      false, [ "data-css-layer" => "spec",       "media" => "print"  ]);
+        $styles .= eol().style(css_browser(),   false, [ "data-css-layer" => "browser",    "media" => "screen" ]);
+        $styles .= eol().style(css_normalize(), false, [ "data-css-layer" => "normalize",  "media" => "screen" ]);
+        $styles .= eol().style(css_default(),   false, [ "data-css-layer" => "default",    "media" => "screen" ]);
 
         $scripts .= eol().script('
         
@@ -10949,12 +10966,14 @@
 
             if (null !== current_css) { 
             
-                document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") });
+                document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") });
                 
-                     if (current_css == "spec"      ) { document.querySelector(\'style[data-layout="spec"]\'      ).setAttribute("media", "screen");  }
-                else if (current_css == "browser"   ) { document.querySelector(\'style[data-layout="browser"]\'   ).setAttribute("media", "screen");  }
-                else if (current_css == "normalize" ) { document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen");  }
-                else if (current_css == "default"   ) { document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-layout="default"]\').setAttribute("media", "screen");  }
+                     if (current_css == "spec"      ) { document.querySelector(\'style[data-css-layer="spec"]\'      ).setAttribute("media", "screen");  }
+                else if (current_css == "browser"   ) { document.querySelector(\'style[data-css-layer="browser"]\'   ).setAttribute("media", "screen");  }
+
+                else if (current_css == "normalize" ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen");  }
+                else if (current_css == "default"   ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen");  }
+                else if (current_css == "app"       ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="app"]\').setAttribute("media", "screen");  }
             }
 
             ');
