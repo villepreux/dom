@@ -690,8 +690,6 @@
     {
         // Cannot be modified at browser URL level
 
-        set("wip");
-
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
         set("keywords",                          ""); 
@@ -6532,24 +6530,17 @@
                 document.documentElement.className = (document.documentElement.className.replace(/\bno-js\b/, '') + ' js').trim();
 
                 /**
-                 * Look for a previously selected theme
+                 * Look for a previously selected options
                  */
+                for (var option of [ "theme", "css", "js", "html" ]) {
 
-                const themes = [ "light", "dark" ];
-                            
-                var user_previously_selected_theme = localStorage.getItem("theme");
+                    var stored_value = localStorage.getItem(option);
 
-                if (null !== user_previously_selected_theme) {
+                    if (null !== stored_value) {
 
-                    if (themes.includes(user_previously_selected_theme)) {
-                        
-                        document.documentElement.setAttribute("data-theme", user_previously_selected_theme);
-                    
-                    } else {
-
-                        localStorage.removeItem("theme");
+                        document.documentElement.setAttribute("data-" + option, stored_value);
                     }
-                }                            
+                }                           
         
             <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
@@ -8057,9 +8048,19 @@
             .   eol()
             .   meta('view-transition',                     'same-origin')
 
-            .   eol()
-            .   meta('color-scheme',                        'dark light')
+            .   eol()            .   meta('color-scheme',                        'dark light')            
+            .   meta([ 'name' => 'color-scheme', 'media' => '(prefers-color-scheme: light)', 'content' => "light" ])
+            .   meta([ 'name' => 'color-scheme', 'media' => '(prefers-color-scheme: dark)',  'content' => "dark" ])
+            .   script('
+
+                    var current_theme = document.documentElement.getAttribute("data-theme"); 
+                    if (null !== current_theme) { 
+                        document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", current_theme); });
+                    }
+                
             
+                ')
+
             .   eol()       
             .   meta('geo.region',                          get("geo_region"))
             .   meta('geo.placename',                       get("geo_placename"))
@@ -8412,13 +8413,10 @@
 
     function css_layers()
     {
-        return css_layer_order(
-    
-                "reset",
-                "normalize",
-                "base"
-
-                );
+        return !!get("wip") 
+        
+            ? css_layer_order("spec", "browser", /*"reset",*/ "normalize"/*, "base"*/) 
+            : css_layer_order("spec", "browser", "reset",     "normalize",   "base");
     }
     
     function css_root($vars, $layer = false, $root = ":root")
@@ -9182,6 +9180,107 @@
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
 
+    function settings()
+    {
+        return 
+
+            details(summary("User settings").form(
+
+                fieldset(
+
+                    legend("Color-scheme preferences").
+
+                    radio("setting-theme", "setting-theme-system",  "💻︎", [ "aria-label" => "System" ] ). // ⚙
+                    radio("setting-theme", "setting-theme-dark",    "☾", [ "aria-label" => "Dark"   ] ). 
+                    radio("setting-theme", "setting-theme-light",   "☀︎", [ "aria-label" => "Light"  ] ).  // 💡︎
+                    
+                    "", "theme").
+
+                fieldset(
+
+                    legend("CSS layers preferences").
+                    
+                    radio("setting-css", "setting-css-spec",        "Spec"      ).
+                    radio("setting-css", "setting-css-browser",     "Browser"   ).
+                    radio("setting-css", "setting-css-normalize",   "Normalize" ).
+                    radio("setting-css", "setting-css-default",     "Default"   ).
+                    radio("setting-css", "setting-css-theme",       "Theme"     ).
+                    radio("setting-css", "setting-css-utilities",   "Utilities" ).
+                    
+                    "", "css").
+                
+                ""), [ "class" => "settings requires-js" ]).
+                    
+            script('
+
+                /* Default UI must reflect current setting */
+
+                var current_theme = document.documentElement.getAttribute("data-theme"); if (null !== current_theme) { document.querySelector("#setting-theme-" + current_theme).checked = true; }
+                var current_css   = document.documentElement.getAttribute("data-css");   if (null !== current_css)   { document.querySelector("#setting-css-"   + current_css).checked   = true; }
+
+                /* Handle user interractions */
+
+                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");        document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
+                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" ); document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
+                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  ); document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
+
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="spec"]\'      ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="browser"]\'   ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen");  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-layout="default"]\').setAttribute("media", "screen");  });
+
+                ');
+    }
+
+    function css_spec($layer = "spec")
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+        
+        @charset "UTF-8";
+
+            /* Revert browser defaults */
+
+            :not(script, style) {
+
+                all: initial;
+
+                &::before, &::after {
+
+                    all: initial;
+                }
+            }
+
+            /* Keep settings component so user can revert this very limited setting */
+
+            .settings {
+
+                &, * {
+                    
+                    all: revert;
+                }
+                
+                border:     thick solid red;
+                display:    block;
+                margin:     2em;
+                padding:    2em;
+
+                & :is(input, button) {
+
+                    all: revert;
+                }
+            }
+            
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
+    }
+
+    function css_browser($layer = "browser")
+    {
+        heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
+        
+            
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
+    }
+
     function css_normalize($layer = "normalize")
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
@@ -9240,20 +9339,30 @@
             *, ::before, ::after { 
                 
                 box-sizing: border-box; 
+                min-width:  0;
+                min-height: 0;
             }
 
             html { 
-                
+
                 color-scheme: light dark;
 
                 &[data-theme^="light"] { color-scheme: light; }
                 &[data-theme^="dark"]  { color-scheme: dark;  }
-                
+
+                container-type: size;                
                 interpolate-size: allow-keywords;
                 
+                height:         100%;
+                height:         -webkit-fill-available;
+                block-size:     -webkit-fill-available;
+                block-size:     stretch;
+                margin:         0;
+                padding:        0;
+
                 -webkit-font-smoothing:  antialiased; 
                 -moz-osx-font-smoothing: grayscale; 
-
+                
                 line-sizing:            normal;
                 hanging-punctuation:    first allow-end last; 
                 font-size:              var(--root-font-size);
@@ -9263,21 +9372,62 @@
             }
 
             body { 
+                /*
+                min-height:     100%;
+                min-height:     -webkit-fill-available;
+                min-height:     calc(min(100svh, 100dvh) - 2 * var(--gap, 1em));*/
+                min-height:     100dvh;
+                min-block-size: -webkit-fill-available;
+                min-block-size: stretch;
+                margin:         0;
+                padding:        0;/*
+                padding:        var(--gap, 1em) var(--margin, var(--gap, 1em));*/                                
                 
-                margin:  0;
-                padding: var(--gap, 1em) var(--margin, var(--gap, 1em));
-                min-height: calc(min(100svh, 100dvh) - 2* var(--gap, 1em));
+                /* Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
+                position:   absolute;
+                top:        0;
+                width:      100%;
 
                 font-weight: var(--text-font-weight);
                 font-family: <?= string_system_font_stack() ?>; 
                 text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
-                
+                word-break: break-word; 
+                text-wrap: pretty;
+                /*
                 &:not(body:has(>header, >footer)) {
 
                     justify-items: center;
                     align-content: center; 
+                }*/
+
+                display:            flex; 
+                flex-direction:     column; 
+                gap:                0;
+                justify-content:    center;
+                align-items:        center;
+                
+                :is(& > header) + :is(& > main)  {
+
+                    flex-grow: 1; 
+                }
+
+                & > :is(header, footer, main)
+                {
+                    width: 100%;
                 }
             }
+
+            main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
+
+                display: flow-root;
+            }
+
+            main { 
+                
+                width: 100%;
+            }
+            
+            h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
 
             h1 { font-size: var(--h1-font-size); /*line-height: 1.250;*/ font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margi) 0; }
             h2 { font-size: var(--h2-font-size); /*line-height: 1.250;*/ font-weight: var(--h2-font-weight); }
@@ -9351,17 +9501,8 @@
 
                 font-weight: 600; /* For a11y */
             }  
-            /* 
-            nav ul {
 
-                list-style: none;
-
-                li:before {
-
-                    content: "\200B";
-                    position: absolute;
-                }
-            } */
+            
 
             [type='checkbox'], [type='radio'] {
 
@@ -9503,6 +9644,93 @@
                     }
                 }
             }
+
+
+            
+            /* Navigation */
+                
+            /* 
+            nav ul {
+
+                list-style: none;
+
+                li:before {
+
+                    content: "\200B";
+                    position: absolute;
+                }
+            } */
+            :where(nav, [role="navigation"]) li:before {
+                content: "\200B";
+                position: absolute;
+                }
+        
+            :where(nav, [role="navigation"]) ul, [role="navigation"] {
+                list-style: none;
+                padding-inline-start: 0; /* Remove that arbitrary 40px padding, especialy within nav, where we already removed list item style */
+                }
+            [role="navigation"] ul[role="menu"], nav ul,
+            [role="navigation"] { display: flex; gap: var(--gap); flex-wrap: wrap; } /* BEWARE: Do not break default flow. Do not make it nowrap */
+
+
+
+                
+            u { text-decoration-style: wavy; }
+        
+            h1, p, button { text-box: trim-both cap alphabetic; }
+
+            kbd {
+                display:        inline-block;
+                border:         2px solid currentColor;
+                border-radius:  0.25rem;
+                padding:        0.1em 0.2rem;
+                font-size:      0.825em;
+            }
+
+            code:not(pre > code) {
+                border:         2px solid currentColor;
+                border-radius:  0.1rem;
+                padding:        0.1em 0.2rem;
+                line-height:    calc(var(--line-height) + 0.2em);
+                width:          fit-content;
+            }
+
+            pre { 
+                white-space: pre-wrap; /* Otherwise overflow everywhere */
+                font-size: clamp(.5em, 3.5vw, 1em);
+            }
+
+
+            /*p, ul, h1, h2, h3, h4, h5, h6, pre, details {
+
+                max-width: calc(min(100%, 960px) - 2rem);
+                margin-inline: auto;
+            }*/
+            
+            .grid {
+
+                --grid-default-min-width: min(300px, calc(100% - 2 * var(--gap)));
+
+                display:                grid;
+                grid-gap:               var(--gap);
+                grid-template-columns:  repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
+                
+                /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
+            }
+
+            .flex {
+
+                display: flex;
+                flex-wrap: wrap;
+                gap: var(--gap);
+                align-items: center;
+            }
+
+            html.no-js .requires-js {
+
+                display: none;
+            }
+
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
@@ -10176,7 +10404,7 @@
             /* Sanitize ++ */
 
             * { 
-                min-width:  0; 
+                min-width:  0;
                 min-height: 0;
             }
     
@@ -10707,13 +10935,32 @@
     function styles()
     {
         $styles  = "";
-        $styles .= eol().style(css_layers()    );
-        $styles .= eol().style(css_normalize() );
+        $scripts = "";
+
+        $styles .= eol().style(css_layers()     );
+        $styles .= eol().style(css_spec(),      false, [ "data-layout" => "spec",       "media" => "print"  ]);
+        $styles .= eol().style(css_browser(),   false, [ "data-layout" => "browser",    "media" => "screen" ]);
+        $styles .= eol().style(css_normalize(), false, [ "data-layout" => "normalize",  "media" => "screen" ]);
+        $styles .= eol().style(css_default(),   false, [ "data-layout" => "default",    "media" => "screen" ]);
+
+        $scripts .= eol().script('
+        
+            var current_css = document.documentElement.getAttribute("data-css");
+
+            if (null !== current_css) { 
+            
+                document.querySelectorAll("style[data-layout]").forEach(function(e) { e.setAttribute("media", "none") });
+                
+                     if (current_css == "spec"      ) { document.querySelector(\'style[data-layout="spec"]\'      ).setAttribute("media", "screen");  }
+                else if (current_css == "browser"   ) { document.querySelector(\'style[data-layout="browser"]\'   ).setAttribute("media", "screen");  }
+                else if (current_css == "normalize" ) { document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen");  }
+                else if (current_css == "default"   ) { document.querySelector(\'style[data-layout="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-layout="default"]\').setAttribute("media", "screen");  }
+            }
+
+            ');
 
         if (!get("wip")) 
         {        
-            $styles .= eol().comment("Default").     style(css_default()   );
-
             // TODO: We cannot be dependent here of a plugin
 
             if (!get("no_css_toolbar"))
@@ -10728,8 +10975,8 @@
             }
         }
 
-        return delayed_component("_".__FUNCTION__);
-        //return $styles;
+        return delayed_component("_".__FUNCTION__).$scripts;
+        //return $styles.$scripts;
     }
 
     function _styles()
@@ -11955,6 +12202,9 @@
     function summary        ($html = "", $attributes = false) {                             return  tag('summary',                    $html,                                                $attributes                                                         );                      }
 
     function form           ($html = "", $attributes = false) {                             return  tag('form',                       $html,                                                $attributes                                                         );                      }
+
+    function fieldset       ($html = "", $attributes = false) {                             return  tag('fieldset',                   $html,                                                $attributes                                                         );                      }
+    function legend         ($html = "", $attributes = false) {                             return  tag('legend',                     $html,                                                $attributes                                                         );                      }
 
     function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),                attr("id" , $id), attr("type", "checkbox") ) ));  }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')),  attr("for", $id)                           ) ));  }

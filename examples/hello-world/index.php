@@ -4,5 +4,6 @@ init();
 output(main(
     h1("Hello World!").
     p("This is a 'Hello World' example").
-    this()
+    this().
+    dom\settings()
     ));

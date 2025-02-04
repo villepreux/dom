@@ -71,6 +71,8 @@ function code_transform_indent($code, $tab_src_size = code_tab_src_size, $tab_ds
 
 function code_css()
 {
+    if (!!get("wip")) return "";
+
     HSTART() ?><style><?= HERE() ?>
 
         /* TODO: CLEANUP CSS */
