@@ -1,6 +1,6 @@
 <?php include "dom.php"; // Include framework and then import needed functions
 
-use function dom\{init,output,content,lorem_ipsum,url_img_random}; // Utilities
+use function dom\{init,output,content,lorem_ipsum,url_img_random,settings}; // Utilities
 use function dom\{html,rss,jsonfeed,toolbar,main,footer,article,aside,h2,grid,p,img,a}; // Markup
 use function dom\{card,card_title,card_media,card_text}; // Cards
 use function dom\{svg_rss,svg_facebook}; // SVGs
@@ -36,6 +36,7 @@ output( // Output
         footer(
             p(a("Back to examples", "..")).
           //p("Photo ".a("©Tylerhendy", "https://unsplash.com/photos/Baz9Oss6Hj8")." @ Unsplash.com").
-            p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook")))).
+            p(a(svg_rss(), "?rss").a(svg_facebook(), "https://www.facebook.com/my_facebook")).
+            settings())).
     rss(). // I'm also interested in having a RSS feed and json-content from my content
     jsonfeed());

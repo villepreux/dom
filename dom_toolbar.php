@@ -11,7 +11,7 @@
         set("toolbar",      true);
         set("toolbar_$row", true);
     }
-        
+    /*
     function css_vars_color_scheme_light_brands_toolbar($current_selector = ":root")
     {
         if (has("dom_toolbar_no_css")) return "";
@@ -45,7 +45,7 @@
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
-
+    */
     function css_toolbar_layout()
     {
         if (has("dom_toolbar_no_css")) return "";
@@ -225,7 +225,7 @@
                 .toolbar-row-nav .toolbar-cell-center { padding-right: var(--scrollbar-width); }
             }
     
-        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer("base-components", heredoc_stop(null));
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer([ "default", "component", "toolbar" ], heredoc_stop(null));
     }
 
     function css_toolbar_colors()
@@ -254,7 +254,7 @@
 
             .menu                                           { box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
         
-        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer("base-components", heredoc_stop(null));
+        <?php heredoc_flush("raw_css"); ?></style><?php return css_layer([ "default", "component", "toolbar" ], heredoc_stop(null));
     }
     /*
     function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
@@ -820,11 +820,28 @@
 
         return  
             comment("PRE Toolbar").
+            style(css_layer([ "default", "component", "toolbar" ], '
+
+            body > header {
+
+                display: flex;
+                flex-direction: column;
+
+                > :is(section, div) {
+
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 1rem;
+                }
+            }
+            
+            '), false, [ "data-css-layer" => "default", "media" => "screen" ]).
             $toolbar1.
-            $toolbar2.
-            scripts_body_toolbar().
-            script('onInitToolbarHeight();')
-            ;
+          //$toolbar2.
+          //scripts_body_toolbar().
+          //script('onInitToolbarHeight();').
+            "";
     }
 
 ?>

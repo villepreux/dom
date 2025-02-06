@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p};
+use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer};
 use const dom\auto;
 
 const code_tab_src_size = 4;
@@ -69,9 +69,9 @@ function code_transform_indent($code, $tab_src_size = code_tab_src_size, $tab_ds
     return $code;
 }
 
-function code_css()
+function code_css($layer = "code")
 {
-    if (!!get("wip")) return "";
+    return "";
 
     HSTART() ?><style><?= HERE() ?>
 
@@ -126,7 +126,7 @@ function code_css()
             }
         }
 
-    <?= HERE("raw_css") ?></style><?php return HSTOP();
+    <?= HERE("raw_css") ?></style><?php return css_layer($layer, HSTOP());
 }
 
 function code_section($code, $client_source_url, $title, $attributes = false)
@@ -280,7 +280,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
     else
     {
         $code = htmlentities($code);
-        $code = pre($code, "language-$lang");
+        $code = pre(dom\code($code, "language-$lang"));
     }
 
   //$code = code_transform_indent($code);
