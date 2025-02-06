@@ -8594,8 +8594,9 @@
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
             /* Pico */
-
+            /* does not work nested inside a layer. Use layer(name) instead
             @import url(https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css);
+            */
         
             /* CSS Normalize */
 
