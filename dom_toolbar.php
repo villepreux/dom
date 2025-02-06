@@ -826,6 +826,7 @@
 
                 display: flex;
                 flex-direction: column;
+                align-items: center;
 
                 > :is(section, div) {
 
@@ -833,6 +834,14 @@
                     flex-wrap: wrap;
                     align-items: center;
                     gap: 1rem;
+
+                    :is(nav, [role="navigation"]) ul {
+                    
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        gap: 1rem;
+                    }
                 }
             }
             

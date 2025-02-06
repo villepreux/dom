@@ -12,6 +12,8 @@
     const author        = "Antoine Villepreux";
     const version       = "0.8.6";
 
+    define("DOM_EOL", eol());
+    define("DOM_TAB", tab());
     define("DOM_CLI", isset($argv) || php_sapi_name() == "cli");
 
     #endregion
@@ -2158,6 +2160,20 @@
         }
 
         return implode(PHP_EOL, $lines);
+    }
+
+    function indent($raw, $indent = auto)
+    {
+        $tab = ($indent === auto) ? DOM_TAB : (is_int($indent) ? tab($indent) : $indent);
+
+        $lines = explode(PHP_EOL, $raw);
+        foreach ($lines as $l => $line) $lines[$l] = $tab.$line;
+        return implode(PHP_EOL, $lines);
+    }
+
+    function indented_as($raw, $indent)
+    {
+        return indent(unindent($raw), $indent);
     }
 
     use Michelf\Markdown;
@@ -6614,8 +6630,8 @@
             ( !$path_css  ? "" : (
 
                 eol(). comment("Project-specific main stylesheet").                                                 (!get("htaccess_rewrite_php") ? (
-                style_file($path_css, false, auto,     [ "data-css-layer" => "app", "media" => "screen" ]).       "") : (
-                link_style($path_css, "screen", false, [ "data-css-layer" => "app"  ]).                            "")).
+                style_file($path_css, false, auto,     [ "layer" => "app", "media" => "screen" ]).       "") : (
+                link_style($path_css, "screen", false, [ "layer" => "app"  ]).                            "")).
 
             ""));
     }
@@ -8235,7 +8251,7 @@
         {
             if (count($layer) == 0)
             {
-                return $css;
+                return unindent($css);
             }
 
             if (count($layer) == 1)
@@ -8250,7 +8266,7 @@
         }
 
         if (false === $layer || !get("css_layers_support")) return $css;
-        return "@layer $layer {".($css != "" ? (eol(2).$css.eol()) : "")."}";
+        return eol()."@layer $layer {".($css == "" ? "" : (eol(2).indent(trim(unindent($css)), 1).eol()))."}".eol();
     }
 
     $__style_css_hooks = [];
@@ -8274,6 +8290,14 @@
         $profiler = debug_track_timing();
         if (!$css || $css == "") return '';
         return style_css_as_is(raw_css($css, $force_minify, $trim), $attributes, $order);
+    }
+
+    function layered_style($layer, $css, $force_minify = false, $attributes = false, $trim = auto, $order = auto)
+    {
+        $first_layer = is_array($layer) ? $layer[0] : $layer;
+        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => "screen"));
+
+        return style(css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
 
     function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
@@ -8484,11 +8508,16 @@
                             display: flex;
                             flex-wrap: wrap;
                             gap: calc(.5 * var(--gap));
+
+                            input[type="radio"]:has(+ label) {
+
+                                margin-right: calc(.25 * var(--gap));
+                            }
                         }                
                     }
                 }
 
-                '), false, [ "data-css-layer" => "default", "media" => "screen" ]).
+                '), false, [ "layer" => "default", "media" => "screen" ]).
 
             details(summary("User settings").form(
 
@@ -8531,11 +8560,11 @@
                 document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
                 document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
                 
-                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[data-css-layer="spec"]\'      ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[data-css-layer="browser"]\'   ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[data-css-layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[data-css-layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[data-css-layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
-                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[data-css-layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[data-css-layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[data-css-layer="app"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="spec"]\'      ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="browser"]\'   ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
+                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="app"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
 
                 ');
     }
@@ -8746,7 +8775,8 @@
 
             main { 
                 
-                width: 100%;
+                width:      100%;
+                min-height: 100svh;
             }
             
             h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
@@ -8833,19 +8863,47 @@
             a {
 
                 font-weight: 600; /* For a11y */
-            }  
-
+            } 
+            /*
             details {
-                
-                summary {
 
-                    display: list-item;
-                    padding: var(--gap);
-                    cursor:  pointer;
+                &:not(& ~ details) {
 
+                    margin-block-start: var(--gap);
                 }
-            }
-            
+
+                &[open] {
+
+                    > summary {
+
+                        margin-block-end: var(--gap);
+                        
+                        display: list-item;
+                        cursor:  pointer;
+                    }
+
+                    padding-block-end: var(--gap);
+                }
+
+                > summary {
+
+                    white-space: nowrap;
+
+                    padding: var(--gap);
+
+                    p, h1, h2, h3, h4, h5, h6 {
+
+                        display: inline-block;
+                        margin:  0;
+                    }
+                }
+
+                > details { 
+
+                    margin-inline-start: var(--gap); 
+                } 
+            } */
+
 
             [type='checkbox'], [type='radio'] {
 
@@ -10312,10 +10370,10 @@
         $scripts = "";
 
         $styles .= eol().style(css_layers(),    false, false, auto, -1); // Ensure 1st rule!
-        $styles .= eol().style(css_spec(),      false, [ "data-css-layer" => "spec",       "media" => "print"  ]);
-        $styles .= eol().style(css_browser(),   false, [ "data-css-layer" => "browser",    "media" => "screen" ]);
-        $styles .= eol().style(css_normalize(), false, [ "data-css-layer" => "normalize",  "media" => "screen" ]);
-        $styles .= eol().style(css_default(),   false, [ "data-css-layer" => "default",    "media" => "screen" ]);
+        $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "print"  ]);
+        $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "screen" ]);
+        $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "screen" ]);
+        $styles .= eol().style(css_default(),   false, [ "layer" => "default",    "media" => "screen" ]);
 
         $scripts .= eol().script('
         
@@ -10323,14 +10381,14 @@
 
             if (null !== current_css) { 
             
-                document.querySelectorAll("style[data-css-layer]").forEach(function(e) { e.setAttribute("media", "none") });
+                document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") });
                 
-                     if (current_css == "spec"      ) { document.querySelector(\'style[data-css-layer="spec"]\'      ).setAttribute("media", "screen");  }
-                else if (current_css == "browser"   ) { document.querySelector(\'style[data-css-layer="browser"]\'   ).setAttribute("media", "screen");  }
+                     if (current_css == "spec"      ) { document.querySelector(\'style[layer="spec"]\'      ).setAttribute("media", "screen");  }
+                else if (current_css == "browser"   ) { document.querySelector(\'style[layer="browser"]\'   ).setAttribute("media", "screen");  }
 
-                else if (current_css == "normalize" ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen");  }
-                else if (current_css == "default"   ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen");  }
-                else if (current_css == "app"       ) { document.querySelector(\'style[data-css-layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[data-css-layer="app"]\').setAttribute("media", "screen");  }
+                else if (current_css == "normalize" ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen");  }
+                else if (current_css == "default"   ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "screen");  }
+                else if (current_css == "app"       ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[layer="app"]\').setAttribute("media", "screen");  }
             }
 
             ');
@@ -10341,8 +10399,8 @@
             
             if (!get("no_css_toolbar"))
             {        
-                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout(), false, [ "data-css-layer" => "default", "media" => "screen" ]) : "");
-                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors(), false, [ "data-css-layer" => "default", "media" => "screen" ]) : "");
+                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout(), false, [ "layer" => "default", "media" => "screen" ]) : "");
+                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors(), false, [ "layer" => "default", "media" => "screen" ]) : "");
             }
             
             if (!get("no_css_brands"))
