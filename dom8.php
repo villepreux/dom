@@ -8788,6 +8788,19 @@
             h5 { font-size: var(--h5-font-size); /*line-height: 1.250;*/ font-weight: var(--h5-font-weight); }
             h6 { font-size: var(--h6-font-size); /*line-height: 1.250;*/ font-weight: var(--h6-font-weight); }
  
+            h1 {
+                margin-block-start: 1.2em;
+                margin-block-end: 1.0em;
+            }          
+            h2, h3 {
+                margin-block-start: 1.2em;
+                margin-block-end: 1.0em;
+            }            
+            h4, h5, h6 {
+                margin-block-start: 1.0em;
+                margin-block-end: 0.8em;
+            }
+    
             input, button, textarea, select {
         
                 font: inherit;
@@ -8864,46 +8877,58 @@
 
                 font-weight: 600; /* For a11y */
             } 
-            /*
+            
             details {
-
+                /*
                 &:not(& ~ details) {
 
                     margin-block-start: var(--gap);
                 }
-
+                
                 &[open] {
 
                     > summary {
-
+                        
                         margin-block-end: var(--gap);
                         
-                        display: list-item;
-                        cursor:  pointer;
                     }
 
                     padding-block-end: var(--gap);
                 }
-
+                */
                 > summary {
 
+            
+                    display: list-item;
+                    cursor:  pointer;
+                    /*
                     white-space: nowrap;
-
-                    padding: var(--gap);
-
-                    p, h1, h2, h3, h4, h5, h6 {
+                    */
+                                padding-block: calc(0.5 * var(--gap));
+                    &:has(h6) { padding-block: calc(0.6 * var(--gap)); }
+                    &:has(h5) { padding-block: calc(0.7 * var(--gap)); }
+                    &:has(h4) { padding-block: calc(0.8 * var(--gap)); }
+                    &:has(h3) { padding-block: calc(0.9 * var(--gap)); }
+                    &:has(h2) { padding-block: calc(1.0 * var(--gap)); }
+                    &:has(h1) { padding-block: calc(1.1 * var(--gap)); }
+                    
+                    > * {
 
                         display: inline-block;
-                        margin:  0;
+                        margin-block:  0;
+
+                        &:is(h1,h2,h3,h4,h5,h6) { 
+                            
+                            display: inline-block; 
+                        }
                     }
                 }
-
+                
                 > details { 
 
                     margin-inline-start: var(--gap); 
-                } 
-            } */
-
+                }
+            }
 
             [type='checkbox'], [type='radio'] {
 
@@ -10028,26 +10053,24 @@
 
             /* Headlines */
     
-            h1 {
+            h1 {/*
                 margin-inline: var(--gap);
                 margin-block-start: 1.2em;
-                margin-block-end: 1.0em;
+                margin-block-end: 1.0em;*/
                 scroll-margin: 4em;
             }          
-            h2, h3 {
+            h2, h3 {/*
                 margin-block-start: 1.2em;
-                margin-block-end: 1.0em;
+                margin-block-end: 1.0em;*/
                 scroll-margin: 4em;
             }            
-            h4, h5, h6 {
+            h4, h5, h6 {/*
                 margin-block-start: 1.0em;
-                margin-block-end: 0.8em;
+                margin-block-end: 0.8em;*/
             }
     
             h2 { text-transform: uppercase; }
 
-            summary :is(h1,h2,h3,h4,h5,h6) { display: inline-block; }
-            
     
             /* Blockquote */
     

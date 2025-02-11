@@ -11,41 +11,7 @@
         set("toolbar",      true);
         set("toolbar_$row", true);
     }
-    /*
-    function css_vars_color_scheme_light_brands_toolbar($current_selector = ":root")
-    {
-        if (has("dom_toolbar_no_css")) return "";
-        
-        heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
-
-            } .toolbar-row, .toolbar-row * {
-
-            --warning-disable: do not use empty rulesets;
-
-            <?= brand_color_css_property("darkandlight", "#dddddd", 35, "light") ?> 
-
-            } <?= $current_selector ?> {
-
-        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
-    }
-
-    function css_vars_color_scheme_dark_brands_toolbar($current_selector = ":root")
-    {
-        if (has("dom_toolbar_no_css")) return "";
-        
-        heredoc_start(-2); ?><style>:root {<?php heredoc_flush(null); ?> 
-    
-            } .toolbar-row, .toolbar-row * {
-
-            --warning-disable: do not use empty rulesets;
-
-            <?= brand_color_css_property("darkandlight", "#222222", 35, "dark") ?> 
-
-            } <?= $current_selector ?> {
-
-        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
-    }
-    */
+ 
     function css_toolbar_layout()
     {
         if (has("dom_toolbar_no_css")) return "";
