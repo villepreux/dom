@@ -8629,559 +8629,594 @@
         
             /* CSS Normalize */
 
-            @view-transition { 
-                
-                navigation: auto; 
-            }
+            @layer base {
 
-            @property --100vw { 
-                
-                syntax:         "<length>"; 
-                initial-value:  0px; 
-                inherits:       false; 
-            }
-
-            :root {
-
-                --100vw: 100vw; 
-                --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
-
-                /*
-                --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
-                --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
-                --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
-                --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
-                --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
-                --root-font-size: var(--fluid-font-size);*/
-
-                --root-font-size: <?= css_clamp(16.0, 20.0, 600, 1200, 16) ?>;
-
-                --h1-font-size: 2.00rem;
-                --h2-font-size: 1.50rem;
-                --h3-font-size: 1.20rem;
-                --h4-font-size: 1.10rem;
-                --h5-font-size: 1.05rem;
-                --h6-font-size: 1.00rem;
-                
-                --text-font-weight: 400;
-
-                --h1-font-weight: 600;
-                --h2-font-weight: 600;
-                --h3-font-weight: 500;
-                --h4-font-weight: 500;
-                --h5-font-weight: 500;
-                --h6-font-weight: 400;
-                
-                --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
-
-                --gap: min(1rem, 16px);
-                --h1-block-start-margin: 0.67em;
-            }
-
-            *, ::before, ::after { 
-                
-                box-sizing: border-box; 
-                background-repeat: no-repeat;
-                min-width:  0;
-                min-height: 0;
-            }
-            
-            ::after,
-            ::before {
-                text-decoration: inherit;
-                vertical-align: inherit
-            }
-
-            html { 
-
-                color-scheme: light dark;
-
-                &[data-theme^="light"] { color-scheme: light; }
-                &[data-theme^="dark"]  { color-scheme: dark;  }
-
-                container-type: size;                
-                interpolate-size: allow-keywords;
-                
-                height:         100%;
-                height:         -webkit-fill-available;
-                block-size:     -webkit-fill-available;
-                block-size:     stretch;
-                margin:         0;
-                padding:        0;
-
-                -webkit-font-smoothing:  antialiased; 
-                -moz-osx-font-smoothing: grayscale; 
-                
-                line-sizing:            normal;
-                hanging-punctuation:    first allow-end last; 
-                font-size:              var(--root-font-size);
-                line-height:            var(--line-height); 
-
-                scrollbar-gutter: stable;
-            }
-
-            body { 
-                /*
-                min-height:     100%;
-                min-height:     -webkit-fill-available;
-                min-height:     calc(min(100svh, 100dvh) - 2 * var(--gap, 1em));*/
-                min-height:     100dvh;
-                min-block-size: -webkit-fill-available;
-                min-block-size: stretch;
-                margin:         0;
-                padding:        0;/*
-                padding:        var(--gap, 1em) var(--margin, var(--gap, 1em));*/                                
-                
-                /* Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
-                position:   absolute;
-                top:        0;
-                width:      100%;
-
-                font-weight: var(--text-font-weight);
-                font-family: <?= string_system_font_stack() ?>; 
-                text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
-                word-break: break-word; 
-                text-wrap: pretty;
-                hyphens: auto;
-                hyphenate-limit-chars: 10;
-                /*
-                &:not(body:has(>header, >footer)) {
-
-                    justify-items: center;
-                    align-content: center; 
-                }*/
-
-                display:            flex; 
-                flex-direction:     column; 
-                gap:                0;
-                justify-content:    center;
-                align-items:        center;
-                
-                :is(& > header) + :is(& > main)  {
-
-                    flex-grow: 1; 
+                @view-transition { 
+                    
+                    navigation: auto; 
                 }
 
-                & > :is(header, footer, main)
-                {
-                    width: 100%;
+                @property --100vw { 
+                    
+                    syntax:         "<length>"; 
+                    initial-value:  0px; 
+                    inherits:       false; 
                 }
-            }
 
-            main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
+                :root {
 
-                display: flow-root;
-            }
+                    --100vw: 100vw; 
+                    --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
 
-            main { 
-                
-                width:      100%;
-                min-height: 100svh;
-            }
-            
-            h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
+                    /*
+                    --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
+                    --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
+                    --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
+                    --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
+                    --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
+                    --root-font-size: var(--fluid-font-size);*/
 
-            h1 { font-size: var(--h1-font-size); /*line-height: 1.250;*/ font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margin) 0; }
-            h2 { font-size: var(--h2-font-size); /*line-height: 1.250;*/ font-weight: var(--h2-font-weight); }
-            h3 { font-size: var(--h3-font-size); /*line-height: 1.250;*/ font-weight: var(--h3-font-weight); }
-            h4 { font-size: var(--h4-font-size); /*line-height: 1.250;*/ font-weight: var(--h4-font-weight); }
-            h5 { font-size: var(--h5-font-size); /*line-height: 1.250;*/ font-weight: var(--h5-font-weight); }
-            h6 { font-size: var(--h6-font-size); /*line-height: 1.250;*/ font-weight: var(--h6-font-weight); }
- 
-            h1 {
-                margin-block-start: 1.2em;
-                margin-block-end: 1.0em;
-            }          
-            h2, h3 {
-                margin-block-start: 1.2em;
-                margin-block-end: 1.0em;
-            }            
-            h4, h5, h6 {
-                margin-block-start: 1.0em;
-                margin-block-end: 0.8em;
-            }
-    
-            input, button, textarea, select {
-        
-                font: inherit;
-            }
+                    --root-font-size: <?= css_clamp(16.0, 20.0, 600, 1200, 16) ?>;
 
-            pre { 
-                
-                white-space: pre-wrap; /* Otherwise overflow everywhere */
-            }
+                    --h1-font-size: 2.00rem;
+                    --h2-font-size: 1.50rem;
+                    --h3-font-size: 1.20rem;
+                    --h4-font-size: 1.10rem;
+                    --h5-font-size: 1.05rem;
+                    --h6-font-size: 1.00rem;
+                    
+                    --text-font-weight: 400;
 
-            hr {
-            
-                border-style:   solid;
-                border-width:   1px 0 0;
-                color:          inherit;
-                height:         0;
-                overflow:       visible;
-            }
+                    --h1-font-weight: 600;
+                    --h2-font-weight: 600;
+                    --h3-font-weight: 500;
+                    --h4-font-weight: 500;
+                    --h5-font-weight: 500;
+                    --h6-font-weight: 400;
+                    
+                    --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
-            :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden]) {
+                    --gap: min(1rem, 16px);
+                    --h1-block-start-margin: 0.67em;
+                }
 
-                display:        block;
-                vertical-align: middle;
-                max-width:      100%;
-
-                
-                object-fit: cover; 
-                aspect-ratio: calc(attr(width) / attr(height));
-                max-width:  min(calc(100dvh * calc(attr(width) / attr(height))), 100%);
-                max-height: 100dvh;
-            }
-
-            audio:not([controls]) { 
-                
-                display: none;
-            }
-
-            picture { 
-                
-                display: contents;
-            }
-
-            source { 
-                
-                display: none;
-            }
-
-            img, svg, video, canvas {
-
-                height: auto;
-            }
-
-            audio { 
-                
-                width: 100%; 
-            }
-
-            img { 
-                
-                border-style: none; 
-            }
-
-            svg { 
-                
-                overflow: hidden; 
-            }
-
-            :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden]) {
-
-                display: block;
-            }
-            
-            a {
-
-                font-weight: 600; /* For a11y */
-            } 
-            
-            details {
-                /*
-                &:not(& ~ details) {
-
-                    margin-block-start: var(--gap);
+                *, ::before, ::after { 
+                    
+                    box-sizing: border-box; 
+                    background-repeat: no-repeat;
+                    min-width:  0;
+                    min-height: 0;
                 }
                 
-                &[open] {
+                ::after,
+                ::before {
+                    text-decoration: inherit;
+                    vertical-align: inherit
+                }
 
-                    > summary {
-                        
-                        margin-block-end: var(--gap);
-                        
+                html { 
+
+                    color-scheme: light dark;
+
+                    &[data-theme^="light"] { color-scheme: light; }
+                    &[data-theme^="dark"]  { color-scheme: dark;  }
+
+                    container-type: size;   
+                    interpolate-size: allow-keywords;
+                    
+                    height:         100%;
+                    height:         -webkit-fill-available;
+                    block-size:     -webkit-fill-available;
+                    block-size:     stretch;
+                    margin:         0;
+                    padding:        0;
+
+                    -webkit-font-smoothing:  antialiased; 
+                    -moz-osx-font-smoothing: grayscale; 
+                    
+                    line-sizing:            normal;
+                    hanging-punctuation:    first allow-end last; 
+                    font-size:              var(--root-font-size);
+                    line-height:            var(--line-height); 
+
+                    scrollbar-gutter: stable;
+                }
+
+                body { 
+                    /*
+                    min-height:     100%;
+                    min-height:     -webkit-fill-available;
+                    min-height:     calc(min(100svh, 100dvh) - 2 * var(--gap, 1em));*/
+                    min-height:     100dvh;
+                    min-block-size: -webkit-fill-available;
+                    min-block-size: stretch;
+                    margin:         0;
+                    padding:        0;/*
+                    padding:        var(--gap, 1em) var(--margin, var(--gap, 1em));*/                                
+                    
+                    /* Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
+                    position:   absolute;
+                    top:        0;
+                    width:      100%;
+
+                    font-weight: var(--text-font-weight);
+                    font-family: <?= string_system_font_stack() ?>; 
+                    text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
+                    word-break: break-word; 
+                    text-wrap: pretty;
+                    hyphens: auto;
+                    hyphenate-limit-chars: 10;
+                    /*
+                    &:not(body:has(>header, >footer)) {
+
+                        justify-items: center;
+                        align-content: center; 
+                    }*/
+
+                    display:            flex; 
+                    flex-direction:     column; 
+                    gap:                0;
+                    justify-content:    center;
+                    align-items:        center;
+                    
+                    :is(& > header) + :is(& > main)  {
+
+                        flex-grow: 1; 
                     }
 
-                    padding-block-end: var(--gap);
+                    & > :is(header, footer, main)
+                    {
+                        width: 100%;
+                    }
                 }
-                */
-                > summary {
 
-            
-                    display: list-item;
-                    cursor:  pointer;
-                    /*
-                    white-space: nowrap;
-                    */
-                                padding-block: calc(0.5 * var(--gap));
-                    &:has(h6) { padding-block: calc(0.6 * var(--gap)); }
-                    &:has(h5) { padding-block: calc(0.7 * var(--gap)); }
-                    &:has(h4) { padding-block: calc(0.8 * var(--gap)); }
-                    &:has(h3) { padding-block: calc(0.9 * var(--gap)); }
-                    &:has(h2) { padding-block: calc(1.0 * var(--gap)); }
-                    &:has(h1) { padding-block: calc(1.1 * var(--gap)); }
-                    
-                    > * {
+                main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
 
-                        display: inline-block;
-                        margin-block:  0;
+                    display: flow-root;
+                }
 
-                        &:is(h1,h2,h3,h4,h5,h6) { 
-                            
-                            display: inline-block; 
+                main {
+
+                    width:      100%;
+                    min-height: 100svh;
+
+                    &:has(article:nth-of-type(2)) {
+
+                        display:        flex;
+                        flex-direction: column;
+                        gap:            var(--gap);
+
+                        article {
+
+                            border:  1px solid color-mix(in srgb, currentColor 25%, transparent); /*
+                            padding: var(--gap); */
                         }
                     }
                 }
                 
-                > details { 
+                h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
 
-                    margin-inline-start: var(--gap); 
+                h1 { font-size: var(--h1-font-size); /*line-height: 1.250;*/ font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margin) 0; }
+                h2 { font-size: var(--h2-font-size); /*line-height: 1.250;*/ font-weight: var(--h2-font-weight); }
+                h3 { font-size: var(--h3-font-size); /*line-height: 1.250;*/ font-weight: var(--h3-font-weight); }
+                h4 { font-size: var(--h4-font-size); /*line-height: 1.250;*/ font-weight: var(--h4-font-weight); }
+                h5 { font-size: var(--h5-font-size); /*line-height: 1.250;*/ font-weight: var(--h5-font-weight); }
+                h6 { font-size: var(--h6-font-size); /*line-height: 1.250;*/ font-weight: var(--h6-font-weight); }
+    
+                h1 {
+                    margin-block-start: 1.2em;
+                    margin-block-end: 1.0em;
+                }          
+                h2, h3 {
+                    margin-block-start: 1.2em;
+                    margin-block-end: 1.0em;
+                }            
+                h4, h5, h6 {
+                    margin-block-start: 1.0em;
+                    margin-block-end: 0.8em;
                 }
-            }
-
-            [type='checkbox'], [type='radio'] {
-
-                box-sizing: border-box;
-                padding:    0;
-            }       
-
-            @media (prefers-reduced-motion: reduce) {
-
-                *, ::before, ::after {
-                    
-                    animation-delay:           -1ms     !important;
-                    animation-duration:         1ms     !important;
-                    animation-iteration-count:  1       !important;
-                    background-attachment:      initial !important;
-                    scroll-behavior:            auto    !important;
-                    transition-delay:           0s      !important;
-                    transition-duration:        0s      !important;
-                }
-            }
-
-            /* assume explicitly small images are inline */
-            <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
-            <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
-            <?php } ?>
-
-            /* Utilities TODO : in dedicated layer ? */
-
-            .visually-hidden:not(:focus):not(:active) {
-
-                clip:           rect(0 0 0 0);
-                clip-path:      inset(50%);
-                height:         1px;
-                overflow:       hidden;
-                position:       absolute;
-                white-space:    nowrap;
-                width:          1px;
-                margin:         0;
-                padding:        0;
-            }
-
-            .sr-only, .sceen-reader-only, .sceen-readers-only {
-
-                position:   absolute;
-                left:       -10000px;
-                top:        auto;
-                width:      1px;
-                height:     1px;
-                overflow:   hidden;
-            }
-
-            [hidden] {
-
-                display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
-            }
-
-            /* Language */
-
-                     span[lang]                   { display: inline !important }
-            [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
-            [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
-
-            /* COLORS */
-
-            /*  Here we have light & dark colors system in place, so any component that requires it can be shown */
-            .requires-color-schemes[hidden] { display: initial; }
-
-            /* Have "Sytem Colors" variables that support [data-theme] */
-            /* (that is, ie. a data-theme^=light whereas the use chose dark on this site) */ 
-            /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
-
-            html {
-
-                --Canvas:           light-dark(var(--bg,              #f8f9fa),                     var(--bg,               #1c1c1c));
-                --CanvasText:       light-dark(var(--text,            #1c1c1c),                     var(--text,             #f8f9fa));
-                --Link:             light-dark(var(--action,          #0000ee),                     var(--action,           #8cabff));
-                --VisitedText:      light-dark(var(--action,          #551a8b),                     var(--action,           #ffadff));
-                --ActiveText:       light-dark(var(--active,          #ee0000),                     var(--active,           #ff6666));
-                --ButtonFace:       light-dark(var(--btn-bg,          #e9e9ed),                     var(--btn-bg,           #2b2a33));
-                --ButtonFaceHover:  light-dark(var(--btn-hover-bg,    #ffffff),                     var(--btn-hover-bg,     #52525e));
-                --ButtonText:       light-dark(var(--btn-text,        #1c1c1c),                     var(--btn-text,         #fbfbfe));
-                --ButtonTextHover:  light-dark(var(--btn-hover-text,    var(--ButtonText)),           var(--btn-hover-text,     var(--ButtonText)));
-                --ButtonBorder:     light-dark(var(--btn-border,        var(--border, currentColor)), var(--btn-border,         var(--border, currentColor)));
-                --Field:            light-dark(var(--field-bg,        #f8f9fa),                     var(--field-bg,         #2b2a33));
-                --FieldText:        light-dark(var(--field-text,      #1c1c1c),                     var(--field-text,       #fbfbfe));
-                --Highlight:        light-dark(var(--highlight,       #b3d8ff),                     var(--highlight,        #3f638b));
-                --HighlightText:    light-dark(var(--highlight-text,    var(--CanvasText)),           var(--highlight-text,     var(--CanvasText)));
-                --SelectedItem:     light-dark(var(--selected,        #0063e1),                     var(--selected,           skyblue));
-                --SelectedItemText: light-dark(var(--selected-text,   #ffffff),                     var(--selected-text,      black));
-                --AccentColor:      light-dark(var(--accent,          #7d004f),                     var(--accent,           #ff5ce4));
-                --AccentColorText:  light-dark(var(--accent-text,     #ffffff),                     var(--accent-text,        black));
-            }
         
-            html { 
-
-                background-color:   var(--Canvas);
-                color:              var(--CanvasText);
-            }
-
-            a         { color: var(--Link);         }
-            a:visited { color: var(--VisitedText);  }
-            a:hover   { color: var(--ActiveText);   }
-
-            /* Add at least this, if we have a rese before normalize */ /*
-            p {
-                margin-block-start:     1em;
-                margin-block-end:       1em;
-                margin-inline-start:    0;
-                margin-inline-end:      0;
-            } */
-
-            select {
-
-                &, &::picker(select) {
-
-                    appearance: base-select;
+                input, button, textarea, select {
+            
+                    font: inherit;
                 }
-                
-                &::picker(select) {
 
-                    transition: 
-                        display allow-discrete 1s, 
-                        opacity 1s, 
-                        overlay 1s allow-discrete;
-                }
-                
-                &:not(:open)::picker(select) {
-
-                    opacity: 0;
-                }
-                
-                &:open::picker(select) {
-
-                    opacity: 1;
+                pre { 
                     
-                    @starting-style {
+                    white-space: pre-wrap; /* Otherwise overflow everywhere */
+                }
+
+                hr {
+                
+                    border-style:   solid;
+                    border-width:   1px 0 0;
+                    color:          inherit;
+                    height:         0;
+                    overflow:       visible;
+                }
+
+                :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden]) {
+
+                    display:        block;
+                    vertical-align: middle;
+                    max-width:      100%;
+
+                    object-fit:     cover; 
+                    aspect-ratio:   calc(attr(width) / attr(height));
+                    max-width:      min(calc(100dvh * calc(attr(width) / attr(height))), 100%);
+                    max-height:     100dvh;
+                }
+
+                audio:not([controls]) { 
+                    
+                    display: none;
+                }
+
+                picture { 
+                    
+                    display: contents;
+                }
+
+                source { 
+                    
+                    display: none;
+                }
+
+                img, svg, video, canvas {
+
+                    height: auto;
+                }
+
+                audio { 
+                    
+                    width: 100%; 
+                }
+
+                img { 
+                    
+                    width:        100%;
+                    border-style: none; 
+                }
+
+                svg { 
+                    
+                    overflow: hidden; 
+                }
+
+                :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden]) {
+
+                    display: block;
+                }
+                
+                a {
+
+                    font-weight: 600; /* For a11y */
+                } 
+                
+                details {
+                    /*
+                    &:not(& ~ details) {
+
+                        margin-block-start: var(--gap);
+                    }
+                    
+                    &[open] {
+
+                        > summary {
+                            
+                            margin-block-end: var(--gap);
+                            
+                        }
+
+                        padding-block-end: var(--gap);
+                    }
+                    */
+                    > summary {
+
+                
+                        display: list-item;
+                        cursor:  pointer;
+                        /*
+                        white-space: nowrap;
+                        */
+                                    padding-block: calc(0.5 * var(--gap));
+                        &:has(h6) { padding-block: calc(0.6 * var(--gap)); }
+                        &:has(h5) { padding-block: calc(0.7 * var(--gap)); }
+                        &:has(h4) { padding-block: calc(0.8 * var(--gap)); }
+                        &:has(h3) { padding-block: calc(0.9 * var(--gap)); }
+                        &:has(h2) { padding-block: calc(1.0 * var(--gap)); }
+                        &:has(h1) { padding-block: calc(1.1 * var(--gap)); }
                         
-                        opacity: 0;
+                        > * {
+
+                            display: inline-block;
+                            margin-block:  0;
+
+                            &:is(h1,h2,h3,h4,h5,h6) { 
+                                
+                                display: inline-block; 
+                            }
+                        }
+                    }
+                    
+                    > details { 
+
+                        margin-inline-start: var(--gap); 
                     }
                 }
-            }
 
+                [type='checkbox'], [type='radio'] {
 
+                    box-sizing: border-box;
+                    padding:    0;
+                }       
+
+                @media (prefers-reduced-motion: reduce) {
+
+                    *, ::before, ::after {
+                        
+                        animation-delay:           -1ms     !important;
+                        animation-duration:         1ms     !important;
+                        animation-iteration-count:  1       !important;
+                        background-attachment:      initial !important;
+                        scroll-behavior:            auto    !important;
+                        transition-delay:           0s      !important;
+                        transition-duration:        0s      !important;
+                    }
+                }
+
+                /* assume explicitly small images are inline */
+                <?php foreach ([ "img", "svg", "picture" ] as $tag) foreach ([ 16, 24, 32, 48 ] as $w) { ?> 
+                <?= $tag ?>[width="<?= $w ?>"] { display: inline } 
+                <?php } ?>
+
+                /* Utilities TODO : in dedicated layer ? */
+
+                .visually-hidden:not(:focus):not(:active) {
+
+                    clip:           rect(0 0 0 0);
+                    clip-path:      inset(50%);
+                    height:         1px;
+                    overflow:       hidden;
+                    position:       absolute;
+                    white-space:    nowrap;
+                    width:          1px;
+                    margin:         0;
+                    padding:        0;
+                }
+
+                .sr-only, .sceen-reader-only, .sceen-readers-only {
+
+                    position:   absolute;
+                    left:       -10000px;
+                    top:        auto;
+                    width:      1px;
+                    height:     1px;
+                    overflow:   hidden;
+                }
+
+                [hidden] {
+
+                    display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
+                }
+
+                /* Language */
+
+                        span[lang]                   { display: inline !important }
+                [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
+                [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
+
+                /* COLORS */
+
+                /*  Here we have light & dark colors system in place, so any component that requires it can be shown */
+                .requires-color-schemes[hidden] { display: initial; }
+
+                /* Have "Sytem Colors" variables that support [data-theme] */
+                /* (that is, ie. a data-theme^=light whereas the use chose dark on this site) */ 
+                /* Choice of colors from Miriam Eric Suzanne https://www.miriamsuzanne.com/assets/css/layer/default.css */
+
+                html {
+
+                    --Canvas:           light-dark(var(--bg,              #f8f9fa),                     var(--bg,               #1c1c1c));
+                    --CanvasText:       light-dark(var(--text,            #1c1c1c),                     var(--text,             #f8f9fa));
+                    --Link:             light-dark(var(--action,          #0000ee),                     var(--action,           #8cabff));
+                    --VisitedText:      light-dark(var(--action,          #551a8b),                     var(--action,           #ffadff));
+                    --ActiveText:       light-dark(var(--active,          #ee0000),                     var(--active,           #ff6666));
+                    --ButtonFace:       light-dark(var(--btn-bg,          #e9e9ed),                     var(--btn-bg,           #2b2a33));
+                    --ButtonFaceHover:  light-dark(var(--btn-hover-bg,    #ffffff),                     var(--btn-hover-bg,     #52525e));
+                    --ButtonText:       light-dark(var(--btn-text,        #1c1c1c),                     var(--btn-text,         #fbfbfe));
+                    --ButtonTextHover:  light-dark(var(--btn-hover-text,    var(--ButtonText)),           var(--btn-hover-text,     var(--ButtonText)));
+                    --ButtonBorder:     light-dark(var(--btn-border,        var(--border, currentColor)), var(--btn-border,         var(--border, currentColor)));
+                    --Field:            light-dark(var(--field-bg,        #f8f9fa),                     var(--field-bg,         #2b2a33));
+                    --FieldText:        light-dark(var(--field-text,      #1c1c1c),                     var(--field-text,       #fbfbfe));
+                    --Highlight:        light-dark(var(--highlight,       #b3d8ff),                     var(--highlight,        #3f638b));
+                    --HighlightText:    light-dark(var(--highlight-text,    var(--CanvasText)),           var(--highlight-text,     var(--CanvasText)));
+                    --SelectedItem:     light-dark(var(--selected,        #0063e1),                     var(--selected,           skyblue));
+                    --SelectedItemText: light-dark(var(--selected-text,   #ffffff),                     var(--selected-text,      black));
+                    --AccentColor:      light-dark(var(--accent,          #7d004f),                     var(--accent,           #ff5ce4));
+                    --AccentColorText:  light-dark(var(--accent-text,     #ffffff),                     var(--accent-text,        black));
+                }
             
-            /* Navigation */
+                html { 
+
+                    background-color:   var(--Canvas);
+                    color:              var(--CanvasText);
+                }
+
+                a         { color: var(--Link);         }
+                a:visited { color: var(--VisitedText);  }
+                a:hover   { color: var(--ActiveText);   }
+
+                /* Add at least this, if we have a rese before normalize */ /*
+                p {
+                    margin-block-start:     1em;
+                    margin-block-end:       1em;
+                    margin-inline-start:    0;
+                    margin-inline-end:      0;
+                } */
+
+                select {
+
+                    &, &::picker(select) {
+
+                        appearance: base-select;
+                    }
+                    
+                    &::picker(select) {
+
+                        transition: 
+                            display allow-discrete 1s, 
+                            opacity 1s, 
+                            overlay 1s allow-discrete;
+                    }
+                    
+                    &:not(:open)::picker(select) {
+
+                        opacity: 0;
+                    }
+                    
+                    &:open::picker(select) {
+
+                        opacity: 1;
+                        
+                        @starting-style {
+                            
+                            opacity: 0;
+                        }
+                    }
+                }
+
+
                 
-            /* 
-            nav ul {
+                /* Navigation */
+                    
+                /* 
+                nav ul {
 
-                list-style: none;
+                    list-style: none;
 
-                li:before {
+                    li:before {
 
+                        content: "\200B";
+                        position: absolute;
+                    }
+                } */
+                :where(nav, [role="navigation"]) li:before {
                     content: "\200B";
                     position: absolute;
-                }
-            } */
-            :where(nav, [role="navigation"]) li:before {
-                content: "\200B";
-                position: absolute;
-                }
-        
-            :where(nav, [role="navigation"]) ul, [role="navigation"] {
-                list-style: none;
-                padding-inline-start: 0; /* Remove that arbitrary 40px padding, especialy within nav, where we already removed list item style */
-                }
-            [role="navigation"] ul[role="menu"], nav ul,
-            [role="navigation"] { display: flex; gap: var(--gap); flex-wrap: wrap; } /* BEWARE: Do not break default flow. Do not make it nowrap */
-
-
-
-                
-            u { text-decoration-style: wavy; }
-        
-            h1, p, button { text-box: trim-both cap alphabetic; }
-
-            kbd {
-                display:        inline-block;
-                border:         2px solid currentColor;
-                border-radius:  0.25rem;
-                padding:        0.1em 0.2rem;
-                font-size:      0.825em;
-            }
-
-            code:not(pre > code) {
-                
-                border:         2px solid currentColor;
-                border-radius:  0.1rem;
-                padding:        0.1em 0.2rem;
-                line-height:    calc(var(--line-height) + 0.2em);
-                width:          fit-content;
-            }
-
-            /* pre.code */
-            pre:has(> code) {
-
-                --max-width: max(70ch, 960px);
-
-                margin:         0;
-                padding:        var(--gap);
-                overflow:       auto;
-                white-space:    pre-wrap;
-
-                background-color:   light-dark(color-mix(in srgb, var(--Canvas) 95%, black), color-mix(in srgb, var(--Canvas) 50%, black));
-                box-shadow:         inset 1px 1px 2px 0 light-dark(#00000044, #000);
-
-                code {
-                    
-                    white-space: pre;
-                }
-            }
-
-            /* pre.code container */
-            :has(> pre > code):not(body, main, header, footer) {
-                
-                --max-width:    960px;                
-                max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
-                margin-inline:  auto;
-                overflow-x:     hidden;
-            }
-
-
-            p, ul, h1, h2, h3, h4, h5, h6, 
-            pre, details,
-            :is(main, footer) > */*:not(:has(p, ul, h1, h2, h3, h4, h5, h6))*/
-            {
-                --max-width:    960px;
-                max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
-                margin-inline:  auto;
-            }
+                    }
             
-            .grid {
+                :where(nav, [role="navigation"]) ul, [role="navigation"] {
+                    list-style: none;
+                    padding-inline-start: 0; /* Remove that arbitrary 40px padding, especialy within nav, where we already removed list item style */
+                    }
+                [role="navigation"] ul[role="menu"], nav ul,
+                [role="navigation"] { display: flex; gap: var(--gap); flex-wrap: wrap; } /* BEWARE: Do not break default flow. Do not make it nowrap */
 
-                --grid-default-min-width: min(300px, calc(100% - 2 * var(--gap)));
 
-                display:                grid;
-                grid-gap:               var(--gap);
-                grid-template-columns:  repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
+
+                    
+                u { text-decoration-style: wavy; }
+            
+                h1, p, button { text-box: trim-both cap alphabetic; }
+
+                kbd {
+                    display:        inline-block;
+                    border:         2px solid currentColor;
+                    border-radius:  0.25rem;
+                    padding:        0.1em 0.2rem;
+                    font-size:      0.825em;
+                }
+
+                code:not(pre > code) {
+                    
+                    border:         2px solid currentColor;
+                    border-radius:  0.1rem;
+                    padding:        0.1em 0.2rem;
+                    line-height:    calc(var(--line-height) + 0.2em);
+                    width:          fit-content;
+                }
+
+                /* pre.code */
+                pre:has(> code) {
+
+                    --max-width: max(70ch, 960px);
+
+                    margin:         0;
+                    padding:        var(--gap);
+                    overflow:       auto;
+                    white-space:    pre-wrap;
+
+                    background-color:   light-dark(color-mix(in srgb, var(--Canvas) 95%, black), color-mix(in srgb, var(--Canvas) 50%, black));
+                    box-shadow:         inset 1px 1px 2px 0 light-dark(#00000044, #000);
+
+                    code {
+                        
+                        white-space: pre;
+                    }
+                }
+
+                /* pre.code container */
+                :has(> pre > code):not(body, main, header, footer) {
+                    
+                    --max-width:    960px;                
+                    max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
+                    margin-inline:  auto;
+                    overflow-x:     hidden;
+                }
+
+
+                p, ul, h1, h2, h3, h4, h5, h6, 
+                pre, details,
+                :is(main, footer) > */*:not(:has(p, ul, h1, h2, h3, h4, h5, h6))*/
+                {/*
+                    --max-width:    960px;
+                    max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
+                    margin-inline:  auto;*/
+
+                    margin-inline: clamp(var(--gap), calc(50% - .5 * min(100%, 960px)), 50%);
+                }
                 
-                /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
+                .grid {
+
+                    --grid-default-min-width: min(300px, calc(100% - 2 * var(--gap)));
+
+                    display:                grid;
+                    grid-gap:               var(--gap);
+                    padding:                var(--gap);
+                    grid-template-columns:  repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
+                    
+                    /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
+                }
+
+                .flex {
+
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: var(--gap);
+                    align-items: center;
+                }
+
+                html.no-js .requires-js {
+
+                    display: none;
+                }
             }
 
-            .flex {
+            @layer component {
 
-                display: flex;
-                flex-wrap: wrap;
-                gap: var(--gap);
-                align-items: center;
-            }
+                .card {
 
-            html.no-js .requires-js {
-
-                display: none;
+                    padding: 0;
+                    
+                    > .card-title,
+                    > .card-text,
+                    > .card-media,
+                    > .card-action { 
+                        
+                        padding: 0;
+                    }
+                }
             }
 
 
@@ -10078,15 +10113,18 @@
             aside       { border:      3px solid var(--border-color, currentColor); }
     
             /* Text limited width & heroes full width */
+
     
                   :where(main, header, summary, nav, footer, article, details, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"]) >
             *:where(:not(main, header, summary, nav, footer, article, details, aside, blockquote, section, details, figcaption, figure, hgroup, [role="document"], [role="banner"], [role="menubar"], span, a)) {
-
+                
                 --margin-inline: var(--gap);    
                   margin-inline: var(--margin-inline);
             }
     
             :is(main, header, summary, footer) > * {
+
+                --max-width: var(--max-text-width); max-width: initial; /* Undo normalization way to do the same thing */
 
                 --max-text-width-margin-inline: clamp(var(--gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
                                                 clamp(var(--gap), calc(var(--right-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--right-text-margin-ratio) * 100%));
@@ -10098,6 +10136,8 @@
             /* Articles */
     
             body > :is(main, header, footer) > :is(article, details) {
+
+                --max-width: var(--max-text-width); max-width: initial; /* Undo normalization way to do the same thing */
 
                 --mobile-no-margin-breakpoint: 400px;
                 --margin-gap: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), var(--gap));
