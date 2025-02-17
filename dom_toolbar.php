@@ -236,15 +236,15 @@
         return "";
     }*/
 
-    function js_toolbar_height()
+    /*function js_toolbar_height()
     {
         if (has("dom_toolbar_no_js") || !!get("no_css")) return "";
-        
+
+        // TOOLBAR
+        // Needed until Firefox and Safari support scroll-driven animations
+                
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
-            /* TOOLBAR */
-            /* Needed until Firefox and Safari support scroll-driven animations */
-            
             var idAnimationFrame = null;
         
             function updateToolbarHeight(animate)
@@ -334,25 +334,23 @@
             dom.on_scroll(onUpdateToolbarHeight);
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
+    }*/
 
-    function js_toolbar_menu()
+    /*function js_toolbar_menu()
     {
         if (has("dom_toolbar_no_js")) return "";
+
+        // TOOLBAR MENU
         
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
-            /* TOOLBAR MENU */
-
             function show(selector) {
 
-                /*document.querySelector(selector).style.display = "block";*/
                 document.querySelector(selector).removeAttribute("hidden");
             }
 
             function hide(selector) {
 
-              /*document.querySelector(selector).style.display = "none";*/
                 document.querySelector(selector).setAttribute("hidden", "hidden");
             }
 
@@ -388,20 +386,18 @@
 
                 document.querySelector("#menu-open .menu").style.maxHeight = "initial";
 
-              /*ev.preventDefault();*/ /* Menu links keep being recorded in navigation history */
-
                 }); });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
+    }*/
 
-    function js_toolbar_banner_rotation()
+    /*function js_toolbar_banner_rotation()
     {
         if (has("dom_toolbar_no_js")) return "";
 
+        // TOOLBAR BANNER IMAGE ROTATION
+
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-            
-            /* TOOLBAR BANNER IMAGE ROTATION */
             
             function onInitRotatingHeaders()
             {
@@ -412,8 +408,6 @@
                         var index_url = 0;
                         var urls = content.split(",");
             
-                    /*console.log("DOM: DEBUG: Header backgrounds: ", urls);*/
-
                         if (urls && !(typeof urls === "undefined") && urls.length > 0)
                         {
                             setInterval(function()
@@ -422,8 +416,7 @@
                                 var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
 
                                 if (toolbar_row_banner)
-                                {/*
-                                    toolbar_row_banner.style.backgroundColor = "var(--theme-color)";*/
+                                {
                                     toolbar_row_banner.style.backgroundImage = "var(--linear-gradient), url(" + urls[index_url] + ")";
                                     index_url = (index_url + 1) % urls.length;
                                 }
@@ -444,9 +437,9 @@
             on_loaded(onInitRotatingHeaders);
         
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
+    }*/
 
-    function scripts_body_toolbar()
+    /*function scripts_body_toolbar()
     {
         if (has("ajax"))            return "";
         if (!!get("no_js_toolbar")) return "";
@@ -457,7 +450,7 @@
                 script(js_toolbar_menu                  ()).   "") : "");
 
         return $html;
-    }
+    }*/
 
     // ICONS
     

@@ -8626,6 +8626,20 @@
             /* does not work nested inside a layer. Use layer(name) instead
             @import url(https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css);
             */
+            /*
+
+            Some reset references
+
+            Jen Simmons’s CSS remedy            https://github.com/jensimmons/cssremedy
+            Josh W Comeau’s custom CSS reset    https://www.joshwcomeau.com/css/custom-css-reset/ 
+            Elly Loel’s modern CSS reset        https://www.ellyloel.com/projects/modern-css-reset/ 
+            Andy Bell’s (more) modern CSS reset https://piccalil.li/blog/a-more-modern-css-reset/ 
+            Jake Lazaroff’s modern CSS reset    https://jakelazaroff.com/words/my-modern-css-reset/ 
+            Dan Cătălin Burzo’s reset.css       https://danburzo.ro/snippets/css-reset/ 
+            Open Props normalize.css            https://github.com/argyleink/open-props/blob/main/src/extra/normalize.src.css
+            @acab/reset.css by Mayank           https://github.com/mayank99/reset.css 
+
+            */
         
             /* CSS Normalize */
 
@@ -8837,7 +8851,7 @@
 
                 :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden]) {
 
-                    display:        block;
+                    display:        inline-block;
                     vertical-align: middle;
                     max-width:      100%;
 
@@ -8874,7 +8888,7 @@
 
                 img { 
                     
-                    width:        100%;
+                    width:        auto;
                     border-style: none; 
                 }
 
@@ -8888,10 +8902,24 @@
                     display: block;
                 }
                 
-                a {
+                a:not(.emoticon) {
 
                     font-weight: 600; /* For a11y */
                 } 
+
+                table {
+                    
+                    border-collapse:    collapse;
+                    border-spacing:     0;
+                    text-indent:        0;
+                    
+                    th, td {
+
+                        text-align:     start;
+                        vertical-align: top;
+                        padding:        var(--gap);
+                    }
+                }
                 
                 details {
                     /*
@@ -8983,9 +9011,9 @@
                     width:          1px;
                     margin:         0;
                     padding:        0;
-                }
+                }   
 
-                .sr-only, .sceen-reader-only, .sceen-readers-only {
+                .sr-only, .screen-reader-only, .screen-readers-only {
 
                     position:   absolute;
                     left:       -10000px;
@@ -9141,13 +9169,14 @@
                 pre:has(> code) {
 
                     --max-width: max(70ch, 960px);
+                    --background-color: light-dark(color-mix(in srgb, var(--Canvas) 95%, black), color-mix(in srgb, var(--Canvas) 50%, black));
 
                     margin:         0;
                     padding:        var(--gap);
                     overflow:       auto;
                     white-space:    pre-wrap;
 
-                    background-color:   light-dark(color-mix(in srgb, var(--Canvas) 95%, black), color-mix(in srgb, var(--Canvas) 50%, black));
+                    background-color:   var(--background-color);
                     box-shadow:         inset 1px 1px 2px 0 light-dark(#00000044, #000);
 
                     code {
@@ -9165,16 +9194,23 @@
                     overflow-x:     hidden;
                 }
 
+                :where(
 
-                p, ul, h1, h2, h3, h4, h5, h6, 
-                pre, details,
-                :is(main, footer) > */*:not(:has(p, ul, h1, h2, h3, h4, h5, h6))*/
+                    p, ul, h1, h2, h3, h4, h5, h6, 
+                    pre, details, form, table,
+                    :is(main, footer) > *
+                    
+                    )/*:not(:has(p, ul, h1, h2, h3, h4, h5, h6))*/
                 {/*
                     --max-width:    960px;
                     max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
                     margin-inline:  auto;*/
+                    margin-inline:  clamp(min(4vw, var(--gap)), calc(50% - .5 * min(100%, 960px)), 50%);
 
-                    margin-inline: clamp(var(--gap), calc(50% - .5 * min(100%, 960px)), 50%);
+                    .logo & {
+
+                        margin: initial;
+                    }
                 }
                 
                 .grid {
@@ -9687,9 +9723,13 @@
             
             /* Links */
     
-            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a)         { font-weight: 600; color: var(--link-color,       #990011); }
-            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):visited { font-weight: 600; color: var(--link-color,       #990011); }
-            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):hover   { font-weight: 600; color: var(--link-hover-color, #ff00ff); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a)         { color: var(--link-color,       #990011); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):visited { color: var(--link-color,       #990011); }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):hover   { color: var(--link-hover-color, #ff00ff); }
+
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):not(.emoticon)         { font-weight: 600; }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):not(.emoticon):visited { font-weight: 600; }
+            :is(a, button.link):not(:is(h1,h2,h3,h4,h5,h6) a):not(.emoticon):hover   { font-weight: 600; }
 
             button:not(.transparent) { font-weight: 600; border: none; box-shadow: 2px 2px 4px 2px #00000055; }
 
@@ -10488,7 +10528,7 @@
         }
         $styles = [];
         foreach ($css_bundles as $css_bundle) {
-            $css = implode(PHP_EOL.PHP_EOL, $css_bundle["css"]);
+            $css = implode(eol().eol(), $css_bundle["css"]);
             $styles[] = tag('style', eol().$css.eol(), $css_bundle["attributes"]);
         }
         

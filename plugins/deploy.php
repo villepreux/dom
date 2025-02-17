@@ -28,6 +28,7 @@ $cmdline_option_compile                 = arg_state("compile");/*
 $cmdline_option_mt                      = arg_state("mt");*/
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
+$cmdline_option_villa11ty               = arg_state("villa11ty");
 $cmdline_option_clean                   = arg_state("clean");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
@@ -86,6 +87,24 @@ function deploy_is_localhost()
 $__deploy_log_line = 0;
 $__deploy_log_dimensions = [ 96, 52, 24 ]; // 4 more formatting characters will be used, if u need max line length
 $__deploy_log_progressbar_size = 0;
+$__deploy_log_has_prev_counter = false;
+
+function deploy_log_eol()
+{
+    global $__deploy_log_has_prev_counter;
+
+    $echo_counter = true;
+    $echo_counter_max_length = strlen("100.00%");
+
+    if ($echo_counter && !!$__deploy_log_has_prev_counter)
+    {
+        echo    str_repeat(mb_chr(8), $echo_counter_max_length + 3).
+                str_repeat(' ',       $echo_counter_max_length + 3).
+                str_repeat(mb_chr(8), $echo_counter_max_length + 3);
+    }
+
+    echo PHP_EOL;
+}
 
 function deploy_log()
 {
@@ -102,6 +121,18 @@ function deploy_log()
     global $__deploy_log_line, $__deploy_log_dimensions, $__deploy_log_progressbar_size;
 
     $new_line = !!deploy_at($args, 0);
+
+    global $__deploy_log_has_prev_counter;
+
+    $echo_counter = true;
+    $echo_counter_max_length = strlen("100.00%");
+
+    if ($echo_counter && !!$__deploy_log_has_prev_counter)
+    {
+        echo    str_repeat(mb_chr(8), $echo_counter_max_length + 3).
+                str_repeat(' ',       $echo_counter_max_length + 3).
+                str_repeat(mb_chr(8), $echo_counter_max_length + 3);
+    }
 
     if ($new_line)
     {
@@ -127,6 +158,14 @@ function deploy_log()
     if ($__deploy_log_progressbar_size == 0 && $progressbar_size_target > 0) echo "[";
     echo str_repeat("|", max(0, min($__deploy_log_dimensions[2], $progressbar_size_target - $__deploy_log_progressbar_size)));
     $__deploy_log_progressbar_size = $progressbar_size_target;
+
+    if ($echo_counter) 
+    {
+        $progress = str_pad(number_format(100.0 * $progress_percent + 0.000001, $echo_counter_max_length - 5)."%", $echo_counter_max_length, "0", STR_PAD_LEFT);
+        if (strlen($progress) > $echo_counter_max_length) $progress = substr($progress, strlen($progress) - $echo_counter_max_length, $echo_counter_max_length);
+        echo " [$progress]";
+        $__deploy_log_has_prev_counter = true;
+    }
 
     flush();
 }
@@ -388,6 +427,17 @@ function deploy_substr($str, $pos, $length)
 {
     $sub = "mb_substr"; // substr
     $pad = "str_pad";   // str_pad vs mb_str_pad (php >=8)
+    $len = "mb_strlen"; // strlen vs mb_strlen
+
+    $str = str_replace(chr(9), " ", trim(trim($str), '\\'));
+    /*$str = $sub($str, $pos, $length);
+    while ($len($str) < $length) $str .= " ";
+    while ($len($str) > $length) $str  = $sub($str, 0, $length);
+
+    $debug = ""; for ($c = 0; $c < mb_strlen($str); ++$c) $debug .= ",".(mb_ord($str[$c], "UTF-8") ?? "x");
+    return "$str ($debug)";
+
+    return $str;*/
 
     return $pad($sub($str, $pos, $length), $length);
 }
@@ -396,15 +446,21 @@ function deploy_diff($str1, $str2, $diff_chunk_length = 16, $prefix = "")
 {
     $str1 = str_replace("\n", "\\n", str_replace("\r", "\\r", $str1));
     $str2 = str_replace("\n", "\\n", str_replace("\r", "\\r", $str2));
+    
+    /*
+    BUG
+    [u] [40.073Z -->\n   ]          != [18.043Z -->\n   ]              [||||||||||||||||||||----]481%
+    [u] [377Z -->\n           <scr] != [328Z -->\n            <scr]    [||||||||||||||||||||----]385%        
+    */
 
     $len  = "mb_strlen"; // strlen vs iconv_strlen vs mb_strlen
     $len1 = $len($str1);
     $len2 = $len($str2);
 
     for ($c = 0; $c < min($len1, $len2); ++$c)
-    if ($str1[$c] != $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $c,    $diff_chunk_length)."] != [".deploy_substr($str2, $c,    $diff_chunk_length)."]");
-    if ($len1     <  $len2)     return $prefix.(str_pad(            $len1, 7, " ", STR_PAD_LEFT).": [".   str_repeat(" ",          $diff_chunk_length)."] <  [".deploy_substr($str2, $len1, $diff_chunk_length)."]");
-    if ($len2     <  $len1)     return $prefix.(str_pad(            $len2, 7, " ", STR_PAD_LEFT).": [".deploy_substr($str1, $len2, $diff_chunk_length)."] >  [".   str_repeat(" ",          $diff_chunk_length)."]");
+    if ($str1[$c] != $str2[$c]) return $prefix.(str_pad(number_format($c), 7, " ", STR_PAD_LEFT).": != [".deploy_substr($str1, $c,    $diff_chunk_length)."] vs [".deploy_substr($str2, $c,    $diff_chunk_length)."]");
+    if ($len1     <  $len2)     return $prefix.(str_pad(            $len1, 7, " ", STR_PAD_LEFT).": <  [".   str_repeat(" ",          $diff_chunk_length)."] vs [".deploy_substr($str2, $len1, $diff_chunk_length)."]");
+    if ($len2     <  $len1)     return $prefix.(str_pad(            $len2, 7, " ", STR_PAD_LEFT).": >  [".deploy_substr($str1, $len2, $diff_chunk_length)."] vs [".   str_repeat(" ",          $diff_chunk_length)."]");
 
     return "";
 }
@@ -728,6 +784,31 @@ if (!!$cmdline_option_test)
 if (!!$cmdline_option_generate) dom\del("generate");
 if (!!$cmdline_option_clean)    dom\del("clean");
 
+if (!!$cmdline_option_villa11ty)
+{
+    // Set 11ty folder to "PROD" mode
+
+    // TODO | make it generic: parse. find folder with _eleventy subfolder, and 
+    // TODO | apply 2nd method swithing betweeen eleventy.config.prod.js and eleventy.config.dev.js config files
+
+    $cwd = getcwd();
+    chdir($main_src."/web/11ty/11tytheme.sjoy.lol/_eleventy");
+    deploy_log("[i] 11ty: prod...");
+    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/web/11ty/11tytheme.sjoy.lol/", true, true); 
+    deploy_log("[i] 11ty: prod: done!");
+    deploy_log("");
+    chdir($cwd);
+
+    $cwd = getcwd();
+    chdir($main_src."/web/11ty/base-blog/_eleventy");
+    deploy_log("[i] 11ty: prod...");
+    deploy_log("");
+    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.prod.js", true, true); 
+    deploy_log("[i] 11ty: prod: done!");
+    deploy_log("");
+    chdir($cwd);
+}
+
 if (!!$cmdline_option_clean)
 {
     deploy_log("[i] Clean files (main root)...");
@@ -975,7 +1056,7 @@ if (!!$cmdline_option_copy)
                             $os_path_src = ($cmdline_option_os == "win") ? str_replace("/","\\","$src/$name") : "$src/$name";
                             $os_path_dst = ($cmdline_option_os == "win") ? str_replace("/","\\","$dst/$name") : "$dst/$name";
 
-                            deploy_log($file_index, $nb_files, ($new ? "[+]" : "[u]")." $dst/$name",deploy_diff($src_content, $dst_content));
+                            deploy_log($file_index, $nb_files, ($new ? "[+]" : "[u]")." $dst/$name", deploy_diff($src_content, $dst_content));
 
                             if ($cmdline_option_os == "win")  deploy_exec("copy" ." \"$os_path_src\" \"$os_path_dst\"");
                             if ($cmdline_option_os == "unix") deploy_exec("cp"   ." \"$os_path_src\" \"$os_path_dst\"");
@@ -1320,6 +1401,11 @@ if (!!$cmdline_option_compile)
                 {
                     deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name", "");
                 }
+                else
+                {
+                    deploy_log($file_index, $nb_files);
+                  //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name"); /* Good for debugging long files */
+                }                
 
                 if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
                 {
@@ -1522,7 +1608,11 @@ if (!!$cmdline_option_compile)
                     {
                         if ("$src/$name" == $dependencies_debug_checked_file) {
                             deploy_log($file_index, $nb_files, "[i] $dependencies_debug_checked_file: TOUCH $dst/$deploy_name!");
-                        }
+                        }/*
+                        else {
+                            deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name");
+                        }*/
+                        
                         touch("$dst/$deploy_name");
                     }
                 }
@@ -1796,6 +1886,32 @@ if (!!$cmdline_option_lunr)
     chdir($cwd);
 
     deploy_log("[i] generating files - LUNR index... OK");
+}
+
+if (!!$cmdline_option_villa11ty)
+{
+    // Set back 11ty folders to "DEV" mode
+    
+    // TODO | make it generic: parse. find folder with _eleventy subfolder, and 
+    // TODO | apply 2nd method swithing betweeen eleventy.config.prod.js and eleventy.config.dev.js config files
+
+    $cwd = getcwd();
+    chdir($main_src."/web/11ty/11tytheme.sjoy.lol/_eleventy");
+    deploy_log("[i] 11ty: dev...");
+    deploy_log("");
+    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/villepreux.net/web/11ty/11tytheme.sjoy.lol/", true, true); 
+    deploy_log("[i] 11ty: dev: done!");
+    deploy_log("");
+    chdir($cwd);
+
+    $cwd = getcwd();
+    chdir($main_src."/web/11ty/base-blog/_eleventy");
+    deploy_log("[i] 11ty: dev...");
+    deploy_log("");
+    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.dev.js", true, true); 
+    deploy_log("[i] 11ty: dev: done!");
+    deploy_log("");
+    chdir($cwd);
 }
 
 if (!!$cmdline_option_blogroll)

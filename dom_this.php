@@ -71,7 +71,7 @@ function code_transform_indent($code, $tab_src_size = code_tab_src_size, $tab_ds
 
 function code_css($layer = "code")
 {
-    return "";
+    //return "";
 
     HSTART() ?><style><?= HERE() ?>
 
