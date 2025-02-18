@@ -4673,7 +4673,9 @@
                         echo fread($cache_file, filesize($cache_filename));
                         fclose($cache_file);            
 
-                        echo eol().comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                        echo    eol().
+                                comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
+                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC)")));
                     }
                     else
                     {
