@@ -7574,7 +7574,7 @@
     function link_rel_webmentions()
     {
         // ie. Sets webmention' endpoint as https://webmention.io/villapirorum.netlify.app/webmention
-        // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://villepreux.free.fr&target=https://villapirorum.netlify.app/now
+        // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://www.villepreux.net&target=https://villapirorum.netlify.app/now
 
         return  link_rel("webmention", 'https://webmention.io/'.webmentions_domain().'/webmention').
                 link_rel("pingback",   'https://webmention.io/'.webmentions_domain().'/xmlrpc').
