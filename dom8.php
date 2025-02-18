@@ -4651,11 +4651,11 @@
     {
         if (!!get("cache"))
         {
-            $cache_dir = path("cache");
+            $cache_dir = path(".cache");
 
             if ($cache_dir)
             {
-                if (has("cache_reset") && is_dir("/cache")) foreach (array_diff(scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
+                if (has("cache_reset")) foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
 
                 $cache_basename         = md5(url(true) . version);
                 $cache_filename         = "$cache_dir/$cache_basename";
@@ -8638,7 +8638,7 @@
             Dan Cătălin Burzo’s reset.css       https://danburzo.ro/snippets/css-reset/ 
             Open Props normalize.css            https://github.com/argyleink/open-props/blob/main/src/extra/normalize.src.css
             @acab/reset.css by Mayank           https://github.com/mayank99/reset.css 
-
+                                                
             */
         
             /* CSS Normalize */
