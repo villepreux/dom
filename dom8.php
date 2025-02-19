@@ -4655,7 +4655,7 @@
 
             if ($cache_dir)
             {
-                if (has("cache_reset")) foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
+                if (has("cache-reset")) foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
 
                 $cache_basename         = md5(url(true) . version);
                 $cache_filename         = "$cache_dir/$cache_basename";
@@ -4675,7 +4675,7 @@
 
                         echo    eol().
                                 comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC)")));
+                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])), [ "style" => "font-size: 75%; color: color-mix(in srgb, currentColor 50%, transparent); " ]));
                     }
                     else
                     {
@@ -8904,9 +8904,15 @@
                     display: block;
                 }
                 
-                a:not(.emoticon) {
+                a {
 
                     font-weight: 600; /* For a11y */
+                }
+                
+                a.emoticon {
+
+                    font-weight: 400;
+                    text-decoration: none;
                 } 
 
                 table {
