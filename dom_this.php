@@ -8,6 +8,8 @@ const code_tab_dst_size = 2;
 
 function code_sanitize($code)
 {
+    $profiler = debug_track_timing();
+
     $lines = [];
 
     foreach (explode(PHP_EOL, $code) as $line)
@@ -177,10 +179,105 @@ function code_section($code, $client_source_url, $title, $attributes = false)
     }
 }
 
-function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = true)
+function code_highlight($code, $lang = "php")
 {
     $profiler = debug_track_timing();
 
+    $embeds = [];
+
+    if ($lang == "php")
+    {
+        // Extract other languages embeded inside php
+        
+        foreach ([ "HERE", "dom\HERE", "heredoc_flush", "dom\heredoc_flush"] as $here_func)
+        foreach ([
+
+            [ "html",       '<html>'                            .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_html"' ],
+            [ "javascript", '<script>'                          .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_js"'   ],
+            [ "css",        '<style>'                           .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_css"'  ],
+            [ "markdown",   '<code class="language-markdown">'  .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw"'      ],
+
+            ] as $language_embed)
+        {
+            list($embed_lang, $tag_bgn, $tag_end) = $language_embed;
+
+            $pos_end = 0;
+
+            while (true)
+            {
+                $pos_bgn = stripos($code, $tag_bgn, $pos_end); if ($pos_bgn === false) break;
+                $pos_end = stripos($code, $tag_end, $pos_bgn); if ($pos_end === false) break;
+
+                $placeholder = "CODEEMBED".count($embeds)."CODEEMBED";
+                $embed = substr($code, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
+                $code = substr($code, 0, $pos_bgn + strlen($tag_bgn)).$placeholder.substr($code, $pos_end);
+                $pos_end = $pos_bgn + strlen($tag_bgn) + strlen($tag_end) + strlen($placeholder);
+
+                $indent = 0;
+                $embed  = unindent($embed, $indent);
+
+                $embeds[] = [ $embed_lang, $embed, $indent ];
+            }
+        }
+    }
+
+    try {
+
+        if (class_exists("\Highlight\Highlighter")) 
+        {
+            $highlighter = @new \Highlight\Highlighter();
+
+            if ($highlighter) 
+            {
+                $code = $highlighter->highlight($lang, $code)->value;
+            } 
+            else 
+            {
+                $code = htmlentities($code);
+            }
+        } 
+        else 
+        {
+            $code = htmlentities($code);
+        }
+    }
+    catch (DomainException $e) 
+    {
+        $code = htmlentities($code);
+    }
+
+    $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
+
+    if ($lang == "php")
+    {
+        // Re-inject other languages
+        
+        foreach ($embeds as $index => $embed)
+        {
+            list($embed_lang, $embed, $embed_indent) = $embed;
+
+            $embed_indent *= code_tab_dst_size / code_tab_src_size;
+            
+            $embed = htmlentities($embed);
+            $embed = dom\code($embed, [ "class" => "language-$embed_lang",  "style" => "padding-left: {$embed_indent}ch" ]);
+
+          //$placeholder = comment("CODE-EMBED-$index");
+            $placeholder = "CODEEMBED".$index."CODEEMBED";
+            $placeholder = htmlentities($placeholder);
+            $embed = '</code>'.$embed.'<code class="language-'.$lang.'" spellcheck=false>';
+
+            $code  = str_replace($placeholder, $embed, $code);
+        }
+    }
+        
+    return pre($code, "language-$lang line-numbers");
+}
+
+function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = auto)
+{
+    $profiler = debug_track_timing();
+
+    if (auto === $code_sanitize)    $code_sanitize    = true;
     if (auto === $syntax_highlight) $syntax_highlight = !get("gemini");
 
     if ($code_sanitize)
@@ -190,87 +287,7 @@ function code($code, $title, $attributes = false, $lang = "php", $syntax_highlig
 
     if ($syntax_highlight)
     {
-        $embeds = [];
-
-        if ($lang == "php")
-        {
-            // Extract other languages embeded inside php
-            
-            foreach ([ "HERE", "dom\HERE", "heredoc_flush", "dom\heredoc_flush"] as $here_func)
-            foreach ([
-
-                [ "html",       '<html>'                            .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_html"' ],
-                [ "javascript", '<script>'                          .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_js"'   ],
-                [ "css",        '<style>'                           .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_css"'  ],
-                [ "markdown",   '<code class="language-markdown">'  .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw"'      ],
-
-                ] as $language_embed)
-            {
-                list($embed_lang, $tag_bgn, $tag_end) = $language_embed;
-
-                $pos_end = 0;
-
-                while (true)
-                {
-                    $pos_bgn = stripos($code, $tag_bgn, $pos_end); if ($pos_bgn === false) break;
-                    $pos_end = stripos($code, $tag_end, $pos_bgn); if ($pos_end === false) break;
-
-                  //$placeholder = comment("CODE-EMBED-".count($embeds));
-                    $placeholder = "CODEEMBED".count($embeds)."CODEEMBED";
-                    $embed = substr($code, $pos_bgn + strlen($tag_bgn), $pos_end - $pos_bgn - strlen($tag_bgn));
-                    $code = substr($code, 0, $pos_bgn + strlen($tag_bgn)).$placeholder.substr($code, $pos_end);
-                    $pos_end = $pos_bgn + strlen($tag_bgn) + strlen($tag_end) + strlen($placeholder);
-
-                    $indent = 0;
-                    $embed  = unindent($embed, $indent);
-
-                    $embeds[] = [ $embed_lang, $embed, $indent ];
-                }
-            }
-        }
-
-        try {
-            if (class_exists("\Highlight\Highlighter")) {
-                $hl = @new \Highlight\Highlighter();
-                if ($hl) {
-                    $highlighted = $hl->highlight($lang, $code);
-                    $code = $highlighted->value;
-                } else {
-                    $code = htmlentities($code);
-                }
-            } else {
-                $code = htmlentities($code);
-            }
-        }
-        catch (DomainException $e) {
-            $code = htmlentities($code);
-        }
-
-        $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
-
-        if ($lang == "php")
-        {
-            // Re-inject other languages
-            
-            foreach ($embeds as $index => $embed)
-            {
-                list($embed_lang, $embed, $embed_indent) = $embed;
-
-                $embed_indent *= code_tab_dst_size / code_tab_src_size;
-                
-                $embed = htmlentities($embed);
-                $embed = dom\code($embed, [ "class" => "language-$embed_lang",  "style" => "padding-left: {$embed_indent}ch" ]);
-
-              //$placeholder = comment("CODE-EMBED-$index");
-                $placeholder = "CODEEMBED".$index."CODEEMBED";
-                $placeholder = htmlentities($placeholder);
-                $embed = '</code>'.$embed.'<code class="language-'.$lang.'" spellcheck=false>';
-
-                $code  = str_replace($placeholder, $embed, $code);
-            }
-        }
-            
-        $code = pre($code, "language-$lang line-numbers");
+        $code = code_highlight($code, $lang);
     }
     else
     {

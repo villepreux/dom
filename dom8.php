@@ -179,6 +179,7 @@
         $html = "";
         {
             $html .= debug_console_line();
+            $html .= debug_console_line("Currenttime: ".date(DATE_RSS));
             $html .= debug_console_line("PHP Version: ".PHP_VERSION);
             $html .= debug_console_line("DOM Version: ".version);
 
@@ -213,7 +214,7 @@
                 }
 
                 .debug-console-line,
-                summary { color: inherit; background-color: inherit; list-style: none; margin; 0; margin-inline: 0; }
+                summary { color: inherit; background-color: inherit; list-style: none; margin; 0; margin-inline: 0; margin-inline-start: 0; margin-block: 0; padding: 0; }
                 summary::-webkit-details-marker { display: none; height: 0px; margin: 0; padding: 0; }
                 summary::marker { display: none; height: 0px; margin: 0; padding: 0; }
 
@@ -287,7 +288,7 @@
             $t = number_format($this->profiling["t"], 2);
 
           //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
-            $__profiling_timeline[] = "<details><summary>";
+            $__profiling_timeline[] = '<details class="debug-console-line"><summary class="debug-console-line">';
             $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
             $__profiling_timeline[] = "</summary>";
             $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
@@ -382,19 +383,8 @@
         
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {
-      //if (is_string($path0) && strlen($path0) > 0 && $path0[0] == '#')
-      //{
-      //    return $path0;
-      //}
-
-        global $__reentrant_path_guard;
-
-        if ($__reentrant_path_guard)
-        {
-            bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack());
-        }
-
-        $__reentrant_path_guard = true;
+        // re-entrance guard
+        global $__reentrant_path_guard; if ($__reentrant_path_guard) { bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack()); } $__reentrant_path_guard = true;
 
         $profiler = debug_track_timing();
 
@@ -4647,17 +4637,34 @@
     #region WIP API : CACHE SYSTEM
     ######################################################################################################################################
 
-    function cache_start()
+    function cache_reset($cache_dir = auto)
     {
+        if (auto === $cache_dir) $cache_dir = path(".cache");
+
+        $profiler = debug_track_timing();
+
+        foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) 
+        {
+            @unlink("$cache_dir/$basename");
+        }
+    }
+
+    function cache_start($cache_dir = auto)
+    {
+        $profiler = debug_track_timing();
+
         if (!!get("cache"))
         {
-            $cache_dir = path(".cache");
-
+            if (auto === $cache_dir) $cache_dir = path(".cache");
+    
             if ($cache_dir)
             {
-                if (has("cache-reset")) foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) @unlink("$cache_dir/$basename");
+                if (has("cache-reset")) 
+                {
+                    cache_reset();
+                }
 
-                $cache_basename         = md5(url(true) . version);
+                $cache_basename         = md5(url(true).version);
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
                 $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache_time", 1*60*60)) < filemtime($cache_filename));
@@ -4675,7 +4682,7 @@
 
                         echo    eol().
                                 comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])), [ "style" => "font-size: 75%; color: color-mix(in srgb, currentColor 50%, transparent); " ]));
+                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ]))));
                     }
                     else
                     {
@@ -4790,6 +4797,8 @@
         if (has("main") || has("main-include")) return;
 
         if (!!get("profiling")) debug_enable_profiling();
+
+        $profiler = debug_track_timing();
 
         if ($doctype    === false) { $doctype   = "html";  }
         if ($encoding   === false) { $encoding  = "utf-8"; }
@@ -5601,6 +5610,8 @@
 
     function clean_all()
     {
+        $profiler = debug_track_timing();
+
         if (true !== get("clean", auto) && 1 !== get("clean", auto) && '1' !== get("clean", auto))
         {
             return;
@@ -5629,6 +5640,8 @@
 
     function generate_all_preprocess()
     {
+        $profiler = debug_track_timing();
+
         global $__generated;
 
         foreach ($__generated as &$generated)
@@ -14598,6 +14611,8 @@
 
     function init_footnotes()
     {
+        $profiler = debug_track_timing();
+
         if (has("ajax")) 
         {
           //session_start([ 'read_and_close' => true ]);
