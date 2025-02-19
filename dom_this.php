@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom_html.php");
 
-use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer};
+use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer, layered_style};
 use const dom\auto;
 
 const code_tab_src_size = 4;
@@ -69,64 +69,59 @@ function code_transform_indent($code, $tab_src_size = code_tab_src_size, $tab_ds
     return $code;
 }
 
-function code_css($layer = "code")
+function code_css()
 {
-    //return "";
-
     HSTART() ?><style><?= HERE() ?>
 
         /* TODO: CLEANUP CSS */
 
-        @layer ide {
-
-            .ide:not(:is(.card.ide, details .ide, article .ide)) {
-                width:          fit-content;
-                max-width:      stretch;
-                max-width:      -moz-available;
-                max-width:      -webkit-fill-available;
-                border:         2px dashed var(--theme-color);
-                margin-bottom:  var(--gap);
-            }
-
-            .ide pre, .ide pre[class*=language-] {
-                margin-block:   0;
-                margin:         0 !important; /* as 3rd parties like prism.js set margin directly */
-                padding:        var(--gap);
-            }
-
-            .ide code, .ide code[class*=language-]  {
-                display:        block;
-                white-space:    pre;
-                padding:        0;
-                width:          fit-content;
-                max-width:      100%;
-                border:         none;
-                background:     unset;
-            }
-
-            :is(.card, details).ide :is(code, code[class*=language-]) {            
-                border: none;
-            }
-
-            /* Horizontal Scroll */
-
-            .card.ide {
-                overflow: hidden;
-            }        
-            .ide:not(:is(.card, details)), .card.ide > :is(.card-text, pre) {
-
-                overflow:   hidden;
-                overflow-x: auto;
-            }
-
-            /* Do not display source code when inside iframe */
-
-            .in-iframe .ide { 
-                display: none 
-            }
+        .ide:not(:is(.card.ide, details .ide, article .ide)) {
+            width:          fit-content;
+            max-width:      stretch;
+            max-width:      -moz-available;
+            max-width:      -webkit-fill-available;
+            border:         2px dashed var(--theme-color);
+            margin-bottom:  var(--gap);
         }
 
-    <?= HERE("raw_css") ?></style><?php return css_layer($layer, HSTOP());
+        .ide pre, .ide pre[class*=language-] {
+            margin-block:   0;
+            margin:         0 !important; /* as 3rd parties like prism.js set margin directly */
+            padding:        var(--gap);
+        }
+
+        .ide code, .ide code[class*=language-]  {
+            display:        block;
+            white-space:    pre;
+            padding:        0;
+            width:          fit-content;
+            max-width:      100%;
+            border:         none;
+            background:     unset;
+        }
+
+        :is(.card, details).ide :is(code, code[class*=language-]) {            
+            border: none;
+        }
+
+        /* Horizontal Scroll */
+
+        .card.ide {
+            overflow: hidden;
+        }        
+        .ide:not(:is(.card, details)), .card.ide > :is(.card-text, pre) {
+
+            overflow:   hidden;
+            overflow-x: auto;
+        }
+
+        /* Do not display source code when inside iframe */
+
+        .in-iframe .ide { 
+            display: none 
+        }
+
+    <?= HERE("raw_css") ?></style><?php return HSTOP();
 }
 
 function code_section($code, $client_source_url, $title, $attributes = false)
@@ -174,11 +169,11 @@ function code_section($code, $client_source_url, $title, $attributes = false)
     
     if ($is_card)
     {
-        return style(code_css()).div(($has_title ? card_title($title) : "").card_text($code).$view_compile_source, $attributes);
+        return layered_style("app.code.ide", code_css()).div(($has_title ? card_title($title) : "").card_text($code).$view_compile_source, $attributes);
     }
     else
     {
-        return style(code_css()).div(($has_title ? header($title) : "").$code.$view_compile_source, $attributes);
+        return layered_style("app", code_css()).div(($has_title ? header($title) : "").$code.$view_compile_source, $attributes);
     }
 }
 

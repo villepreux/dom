@@ -8858,8 +8858,13 @@
                     max-width:      100%;
 
                     object-fit:     cover; 
+
+                    aspect-ratio:   calc(var(--width) / var(--height));
+                    max-width:      min(calc(100dvh * calc(var(--width) / var(--height))), 100%);
+                    /*
                     aspect-ratio:   calc(attr(width) / attr(height));
-                    max-width:      min(calc(100dvh * calc(attr(width) / attr(height))), 100%);
+                    max-width:      min(calc(100dvh * calc(attr(width) / attr(height))), 100%);*/ /* Unsupported yet */
+
                     max-height:     100dvh;
                 }
 
@@ -9176,7 +9181,7 @@
                 /* pre.code */
                 pre:has(> code) {
 
-                    --max-width: max(70ch, 960px);
+                  /*--max-width: max(70ch, 960px);*/
                     --background-color: light-dark(color-mix(in srgb, var(--Canvas) 95%, black), color-mix(in srgb, var(--Canvas) 50%, black));
 
                     margin:         0;
@@ -9202,7 +9207,7 @@
                     overflow-x:     hidden;
                 }
 
-                :where(
+                :is( /* not where : would break things, as it's not used elsewhere here for now */
 
                     p, ul, h1, h2, h3, h4, h5, h6, 
                     pre, details, form, table,
