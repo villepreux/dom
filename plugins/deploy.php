@@ -537,6 +537,9 @@ else
     require_once("dom/dom.php"); // TODO verify, now that this code has moved from ROOT/static.php to ROOT/dom/plugin/deploy.php
 }
 
+@dom\internal_include(dom\path("tokens.php"));
+@dom\internal_include(dom\path("vendor/autoload.php"));
+
 if (!deploy_is_localhost()) { die("Can only by run locally"); }
 
 deploy_init_terminal($cmdline_option_cls);

@@ -382,7 +382,7 @@
     $__reentrant_path_guard = false;
         
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
-    {
+    {        
         // re-entrance guard
         global $__reentrant_path_guard; if ($__reentrant_path_guard) { bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack()); } $__reentrant_path_guard = true;
 
@@ -545,8 +545,8 @@
     #region WIP DEPENDENCIES
     ######################################################################################################################################
     
-    @internal_include(path("tokens.php"));
-    @internal_include(path("vendor/autoload.php"));
+    //@internal_include(path("tokens.php"));
+    //@internal_include(path("vendor/autoload.php")); // CHOCA DEBUG Moved in init()
 
     #endregion
     #region SYSTEM : PHP SYSTEM AND CMDLINE HANDLING
@@ -4656,7 +4656,7 @@
         if (!!get("cache"))
         {
             if (auto === $cache_dir) $cache_dir = path(".cache");
-    
+
             if ($cache_dir)
             {
                 if (has("cache-reset")) 
@@ -4672,17 +4672,21 @@
                 set("cache_filename", $cache_filename);
                 
                 if ($cache_file_exists && $cache_file_uptodate) 
-                {   
+                {
                     $cache_file = @fopen($cache_filename, 'r');
                     
                     if (!!$cache_file)
-                    {
+                    {                   
                         echo fread($cache_file, filesize($cache_filename));
                         fclose($cache_file);            
 
                         echo    eol().
                                 comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ]))));
+                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
+                                
+                                (!get("debug") ? "" : (debug_log().debug_console())).
+
+                                "";
                     }
                     else
                     {
@@ -4691,15 +4695,14 @@
 
                     exit;
                 }
+
+                ob_start();
             }
             else
             {
-                // Could not find cache directory
-                set("cache", false);
+                del("cache"); // Could not find cache directory
             }
-        
-            ob_start();
-        }        
+        }
     }
 
     function cache_stop()
@@ -4877,12 +4880,15 @@
             }
         }
 
-        clean_all();
-
-        generate_all_preprocess();
-        init_footnotes();
-
         if (!$binary) cache_start();
+        
+        @internal_include(path("tokens.php"));
+        @internal_include(path("vendor/autoload.php"));
+
+        clean_all();
+        generate_all_preprocess();
+        
+        init_footnotes();        
     }
 
     function placeholder_replace($placeholder, $replaced_by, $in, $container_tag = false, $container_attributes = false)
@@ -5660,7 +5666,7 @@
                 // Even if it accesses a parent/inherited file
     
                 $generated["generate"] = true;
-    
+
                      if (path($generated["path"]))        $generated["generate"] = false;
                 else if (path($generated["path"].".php")) $generated["generate"] = false;
             }
@@ -10499,6 +10505,7 @@
         $scripts = "";
 
         $styles .= eol().style(css_layers(),    false, false, auto, -1); // Ensure 1st rule!
+        
         $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "print"  ]);
         $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "screen" ]);
         $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "screen" ]);
