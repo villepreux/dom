@@ -9178,7 +9178,7 @@
                     
                 u { text-decoration-style: wavy; }
             
-                h1, p, button { text-box: trim-both cap alphabetic; }
+              /*h1, p, button { text-box: trim-both cap alphabetic; }*/ /* Breaking text blocks if applied without review and fixes */
 
                 kbd {
                     display:        inline-block;
