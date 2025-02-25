@@ -17,6 +17,13 @@
     define("DOM_CLI", isset($argv) || php_sapi_name() == "cli");
 
     #endregion
+    #region HELPERS : AUTORUN
+    ######################################################################################################################################
+
+    @internal_include(path("tokens.php"));
+    @internal_include(path("vendor/autoload.php"));
+
+    #endregion
     #region HELPERS : CONFIG
     ######################################################################################################################################
 
@@ -4882,9 +4889,6 @@
 
         if (!$binary) cache_start();
         
-        @internal_include(path("tokens.php"));
-        @internal_include(path("vendor/autoload.php"));
-
         clean_all();
         generate_all_preprocess();
         
@@ -5141,7 +5145,7 @@
             }
         }
 
-        //$start_url = ((is_localhost() ? get("canonical") : "")."/");
+      //$start_url = ((is_localhost() ? get("canonical") : "")."/");
         $start_url = url();
 
         if (false === stripos($start_url, "?")) $start_url .= "?";
@@ -7756,8 +7760,8 @@
 
             if ($url_branch != "")
             {
-                if (0 === stripos($url_branch, get("local_domain")))    $url_branch = substr($url_branch, strlen(get("local_domain")));
-                if (0 === stripos($url_branch, live_domain()))          $url_branch = substr($url_branch, strlen(live_domain()));
+                if (false !== get("local_domain") && 0 === stripos($url_branch, get("local_domain")))    $url_branch = substr($url_branch, strlen(get("local_domain")));
+                if (false !== live_domain()       && 0 === stripos($url_branch, live_domain()))          $url_branch = substr($url_branch, strlen(live_domain()));
             }
 
             $url_branch = trim($url_branch, "/");
@@ -8870,7 +8874,7 @@
                     overflow:       visible;
                 }
 
-                :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden]) {
+                :is(img, svg, video, canvas, audio, iframe, embed, object):not([hidden], .hidden) {
 
                     display:        inline-block;
                     vertical-align: middle;
@@ -8923,7 +8927,7 @@
                     overflow: hidden; 
                 }
 
-                :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden]) {
+                :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden], .hidden) {
 
                     display: block;
                 }
@@ -9055,10 +9059,8 @@
                     overflow:   hidden;
                 }
 
-                [hidden] {
-
-                    display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */
-                }
+                [hidden] { display: none /*!important*/; /* DO NOT ADD !important. Remember cascade layers + important = reverse order! */ }
+                .hidden  { display: none !important; }
 
                 /* Language */
 
@@ -9069,7 +9071,7 @@
                 /* COLORS */
 
                 /*  Here we have light & dark colors system in place, so any component that requires it can be shown */
-                .requires-color-schemes[hidden] { display: initial; }
+                .requires-color-schemes:is([hidden], .hidden) { display: initial; }
 
                 /* Have "Sytem Colors" variables that support [data-theme] */
                 /* (that is, ie. a data-theme^=light whereas the use chose dark on this site) */ 
@@ -10405,8 +10407,8 @@
 
             /* Service worker install "call to action" */
             
-            .app-install, .app-install.hidden   { display: none }
-            .app-install.visible                { display: inline-block }
+            .app-install, .app-install.hidden, .app-install[hidden] { display: none }
+            .app-install.visible                                    { display: inline-block }
 
             /* Grid & Flex */
 
@@ -10452,7 +10454,7 @@
 
             /* Misc. */
 
-            .hidden {
+            [hidden], .hidden {
                 display: none;
             }
 
@@ -10505,7 +10507,7 @@
         $scripts = "";
 
         $styles .= eol().style(css_layers(),    false, false, auto, -1); // Ensure 1st rule!
-        
+
         $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "print"  ]);
         $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "screen" ]);
         $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "screen" ]);
@@ -14778,8 +14780,9 @@
 
     function bye()
     {
-        @ob_end_clean();
-
+      //@ob_end_clean();
+        while (@ob_get_level() > 0) @ob_end_clean();
+        
         $args = func_get_args();
 
         if (count($args) == 0)

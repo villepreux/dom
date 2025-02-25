@@ -562,8 +562,9 @@ $php_args_common = "";
 
             "beautify"                      ."=".   "$cmdline_option_beautify".
         " "."minify"                        ."=".   "$cmdline_option_minify".
+        " "."cache"                         ."=".   "0".
         " "."noajax"                        ."=".   "1".                        // (SLOWER!)
-    //" "."masonry"                       ."=".   "0".                        // (Slower final website)
+      //" "."masonry"                       ."=".   "0".                        // (Slower final website)
         " "."static"                        ."=".   "1".                        // Hint to inform the site that it is a static version
         " "."scrap"                         ."=".   "$cmdline_option_scrap".    // Hint to inform it can scrap if needed, as it's a precompiled site (MUCH SLOWER!)
         " "."spa"                           ."=".   "$cmdline_option_spa".      // Hint to inform we want a Single Page Application (EXPERIMENTAL / WIP)
@@ -1916,7 +1917,38 @@ if (!!$cmdline_option_villa11ty)
     deploy_log("");
     chdir($cwd);
 }
+/*
+if (!!$cmdline_option_generate)
+{
+    deploy_log("[i] Generating files (main root)...");
 
+    $cwd = getcwd();
+    chdir($main_src);
+    {
+        
+    $php_args_local = 
+
+        " "."cache"                         ."=".   "0".
+        " "."noajax"                        ."=".   "1".                        // (SLOWER!)
+        " "."static"                        ."=".   "0".                        // Hint to inform the site that it is a static version
+        " "."rand_seed"                     ."=".   "666".
+        " "."path_max_depth"                ."=".   "32".
+        " "."rss_date_granularity_daily"    ."=".   "1".
+        " "."rss_date_granularity_file"     ."=".   "1".
+
+        "";
+
+        $php_args = "$php_args_local REQUEST_URI=/";
+
+        die("php -f index.php -- $php_args generate=1 static=0");
+
+        deploy_exec("php -f index.php -- $php_args generate=1 static=0");
+    }    
+    chdir($cwd);
+
+    deploy_log("[i] Generating files (main root)... OK");
+}
+*/
 if (!!$cmdline_option_blogroll)
 {
     deploy_log("[i] generating files - blogroll opml...");

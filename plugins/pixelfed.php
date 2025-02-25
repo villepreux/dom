@@ -52,6 +52,8 @@ function neighborhood($account_id, $limit)
     $neighbors = [];
 
     $accounts_parse_queue = following($account_id);
+    if (!is_array($accounts_parse_queue)) return $neighbors;
+
     $parsed_set = [ $account_id => true ];
 
     $known_set = [ $account_id => true ];
