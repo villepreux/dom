@@ -10071,7 +10071,7 @@
           /*ins, abbr, acronym      { } */
             u                       { text-decoration-style: wavy; }
     
-            h1, p, button { text-box: trim-both cap alphabetic; }
+            /*h1, p, button { text-box: trim-both cap alphabetic; }*/
 
             kbd {
                 display:        inline-block;
