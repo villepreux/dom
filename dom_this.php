@@ -126,7 +126,7 @@ function code_css()
     <?= HERE("raw_css") ?></style><?php return HSTOP();
 }
 
-function code_section($code, $client_source_url, $title, $attributes = false)
+function code_section($code, $client_source_url, $title = false, $attributes = false)
 {   
     $is_card   = ($attributes == "card");
     $has_title = (!!$title && "" != $title);
@@ -273,7 +273,7 @@ function code_highlight($code, $lang = "php")
     return pre($code, "language-$lang line-numbers");
 }
 
-function code($code, $title, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = auto)
+function code($code, $title = false, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = auto)
 {
     $profiler = debug_track_timing();
 
