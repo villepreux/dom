@@ -1559,7 +1559,7 @@
                 str_replace("è","e",
                 str_replace("à","a",$str)));
                 
-        return preg_replace('/\W+/','', $tolower ? strtolower(strip_tags($str)) : strip_tags($str));
+        return preg_replace('/\W+/', '', $tolower ? strtolower(strip_tags($str)) : strip_tags($str));
     }
 
     function url_exists($url)
@@ -12530,6 +12530,8 @@
         &&  $external_attributes === false
         &&  $target              === false) $url = strip_tags($html);
 
+        if ($url == "#*") $url = "#".anchor_name($html);
+
         if (($external_attributes === internal_link 
           || $external_attributes === external_link) && $target === false)
         {
@@ -12656,8 +12658,8 @@
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
     
-    function anchor_name($name, $tolower = auto) { 
-
+    function anchor_name($name, $tolower = auto)
+    {
         $lang_span_tag_en = '<span lang="en">';
         $lang_span_pos_en = stripos($name, $lang_span_tag_en);
 
@@ -12666,8 +12668,8 @@
             $name = substr($name, $lang_span_pos_en + strlen($lang_span_tag_en));
             $name = substr($name, 0, stripos($name, "<"));
         }
-        
-        return to_classname($name, $tolower);
+
+        return to_classname($name, $tolower); // TODO don't use that as it suppresses '-'
     }
 
     function anchor($name, $character = false, $tolower = auto)
