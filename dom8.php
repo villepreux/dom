@@ -1549,17 +1549,26 @@
         return $fallback;
     }
 
-    function to_classname($str, $tolower = auto)
+    function slugify($str, $tolower = auto, $separator = "-")
     {
         if ($tolower === auto) $tolower = true;
 
-        // TODO Real implementation
-        
-        $str =  str_replace("é","e",
-                str_replace("è","e",
-                str_replace("à","a",$str)));
-                
-        return preg_replace('/\W+/', '', $tolower ? strtolower(strip_tags($str)) : strip_tags($str));
+        $SPACE = "NBSP";
+
+        $str = strip_tags($str);
+        $str = $tolower ? strtolower($str) : $str;        
+        $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);        
+        $str = str_replace(" ", $SPACE, $str);
+        $str = str_replace($separator, $SPACE, $str);
+        $str = preg_replace('/\W+/', '', $str);
+        $str = str_replace($SPACE, $separator, $str);
+
+        return $str;
+    }
+
+    function to_classname($str, $tolower = auto)
+    {
+        return slugify($str, $tolower, $separator = "_");
     }
 
     function url_exists($url)
@@ -11758,9 +11767,11 @@
     function td             ($html = "", $attributes = false) {                             return  tag('td',                         $html,                                                $attributes                                                         );                      }
     function th             ($html = "", $attributes = false) {                             return  tag('th',                         $html,                                                $attributes                                                         );                      }
 
+    function bring          ($html = "", $attributes = false) {                             return  tag('b',                          $html,                                                $attributes                                                         );                      }
     function strong         ($html = "", $attributes = false) {                             return  tag('strong',                     $html,                                                $attributes                                                         );                      }
     function strike         ($html = "", $attributes = false) {                             return  tag('s',                          $html,                                                $attributes                                                         );                      }
   //function del            ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
+    function deleted        ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return  tag('em',                         $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return  tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return  tag('figure',                     $html,                                                $attributes                                                         );                      }
@@ -12669,7 +12680,7 @@
             $name = substr($name, 0, stripos($name, "<"));
         }
 
-        return to_classname($name, $tolower); // TODO don't use that as it suppresses '-'
+        return slugify($name, $tolower, '-');
     }
 
     function anchor($name, $character = false, $tolower = auto)
