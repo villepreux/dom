@@ -1571,7 +1571,7 @@
 
         $str = strip_tags($str);
         $str = $tolower ? strtolower($str) : $str;        
-        $str = iconv('UTF-8', 'ASCII//TRANSLIT', $str);        
+        $str = @iconv('UTF-8', 'ASCII//TRANSLIT', $str);        
         $str = str_replace(" ", $SPACE, $str);
         $str = str_replace($separator, $SPACE, $str);
         $str = preg_replace('/\W+/', '', $str);
@@ -7600,9 +7600,21 @@
 
         return p("Web-mention(s) sent to $label: $summary");
     }
-
-    function webmentions_api_token()
+    
+    function webmentions_api_token($recipe_index = auto)
     {       
+        if (auto === $recipe_index)
+        {
+            $recipe_index = get("webmentions_default_recipe", 0);
+        }
+
+        $recipes = get("webmentions_recipes", []);
+
+        if ($recipe_index < count($recipes))
+        {
+            return at(at($recipes, $recipe_index), "token");
+        }
+
         $token = false;
 
              if (defined("TOKEN_WEBMENTIONS_IO"))   $token = constant("TOKEN_WEBMENTIONS_IO");
@@ -7612,8 +7624,20 @@
         return $token;
     }
 
-    function webmentions_domain()
-    {       
+    function webmentions_domain($recipe_index = auto)
+    {   
+        if (auto === $recipe_index)
+        {
+            $recipe_index = get("webmentions_default_recipe", 0);
+        }
+
+        $recipes = get("webmentions_recipes", []);
+
+        if ($recipe_index < count($recipes))
+        {
+            return at(at($recipes, $recipe_index), "domain");
+        }
+
         $domain = false;
 
         if (defined("TOKEN_WEBMENTIONS_DOMAIN"))    $domain = constant("TOKEN_WEBMENTIONS_DOMAIN");
@@ -7887,10 +7911,10 @@
     /**
      * type : atom|html
      */
-    function webmentions_feed_url($type = "atom")
+    /*function webmentions_feed_url($type = "atom")
     {
         return "https://webmention.io/api/mentions.$type?token=".webmentions_api_token();
-    }
+    }*/
 
     #endregion Webmentions
 

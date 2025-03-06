@@ -599,16 +599,19 @@ function section_mastodon_comments($post_id = auto, $host = false, $username = f
 
     if (is_array($post_id))
     {
-        if (count($post_id) > 0) $post_id   = array_shift($post_id);
-        if (count($post_id) > 0) $host      = array_shift($post_id);
+        $post_info = $post_id;
+
+        if (count($post_info) > 0) $post_id   = array_shift($post_info);
+        if (count($post_info) > 0) $host      = array_shift($post_info);
 
         $host = trim($host, "@");
         if (false !== stripos($host, "@")) list($username, $host) = explode("@", $host);
 
-        if (count($post_id) > 0) $username  = array_shift($post_id);
+        if (count($post_info) > 0) $username  = array_shift($post_info);
     }
 
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+
     if (!$host || !$username || !$user_id) return "";
     
     $post_url = url_post($post_id, $host, $username);
@@ -669,7 +672,7 @@ function corresponding_post($permalink)
 
 function excerpt($html)
 {
-    set("mastondon/excerpt", $html);
+    set("mastodon/excerpt", $html);
     return $html;
 }
 
@@ -710,7 +713,7 @@ function post_excerpt($text_limit = 500)
 
     $body = "";
 
-    $excerpt = get("mastondon/excerpt"); del("mastondon/excerpt");
+    $excerpt = get("mastodon/excerpt"); del("mastodon/excerpt");
     $link    = p_read_complete_article();
     $body    = $excerpt.PHP_EOL.$link;
 
@@ -784,7 +787,7 @@ function article_excerpt_autopost_and_comments()
     }
     else if (!get("static"))
     {
-        if (!get("mastondon/excerpt"))
+        if (!get("mastodon/excerpt"))
         {
             $html = p("This article will be automatically posted on the Fediverse once an excerpt has been defined");
         }
