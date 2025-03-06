@@ -60,6 +60,11 @@
     function header_do_not_track                ()  { return 1 == at(server_headers(), 'dnt',      0); }
     function header_global_privacy_control      ()  { return 1 == at(server_headers(), 'sec-gpc',  0); }
 
+    function header_code($code, $message, $die = false) { header($_SERVER['SERVER_PROTOCOL'] . " $code $message"); if ($die) die; }
+    
+    function header_code_202($message = "Accepted",     $die = false)   { return header_code(202, $message, $die); }
+    function header_code_400($message = "Bad Request",  $die = true)    { return header_code(400, $message, $die); }
+
     $__server_vars = array("SERVER","GET");
 
     function set_server_vars($a, $b = false)    { global $__server_vars; $__server_vars = []; if ($a !== false) $__server_vars[] = $a; if ($b !== false) $__server_vars[] = $b; }
@@ -386,10 +391,19 @@
         return false;
     }
 
+    $__path_prefix_hook = "";
+    function set_path_prefix_hook($path_prefix_hook)
+    {
+        global $__path_prefix_hook;
+        $__path_prefix_hook = $path_prefix_hook;
+    }
+
     $__reentrant_path_guard = false;
-        
+            
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {        
+        global $__path_prefix_hook;
+
         // re-entrance guard
         global $__reentrant_path_guard; if ($__reentrant_path_guard) { bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack()); } $__reentrant_path_guard = true;
 
@@ -430,15 +444,15 @@
 
             // If path exists then directly return it
 
-          //if (@is_dir($path))                                         { $__reentrant_path_guard = false; return $path.$param; }
-            if (@file_exists($path))                                    { $__reentrant_path_guard = false; return $path.$param; }
-            if (($max_depth == $depth) && url_exists($path))            { $__reentrant_path_guard = false; return $path.$param; }
-          //if (($max_depth == $depth) && url_exists(url()."/".$path))  { $__reentrant_path_guard = false; return $path.$param; }
+          //if (@is_dir($__path_prefix_hook.$path))                                         { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+            if (@file_exists($__path_prefix_hook.$path))                                    { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists("$path.php"))                          { $__reentrant_path_guard = false; return $path.$param; }
-                if (($max_depth == $depth) && url_exists("$path.php"))  { $__reentrant_path_guard = false; return $path.$param; }
+                if (@file_exists($__path_prefix_hook."$path.php"))                          { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
             }
 
             // If we have already searched too many times then return fallback
@@ -4811,7 +4825,7 @@
         update_dependency_graph();
     }
     
-    function init($doctype = false, $encoding = false, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
+    function init($doctype = auto, $encoding = auto, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
         if (has("main") || has("main-include")) return;
 
@@ -4819,8 +4833,10 @@
 
         $profiler = debug_track_timing();
 
-        if ($doctype    === false) { $doctype   = "html";  }
-        if ($encoding   === false) { $encoding  = "utf-8"; }
+        if (auto  === $doctype)  { $doctype  = "html";  }
+        if (auto  === $encoding) { $encoding = "utf-8"; }
+        if (true  === $encoding) { $encoding = "utf-8"; }
+        if (false === $encoding) { $encoding = [ false, "utf-8" ]; }
 
         $rss = (has("rss") && (get("rss") == ""
                            ||  get("rss") ==  false
@@ -4830,15 +4846,20 @@
         $encoding               = get("encoding",       has("iso") ? "ISO-8859-1" : $encoding   );
         $attachement_basename   = get("attachement",    $attachement_basename                   );
 
-        if ($doctype    === false) { $doctype   = "html"; }
-        if ($encoding   === false) { $encoding  = "utf-8"; }
+        if (auto  === $doctype)  { $doctype  = "html"; }
+        if (auto  === $encoding) { $encoding = "utf-8"; }
+        if (true  === $encoding) { $encoding = "utf-8"; }
+        if (false === $encoding) { $encoding = [ false, "utf-8" ]; }
+        
+        $content_encoding = $charset_encoding = $encoding;
+        if (is_array($encoding)) { list($content_encoding, $charset_encoding) = $encoding; }
 
         $binary_types = array("png","jpg");
         $binary = in_array($doctype, $binary_types);
 
-                        set("doctype",  $doctype);
-                        set("encoding", $encoding);
-        if ($binary)    set("binary",   $binary);        
+        if ($doctype)           set("doctype",  $doctype);
+        if ($charset_encoding)  set("encoding", $charset_encoding);
+        if ($binary)            set("binary",   $binary);        
 
         $types = array
         (
@@ -4861,7 +4882,7 @@
         ,   "zip"   => 'attachment'         . (($attachement_basename !== false) ? ('; filename="'  . $attachement_basename . '.zip"') : '')
         );
 
-        $type = $doctype;
+        $type = !!$doctype ? $doctype : "html";
         {
             if (!array_key_exists($type, $types))
             {
@@ -4876,15 +4897,15 @@
         {
             if (!!get("gemini") && !get("debug"))
             {
-                \header('Content-Encoding: '.$encoding);
-                \header('Content-Disposition: inline');/*
-                \header('Content-type: text/plain; charset='.$encoding);*/
-                \header('Content-type: text/gemini; charset='.$encoding);
+                if (!!$content_encoding) \header('Content-Encoding: '.$content_encoding);
+                                         \header('Content-Disposition: inline');/*
+                if (!!$charset_encoding) \header('Content-type: text/plain; charset='.$charset_encoding);*/
+                if (!!$charset_encoding) \header('Content-type: text/gemini; charset='.$charset_encoding);
             }
             else
             {
-                if (!$binary && $content_encoding_header !== false)  \header('Content-Encoding: ' . $encoding      . '');
-                if (array_key_exists($type, $types))                 \header('Content-type: '     . $types[$type]  . '; charset=' . $encoding);
+                if (!!$content_encoding && !$binary && $content_encoding_header !== false) \header('Content-Encoding: ' . $content_encoding . '');
+                if (array_key_exists($type, $types))                                       \header('Content-type: '     . $types[$type]    . (!!$charset_encoding ? ('; charset=' . $charset_encoding) : ''));
 
                 if ($attachement_basename !== false)
                 {
@@ -5003,17 +5024,15 @@
 
         $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
 
-      //if ($compression) while (ob_get_level() > 0) { ob_end_clean() ; }  // WOuld be bad if already nested
         if ($compression) 
         {
             ob_start("ob_gzhandler");
-        }
+        }        
         {
             echo $doc;
-            cache_stop();    
+            cache_stop();
             generate_all_postprocess();
         }
-
         if ($compression) 
         {
           //ob_end_flush();
@@ -5862,7 +5881,7 @@
     function url_500px_user                 ($username = false)                                 { $username = ($username === false) ? get("500px_user")         : $username;                                                                            return "https://www.500px.com/$username/"; }
     function url_pixelfed_user              ($username = false)                                 { $username = ($username === false) ? get("pixelfed_user")      : $username;                                                                            return "https://pixelfed.social/$username/"; }
     function url_vernissage_user            ($username = false)                                 { $username = ($username === false) ? get("vernissage_user")    : $username;                                                                            return "https://vernissage.photos/@$username/"; }
-    function url_mastodon_user              ($username = false, $instance = "mastodon.social")  { $username = ($username === false) ? get("mastodon_user")      : $username; $instance = ($instance === false) ? get("mastodon_domain")    : $instance; return "https://$instance/@$username/"; }
+    function url_mastodon_user              ($username = false, $instance = false)              { $username = ($username === false) ? get("mastodon_user")      : $username; $instance = ($instance === false) ? get("mastodon_domain")    : $instance; return "https://$instance/@$username/"; }
     function url_github_user                ($username = false)                                 { $username = ($username === false) ? get("github_user")        : $username;                                                                            return "https://github.com/$username"; }
     function url_github_repository          ($username = false, $repo = false)                  { $username = ($username === false) ? get("github_user")        : $username; $repo     = ($repo     === false) ? get("github_repository")  : $repo;     return "https://github.com/$username/$repo#readme"; }
     function url_lastfm_user                ($username = false)                                 { $username = ($username === false) ? get("lastfm_user")        : $username;                                                                            return "https://last.fm/user/$username"; }
@@ -7605,8 +7624,8 @@
 
     function link_rel_webmentions()
     {
-        // ie. Sets webmention' endpoint as https://webmention.io/villapirorum.netlify.app/webmention
-        // So others can mention you with https://webmention.io/villapirorum.netlify.app/webmention/?source=https://www.villepreux.net&target=https://villapirorum.netlify.app/now
+        // ie. Sets webmention' endpoint as https://webmention.io/".live_domain()."/webmention
+        // So others can mention you with https://webmention.io/".live_domain()."/webmention/?source=https://www.villepreux.net&target=https://".live_domain()."/now
 
         return  link_rel("webmention", 'https://webmention.io/'.webmentions_domain().'/webmention').
                 link_rel("pingback",   'https://webmention.io/'.webmentions_domain().'/xmlrpc').
@@ -7802,14 +7821,14 @@
         $wm_received,   /* "2024-03-24T01:07:27Z" */
         $wm_id,         /* 1797069 */
         $wm_source,     /* "https://webmention.rocks/receive/1/aaeffae4d5674c871a72b8ee3b22bf48" */
-        $wm_target,     /* "https://villapirorum.netlify.app/web" */
+        $wm_target,     /* "https://".live_domain()."/web" */
         $wm_protocol,   /* "webmention" */
         $name,          /* "Receiver Test #1" */
 
         $content_html,  /* "<p>This test verifies that you accept a Webmention request that contains a valid source and target URL. To pass this test, your Webmention endpoint must return either HTTP 200, 201 or 202 along with the <a href=\"https://www.w3.org/TR/webmention/#receiving-webmentions\">appropriate headers</a>.</p>\n        <p>If your endpoint returns HTTP 201, then it MUST also return a <code>Location</code> header. If it returns HTTP 200 or 202, then it MUST NOT include a <code>Location</code> header.</p>" */
         $content_text,  /* "This test verifies that you accept a Webmention request that contains a valid source and target URL. To pass this test, your Webmention endpoint must return either HTTP 200, 201 or 202 along with the appropriate headers.\n        If your endpoint returns HTTP 201, then it MUST also return a Location header. If it returns HTTP 200 or 202, then it MUST NOT include a Location header. */
 
-        $in_reply_to,   /* "https://villapirorum.netlify.app/web" */
+        $in_reply_to,   /* "https://".live_domain()."/web" */
         $wm_property,   /* "in-reply-to" */
         $wm_private,    /* false */
 
@@ -7860,7 +7879,7 @@
                 input("", "url",    "form-webmention-source",   [ "placeholder" => "https://example.com", "required" => "" ])." ".
                 input("", "hidden", "target",                   [ "name" => "target", "value" => "https://www.zachleat.com/web/google-fonts-display/" ]).
                 input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]),
-                [ "action" => "https://webmention.io/villapirorum.netlify.app/webmention", "method" => "post" ]
+                [ "action" => "https://webmention.io/".live_domain()."/webmention", "method" => "post" ]
                 )).
             "", [ "style" => "padding-bottom: var(--gap)", "class" => "webmentions requires-js" ]);
     }
@@ -14692,6 +14711,9 @@
 
     function h_card($photo = auto, $bio = auto, $name = auto, $url = auto, $attributes = false, $me = false)
     {
+        // For a representative h-card
+        // span(a(get("author"), "https://".live_domain(), "u-url u-uid"), [ "class" => "h-card", "hidden" => true ]);
+
         if (!!get("gemini")) return "";
 
         // https://developer.mozilla.org/en-US/docs/Web/HTML/microformats#some_microformats_examples
@@ -14738,7 +14760,7 @@
                                               at($photo, "no-motion",                at($photo, 0                 )), attributes(attr("media", "(prefers-reduced-motion: reduce)"))).
                     img($path               = at($photo, "animated",                 at($photo, 1                 ) ), 
                         $w                  = at($photo, "width",    at($photo, "w", at($photo, 2, 300            ))), 
-                        $h                  = at($photo, "height",   at($photo, "h", at($photo, 3, 400            ))), $attr = false, 
+                        $h                  = at($photo, "height",   at($photo, "h", at($photo, 3, 400            ))), $attr = "u-photo", 
                         $alt                = at($photo, "alt",                      at($photo, 4, "Author photo" ) ), 
                         $lazy               = auto, 
                         $lazy_src           = auto, 
@@ -14758,7 +14780,7 @@
             }
             else
             {
-                $img = img($photo, 300, 400);
+                $img = img($photo, 300, 400, "u-photo");
             }
         }
 
@@ -14766,11 +14788,9 @@
 
         $attributes = attributes_add($attributes, attributes(
 
-            attr("class",   "h-card"    ), 
             attr("class",   "u-url"     ), 
             attr("class",   "u-uid"     ), 
-            attr("rel",     "me"        ), 
-            attr("hidden",  "hidden"    )
+            attr("rel",     "me"        )
         ));
 
         if (!!$me) set("a-author-me-already", true); // Prevents h-entries to embed author each time, by knowing there already is a h-card in here
@@ -14778,13 +14798,19 @@
         /*
         $a_author = !$me ? "" : a_author($name, [ "rel" => "author", "hidden" => "hidden" ]);
         $h_card   = a($img.$name.$bio, $url, $attributes);
-
         return $a_author.$h_card;
         */
 
         if (!!$me) $attributes = attributes_add($attributes, attr_author());
 
-        return a($img.$name.$bio, $url, $attributes);
+        return span(
+            
+            a($img.$name.$bio, $url, $attributes), 
+
+            attributes(        
+                attr("class",   "h-card"    ), 
+                attr("hidden",  "hidden"    ))
+            );
     }
     
     ######################################################################################################################################

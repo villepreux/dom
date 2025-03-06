@@ -26,10 +26,20 @@ function valid_username($username = false)
     return !!$username ? $username : trim(get("mastodon_author", get("mastodon_user", defined("TOKEN_MASTODON_USER") ? constant("TOKEN_MASTODON_USER") : get("author"))), "@");
 }
 
+function valid_account($host = false, $username = false)
+{
+    list($host, $username) = valid_host_username($host, $username);
+
+    return array_open_url("https://$host/api/v1/accounts/lookup?acct=$username");
+}
+
 function valid_userid($host = false, $username = false, $user_id = false)
 {
     list($host, $username) = valid_host_username($host, $username);
-    return !!$user_id ? $user_id : at(array_open_url("https://$host/api/v1/accounts/lookup?acct=$username"), "id");
+
+    $account = valid_account($host, $username);
+    
+    return !!$user_id ? $user_id : at($account, "id");
 }
 
 function valid_host_username($host = false, $username = false)
@@ -43,7 +53,8 @@ function valid_host_username($host = false, $username = false)
 function valid_host_username_userid($host = false, $username = false, $user_id = false)
 {
     list($host, $username) = valid_host_username($host, $username);
-    $user_id = !!$user_id ? $user_id : at(array_open_url("https://$host/api/v1/accounts/lookup?acct=$username"), "id");
+    $user_id = valid_userid($host, $username, $user_id);
+    
     return [ $host, $username, $user_id ];
 }
 
@@ -588,8 +599,13 @@ function section_mastodon_comments($post_id = auto, $host = false, $username = f
 
     if (is_array($post_id))
     {
-        $host       = array_shift($post_id);
-        $post_id    = array_shift($post_id);
+        if (count($post_id) > 0) $post_id   = array_shift($post_id);
+        if (count($post_id) > 0) $host      = array_shift($post_id);
+
+        $host = trim($host, "@");
+        if (false !== stripos($host, "@")) list($username, $host) = explode("@", $host);
+
+        if (count($post_id) > 0) $username  = array_shift($post_id);
     }
 
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
@@ -630,10 +646,19 @@ function live_permalink()
 
 function corresponding_post($permalink)
 {
+    $permalink_php    = str_replace(get("static_domain"), get("php_domain"), $permalink);
+    $permalink_static = str_replace(get("php_domain"), get("static_domain"), $permalink);
+
     foreach (array_user_statuses() as $post)
     {
-      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
-        if (false != stripos(at($post, "content"), $permalink)) // Not good at desambiguating articles
+      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_static))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+        if (false != stripos(at($post, "content"), $permalink_static)) // Not good at desambiguating articles
+        {
+            return $post;
+        }
+        
+      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_php))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+        if (false != stripos(at($post, "content"), $permalink_php)) // Not good at desambiguating articles
         {
             return $post;
         }
@@ -723,7 +748,8 @@ function post_excerpt($text_limit = 500)
             'Content-Type'      => "application/x-www-form-urlencoded",
             'Authorization'     => "Bearer $mastodon_villapirorum_app_token",
             "Idempotency-Key"   => live_permalink()
-        ),
+            ),
+            
         "POST", false, false, "DOM", $code, $error, $error_details
         );
 
@@ -768,6 +794,7 @@ function article_excerpt_autopost_and_comments()
         }
         else 
         {
+            \dom\bye($live_permalink);
             $html = p("Posting $live_permalink to Fediverse...").post_excerpt();
         }
     }
