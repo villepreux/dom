@@ -27,12 +27,14 @@
     #region HELPERS : CONFIG
     ######################################################################################################################################
 
-    function at($a, $k, $d = false)                                                                         { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
-    function get_all(                                       $get = true, $post = true, $session = false)    { $a = []; if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } return $a; }
-    function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session)); }
-    function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false)    { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session), $k_or_a, $d_or_k); }
-    function del($k)                                                                                        { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
-    function set($k, $v = true, $aname = false)                                                             { if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } return $v; }
+    $_DOM = [];
+
+    function at($a, $k, $d = false)                                                                                     { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
+    function get_all(                                       $get = true, $post = true, $session = false, $dom = false)  { $a = []; if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } global $_DOM; if ($dom && isset($_DOM) && is_array($_DOM)) { $a = array_merge($a, $_DOM); } return $a; }
+    function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false, $dom = false)  { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session, $dom)); }
+    function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false, $dom = true)   { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session, $dom), $k_or_a, $d_or_k); }
+    function del($k)                                                                                                    { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
+    function set($k, $v = true, $aname = false)                                                                         { global $_DOM; if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } else if ($aname === "DOM" && isset($_DOM)) { $_DOM[$k] = $v; } return $v; }
 
     #endregion
     #region HELPERS : SERVER ARGS
@@ -1563,19 +1565,22 @@
         return $fallback;
     }
 
+    require_once(__DIR__."/plugins/slugify.php");
+
     function slugify($str, $tolower = auto, $separator = "-")
     {
         if ($tolower === auto) $tolower = true;
-
-        $SPACE = "NBSP";
-
         $str = strip_tags($str);
-        $str = $tolower ? strtolower($str) : $str;        
-        $str = @iconv('UTF-8', 'ASCII//TRANSLIT', $str);        
+        $str = $tolower ? strtolower($str) : $str;
+        /*
+        $SPACE = "NBSP";
+        $str = @iconv('UTF-8', 'ASCII//TRANSLIT', $str);
         $str = str_replace(" ", $SPACE, $str);
         $str = str_replace($separator, $SPACE, $str);
         $str = preg_replace('/\W+/', '', $str);
         $str = str_replace($SPACE, $separator, $str);
+        */
+        $str = \dom\slugify\slugify($str);
 
         return $str;
     }
@@ -1744,10 +1749,10 @@
     
         $url_params = "";
         {
-            if ($method == "GET" && count($params) > 0)
+            if (/*$method == "GET" &&*/ count($params) > 0)
             {
                 $url_params = "/?".http_build_query($params, "", null, PHP_QUERY_RFC3986);
-                $url_params = "/?".implode("&", array_map(function ($key, $val) { return "$key=$val"; }, array_keys($params), array_values($params)));
+                $url_params = "/?".implode("&", array_map(function ($key, $val) { $val = urlencode(is_array($val) ? json_encode($val) : $val); return "$key=$val"; }, array_keys($params), array_values($params)));
             }
         }
     
@@ -4667,7 +4672,7 @@
     #region WIP API : CACHE SYSTEM
     ######################################################################################################################################
 
-    function cache_reset($cache_dir = auto)
+    function cache_global_reset($cache_dir = auto)
     {
         if (auto === $cache_dir) $cache_dir = path(".cache");
 
@@ -4691,7 +4696,8 @@
             {
                 if (has("cache-reset")) 
                 {
-                    cache_reset();
+                    cache_global_reset();
+                    redirect(".");
                 }
 
                 $cache_basename         = md5(url(true).version);

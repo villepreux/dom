@@ -11,7 +11,7 @@
 namespace dom\mastodon; 
 
 require_once(__DIR__."/../dom.php"); 
-use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li};
+use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li,article};
 use const \dom\{auto,external_link,internal_link};
 
 #region Constants
@@ -30,7 +30,12 @@ function valid_account($host = false, $username = false)
 {
     list($host, $username) = valid_host_username($host, $username);
 
-    return array_open_url("https://$host/api/v1/accounts/lookup?acct=$username");
+    return array_open_url(
+        
+        "https://$host/api/v1/accounts/lookup?acct=$username",
+        "json",
+        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+    );
 }
 
 function valid_userid($host = false, $username = false, $user_id = false)
@@ -96,7 +101,13 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
 {
     list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
-    return array_open_url(url_user_statuses($host, $username, $user_id), "json", 60/*seconds*/);
+    
+    return array_open_url(
+    
+        url_user_statuses($host, $username, $user_id), 
+        "json", 
+        [ "token" => get("mastodon_app_token"), "timeout" => 60 ]
+    );
 }
 
 #endregion Content requets
@@ -210,7 +221,7 @@ function comment_card(
     $minify = get("minify");
     set("minify", true);
 
-    $html = \dom\article(
+    $html = article(
 
         header(
             a(  
@@ -649,21 +660,37 @@ function live_permalink()
 
 function corresponding_post($permalink)
 {
-    $permalink_php    = str_replace(get("static_domain"), get("php_domain"), $permalink);
-    $permalink_static = str_replace(get("php_domain"), get("static_domain"), $permalink);
+    $permalink_php    = trim(str_replace(get("static_domain"), get("php_domain"), $permalink), "/ \n\r\t\v\0");
+    $permalink_static = trim(str_replace(get("php_domain"), get("static_domain"), $permalink), "/ \n\r\t\v\0");
 
-    foreach (array_user_statuses() as $post)
+    $contents = [];
+
+    foreach (get("mastodon_recipes", []) as $mastodon_recipe)
     {
-      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_static))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
-        if (false != stripos(at($post, "content"), $permalink_static)) // Not good at desambiguating articles
+        $username = at($mastodon_recipe, "user");
+        $host     = at($mastodon_recipe, "domain");
+
+        $statuses = array_user_statuses($host, $username);
+
+        $contents[$host] = [ /*"statuses" => $statuses*/ ];
+
+        foreach ($statuses as $post)
         {
-            return $post;
-        }
-        
-      //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_php))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
-        if (false != stripos(at($post, "content"), $permalink_php)) // Not good at desambiguating articles
-        {
-            return $post;
+            if (@count(at($post, "reblog", [])) > 0) continue;
+
+            $contents[$host][] = htmlentities(strip_tags(at($post, "content")));
+
+          //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_static))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+            if (false != stripos(at($post, "content"), $permalink_static)) // Not good at desambiguating articles
+            {
+                return $post;
+            }
+            
+          //if (false != stripos(at($post, "content"), html_read_complete_article($permalink_php))) // Better a desambiguating articles but not tolerant to rewording of the footer link + not tolerant to i18n
+            if (false != stripos(at($post, "content"), $permalink_php)) // Not good at desambiguating articles
+            {
+                return $post;
+            }
         }
     }
 
@@ -701,13 +728,13 @@ function p_read_complete_article($permalink = false)
     return p(html_read_complete_article($permalink));
 }
 
-function post_excerpt($text_limit = 500)
+function post_excerpt($visibility = auto /* private | public | unlisted | private | direct */, $text_limit = 500)
 {
-    // https://mastodon.social/settings/applications/5328602
+    $visibility = auto === $visibility ? "private" : $visibility;
 
-    $mastodon_villapirorum_app_id       = "Wat5RgIeOvcrq5su93SJZIopG-VjS03hbKrh4e6uRm8";
-    $mastodon_villapirorum_app_secret   = "lrk4gYhvdeqlzjNIR8_9HFip_nCvrAgDGPME_51cGbU";
-    $mastodon_villapirorum_app_token    = "NgMoge0pfla1Aanrh3qeZc42ZW1ZMSg3Ed9ESg5f-OM"; 
+    $mastodon_villapirorum_app_id       = get("mastodon_app_id");
+    $mastodon_villapirorum_app_secret   = get("mastodon_app_secret");
+    $mastodon_villapirorum_app_token    = get("mastodon_app_token"); 
 
     $api_url = "https://".get("mastodon_domain", "mastodon.social");
 
@@ -740,34 +767,39 @@ function post_excerpt($text_limit = 500)
     $error = null;
     $error_details = [];
 
-    $response = \dom\post($api_url, "api/v1/statuses"/*."?access_token=$mastodon_villapirorum_app_token"*/, 
+    $response = \dom\post($api_url, "api/v1/statuses", 
 
-        array(
-            "status"            => $body,
-            "visibility"        => "private" // public, unlisted, private, direct
-            ), 
+        [
+            "status"            => strip_tags($body),
+            "media_ids"         => [],
+            "visibility"        => $visibility
+        ], 
 
-        array(
+        [            
             'Content-Type'      => "application/x-www-form-urlencoded",
             'Authorization'     => "Bearer $mastodon_villapirorum_app_token",
             "Idempotency-Key"   => live_permalink()
-            ),
+        ],
             
         "POST", false, false, "DOM", $code, $error, $error_details
         );
 
-    return \dom\pre(json_encode(array(
+    if (is_string($response) && strlen($response) > 2 && ($response[0] == '{' || $response[0] == '['))
+    {
+        $response = json_decode($response, true);
+    }
+
+    return [
         
-        "response"  => $response, 
-        "code"      => $code, 
-        "error"     => $error, /*
-        "details"   => $error_details, */
-        "body"      => htmlentities($body)
+        "status"    => $response,
+        "code"      => (int)$code, 
+        "error"     => $error, 
+        "details"   => \dom\is_localhost() ? $error_details : null
     
-        ), JSON_PRETTY_PRINT));
+        ];
 }
 
-function article_excerpt_autopost_and_comments() 
+function article_excerpt_autopost_and_comments($visibility = auto /* private | public | unlisted | private | direct */) 
 { 
     // TODO. Solve Logic problem
     // When the workflow is compile php -> push compile static version live
@@ -782,11 +814,16 @@ function article_excerpt_autopost_and_comments()
 
     if (!!$corresponding_post)
     {
-      //$html = header(p("Comments")).section_comments_cards(at($corresponding_post, "id"));
-        $html = section_mastodon_comments(at($corresponding_post, "id"));
+      //$html =         header(p("Comments")).         section_comments_cards(   at($corresponding_post, "id"));
+      //$html =                                        section_mastodon_comments(at($corresponding_post, "id"));
+      //$html = article(header(p("Mastodon comments")).section_mastodon_comments(at($corresponding_post, "id")));
+
+        set("mastodon-post", at($corresponding_post, "id"));
     }
     else if (!get("static"))
     {
+        \dom\bye("WTF?");
+
         if (!get("mastodon/excerpt"))
         {
             $html = p("This article will be automatically posted on the Fediverse once an excerpt has been defined");
@@ -797,8 +834,28 @@ function article_excerpt_autopost_and_comments()
         }
         else 
         {
-            \dom\bye($live_permalink);
-            $html = p("Posting $live_permalink to Fediverse...").post_excerpt();
+            $html = p("Posted $live_permalink to Fediverse...").
+
+                    ((function($post_response) {
+
+                        $html = "";
+
+                        $post_id    = at(at($post_response, "status"), "id");
+                        $created_at = at(at($post_response, "status"), "created_at");
+
+                        if (!!$post_id && !!$created_at)
+                        {
+                            set("mastodon-post", $post_id);
+
+                            $html .= p("Post #$post_id");
+                        }
+
+                        $html .= \dom\pre(htmlentities(json_encode($post_response, JSON_PRETTY_PRINT)));
+
+                        return $html;
+
+                        })(post_excerpt($visibility)))
+                ;
         }
     }
 
