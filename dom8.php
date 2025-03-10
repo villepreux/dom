@@ -9744,7 +9744,7 @@
               /*--link-color:                   var(--link-color,               #aa4455);*/
                 --link-hover-color:             var(--link-color-accent,        #cc1133);
     
-                --border-color:                 var(--theme-color,              #990011);
+                --border-color:                 color-mix(in srgb, var(--theme-color, #990011) 50%, transparent);
         
                 --forms-background-color:       var(--background-lighter-color, #ffffff);
                 --forms-accent-color:           var(--theme-color,              #990011);
@@ -9767,7 +9767,17 @@
             details:not(details details)         { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
             summary:not(details details summary) { background-color: var(--background-color, #ddd); color: var(--text-on-background-color, #0d0d0d); }
     
-            input, select { color: var(--text-color); background: var(--background-lighter-color); }
+            input, select { 
+                
+                color:      var(--text-color);
+                background: var(--background-lighter-color); 
+                border:     1px solid var(--border-color);
+
+                &:active { border-color: var(--theme-color); }/*
+                &:focus  { border-color: currentColor; }*/
+
+                &[type="color"] { padding: 0 }
+            }
 
             /* Articles */
 
@@ -9829,17 +9839,19 @@
     
             u, del          { text-decoration-color: red; }
             
-            kbd {
-                border-color:       var(--background-darker-color, var(--border-color, currentColor));/*
+            kbd {/*
+                border-color:       var(--background-darker-color, var(--border-color, currentColor));
                 box-shadow-color:   var(--background-darker-color);*/
+                border-color:       var(--border-color, currentColor);
                 box-shadow:         var(--background-darker-color);
                 box-shadow:         inset 0 -1px 0 0 var(--background-darker-color);
             }
     
             code {
                 color:            var(--text-color);
-                background-color: var(--background-darker-color);
-                border-color:     var(--background-lighter-color, var(--border-color, currentColor));
+                background-color: var(--background-darker-color);/*
+                border-color:     var(--background-lighter-color, var(--border-color, currentColor));*/
+                border-color:     var(--border-color, currentColor);
             }
     
             strong { color: var(--accent-color) }
@@ -9875,7 +9887,7 @@
             :focus-visible  { outline-color:    var(--focus-visible-outline-color, var(--forms-accent-color)); }
             ::marker        { color:            var(--marker-color, var(--forms-accent-color)); }
 
-            :focus-visible  { outline-offset: .25em }
+          /*:focus-visible  { outline-offset: .25em }*/
     
             :is(::-webkit-calendar-picker-indicator,
                 ::-webkit-clear-button,
@@ -10075,12 +10087,10 @@
 
             /* Inputs */
 
-            input, button {
+            input, button, select {
+
                 font-size: inherit;
-            }
-    
-            :is(input, button):not(.transparent) {
-                padding: 0.25em 0.5rem;
+                &:not(.transparent) { padding: 0.25em 0.5rem; }
             }
                 
             /* Tables */
@@ -12566,12 +12576,10 @@
         $attributes = to_attributes($attributes);
 
         $href = at($attributes, "href");
-        $ipos = at($attributes, "data-favicon");
+        if (!$href || 0 !== stripos($href, "http")) return "";
 
-        if (!$ipos)                         return "";
-        if ($ipos == "start")               return "";
-        if (!$href)                         return "";
-        if (0 !== stripos($href, "http"))   return "";
+        $ipos = at($attributes, "data-favicon");
+        if (!$ipos || $ipos == "start") return "";
 
         $domain = get_url_domain($href);
 
@@ -12581,7 +12589,7 @@
         // QUESTION est ce que c'est un truc qui doit se faire sur le flag generate ?
         // retourner l'img<> vers cette image locale
 
-        return img("https://icons.duckduckgo.com/ip9/$domain.ico", 16, 16, "link-icon");
+        return img(url_img_domain_favicon($domain, 9), 16, 16, "link-icon", "$domain favicon", true);
     }
   
     function a($html, $url = false, $external_attributes = false, $target = false, $noopener = true, $noreferrer = true)
@@ -13540,9 +13548,9 @@
     function url_img_facebook  ($username = false) { return at(at(                                          json_facebook      (($username === false) ? get("facebook_page") : $username, "cover", false), "cover"),"source",                                                   url_img_blank()); }
     function url_img_tumblr    ($blogname = false) { return at(at(at(at(at(at(at(at(json_tumblr_blog   (($blogname === false) ? get("tumblr_blog")   : $blogname, "posts"),        "response"),"posts"),0),"trail"),0),"blog"),"theme"),"header_image", url_img_blank()); }
 
-    function url_img_domain_favicon($url)
+    function url_img_domain_favicon($url, $ip = 3)
     {
-        return "https://icons.duckduckgo.com/ip3/$url.ico";
+        return "https://icons.duckduckgo.com/ip$ip/$url.ico";
     }
 
     // CARDS
