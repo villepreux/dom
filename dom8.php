@@ -4919,7 +4919,7 @@
                     if ($attachement_length !== false)              @\header('Content-Length: '      . (($attachement_length !== true) ? $attachement_length : filesize($attachement_basename . '.zip"')) . '');
                 }
 
-                @\header('Permissions-Policy: interest-cohort=()');
+                //@\header('Permissions-Policy: interest-cohort=()'); // Error with Permissions-Policy header: Unrecognized feature: 'interest-cohort'.
             }
         }
 
@@ -5353,6 +5353,13 @@
 
     function string_robots()
     {
+        $trusted_source_content = file_get_contents("https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/refs/heads/main/robots.txt");
+
+        if (!!$trusted_source_content)
+        {
+            return $trusted_source_content;
+        }
+
         return implode(PHP_EOL, [
 
             "User-agent: AdsBot-Google",
@@ -5977,6 +5984,8 @@
 
     function include_file($filename, $silent_errors = auto)
     {
+        if (!$filename) return "";
+
         if ($silent_errors === auto)
         {
             $silent_errors = is_localhost() ? false : true;
@@ -13550,7 +13559,42 @@
 
     function url_img_domain_favicon($url, $ip = 3)
     {
-        return "https://icons.duckduckgo.com/ip$ip/$url.ico";
+        $duckduckgo_url = "https://icons.duckduckgo.com/ip$ip/$url.ico";        
+        $local_dir      = path("img/duckduckgo-icons");
+
+        if (!!$local_dir)
+        {
+            $local_path = "$local_dir/$url-$ip.ico"; // They are in fact png
+
+            if (@file_exists($local_path) 
+            ||   @url_exists($local_path)) return $local_path;
+
+            //bye("oops $url");
+
+            $downloaded_image_content = @file_get_contents("https://icons.duckduckgo.com/ip$ip/$url.ico");
+
+            if (!!$downloaded_image_content)
+            {        
+                if (!!@file_put_contents($local_path, $downloaded_image_content))
+                {
+                    return $local_path;
+                }
+            }
+            else
+            {  
+                $fallback_image_content = @file_get_contents(path("img/duckduckgo-icons/blank.ico"));
+
+                if (!!$fallback_image_content)
+                {    
+                    if (!!file_put_contents($local_path, $fallback_image_content))
+                    {
+                        return $local_path;
+                    }
+                }
+            }
+        }
+
+        return $duckduckgo_url;
     }
 
     // CARDS
