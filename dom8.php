@@ -10879,42 +10879,48 @@
 
                         navigator.serviceWorker.ready.then(function(registration) 
                         {
-                            registration.pushManager.getSubscription().then(function(subscription) 
-                            {
-                                if (!(subscription === null)) 
-                                {
-                                    dom.log("User IS subscribed.");
+                            if (registration) {
+
+                                if (registration.pushManager && registration.pushManager.getSubscription()) {
+
+                                    registration.pushManager.getSubscription().then(function(subscription) 
+                                    {
+                                        if (!(subscription === null)) 
+                                        {
+                                            dom.log("User IS subscribed.");
+                                        }
+                                        else 
+                                        {
+                                            dom.log("User is NOT subscribed.");
+                                        }
+                                    })
+
+                                    <?php if (has("push_public_key")) { ?>
+
+                                    .then(function()
+                                    {
+                                        const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("<?= get("push_public_key") ?>") };
+                                        return registration.pushManager.subscribe(subscribeOptions);
+
+                                    }).then(function(pushSubscription)
+                                    {
+                                        dom.log("Received PushSubscription: ", JSON.stringify(pushSubscription));
+                                        return pushSubscription;
+                                    })
+
+                                    <?php } ?>
+
+                                    ;
                                 }
-                                else 
-                                {
-                                    dom.log("User is NOT subscribed.");
+
+                                if (registration.sync)
+                                {  
+                                    return registration.sync.register("myFirstSync");
                                 }
-                            })
-
-                            <?php if (has("push_public_key")) { ?>
-
-                            .then(function()
-                            {
-                                const subscribeOptions = { userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array("<?= get("push_public_key") ?>") };
-                                return registration.pushManager.subscribe(subscribeOptions);
-
-                            }).then(function(pushSubscription)
-                            {
-                                dom.log("Received PushSubscription: ", JSON.stringify(pushSubscription));
-                                return pushSubscription;
-                            })
-
-                            <?php } ?>
-
-                            ;
-
-                            if (registration.sync)
-                            {  
-                                return registration.sync.register("myFirstSync");
-                            }
-                            else
-                            {  
-                                dom.log("ServiceWorker registration sync is undefined");
+                                else
+                                {  
+                                    dom.log("ServiceWorker registration sync is undefined");
+                                }
                             }
                         });
                     },                     
@@ -11883,8 +11889,8 @@
     function h4             ($html = "", $attributes = false, $anchor = false) {            return  h(4,                              $html,                                            $attributes, $anchor                                                );                      }
     function h5             ($html = "", $attributes = false, $anchor = false) {            return  h(5,                              $html,                                            $attributes, $anchor                                                );                      }
     function h6             ($html = "", $attributes = false, $anchor = false) {            return  h(6,                              $html,                                            $attributes, $anchor                                                );                      }
-    function section        ($html = "", $attributes = false) {                             return  tag('section',                    $html,                                            $attributes,                                                        );                      }
-    function header         ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
+    function section        ($html = "", $attributes = false) {                             return  tag('section',   eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
+    function header         ($html = "", $attributes = false) {                             return  tag('header',    eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
     function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
                    
     function hr             (            $attributes = false) {                             return  tag('hr',                         false,                                                $attributes, false, true                                            );                      }
@@ -11913,7 +11919,7 @@
             $attributes = attributes_add($attributes, attr("id", "main"));
         }
 
-        return tag("main", cosmetic(eol(1)).$html.cosmetic(eol(1)), $attributes); 
+        return tag("main", cosmetic(eol(1)).(!!get("minify") ? $html : indent($html)).cosmetic(eol(1)), $attributes); 
     }
     
     function sup($html, $attributes = false)
@@ -12521,7 +12527,7 @@
     // Components with BlogPosting microdata
     // NOTE. Currently, only cards with title, text, and properties sub-components are almost usable for indieweb content
 
-    function article            ($html = "", $attributes = false)   { return tag('article', $html,        attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))); }
+    function article            ($html = "", $attributes = false)   { return tag('article', eol().indent($html).eol(), attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))); }
     
     function a_author           ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_author()           )); }
     function a_category         ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_category()         )); }
