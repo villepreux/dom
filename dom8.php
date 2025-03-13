@@ -9336,7 +9336,7 @@
 
                 html.no-js .requires-js {
 
-                    display: none;
+                    display: none !important;
                 }
             }
 
