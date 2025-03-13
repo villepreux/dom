@@ -29,6 +29,8 @@ $cmdline_option_mt                      = arg_state("mt");*/
 $cmdline_option_compile_one             = arg_value("compile-one", false);
 $cmdline_option_generate                = arg_state("generate");
 $cmdline_option_villa11ty               = arg_state("villa11ty");
+$cmdline_option_villa11ty_dev           = arg_state("villa11ty-dev");
+$cmdline_option_villa11ty_prod          = arg_state("villa11ty-prod");
 $cmdline_option_clean                   = arg_state("clean");
 $cmdline_option_generate_index_files    = arg_state("generate-index-files");
 $cmdline_option_netlify                 = arg_state("netlify");
@@ -788,28 +790,74 @@ if (!!$cmdline_option_test)
 if (!!$cmdline_option_generate) dom\del("generate");
 if (!!$cmdline_option_clean)    dom\del("clean");
 
-if (!!$cmdline_option_villa11ty)
+if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod)
 {
+    function parse_11ty_index_html_files($root_path)
+    {
+        $index_html_files = [];
+
+        $parse_queue = [ $root_path ];
+
+        while (count($parse_queue) > 0)
+        {
+            $path = array_shift($parse_queue);
+        
+            foreach (scandir($path) as $name)
+            {
+                if ($name[0] == ".") continue;
+                if (is_dir("$path/$name")) { $parse_queue[] = "$path/$name"; continue; }
+                if ($name != "index.html") continue;
+                $index_html_files[] = "$path/$name";
+            }
+        }
+
+        return $index_html_files;
+    }
+
+    function parse_11ty_index_html_file_comments($root_path = ".")
+    {
+        $timestamp_comments = [];
+
+        foreach (parse_11ty_index_html_files($root_path) as $index_html_path)
+        {
+            $atime = fileatime($index_html_path);
+            $mtime = filemtime($index_html_path);
+            $html  = file_get_contents($index_html_path);
+
+            $timestamp_comments[] = [ $index_html_path, $mtime, $atime, $html ];
+        }
+
+        return $timestamp_comments;
+    }
+
     // Set 11ty folder to "PROD" mode
 
     // TODO | make it generic: parse. find folder with _eleventy subfolder, and 
     // TODO | apply 2nd method swithing betweeen eleventy.config.prod.js and eleventy.config.dev.js config files
-
+    
+    $backup_11ty_index_html_file_comments = [];
+    $backup_11ty_index_html_file_comments = array_merge($backup_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/11tytheme.sjoy.lol"));
+    $backup_11ty_index_html_file_comments = array_merge($backup_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/base-blog"));
+    
     $cwd = getcwd();
     chdir($main_src."/web/11ty/11tytheme.sjoy.lol/_eleventy");
-    deploy_log("[i] 11ty: prod...");
-    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/web/11ty/11tytheme.sjoy.lol/", true, true); 
-    deploy_log("[i] 11ty: prod: done!");
-    deploy_log("");
+    {
+        deploy_log("[i] 11ty: prod...");
+        deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/web/11ty/11tytheme.sjoy.lol/", true, true); 
+        deploy_log("[i] 11ty: prod: done!");
+        deploy_log("");
+    }
     chdir($cwd);
 
     $cwd = getcwd();
     chdir($main_src."/web/11ty/base-blog/_eleventy");
-    deploy_log("[i] 11ty: prod...");
-    deploy_log("");
-    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.prod.js", true, true); 
-    deploy_log("[i] 11ty: prod: done!");
-    deploy_log("");
+    {
+        deploy_log("[i] 11ty: prod...");
+        deploy_log("");
+        deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.prod.js", true, true); 
+        deploy_log("[i] 11ty: prod: done!");
+        deploy_log("");
+    }
     chdir($cwd);
 }
 
@@ -1892,7 +1940,7 @@ if (!!$cmdline_option_lunr)
     deploy_log("[i] generating files - LUNR index... OK");
 }
 
-if (!!$cmdline_option_villa11ty)
+if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_dev)
 {
     // Set back 11ty folders to "DEV" mode
     
@@ -1901,21 +1949,46 @@ if (!!$cmdline_option_villa11ty)
 
     $cwd = getcwd();
     chdir($main_src."/web/11ty/11tytheme.sjoy.lol/_eleventy");
-    deploy_log("[i] 11ty: dev...");
-    deploy_log("");
-    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/villepreux.net/web/11ty/11tytheme.sjoy.lol/", true, true); 
-    deploy_log("[i] 11ty: dev: done!");
-    deploy_log("");
+    {
+
+        deploy_log("[i] 11ty: dev...");
+        deploy_log("");
+        deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --pathprefix=/villepreux.net/web/11ty/11tytheme.sjoy.lol/", true, true); 
+        deploy_log("[i] 11ty: dev: done!");
+        deploy_log("");
+    }
     chdir($cwd);
 
     $cwd = getcwd();
     chdir($main_src."/web/11ty/base-blog/_eleventy");
-    deploy_log("[i] 11ty: dev...");
-    deploy_log("");
-    deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.dev.js", true, true); 
-    deploy_log("[i] 11ty: dev: done!");
-    deploy_log("");
+    {
+        deploy_log("[i] 11ty: dev...");
+        deploy_log("");
+        deploy_log_eol(); deploy_exec("npx @11ty/eleventy --output=.. --config=eleventy.config.dev.js", true, true); 
+        deploy_log("[i] 11ty: dev: done!");
+        deploy_log("");
+    }
     chdir($cwd);
+
+    deploy_log("[i] 11ty: Restore timestamps...");
+    
+    $new_11ty_index_html_file_comments = [];
+    $new_11ty_index_html_file_comments = array_merge($new_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/11tytheme.sjoy.lol"));
+    $new_11ty_index_html_file_comments = array_merge($new_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/base-blog"));
+
+    foreach ($backup_11ty_index_html_file_comments as list($bak_index_html_path, $bak_mt, $bak_at, $bak_html))
+    foreach (   $new_11ty_index_html_file_comments as list($new_index_html_path, $new_mt, $new_at, $new_html))
+    {
+        if ($bak_index_html_path == $new_index_html_path
+        &&  $bak_mt              != $new_mt)
+        {
+            file_put_contents($new_index_html_path, $bak_html);
+                        touch($new_index_html_path, $bak_mt, $bak_at);
+        }
+    }
+
+    deploy_log("[i] 11ty: Restore timestamps: Done!");
+    deploy_log("");
 }
 /*
 if (!!$cmdline_option_generate)
