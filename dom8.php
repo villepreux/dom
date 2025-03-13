@@ -8084,7 +8084,7 @@
         return link_rel($type, $path, $attributes);
     }
 
-    function meta_alternates_rss($path = "/", $auto_skip_if_no_hooked_feed_items = true)
+    function meta_alternates_rss($path = "/", $auto_skip_if_no_hooked_feed_items = true, $title = "RSS")
     {
         if ($auto_skip_if_no_hooked_feed_items)
         {
@@ -8103,7 +8103,7 @@
                                                 . 'polling-uri4'.'='.urlencode($path.'?rss=tile&id=4').';'
                                                 . 'polling-uri5'.'='.urlencode($path.'?rss=tile&id=5').';'.' cycle=1').     "")).
             eol().
-            link_rel("alternate",   get("canonical").$path.(!!get("static") ? "rss.xml" : "?rss"     ), array("type" => "application/rss+xml", "title" => "RSS")).
+            link_rel("alternate", $path.(!!get("static") ? "rss.xml" : "?rss"     ), array("type" => "application/rss+xml", "title" => $title)).
             "";
     }
 
