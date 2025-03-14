@@ -9109,11 +9109,14 @@
                     clip-path:      inset(50%);
                     height:         1px;
                     overflow:       hidden;
-                    position:       absolute;
                     white-space:    nowrap;
                     width:          1px;
                     margin:         0;
                     padding:        0;
+
+                    &:not(caption) {
+                        position: absolute;
+                    }
                 }   
 
                 .sr-only, .screen-reader-only, .screen-readers-only {
@@ -9923,15 +9926,19 @@
             /* Utilities */
 
             .visually-hidden:not(:focus):not(:active) {
+
                 clip:           rect(0 0 0 0);
                 clip-path:      inset(50%);
                 height:         1px;
                 overflow:       hidden;
-                position:       absolute;
                 white-space:    nowrap;
                 width:          1px;
                 margin:         0;
                 padding:        0;
+
+                &:not(caption) {
+                    position: absolute;
+                }
             }
 
             /* CD-TOP */
@@ -11883,12 +11890,13 @@
 
     function option         ($html = "", $value = "", $attributes = false) {                return  tag('option',                     $html, attributes_add( $attributes, attributes(attr("value", $value)))                             );                      }
 
-    function h1             ($html = "", $attributes = false, $anchor = false) {            return  h(1,                              $html,                                            $attributes, $anchor                                                );                      }
-    function h2             ($html = "", $attributes = false, $anchor = false) {            return  h(2,                              $html,                                            $attributes, $anchor                                                );                      }
-    function h3             ($html = "", $attributes = false, $anchor = false) {            return  h(3,                              $html,                                            $attributes, $anchor                                                );                      }
-    function h4             ($html = "", $attributes = false, $anchor = false) {            return  h(4,                              $html,                                            $attributes, $anchor                                                );                      }
-    function h5             ($html = "", $attributes = false, $anchor = false) {            return  h(5,                              $html,                                            $attributes, $anchor                                                );                      }
-    function h6             ($html = "", $attributes = false, $anchor = false) {            return  h(6,                              $html,                                            $attributes, $anchor                                                );                      }
+    function h1             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(1, $html, $attributes, $anchor, $headline_hook); }
+    function h2             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(2, $html, $attributes, $anchor, $headline_hook); }
+    function h3             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(3, $html, $attributes, $anchor, $headline_hook); }
+    function h4             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(4, $html, $attributes, $anchor, $headline_hook); }
+    function h5             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(5, $html, $attributes, $anchor, $headline_hook); }
+    function h6             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(6, $html, $attributes, $anchor, $headline_hook); }
+
     function section        ($html = "", $attributes = false) {                             return  tag('section',   eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
     function header         ($html = "", $attributes = false) {                             return  tag('header',    eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
     function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
