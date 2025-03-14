@@ -634,6 +634,8 @@
     
     function url_code($url, $headers = [], $userAgent = false, $proxy = false)
     {
+        $profiler = debug_track_timing();
+
         if (!!$userAgent) $headers[] = "User-Agent: $userAgent";
 
         $ch = curl_init($url);
@@ -1615,7 +1617,7 @@
 
     function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false)
     {
-        $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : $urls);
+        $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : /*$urls*/false);
 
         if (is_array($urls))
         {
@@ -5010,6 +5012,11 @@
             if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc, $attributes);
         }
 
+        if ("json" == get("doctype", false) && is_array($doc))
+        {
+            $doc = json_encode($doc);
+        }
+
         if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = placeholder_replace("DOM_HOOK_RSS_1"       , _rss      (true), $doc);
         if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = placeholder_replace("DOM_HOOK_JSONFEED_1"  , _jsonfeed (true), $doc);
         if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = placeholder_replace("DOM_HOOK_TILE_1"      , _tile     (true), $doc);
@@ -5096,7 +5103,8 @@
 
     function cached_getimagesize($src)
     {
-        $profiler = debug_track_timing($src);
+      //$profiler = debug_track_timing($src);
+        $profiler = debug_track_timing();
 
         if (!is_string($src)) return 0;
 
