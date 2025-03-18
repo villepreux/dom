@@ -13126,17 +13126,17 @@
 
                     <?php if ($has_avif) { ?><source type="image/avif" srcset="<?= $clip ?>.avif" ><?php } ?> 
                     <?php if ($has_webp) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
-                    <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
+                    <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?> 
 
-                    <?php if ($has_gif)  { ?><img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>""><?php } ?>
+                    <?php if ($has_gif)  { ?><img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>""><?php } ?> 
 
                 </picture>
 
             <?php if ($has_video) { ?></noscript><?php } ?>
 
             <?php if ($has_video) { ?>
-            
-                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>">
+
+                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"> 
 
                     <?php if ($has_webm) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
                     <?php if ($has_mp4)  { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
