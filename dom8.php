@@ -8815,7 +8815,7 @@
                     &[data-theme^="light"] { color-scheme: light; }
                     &[data-theme^="dark"]  { color-scheme: dark;  }
 
-                    container-type: size;   
+                    /*container-type: size;   */
                     interpolate-size: allow-keywords;
                     
                     height:         100%;
@@ -9985,10 +9985,10 @@
                 initial-value: 0px; 
             }
 
-            html {
+            /*html {
 
                 container-type: size;
-            }
+            }*/
 
             /* My own base/remedy css  */
 
@@ -10063,7 +10063,9 @@
                 min-width:  0;
                 min-height: 0;
             }
-    
+
+            /* body {position:absolute} Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
+            
             html {
                 height: 100%;
                 height: -webkit-fill-available;
@@ -10079,7 +10081,6 @@
                 min-block-size: stretch;
                 margin: 0px;
                 padding: 0px;
-                /* Needed if we want this snippet to work with, say, a h1 element with top margin at the beginning of the body */
                 position: absolute;
                 top: 0;
                 width: 100%;
