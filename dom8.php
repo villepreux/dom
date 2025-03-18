@@ -13010,6 +13010,7 @@
         $attributes = attributes_as_string($attributes);
         $attributes = $attributes == "" ? "" : " $attributes";
 
+        $has_gif  = file_exists("$clip.gif");
         $has_webp = file_exists("$clip.webp");
         $has_avif = file_exists("$clip.avif");
         $has_apng = file_exists("$clip.apng");
@@ -13127,7 +13128,7 @@
                     <?php if ($has_webp) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
                     <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?>
 
-                    <img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"">
+                    <?php if ($has_gif)  { ?><img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>""><?php } ?>
 
                 </picture>
 
@@ -13140,7 +13141,7 @@
                     <?php if ($has_webm) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
                     <?php if ($has_mp4)  { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
 
-                    <img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>">
+                    <?php if ($has_gif)  { ?><img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>"><?php } ?> 
 
                 </video>
 
