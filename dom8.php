@@ -8882,30 +8882,31 @@
                     {
                         width: 100%;
                     }
+                   
+
+                    > main {
+
+                        width:      100%;
+                        min-height: 100svh;
+
+                        &:has(article:nth-of-type(2)) {
+
+                            display:        flex;
+                            flex-direction: column;
+                            gap:            var(--gap);
+
+                            article {
+
+                                border:  1px solid color-mix(in srgb, currentColor 25%, transparent); /*
+                                padding: var(--gap); */
+                            }
+                        }
+                    }
                 }
 
                 main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
 
                     display: flow-root;
-                }
-
-                main {
-
-                    width:      100%;
-                    min-height: 100svh;
-
-                    &:has(article:nth-of-type(2)) {
-
-                        display:        flex;
-                        flex-direction: column;
-                        gap:            var(--gap);
-
-                        article {
-
-                            border:  1px solid color-mix(in srgb, currentColor 25%, transparent); /*
-                            padding: var(--gap); */
-                        }
-                    }
                 }
                 
                 h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
@@ -9335,6 +9336,11 @@
                     grid-template-columns:  repeat(auto-fit, minmax(var(--grid-default-min-width), 1fr));
                     
                     /*overflow: hidden;*/ /* if overflow is hidden, then needs to have a padding equivalent to elements box shadow size */
+                }
+
+                article article:not(.grid article) {
+
+                    margin: var(--gap);
                 }
 
                 .flex {
