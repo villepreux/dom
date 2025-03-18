@@ -8815,7 +8815,7 @@
                     &[data-theme^="light"] { color-scheme: light; }
                     &[data-theme^="dark"]  { color-scheme: dark;  }
 
-                    /*container-type: size;   */
+                    /*container-type: size;   */ /* ISSUE: https://github.com/w3c/csswg-drafts/issues/9003#issue-1772177852 */
                     interpolate-size: allow-keywords;
                     
                     height:         100%;
@@ -9985,10 +9985,10 @@
                 initial-value: 0px; 
             }
 
-            /*html {
+            html {
 
-                container-type: size;
-            }*/
+                /* container-type: size; */  /* ISSUE: https://github.com/w3c/csswg-drafts/issues/9003#issue-1772177852 */
+            }
 
             /* My own base/remedy css  */
 
