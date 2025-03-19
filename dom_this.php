@@ -14,8 +14,8 @@ function code_sanitize($code)
 
     foreach (explode(PHP_EOL, $code) as $line)
     {
-        if (0     === stripos(trim($line),                       "//"            )) continue;
-        if (false !== stripos(str_replace(["\t",""], "", $line), "/"."/!PRIVATE" )) continue;
+        if (0     === stripos(trim($line),                       "//"       )) continue;
+        if (false !== stripos(str_replace(["\t",""], "", $line), "!PRIVATE" )) continue;
 
         $lines[] = $line;
     }
