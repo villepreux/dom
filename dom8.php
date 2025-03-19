@@ -9755,6 +9755,39 @@
     #endregion
     #region Base CSS
 
+    function css_visually_hidden()
+    {
+        HSTART() ?><style> .visually-hidden { <?= HERE() ?>
+
+            clip:           rect(0 0 0 0);
+            clip-path:      inset(50%);
+            height:         1px;
+            overflow:       hidden;
+            white-space:    nowrap;
+            width:          1px;
+            margin:         0;
+            padding:        0;
+
+            &:not(caption) {
+
+                position: absolute;
+            }
+
+        <?= HERE("raw_css") ?> } </style><?php return HSTOP();
+    }
+
+    function css_declare_visually_hidden($target)
+    {
+        HSTART() ?><style><?= HERE() ?>
+
+            <?= $target ?>:not(:focus):not(:active) {
+
+                <?= css_visually_hidden() ?>
+            }
+
+        <?= HERE("raw_css") ?></style><?php return HSTOP();
+    }
+
     function css_base_colors($layer = "base-colors")
     {  
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
@@ -9942,21 +9975,8 @@
 
             /* Utilities */
 
-            .visually-hidden:not(:focus):not(:active) {
+            <?= css_declare_visually_hidden(".visually-hidden") ?>
 
-                clip:           rect(0 0 0 0);
-                clip-path:      inset(50%);
-                height:         1px;
-                overflow:       hidden;
-                white-space:    nowrap;
-                width:          1px;
-                margin:         0;
-                padding:        0;
-
-                &:not(caption) {
-                    position: absolute;
-                }
-            }
 
             /* CD-TOP */
 
