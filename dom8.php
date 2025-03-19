@@ -762,6 +762,19 @@
 
         set("img_lazy_loading_after",           3);
 
+        set("css-layers", [ 
+
+            "spec",
+            "browser",
+            "reset",
+            "normalize",
+            "default.layout",
+            "default.layout-colors",
+            "default.component",
+            "default" 
+        
+            ], "DOM");
+
         // Can be modified at browser URL level
 
         if (false !== get("canonical",    url()   )) set("canonical",    get("canonical",    url()   ));
@@ -8328,7 +8341,7 @@
     function css_layer_order($layers)
     {
         if (!get("css_layers_support")) return "";
-        if (func_num_args() > 0) $layers = func_get_args();
+        if (func_num_args() > 1) $layers = func_get_args();
         else if (!is_array($layers)) $layers = array(explode(",", trim(str_replace(" ", "", $layers))));
         return "@layer ".implode(", ", $layers).";";
     }
@@ -8558,17 +8571,7 @@
 
     function css_layers()
     {
-        return css_layer_order(
-            
-            "spec",
-            "browser",
-            "reset",
-            "normalize",
-            "default.layout",
-            "default.layout-colors",
-            "default.component",
-            "default"
-        );
+        return css_layer_order(get("css-layers"));
     }
     
     function css_root($vars, $layer = false, $root = ":root")
