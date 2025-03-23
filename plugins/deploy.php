@@ -551,7 +551,7 @@ deploy_init_terminal($cmdline_option_cls);
 
 $root_sources = array("$main_src", "$main_src/dom"); // TODO Generate this list from at_root() ?
 {
-    foreach (array("portfolio/web", "dom/examples") as $path)
+    foreach (array("tmp/web", "portfolio/web", "dom/examples") as $path)
         $root_sources = array_merge($root_sources, array_map(
             function($name) use ($main_src, $path) { return "$main_src/$path/$name"; }, 
             deploy_subdirs("$main_src/$path")

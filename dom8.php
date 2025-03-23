@@ -1423,11 +1423,11 @@
         return strtoupper($countryCode);
     }
 
-    function get_language_shots()
+    function get_language_shorts()
     {
         $langs = [];
-        $langs["en"] = true;
-        $langs[strtolower(client_language_short())] = true;
+        $langs[strtolower(client_language_short())] = true; // Current first
+        $langs["en"] = true; // English as fallback
 
         foreach (get_all() as $key => $text)
         {
@@ -1523,7 +1523,7 @@
                 {
                     $html = "";
 
-                    foreach (get_language_shots() as $lang) {
+                    foreach (get_language_shorts() as $lang) {
                         $key = strtolower("i18n-$lang-$label");
                         if (has($key)) {
                             debug_log("i18n / $label -> $key -> ".get($key, ""));
@@ -1535,7 +1535,7 @@
                 }
                 else
                 {                    
-                    foreach (get_language_shots() as $lang) {
+                    foreach (get_language_shorts() as $lang) {
                         $key = strtolower("i18n-$lang-$label");
                         if (has($key)) {
                             debug_log("i18n / $label -> $key -> ".get($key, ""));
