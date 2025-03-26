@@ -11965,9 +11965,113 @@
             $attributes = attributes_add($attributes, attr("id", "main"));
         }
 
+        main_post_processing($html);
+
         return tag("main", cosmetic(eol(1)).(!!get("minify") ? $html : indent($html)).cosmetic(eol(1)), $attributes); 
     }
+
+    function main_post_processing($html)
+    {
+        if (!!get("toc-required"))
+        {
+            set("toc-html", extract_toc_from_html($html, 3, "ul",  "li",      "span"),    "DOM");
+          //set("toc-html", extract_toc_from_html($html, 3, "div", "details", "summary"), "DOM");
+        }
+    }
+
+    function toc_tree_to_html_list($array, $max_depth = 3, $list_tag = "ul", $list_item_tag = "li", $list_item_wrapper_tag = "span", $depth = 0)
+    {
+        if ($depth > $max_depth) return "";
+
+        $list_tag              = is_callable($list_tag)              ? $list_tag              : (is_callable("\\$list_tag")              ? $list_tag              : "\\dom\\$list_tag");
+        $list_item_tag         = is_callable($list_item_tag)         ? $list_item_tag         : (is_callable("\\$list_item_tag")         ? $list_item_tag         : "\\dom\\$list_item_tag");
+        $list_item_wrapper_tag = is_callable($list_item_wrapper_tag) ? $list_item_wrapper_tag : (is_callable("\\$list_item_wrapper_tag") ? $list_item_wrapper_tag : "\\dom\\$list_item_wrapper_tag");
+
+        $html = "";
+
+        foreach ($array as $element) {
+
+            $text     = at($element, "text");
+            $id       = at($element, "id");
+            $children = at($element, "children", []);
+
+            $html_children = "";
+
+            if (count($children) > 0) 
+            {
+                $html_children .= $list_tag(toc_tree_to_html_list($children, $max_depth, $list_tag, $list_item_tag, $list_item_wrapper_tag, $depth + 1));
+            }
+
+            if (!!$text) 
+            {
+                $html .= $list_item_tag($list_item_wrapper_tag(!!$id ? a($text, "#$id") : $text).$html_children);
+            }
+            else 
+            {
+                $html .= $html_children;
+            }
+        }
+
+        return $html;
+    }
+
+    function extract_toc_from_html($html, $max_depth = 3, $list_tag = "ul", $list_item_tag = "li", $list_item_wrapper_tag = "span")
+    {
+        // Based on Terence Eden's https://shkspr.mobi/blog/2025/03/create-a-table-of-contents-based-on-html-heading-elements/
+
+        $dom = new \DOMDocument();
+        libxml_use_internal_errors( true );
+        $dom->loadHTML("<!DOCTYPE html><html><head><meta charset=UTF-8></head><body>" . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        libxml_clear_errors();
+
+        $xpath = new \DOMXPath($dom);
+        $headings = $xpath->query( "//h1 | //h2 | //h3 | //h4 | //h5 | //h6" );
+
+        $root  = [ [ "children" => [] ] ];
+        $stack = [&$root];
+
+        foreach ($headings as $heading) 
+        {
+            $element = $heading->nodeName;  //  e.g. h2, h3, h4, etc
+            $text    = trim( $heading->textContent );  
+            $id      = $heading->getAttribute("id");
+            $level   = (int)substr($element, 1);
+            $node    = [ "text" => $text, "id" => $id, "children" => [] ];
+
+            //  Ensure there are no gaps in the heading hierarchy
+
+            while (count($stack) > $level) array_pop($stack);
+
+            //  If a gap exists (e.g., h4 without an immediately preceding h3), create placeholders
+
+            while (count($stack) < $level) 
+            {
+                $stackSize = count($stack);
+                $lastIndex = count($stack[$stackSize - 1]) - 1; //  What's the last element in the stack?
+                
+                if ($lastIndex < 0)  //  If there is no previous sibling, create a placeholder parent
+                {
+                    $stack[$stackSize - 1][] = [ "text" => "", "children" => [] ];
+                    $stack[] = &$stack[count($stack) - 1][0]['children'];
+                } 
+                else 
+                {
+                    $stack[] = &$stack[count($stack) - 1][$lastIndex]['children'];
+                }
+            }
+
+            //  Add the node to the current level
+
+            $stack[count($stack) - 1][] = $node;
+            $stack[] = &$stack[count($stack) - 1][count($stack[count($stack) - 1]) - 1]['children'];
+        }
+
+        return toc_tree_to_html_list($root, $max_depth, $list_tag, $list_item_tag, $list_item_wrapper_tag);
+    }
     
+    function toc()  { set("toc-required", "DOM"); return delayed_component("_".__FUNCTION__, false); }
+    function _toc() { return get("toc-html", ""); }
+
     function sup($html, $attributes = false)
     {
         return tag("sup", $html, $attributes); 
