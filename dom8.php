@@ -1585,8 +1585,16 @@
     function slugify($str, $tolower = auto, $separator = "-")
     {
         if ($tolower === auto) $tolower = true;
-        $str = strip_tags($str);
+        $str = @strip_tags($str);
+        $str = @html_entity_decode($str);
         $str = $tolower ? strtolower($str) : $str;
+        /*
+        $str = str_replace("’",         $separator, $str);
+        $str = str_replace("\u{8217}",  $separator, $str);
+        $str = str_replace('\u8217',    $separator, $str);
+        $str = str_replace('&#8217;',   $separator, $str);
+        $str = str_replace('&#x2019;',  $separator, $str);
+        $str = str_replace('&rsquo;',   $separator, $str);*/
         /*
         $SPACE = "NBSP";
         $str = @iconv('UTF-8', 'ASCII//TRANSLIT', $str);
@@ -1595,9 +1603,7 @@
         $str = preg_replace('/\W+/', '', $str);
         $str = str_replace($SPACE, $separator, $str);
         */
-        $str = \dom\slugify\slugify($str);
-
-        return $str;
+        return \dom\slugify\slugify($str, $separator);
     }
 
     function to_classname($str, $tolower = auto)

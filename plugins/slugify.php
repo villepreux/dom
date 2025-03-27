@@ -85,8 +85,8 @@ class Slugify {
     public static function create(/*array*/ $options = []): self { return new static($options); } 
 }
 
-function slugify($str)
+function slugify($str, $separator = '-')
 {
     $slugify = new Slugify();
-    return $slugify->slugify($str);  
+    return $slugify->slugify($str, $separator);  
 }
