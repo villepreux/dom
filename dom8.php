@@ -1165,13 +1165,16 @@
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
             /* DOM Body Javascript boilerplate */
-            
-            on_loaded(function() {
 
-                while ((typeof ajax_pending_calls !== "undefined") && ajax_pending_calls.length > 0) { pop_ajax_call(); };
-                /*setInterval(pop_ajax_call, 1*1000);*/
+            if (typeof on_loaded !== "undefined") {
+                
+                on_loaded(function() {
 
-                });
+                    while ((typeof ajax_pending_calls !== "undefined") && ajax_pending_calls.length > 0) { pop_ajax_call(); };
+                    /*setInterval(pop_ajax_call, 1*1000);*/
+
+                    });
+            }
             
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
@@ -9127,6 +9130,7 @@
                     clip-path:      inset(50%);
                     height:         1px;
                     overflow:       hidden;
+                    overflow:       clip;
                     white-space:    nowrap;
                     width:          1px;
                     margin:         0;
@@ -9769,6 +9773,7 @@
             clip-path:      inset(50%);
             height:         1px;
             overflow:       hidden;
+            overflow:       clip;
             white-space:    nowrap;
             width:          1px;
             margin:         0;
@@ -11352,12 +11357,15 @@
 
             /* DOM INTERNAL READY AND LOADED CALLBACK MECHANISM */
 
-            window.addEventListener("load",               function(event) { on_init_event("loaded"); } );
-            if (document.readyState != "loading")                         { on_init_event("ready");  }
-            else document.addEventListener("DOMContentLoaded", function() { on_init_event("ready");  } );
-        
-            window.addEventListener("scroll", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.scroll_callbacks, undefined, undefined, event); } });
-            window.addEventListener("resize", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.resize_callbacks, undefined, undefined, event); } });
+            if (typeof event_ready !== "undefined") {
+
+                window.addEventListener("load",               function(event) { on_init_event("loaded"); } );
+                if (document.readyState != "loading")                         { on_init_event("ready");  }
+                else document.addEventListener("DOMContentLoaded", function() { on_init_event("ready");  } );
+            
+                window.addEventListener("scroll", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.scroll_callbacks, undefined, undefined, event); } });
+                window.addEventListener("resize", function(event) { if (event_ready && event_loaded) { process_callbacks(dom.resize_callbacks, undefined, undefined, event); } });
+            }
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
