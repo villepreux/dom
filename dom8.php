@@ -75,7 +75,7 @@
     function server_http_accept_language        ($default = "en")                   { return        at(get_server_vars(), 'HTTP_ACCEPT_LANGUAGE',               $default);  }
     function server_server_name                 ($default = "localhost")            { return        at(get_server_vars(), 'SERVER_NAME',                        $default);  }
     function server_server_port                 ($default = "80")                   { return        at(get_server_vars(), 'SERVER_PORT',                        $default);  }
-    function server_request_uri                 ($default = "www.example.com")      { return        at(get_server_vars(), 'REQUEST_URI',                        $default);  }
+    function server_request_uri                 ($default = "/")                    { return        at(get_server_vars(), 'REQUEST_URI',                        $default);  }
     function server_https                       ($default = "on")                   { return        at(get_server_vars(), 'HTTPS',     is_localhost() ? "off" : $default);  }
     function server_http_host                   ($default = "127.0.0.1")            { return        at(get_server_vars(), 'HTTP_HOST',                          $default);  }
     function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }

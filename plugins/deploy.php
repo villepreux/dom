@@ -586,6 +586,9 @@ $php_args_common = "";
     if (!!$cmdline_option_debug)                $php_args_common .= " debug=1";
     if (!!$cmdline_option_profiling)            $php_args_common .= " profiling=1";
     if (!!$cmdline_option_fast)                 $php_args_common .= " fast=1";
+    
+    // TODO: do we really want ".static=1" ?
+
     if (!!$cmdline_option_output
     &&    $cmdline_option_output != "static")   $php_args_common .= " $cmdline_option_output=1";
 }
@@ -2024,23 +2027,34 @@ if (!!$cmdline_option_generate)
 */
 if (!!$cmdline_option_blogroll)
 {
-    deploy_log("[i] generating files - blogroll opml...");
+    deploy_log("[i] generating files - RSS & Blogroll XMLs...");
 
-    $src = $main_src;
-    $dst = $main_dst;
+    $common_args = "rss_date_granularity_file=1 static=0";
 
-    $cwd = getcwd();
-    chdir($src);
+    foreach ([
+
+        [ "$main_src/blogroll/opml", "$common_args",         "$main_src/blogroll.opml"                    ],
+        [ "$main_src/blogroll/opml", "$common_args",         "$main_src/.well-known/recommendations.opml" ],
+        [ "$main_src",               "$common_args rss=rss", "$main_src/rss.xml"                          ],
+        [ "$main_src/blog",          "$common_args rss=rss", "$main_src/blog/rss.xml"                     ],
+
+        ] as list($src, $args, $filename)) 
     {
-        $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst,"/",$dst));
+        deploy_log("[i] $filename ...");    
+        $php_args = "$php_args_common REQUEST_URI=".str_replace("//","/",str_replace($main_dst, "/", $src));
 
-        $xml = deploy_exec("php -f ./blogroll/opml/index.php -- $php_args static=0", false);
-        file_put_contents("$src/blogroll.opml", $xml);
-        deploy_log("[+] $src/blogroll.opml");
+        $cwd = getcwd(); 
+        chdir($src);
+        {
+            $xml = deploy_exec("php -f index.php -- $php_args $args", false);
+        }
+        chdir($cwd);
+        
+        file_put_contents($filename, $xml);
+        deploy_log("[+] $filename");
     }
-    chdir($cwd);
 
-    deploy_log("[i] generating files - blogroll opml... OK");
+    deploy_log("[i] generating files - RSS & Blogroll XMLs... OK");
 }
 
 if (!!$cmdline_option_netlify)
