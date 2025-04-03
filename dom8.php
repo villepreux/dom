@@ -11852,7 +11852,7 @@
     
 //  HTML tags
         
-    function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true)
+    function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto)
     {
         $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
         $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
@@ -11862,11 +11862,12 @@
             list($h, $html, $anchor) = hook_headline($h, $html, $anchor);
         }
 
+        $add_id_attribute = auto === $add_id_attribute ? $headline_hook : $add_id_attribute;
+
         $id = anchor_name(!!$anchor ? $anchor : $html);
-        //if ($h == 2) bye(pre(htmlentities("$h, $html, $anchor, $id")));
         
-        $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
-        $attributes = attributes_add($attributes, attr("id",    $id));
+                                $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
+        if ($add_id_attribute)  $attributes = attributes_add($attributes, attr("id",    $id));
 
         return tag('h'.$h, $html, $attributes);
     }
@@ -11942,12 +11943,12 @@
 
     function option         ($html = "", $value = "", $attributes = false) {                return  tag('option',                     $html, attributes_add( $attributes, attributes(attr("value", $value)))                             );                      }
 
-    function h1             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(1, $html, $attributes, $anchor, $headline_hook); }
-    function h2             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(2, $html, $attributes, $anchor, $headline_hook); }
-    function h3             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(3, $html, $attributes, $anchor, $headline_hook); }
-    function h4             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(4, $html, $attributes, $anchor, $headline_hook); }
-    function h5             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(5, $html, $attributes, $anchor, $headline_hook); }
-    function h6             ($html = "", $attributes = false, $anchor = false, $headline_hook = true) { return  h(6, $html, $attributes, $anchor, $headline_hook); }
+    function h1             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(1, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
+    function h2             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(2, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
+    function h3             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(3, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
+    function h4             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(4, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
+    function h5             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(5, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
+    function h6             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(6, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
 
     function section        ($html = "", $attributes = false) {                             return  tag('section',   eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
     function header         ($html = "", $attributes = false) {                             return  tag('header',    eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
