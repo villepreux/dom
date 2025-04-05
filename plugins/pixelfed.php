@@ -30,18 +30,18 @@ function status($status_id, $token = auto, $timeout = 7, &$debug_error_output = 
     return api("https://pixelfed.social/api/v1/statuses/$status_id", $token, $timeout, $debug_error_output);
 }
 
-function statuses($account_id = auto, $token = auto, $timeout = 7, &$debug_error_output = null)
+function statuses($account_id = auto, $limit = 999, $token = auto, $timeout = 7, &$debug_error_output = null)
 {
     $account_id = auto === $account_id ? account_id($token) : $account_id;
 
-    return api("https://pixelfed.social/api/v1/accounts/$account_id/statuses", $token, $timeout, $debug_error_output);
+    return api("https://pixelfed.social/api/v1/accounts/$account_id/statuses?limit=$limit", $token, $timeout, $debug_error_output);
 }
 
-function following($account_id = auto, $token = auto, $timeout = 7, &$debug_error_output = null)
+function following($account_id = auto, $limit = 999, $token = auto, $timeout = 7, &$debug_error_output = null)
 {
     $account_id = auto === $account_id ? account_id($token) : $account_id;
 
-    return api("https://pixelfed.social/api/v1/accounts/$account_id/following", $token, $timeout, $debug_error_output);
+    return api("https://pixelfed.social/api/v1/accounts/$account_id/following?limit=$limit", $token, $timeout, $debug_error_output);
 }
 
 #endregion

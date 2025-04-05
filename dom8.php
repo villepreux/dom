@@ -37,6 +37,19 @@
     function set($k, $v = true, $aname = false)                                                                         { global $_DOM; if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } else if ($aname === "DOM" && isset($_DOM)) { $_DOM[$k] = $v; } return $v; }
 
     #endregion
+    #region HELPERS : MISSING FUNCTIONS
+    ######################################################################################################################################
+    
+    if (!is_callable("mb_str_pad"))
+    {
+        function mb_str_pad( $input, $pad_length, $pad_string = ' ', $pad_type = STR_PAD_RIGHT)
+        {
+            while (mb_strlen($input) < $pad_length) $input = ($pad_type == STR_PAD_RIGHT ? ($input.$pad_string) : ($pad_string.$input));
+            return $input;
+        }
+    }
+
+    #endregion
     #region HELPERS : SERVER ARGS
     ######################################################################################################################################
     
@@ -99,6 +112,11 @@
                                   || (false !== stripos(server_remote_addr(), "::1"      ))
                                   || (false !== stripos(server_remote_addr(), "127.0.0.1")); }
 
+    function is_embeded() {
+
+        return !!has("main") || !!has("main-include") || "html-extract" == get("doctype");
+    }
+
     #endregion
     #region HELPERS : DEBUG : LOG & PROFILING
     ######################################################################################################################################
@@ -154,11 +172,15 @@
                 global $__profiling;
 
                 $totals = [];
+                $counts = [];
 
                 $id_key = "function";
 
                 foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
                 foreach ($__profiling as $profiling) $totals[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] += $profiling["dt"];
+
+                foreach ($__profiling as $profiling) $counts[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] = 0;
+                foreach ($__profiling as $profiling) $counts[$profiling[$id_key].(!!$profiling["tag"] ? ("(".$profiling["tag"].")") : "")] ++;
 
                 if (count($totals) > 0)
                 {
@@ -170,7 +192,7 @@
                     
                     foreach ($totals as $function => $total)
                     {
-                        $report[] = mb_str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($profiling_totals_only ? "" : " (TOTAL)") . ": " . $function;
+                        $report[] = mb_str_pad(number_format($total, 2), 6, " ", STR_PAD_LEFT) . ($profiling_totals_only ? "" : " (TOTAL)") . ": " . $function . " x " . $counts[$function];
                     }
                 }
 
@@ -400,19 +422,24 @@
         $__path_prefix_hook = $path_prefix_hook;
     }
 
-    $__reentrant_path_guard = false;
+    $__path_cache = [];
             
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
-    {        
-        global $__path_prefix_hook;
-
-        // re-entrance guard
-        global $__reentrant_path_guard; if ($__reentrant_path_guard) { bye("RE-ENTRANT CALL TO DOM\PATH", debug_callstack()); } $__reentrant_path_guard = true;
-
+    {   
         $profiler = debug_track_timing();
 
-        if ($depth0    === auto) $depth0    = get("path_max_depth", 8);
-        if ($max_depth === auto) $max_depth = get("path_max_depth", 8);
+        // Early return if in cache
+        global $__path_cache;
+        $path_cache_key = "$path0".($default?"1":"0").($search?"1":"0").($depth0===auto?"auto":($depth0?"1":"0"))."$max_depth-$offset_path0".($bypass_root_hints?"1":"0");
+        if (array_key_exists($path_cache_key, $__path_cache)) { return $__path_cache[$path_cache_key]; }
+
+        // Early return if URL
+        if (strlen($path0) >= 6 && ($path0[4] == ':' || $path0[5] == ':')) { $__path_cache[$path_cache_key] = $path0; return $path0; }
+
+        global $__path_prefix_hook;
+
+        if (auto === $depth0)    $depth0    = get("path_max_depth", 8);
+        if (auto === $max_depth) $max_depth = get("path_max_depth", 8);
         
         $param = "";
 
@@ -435,33 +462,33 @@
     
             // Minimal early validation for when user is not providing a real url or path but some random text content
 
-            if (false !== stripos($path, "\n") ) { $__reentrant_path_guard = false; return $default; }
-            if (false !== stripos($path, "{")  ) { $__reentrant_path_guard = false; return $default; }
-            if (false !== stripos($path, "\"") ) { $__reentrant_path_guard = false; return $default; }
+            if (false !== stripos($path, "\n") 
+            ||  false !== stripos($path, "{")  
+            ||  false !== stripos($path, "\"") ) { $__path_cache[$path_cache_key] = $default; return $default; }
         
             // If URL format then keep it as-is
 
-            if (strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") { $__reentrant_path_guard = false; return $path.$param; }
-            if (0 === stripos($path, "http"))                             { $__reentrant_path_guard = false; return $path.$param; }
+            if ((strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/")
+            ||  (0 === stripos($path, "http"))) { $__path_cache[$path_cache_key] = $path.$param; return $path.$param; }
 
             // If path exists then directly return it
 
-          //if (@is_dir($__path_prefix_hook.$path))                                         { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
-            if (@file_exists($__path_prefix_hook.$path))                                    { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
-            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
-          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+          //if (@is_dir($__path_prefix_hook.$path))                                         { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+            if (@file_exists($__path_prefix_hook.$path))                                    { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists($__path_prefix_hook."$path.php"))                          { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
-                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  { $__reentrant_path_guard = false; return $__path_prefix_hook.$path.$param; }
+                if (@file_exists($__path_prefix_hook."$path.php"))                          { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
             }
 
             // If we have already searched too many times then return fallback
 
             if ($depth <= 0) 
             {
-                { $__reentrant_path_guard = false; return $default; }
+                { $__path_cache[$path_cache_key] = $default; return $default; }
             }
 
             // If beyond root then stop here
@@ -482,7 +509,7 @@
         //if (false !== stripos($path0, "autoload.php"))    bye("PATH = ", $path0);
         //if ($default == false)                            bye("PATH = ", $path0);
 
-        { $__reentrant_path_guard = false; return $default; }
+        { $__path_cache[$path_cache_key] = $default; return $default; }
     }
 
     function path_coalesce()
@@ -1942,15 +1969,6 @@
     #endregion
     #region String utilities
 
-    if (!function_exists("mb_str_pad"))
-    {
-        function mb_str_pad( $input, $pad_length, $pad_string = ' ', $pad_type = STR_PAD_RIGHT)
-        {
-            while (mb_strlen($input) < $pad_length) $input = ($pad_type == STR_PAD_RIGHT ? ($input.$pad_string) : ($pad_string.$input));
-            return $input;
-        }
-    }
-
     function str_replace_all($from, $to, $str)
     {
         if (is_string($str))
@@ -2607,9 +2625,13 @@
 
         if ($target == internal_link)
         {
-            $hook_links[]           = array("title" => $title, "url" => $url);
-            $hook_shortcut_links[]  = array("title" => $title, "url" => $url);
-            $hook_prefetch_links[]  = array("title" => $title, "url" => $url);
+            $hook_links[] = array("title" => $title, "url" => $url);
+
+            if (!is_embeded())
+            {
+                $hook_shortcut_links[]  = array("title" => $title, "url" => $url);
+                $hook_prefetch_links[]  = array("title" => $title, "url" => $url);
+            }
         }
 
         if ($target == external_link)
@@ -4796,7 +4818,7 @@
 
     function redirect($url)
     {
-        if (has("main") || has("main-include")) return true;
+        if (is_embeded()) return true;
 
         if ("dependency-graph" == get("doctype")) die("[]");
 
@@ -4825,7 +4847,7 @@
         return false;
     }
 
-    if (!has("main") && !has("main-include"))
+    if (!is_embeded())
     {
         init_php();
         init_options();
@@ -4857,7 +4879,7 @@
     
     function init($doctype = auto, $encoding = auto, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
-        if (has("main") || has("main-include")) return;
+        if (is_embeded()) return;
 
         if (!!get("profiling")) debug_enable_profiling();
 
@@ -5024,7 +5046,7 @@
             die();
         }
 
-        if (has("main-include"))
+        if (is_embeded())
         {
             return;
         }
@@ -5057,7 +5079,7 @@
 
         $doc .= generate_cleanup().generate_all();
 
-        $compression = (get("compression") == "gzip" && !has("main") && !has("main-include"));
+        $compression = (get("compression") == "gzip" && !is_embeded());
 
         if ($compression) 
         {
@@ -8916,7 +8938,7 @@
                     }
                 }
 
-                main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
+                :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([popover]) {
 
                     display: flow-root;
                 }
@@ -9015,7 +9037,7 @@
                     overflow: hidden; 
                 }
 
-                :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden], .hidden) {
+                :is(article, aside, details, figcaption, figure, footer, header, hgroup, main, nav, section):not([hidden], .hidden, [popover]) {
 
                     display: block;
                 }
@@ -10126,7 +10148,7 @@
                 width: 100%;
                 }
 
-            main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup {
+            :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([popover]) {
                 display: flow-root;
             }
             /*abbr, b, bdi, bdo, br, cite, code, data, del, dfn, em, i, ins,

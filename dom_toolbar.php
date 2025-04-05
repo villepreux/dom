@@ -804,7 +804,7 @@
                 }
             }
             
-            '), false, [ "data-css-layer" => "default", "media" => "screen" ]).
+            '), false, [ "layer" => "default", "media" => "screen" ]).
             $toolbar1.
           //$toolbar2.
           //scripts_body_toolbar().
