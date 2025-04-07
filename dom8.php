@@ -5989,6 +5989,55 @@
     #region WIP API : DOM : URLS
     ######################################################################################################################################
 
+    /*
+
+    $text               = urlencode("Check out this Linktree!");
+    $shared_url         = "https://linktr.ee/lespreuh"; 
+    $username           = "Lespreuh";
+    $soundcloud_user_id = "479831384";
+    $mastodon_server    = "mastodon.social";
+    $pixelfed_server    = "pixelfed.fr";
+
+    $href = "https://x.com/intent/tweet?text=$text - $shared_url";
+    $href = "https://www.facebook.com/sharer.php?u=$shared_url";
+    $href = "https://wa.me/?text=$text - $shared_url";
+    $href = "https://www.linkedin.com/sharing/share-offsite/?url=$shared_url";
+    $href = "snapchat://creativeKitWeb/camera/1?attachmentUrl=$shared_url";
+    $href = "https://$username.bandcamp.com";
+    $href = "https://bsky.app/profile/$username.bsky.social";
+    $href = "https://$pixelfed_server/$username";
+    $href = "https://www.instagram.com/$username";
+    $href = "https://www.youtube.com/@$username";
+    $href = "https://www.tiktok.com/@$username";
+    $href = "https://$mastodon_server/@$username";
+    $href = "http://soundcloud.com/user-$soundcloud_user_id";
+    $href = "https://www.threads.net/@$username";
+    $href = "https://twitter.com/$username";
+
+    $js = '
+
+        <p><button>Share MDN!</button></p><p class="share-result"></p><script>
+        const shareData = {
+        title: "MDN",
+        text: "Learn web development on MDN!",
+        url: "https://developer.mozilla.org",
+        };
+        const btn = document.querySelector("button");
+        const resultPara = document.querySelector(".share-result");
+        // Share must be triggered by "user activation"
+        btn.addEventListener("click", async () => {
+        try {
+            await navigator.share(shareData);
+            resultPara.textContent = "MDN shared successfully";
+        } catch (err) {
+            resultPara.textContent = `Error: ${err}`;
+        }
+        });
+        </script>
+    ';
+
+    */
+
     function url_pinterest_user             ($username = false)                                 { $username = ($username === false) ? get("pinterest_user")     : $username;                                                                            return "https://www.pinterest.com/$username"; }
     function url_pinterest_board            ($username = false, $board = false)                 { $username = ($username === false) ? get("pinterest_user")     : $username; $board     = ($board === false) ? get("pinterest_board")       : $board;   return "https://www.pinterest.com/$username".($board != "" ? "/$board" : "")."/"; }
     function url_pinterest_pin              ($pin      = false)                                 { $pin      = ($pin      === false) ? get("pinterest_pin")      : $pin;                                                                                 return "https://www.pinterest.com/pin/$pin/"; }    
