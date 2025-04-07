@@ -1733,22 +1733,28 @@
                 
                 if (false !== $curl)
                 {
+                    $curl_options = [];
+
                     if (!!$header)
                     {
-                        $curl_header = array_map(function($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
+                        $curl_http_header = array_map(function($key, $val) { 
+                            $val = /*urlencode*/((is_array($val) || is_object($val)) ? json_encode($val) : $val);
+                            return "$key: $val"; 
+                        }, array_keys($header), array_values($header));
 
-                        curl_setopt($curl, CURLOPT_HTTPHEADER, $curl_header);
+                        $curl_options[CURLOPT_HTTPHEADER] = $curl_http_header;
                     }
 
-                    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,  false);
-                    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,  false);                
-                    curl_setopt($curl, CURLOPT_USERAGENT,       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
-                    curl_setopt($curl, CURLOPT_RETURNTRANSFER,  true);
-                    curl_setopt($curl, CURLOPT_URL,             $url);
-                    curl_setopt($curl, CURLOPT_CONNECTTIMEOUT,  $timeout);
-                    curl_setopt($curl, CURLOPT_FOLLOWLOCATION,  true);
-                    
-                    $content = curl_exec($curl);
+                    $curl_options[CURLOPT_SSL_VERIFYHOST] = false;
+                    $curl_options[CURLOPT_SSL_VERIFYPEER] = false;                
+                    $curl_options[CURLOPT_USERAGENT]      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
+                    $curl_options[CURLOPT_RETURNTRANSFER] = true;
+                    $curl_options[CURLOPT_URL]            = $url;
+                    $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
+                    $curl_options[CURLOPT_FOLLOWLOCATION] = true;
+
+                    $result_opt = curl_setopt_array($curl, $curl_options);
+                    $content    = curl_exec($curl);
 
                     update_dependency_graph($url);
 
@@ -1784,55 +1790,102 @@
             foreach ($curl_debug_errors as $curl_debug_error) debug_log($curl_debug_error);
         }
 
+        // /*For debug*/$content = '{ "content": '.$content.', "options": '.json_encode($curl_options).' }';
+
         return $content;
     }
 
-    function post($api, $url, $params = [], $header = [], $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null)
+    function post($api, $url, $params = [], $options = [], $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null, $force_no_url_params = false)
     {
-        $curl_user_agent = $user_agent;
-    
-        $header = array_merge(array(
+        $curl_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
+      //$curl_user_agent = $user_agent; // Unused for now
+
+        $timeout = is_array($options) ? at($options, "timeout", 7 )       : $options;
+        $header  = is_array($options) ? at($options, "header",  $options) : [];
+
+        /*$header = array_merge(array(
             
-            "Content-Type"      => "application/json",
-            "User-Agent"        => $curl_user_agent
+            "Content-Type"  => "application/json",
+            "User-Agent"    => $curl_user_agent
         
-        ), $header);
-    
+        ), $header);*/
+
         $url_params = "";
         {
-            if (/*$method == "GET" &&*/ count($params) > 0)
+            if (/*$method == "GET" &&*/ !$force_no_url_params && count($params) > 0)
             {
-                $url_params = "/?".http_build_query($params, "", null, PHP_QUERY_RFC3986);
-                $url_params = "/?".implode("&", array_map(function ($key, $val) { $val = urlencode(is_array($val) ? json_encode($val) : $val); return "$key=$val"; }, array_keys($params), array_values($params)));
+              //$url_params = "/?".http_build_query($params, "", null, PHP_QUERY_RFC3986);
+                $url_params = "/?".implode("&", array_map(function ($key, $val) use ($url, $params, $force_no_url_params) { 
+                    if (is_object($val)) return null;
+                    if (is_array($val)) {
+                        //if ($url=="statuses") die(PHP_EOL."array val: ".print_r($params, true));
+                        $vals = [];
+                        foreach ($val as $k => $v) $vals[] = "$key"."[]=$v";
+                        return implode("&", $vals);
+                    } else {
+                        //if ($url=="statuses") die(PHP_EOL.print_r($params, true));
+                        $val = urlencode((is_array($val) || is_object($val)) ? json_encode($val) : $val); 
+                        return "$key=$val"; 
+                    }
+                    }, array_keys($params), array_values($params)));
+
+                //if ($url=="statuses") die(PHP_EOL.print_r($params, true).PHP_EOL.$url_params);
             }
         }
-    
-        $curl_url           = "$api/$url".$url_params;
-        $curl_http_header   = array_map(function ($key, $val) { return "$key: $val"; }, array_keys($header), array_values($header));
-    
+            
+        $curl_url = "$api/$url".$url_params;
+        
+        $curl_http_header = array_map(
+            function ($key, $val) { 
+                $val = /*urlencode*/((is_array($val) || is_object($val)) ? json_encode($val) : $val); 
+                return "$key: $val"; 
+            }, array_keys($header), array_values($header));
+
+        $curl_postfield_params = [];
+        {
+            foreach ($params as $key => $param)
+            {
+                if (is_array($param))
+                {
+                    if (!$force_no_url_params)
+                    {
+                        continue; // param will be in URL
+                    }
+                    else
+                    {
+                        $param = json_encode($param);
+                    }
+                }
+                
+              //if (is_object($param)) $param = json_encode($param); // Don't do. Could be CURLFile object
+
+                $curl_postfield_params[$key] = $param;
+            }
+        }
+
         $curl_options = [];
         {
+            $curl_options[CURLOPT_HTTPHEADER     ] = $curl_http_header;
             $curl_options[CURLOPT_URL            ] = $curl_url;
-            $curl_options[CURLOPT_RETURNTRANSFER ] = true;
-            $curl_options[CURLOPT_ENCODING       ] = '';
-            $curl_options[CURLOPT_MAXREDIRS      ] = 10;
-            $curl_options[CURLOPT_TIMEOUT        ] = 0;
-            $curl_options[CURLOPT_FOLLOWLOCATION ] = true;
             $curl_options[CURLOPT_HTTP_VERSION   ] = CURL_HTTP_VERSION_1_1;
             $curl_options[CURLOPT_CUSTOMREQUEST  ] = $method;
-            $curl_options[CURLOPT_HTTPHEADER     ] = $curl_http_header;
-            $curl_options[CURLOPT_SSL_VERIFYPEER ] = 0;
-            $curl_options[CURLOPT_SSL_VERIFYHOST ] = 0;
-            $curl_options[CURLOPT_USERAGENT      ] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0'/*$curl_user_agent*/;
+            $curl_options[CURLOPT_RETURNTRANSFER ] = true;
+          //$curl_options[CURLOPT_ENCODING       ] = '';
+          //$curl_options[CURLOPT_MAXREDIRS      ] = 10;
+            $curl_options[CURLOPT_CONNECTTIMEOUT ] = $timeout;
+            $curl_options[CURLOPT_TIMEOUT        ] = $timeout;
+            $curl_options[CURLOPT_FOLLOWLOCATION ] = true;
+            $curl_options[CURLOPT_SSL_VERIFYPEER ] = false;
+            $curl_options[CURLOPT_SSL_VERIFYHOST ] = false;
+            $curl_options[CURLOPT_USERAGENT      ] = $curl_user_agent;
             
-            if ($usr != false && $pwd != false) {
-                $curl_options[CURLOPT_USERPWD] = "$usr:$pwd";
-            }
-            
-            if ($method != "GET")
-                $curl_options[CURLOPT_POSTFIELDS] = json_encode($params);
+            if ($usr != false && $pwd != false) { $curl_options[CURLOPT_USERPWD     ] = "$usr:$pwd";            }
+            if ($method != "POST")              { $curl_options[CURLOPT_POST        ] = 1;                      }
+            if ($method != "GET")               { $curl_options[CURLOPT_POSTFIELDS  ] = $curl_postfield_params; }
         }
-    
+
+        //if ($url == "statuses") die(print_r($curl_options[CURLOPT_POSTFIELDS], true));
+
         $curl           =           curl_init();
         $result_opt     =           curl_setopt_array($curl, $curl_options);
         $response       =           curl_exec($curl);
@@ -5939,14 +5992,16 @@
     function url_pinterest_user             ($username = false)                                 { $username = ($username === false) ? get("pinterest_user")     : $username;                                                                            return "https://www.pinterest.com/$username"; }
     function url_pinterest_board            ($username = false, $board = false)                 { $username = ($username === false) ? get("pinterest_user")     : $username; $board     = ($board === false) ? get("pinterest_board")       : $board;   return "https://www.pinterest.com/$username".($board != "" ? "/$board" : "")."/"; }
     function url_pinterest_pin              ($pin      = false)                                 { $pin      = ($pin      === false) ? get("pinterest_pin")      : $pin;                                                                                 return "https://www.pinterest.com/pin/$pin/"; }    
-    function url_instagram_user             ($username = false)                                 { $username = ($username === false) ? get("instagram_user")     : $username;                                                                            return "https://www.instagram.com/$username/"; }
+    function url_instagram_user             ($username = false)                                 { $username = ($username === false) ? get("instagram_user")     : $username;                                                                            return "https://www.instagram.com/$username"; }
     function url_instagram_post             ($short_code)                                       {                                                                                                                                                       return "https://instagram.com/p/$short_code/"; }
-    function url_flickr_user                ($username = false)                                 { $username = ($username === false) ? get("flickr_user")        : $username;                                                                            return "https://www.flickr.com/photos/$username/"; }
+    function url_flickr_user                ($username = false)                                 { $username = ($username === false) ? get("flickr_user")        : $username;                                                                            return "https://www.flickr.com/photos/$username"; }
     function url_flickr_page                ($page     = false)                                 { $page     = ($page     === false) ? get("flickr_page")        : $page;                                                                                return "https://www.flickr.com/photos/$page/"; }
-    function url_500px_user                 ($username = false)                                 { $username = ($username === false) ? get("500px_user")         : $username;                                                                            return "https://www.500px.com/$username/"; }
-    function url_pixelfed_user              ($username = false)                                 { $username = ($username === false) ? get("pixelfed_user")      : $username;                                                                            return "https://pixelfed.social/$username/"; }
-    function url_vernissage_user            ($username = false)                                 { $username = ($username === false) ? get("vernissage_user")    : $username;                                                                            return "https://vernissage.photos/@$username/"; }
-    function url_mastodon_user              ($username = false, $instance = false)              { $username = ($username === false) ? get("mastodon_user")      : $username; $instance = ($instance === false) ? get("mastodon_domain")    : $instance; return "https://$instance/@$username/"; }
+    function url_500px_user                 ($username = false)                                 { $username = ($username === false) ? get("500px_user")         : $username;                                                                            return "https://www.500px.com/$username"; }
+    function url_pixelfed_user              ($username = false)                                 { $username = ($username === false) ? get("pixelfed_user")      : $username;                                                                            return "https://pixelfed.social/$username"; }
+    function url_vernissage_user            ($username = false)                                 { $username = ($username === false) ? get("vernissage_user")    : $username;                                                                            return "https://vernissage.photos/@$username"; }
+    function url_sharkey_user               ($username = false, $instance = false)              { $username = ($username === false) ? get("sharkey_user")       : $username; $instance = ($instance === false) ? get("sharkey_domain")     : $instance; return "https://$instance/@$username"; }
+    function url_misskey_user               ($username = false, $instance = false)              { $username = ($username === false) ? get("misskey_user")       : $username; $instance = ($instance === false) ? get("misskey_domain")     : $instance; return "https://$instance/@$username"; }
+    function url_mastodon_user              ($username = false, $instance = false)              { $username = ($username === false) ? get("mastodon_user")      : $username; $instance = ($instance === false) ? get("mastodon_domain")    : $instance; return "https://$instance/@$username"; }
     function url_github_user                ($username = false)                                 { $username = ($username === false) ? get("github_user")        : $username;                                                                            return "https://github.com/$username"; }
     function url_github_repository          ($username = false, $repo = false)                  { $username = ($username === false) ? get("github_user")        : $username; $repo     = ($repo     === false) ? get("github_repository")  : $repo;     return "https://github.com/$username/$repo#readme"; }
     function url_lastfm_user                ($username = false)                                 { $username = ($username === false) ? get("lastfm_user")        : $username;                                                                            return "https://last.fm/user/$username"; }
@@ -5999,6 +6054,8 @@
     function color_500px            () { return '#222222'; }
     function color_codepen          () { return '#FFFFFF'; }
     function color_pixelfed         () { return array('#EB0256','#FF257E','#A63FDB','#FFB000','#FF7725','#FF5C34','#9EE85D','#0ED061','#17C934','#03FF6E','#00FFF0','#21EFE3','#2598FF','#0087FF'); }
+    function color_misskey          () { return '#94ce3c'; }
+    function color_sharkey          () { return '#3c94ce'; }
     function color_mastodon         () { return '#6364FF'; }
     function color_vernissage       () { return '#ffffff'; }
     function color_flickr           () { return array('#FF0084','#0063DC'); }
@@ -11761,6 +11818,8 @@
       //if (has("flickr_page"))         $properties_person_same_as[] = url_flickr_page          (get("flickr_page"));           // ($page     = false);
         if (has("500px_user"))          $properties_person_same_as[] = url_500px_user           (get("500px_user"));            // ($username = false);
         if (has("pixelfed_user"))       $properties_person_same_as[] = url_pixelfed_user        (get("pixelfed_user"));         // ($username = false);
+        if (has("sharkey_user"))        $properties_person_same_as[] = url_sharkey_user         (get("sharkey_user"));          // ($username = false, $instance = "sharkey.social");
+        if (has("misskey_user"))        $properties_person_same_as[] = url_misskey_user         (get("misskey_user"));          // ($username = false, $instance = "misskey.social");
         if (has("mastodon_user"))       $properties_person_same_as[] = url_mastodon_user        (get("mastodon_user"));         // ($username = false, $instance = "mastodon.social");
         if (has("vernissage_user"))     $properties_person_same_as[] = url_vernissage_user      (get("vernissage_user"));       // ($username = false, $instance = "vernissage.photo");
         if (has("github_user"))         $properties_person_same_as[] = url_github_user          (get("github_user"));           // ($username = false);
@@ -11839,6 +11898,8 @@
       //. ((function () { $url = url_instagram_user     (); if (!$url || !has("instagram_user") ) return ""; return eol().a_rel_me("Instagram",    $url); })())
       //. ((function () { $url = url_flickr_user        (); if (!$url || !has("flickr_user")    ) return ""; return eol().a_rel_me("Flickr",       $url); })())
       //. ((function () { $url = url_500px_user         (); if (!$url || !has("500px_user")     ) return ""; return eol().a_rel_me("500px",        $url); })())
+        . ((function () { $url = url_sharkey_user       (); if (!$url || !has("sharkey_user")   ) return ""; return eol().a_rel_me("Sharkey",      $url); })())
+        . ((function () { $url = url_misskey_user       (); if (!$url || !has("misskey_user")   ) return ""; return eol().a_rel_me("Misskey",      $url); })())
         . ((function () { $url = url_mastodon_user      (); if (!$url || !has("mastodon_user")  ) return ""; return eol().a_rel_me("Mastodon",     $url); })())
         . ((function () { $url = url_pixelfed_user      (); if (!$url || !has("pixelfed_user")  ) return ""; return eol().a_rel_me("Pixelfed",     $url); })())
         . ((function () { $url = url_vernissage_user    (); if (!$url || !has("vernissage_user")) return ""; return eol().a_rel_me("Vernissage",   $url); })())
@@ -12822,18 +12883,15 @@
         // TODO Gérer les attributs copmme un tableau
 
         $internal_attributes = [];
-
+                                                        $internal_attributes["rel"]                 = "";
                                                         $internal_attributes["href"]                = ($url === false) ? url_top() : $extended_link; 
                                                         $internal_attributes["target"]              = $target;
-                                                        $internal_attributes["rel"]                 = "";
         if ($target == external_link && !!$noopener)    $internal_attributes["rel"]                .= " noopener";
         if ($target == external_link && !!$noreferrer)  $internal_attributes["rel"]                .= " noreferrer";
       //if ($target == external_link)                   $internal_attributes["crossorigin"]         = "anonymous"; // Not allowed on <a>
 
-        if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
-
         $attributes = "";
-        
+
         if (is_array($external_attributes))
         {
             foreach ($external_attributes as $type => $attribute)
@@ -12842,7 +12900,7 @@
                 {
                     if (array_key_exists($type, $internal_attributes))
                     {
-                        $internal_attributes[$type] .= " ".$a;
+                        $internal_attributes[$type] = trim($internal_attributes[$type]." ".$a);
                     }
                     else
                     {
@@ -12851,10 +12909,14 @@
                 }
             }
 
+            if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
+
             $attributes = attributes_as_string($internal_attributes);
         }
         else
         {
+            if ($internal_attributes["rel"] == "") unset($internal_attributes["rel"]);
+    
             $attributes =   attributes_as_string($internal_attributes).
                             attributes_as_string($external_attributes);
         }
@@ -13551,6 +13613,8 @@
     function svg_pixelfed_mono  ($label = auto, $align = auto, $add_wrapper = auto) { import_color("pixelfed");      $class = "brand-pixelfed";        return svg($label === auto ? "PixelFed"        : $label, -10, /*-5*/10,  1034,     1034,     $align == auto ? false : !!$align, '<path d="M500 176q-115 0 -215 58q-96 57 -152 153q-58 99 -58 214.5t58 214.5q56 96 152 152q100 58 215 58t215 -58q96 -56 152 -152q58 -99 58 -214.5t-58 -214.5q-56 -96 -152 -153q-100 -58 -215 -58zM432 435h112q36 0 66.5 17.5t48.5 47t18 65t-18 65t-48.5 47t-66.5 17.5 h-78l-111 106v-290q0 -31 22.5 -53t54.5 -22z" />'); };
     function svg_shareopenly    ($label = auto, $align = auto, $add_wrapper = auto) { import_color("shareopenly");   $class = "brand-shareopenly";     return svg($label === auto ? "ShareOpenly"     : $label,   0,      0,      18,       18,     $align == auto ? false : !!$align, '<path fill-rule="evenodd" clip-rule="evenodd" d="M13.5706 1.07915L12.9519 0.460419L12.3332 1.07914L8.6363 4.77601L9.87373 6.01345L12.0754 3.8118C12.0758 4.19678 12.0764 4.58119 12.077 4.96525V4.9653V4.96533C12.0799 6.74156 12.0828 8.51005 12.063 10.291C11.9514 12.51 10.2821 14.5766 8.13549 15.0249L8.12156 15.0278L8.10773 15.0311C6.21947 15.49 4.06987 14.5395 3.24835 12.8164L3.24176 12.8025L3.23468 12.7889C2.46106 11.3026 2.86462 9.29521 4.17623 8.31823L4.18926 8.30852L4.20193 8.29834C5.33152 7.3898 7.12207 7.44889 8.09598 8.45611L8.10921 8.46979L8.12302 8.48289C8.65152 8.9839 8.85928 9.70255 8.85928 10.7436V10.8568H10.6093V10.7436C10.6093 9.51128 10.3691 8.21034 9.34085 7.22607C7.68339 5.5272 4.88287 5.51577 3.11789 6.92446C1.07968 8.45342 0.548175 11.4013 1.67527 13.5832C2.88159 16.0953 5.88263 17.3657 8.50709 16.735C11.4878 16.1053 13.6724 13.3174 13.8118 10.3583L13.8126 10.3426L13.8127 10.3269C13.8328 8.53249 13.8299 6.73532 13.827 4.94338V4.9431V4.94298C13.8264 4.56468 13.8258 4.18661 13.8254 3.80885L16.03 6.01344L17.2674 4.77602L13.5706 1.07915Z" fill="currentColor"/>'); }
     function svg_vernissage     ($label = auto, $align = auto, $add_wrapper = auto) { import_color("vernissage");    $class = "brand-vernissage";      return svg($label === auto ? "Vernissage"      : $label,   0,      0,    1271,     1280,     $align == auto ? false : !!$align, '<g transform="translate(0.000000,1280.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M3275 10886 c-129 -42 -275 -128 -414 -243 -85 -72 -301 -285 -301 -298 0 -5 20 -23 45 -39 51 -31 76 -62 69 -81 -3 -8 26 -36 73 -71 177 -130 314 -276 422 -449 148 -236 309 -726 521 -1587 600 -2437 803 -4351 609 -5748 -11 -80 -21 -154 -22 -165 -2 -18 4 -20 53 -20 l55 0 -2 -57 c-1 -32 1 -58 5 -58 26 0 341 77 449 110 237 71 409 147 563 248 105 69 370 331 555 547 715 838 1935 2526 2660 3680 905 1439 1392 2491 1431 3091 9 131 -6 212 -64 349 -85 202 -188 265 -430 265 -257 0 -522 -78 -782 -230 -115 -68 -109 -52 -62 -166 62 -151 76 -238 69 -424 -17 -472 -218 -1077 -627 -1885 -496 -978 -1271 -2185 -2352 -3657 -194 -265 -236 -315 -249 -301 -4 5 -12 136 -18 293 -60 1484 -310 2984 -773 4640 -272 976 -546 1620 -846 1992 -201 249 -414 337 -637 264z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_sharkey        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("sharkey");       $class = "brand-sharkey";         return svg($label === auto ? "Sharkey"         : $label,   0,      0,     384,      384,     $align == auto ? false : !!$align, '<g><path class="'.$class.'" style="opacity:0.022" fill="#000000" d="M 82.5,86.5 C 96.2405,84.8134 108.907,87.6467 120.5,95C 132.306,105.295 142.973,116.629 152.5,129C 155.993,131.136 159.326,130.969 162.5,128.5C 171.649,118.183 180.982,108.017 190.5,98C 205.607,86.7443 222.273,83.7443 240.5,89C 246.982,92.3251 253.482,95.4917 260,98.5C 266.908,94.63 274.075,91.13 281.5,88C 308.26,81.7995 327.426,90.9662 339,115.5C 341.825,125.073 342.159,134.74 340,144.5C 337.542,150.412 335.375,156.412 333.5,162.5C 337.435,171.473 340.268,180.807 342,190.5C 342.667,214.833 342.667,239.167 342,263.5C 339.851,286.313 327.684,300.48 305.5,306C 290.341,308.611 276.675,305.277 264.5,296C 261.833,295.333 259.167,295.333 256.5,296C 238.088,308.021 218.755,309.688 198.5,301C 192.042,296.876 186.542,291.71 182,285.5C 178.83,279.316 175.664,273.149 172.5,267C 164.627,267.045 156.794,266.878 149,266.5C 146.833,266.667 144.667,266.833 142.5,267C 129.541,300.813 105.541,312.813 70.5,303C 54.5709,294.994 45.0709,282.16 42,264.5C 40.3848,222.523 40.0515,180.523 41,138.5C 42.2784,110.86 56.1117,93.5272 82.5,86.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#94ce3c" d="M 115.5,109.5 C 115.586,110.496 115.252,111.329 114.5,112C 96.3634,123.971 78.3634,136.138 60.5,148.5C 59.5025,140.862 59.1692,133.196 59.5,125.5C 64.5552,105.287 77.5552,96.4534 98.5,99C 105.507,100.495 111.174,103.995 115.5,109.5 Z"/></g><g><path class="'.$class.'" style="opacity:0.997" fill="#91cb45" d="M 322.5,117.5 C 322.657,118.873 322.49,120.207 322,121.5C 304.667,137.5 287.333,137.5 270,121.5C 269.51,120.207 269.343,118.873 269.5,117.5C 273.615,105.064 282.282,98.731 295.5,98.5C 309.247,98.2665 318.247,104.6 322.5,117.5 Z"/></g><g><path class="'.$class.'" style="opacity:0.998" fill="#8dbf03" d="M 255.5,125.5 C 255.5,128.5 255.5,131.5 255.5,134.5C 229.661,134.831 203.995,134.498 178.5,133.5C 186.252,123.575 194.586,114.075 203.5,105C 220.783,94.6022 236.283,96.7689 250,111.5C 252.917,115.751 254.75,120.418 255.5,125.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#83be35" d="M 269.5,117.5 C 269.343,118.873 269.51,120.207 270,121.5C 287.333,137.5 304.667,137.5 322,121.5C 322.49,120.207 322.657,118.873 322.5,117.5C 327.162,133.638 321.829,145.471 306.5,153C 287.262,157.802 274.429,150.968 268,132.5C 267.333,128.5 267.333,124.5 268,120.5C 268.232,119.263 268.732,118.263 269.5,117.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cc2e" d="M 115.5,109.5 C 122.49,117.459 129.49,125.459 136.5,133.5C 135.636,134.688 134.636,135.855 133.5,137C 120.075,145.462 106.908,154.295 94,163.5C 93.3333,162.833 92.6667,162.167 92,161.5C 89.3201,164.562 86.1535,165.228 82.5,163.5C 72.8734,159.136 65.3734,161.469 60,170.5C 59.5001,186.83 59.3334,203.163 59.5,219.5C 59.5,230.833 59.5,242.167 59.5,253.5C 59.5,254.5 59.5,255.5 59.5,256.5C 58.1667,212.833 58.1667,169.167 59.5,125.5C 59.1692,133.196 59.5025,140.862 60.5,148.5C 78.3634,136.138 96.3634,123.971 114.5,112C 115.252,111.329 115.586,110.496 115.5,109.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cb22" d="M 136.5,133.5 C 141.833,139.5 147.167,145.5 152.5,151.5C 152.733,153.062 153.4,154.395 154.5,155.5C 154.063,157.074 153.063,158.241 151.5,159C 137.726,167.775 124.226,176.942 111,186.5C 109.27,184.398 107.437,184.565 105.5,187C 115.251,198.642 124.418,210.809 133,223.5C 134.741,226.309 135.908,229.309 136.5,232.5C 137.5,232.5 138.5,232.5 139.5,232.5C 139.448,234.903 139.781,237.236 140.5,239.5C 136.07,236.016 132.07,232.016 128.5,227.5C 126.745,224.32 124.745,221.32 122.5,218.5C 109.411,199.99 96.078,181.656 82.5,163.5C 86.1535,165.228 89.3201,164.562 92,161.5C 92.6667,162.167 93.3333,162.833 94,163.5C 106.908,154.295 120.075,145.462 133.5,137C 134.636,135.855 135.636,134.688 136.5,133.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#87bb0a" d="M 178.5,133.5 C 203.995,134.498 229.661,134.831 255.5,134.5C 255.667,146.505 255.5,158.505 255,170.5C 250.212,161.587 243.045,159.087 233.5,163C 224.205,173.781 215.539,184.947 207.5,196.5C 207.565,196.062 207.399,195.728 207,195.5C 201.623,199.275 196.123,199.442 190.5,196C 178.263,182.603 166.263,169.103 154.5,155.5C 153.4,154.395 152.733,153.062 152.5,151.5C 155.803,152.826 159.136,152.826 162.5,151.5C 167.851,145.427 173.184,139.427 178.5,133.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#739e01" d="M 255.5,125.5 C 256.665,168.998 256.831,212.665 256,256.5C 255.344,262.807 252.844,268.141 248.5,272.5C 249.912,251.692 251.245,230.859 252.5,210C 252.376,202.807 251.876,195.64 251,188.5C 247.147,176.885 240.314,174.719 230.5,182C 215.266,199.658 202.432,218.825 192,239.5C 191.501,244.823 191.334,250.156 191.5,255.5C 190.506,246.348 190.173,237.015 190.5,227.5C 188.435,227.517 186.435,227.85 184.5,228.5C 192.167,217.833 199.833,207.167 207.5,196.5C 215.539,184.947 224.205,173.781 233.5,163C 243.045,159.087 250.212,161.587 255,170.5C 255.5,158.505 255.667,146.505 255.5,134.5C 255.5,131.5 255.5,128.5 255.5,125.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#7aa500" d="M 248.5,272.5 C 240.12,282.351 229.454,286.185 216.5,284C 201.878,279.885 193.544,270.385 191.5,255.5C 191.334,250.156 191.501,244.823 192,239.5C 202.432,218.825 215.266,199.658 230.5,182C 240.314,174.719 247.147,176.885 251,188.5C 251.876,195.64 252.376,202.807 252.5,210C 251.245,230.859 249.912,251.692 248.5,272.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#9fd809" d="M 82.5,163.5 C 96.078,181.656 109.411,199.99 122.5,218.5C 101.673,219.497 80.6733,219.831 59.5,219.5C 59.3334,203.163 59.5001,186.83 60,170.5C 65.3734,161.469 72.8734,159.136 82.5,163.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cb0e" d="M 154.5,155.5 C 166.263,169.103 178.263,182.603 190.5,196C 196.123,199.442 201.623,199.275 207,195.5C 207.399,195.728 207.565,196.062 207.5,196.5C 199.833,207.167 192.167,217.833 184.5,228.5C 176.506,242.658 164.506,247.825 148.5,244C 145.609,242.726 142.942,241.226 140.5,239.5C 139.781,237.236 139.448,234.903 139.5,232.5C 138.5,232.5 137.5,232.5 136.5,232.5C 135.908,229.309 134.741,226.309 133,223.5C 124.418,210.809 115.251,198.642 105.5,187C 107.437,184.565 109.27,184.398 111,186.5C 124.226,176.942 137.726,167.775 151.5,159C 153.063,158.241 154.063,157.074 154.5,155.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#8fc73a" d="M 323.5,182.5 C 323.5,188.833 323.5,195.167 323.5,201.5C 305.167,201.5 286.833,201.5 268.5,201.5C 268.5,195.167 268.5,188.833 268.5,182.5C 272.145,168.405 281.311,160.738 296,159.5C 306.179,159.921 314.179,164.254 320,172.5C 321.868,175.605 323.035,178.938 323.5,182.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#9bd105" d="M 122.5,218.5 C 124.745,221.32 126.745,224.32 128.5,227.5C 126.901,227.232 125.568,227.566 124.5,228.5C 123.507,236.65 123.174,244.983 123.5,253.5C 102.167,253.5 80.8333,253.5 59.5,253.5C 59.5,242.167 59.5,230.833 59.5,219.5C 80.6733,219.831 101.673,219.497 122.5,218.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#86bb23" d="M 268.5,182.5 C 268.5,188.833 268.5,195.167 268.5,201.5C 286.833,201.5 305.167,201.5 323.5,201.5C 323.5,195.167 323.5,188.833 323.5,182.5C 324.495,194.322 324.828,206.322 324.5,218.5C 323.509,225.313 323.175,232.313 323.5,239.5C 305.167,239.5 286.833,239.5 268.5,239.5C 268.824,232.646 268.491,225.979 267.5,219.5C 267.171,206.989 267.505,194.655 268.5,182.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#96ca02" d="M 124.5,228.5 C 124.666,237.173 124.5,245.84 124,254.5C 119.83,276.339 106.663,286.172 84.5,284C 70.0737,280.28 61.7403,271.113 59.5,256.5C 59.5,255.5 59.5,254.5 59.5,253.5C 80.8333,253.5 102.167,253.5 123.5,253.5C 123.174,244.983 123.507,236.65 124.5,228.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#7eaf0f" d="M 324.5,218.5 C 324.667,233.17 324.5,247.837 324,262.5C 317.49,281.007 304.657,287.84 285.5,283C 276.416,278.918 270.583,272.085 268,262.5C 267.5,248.171 267.333,233.837 267.5,219.5C 268.491,225.979 268.824,232.646 268.5,239.5C 286.833,239.5 305.167,239.5 323.5,239.5C 323.175,232.313 323.509,225.313 324.5,218.5 Z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
+    function svg_misskey        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("misskey");       $class = "brand-misskey";         return svg($label === auto ? "Misskey"         : $label,   0,      0,     384,      384,     $align == auto ? false : !!$align, '<g><path class="'.$class.'" style="opacity:0.022" fill="#000000" d="M 82.5,86.5 C 96.2405,84.8134 108.907,87.6467 120.5,95C 132.306,105.295 142.973,116.629 152.5,129C 155.993,131.136 159.326,130.969 162.5,128.5C 171.649,118.183 180.982,108.017 190.5,98C 205.607,86.7443 222.273,83.7443 240.5,89C 246.982,92.3251 253.482,95.4917 260,98.5C 266.908,94.63 274.075,91.13 281.5,88C 308.26,81.7995 327.426,90.9662 339,115.5C 341.825,125.073 342.159,134.74 340,144.5C 337.542,150.412 335.375,156.412 333.5,162.5C 337.435,171.473 340.268,180.807 342,190.5C 342.667,214.833 342.667,239.167 342,263.5C 339.851,286.313 327.684,300.48 305.5,306C 290.341,308.611 276.675,305.277 264.5,296C 261.833,295.333 259.167,295.333 256.5,296C 238.088,308.021 218.755,309.688 198.5,301C 192.042,296.876 186.542,291.71 182,285.5C 178.83,279.316 175.664,273.149 172.5,267C 164.627,267.045 156.794,266.878 149,266.5C 146.833,266.667 144.667,266.833 142.5,267C 129.541,300.813 105.541,312.813 70.5,303C 54.5709,294.994 45.0709,282.16 42,264.5C 40.3848,222.523 40.0515,180.523 41,138.5C 42.2784,110.86 56.1117,93.5272 82.5,86.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#94ce3c" d="M 115.5,109.5 C 115.586,110.496 115.252,111.329 114.5,112C 96.3634,123.971 78.3634,136.138 60.5,148.5C 59.5025,140.862 59.1692,133.196 59.5,125.5C 64.5552,105.287 77.5552,96.4534 98.5,99C 105.507,100.495 111.174,103.995 115.5,109.5 Z"/></g><g><path class="'.$class.'" style="opacity:0.997" fill="#91cb45" d="M 322.5,117.5 C 322.657,118.873 322.49,120.207 322,121.5C 304.667,137.5 287.333,137.5 270,121.5C 269.51,120.207 269.343,118.873 269.5,117.5C 273.615,105.064 282.282,98.731 295.5,98.5C 309.247,98.2665 318.247,104.6 322.5,117.5 Z"/></g><g><path class="'.$class.'" style="opacity:0.998" fill="#8dbf03" d="M 255.5,125.5 C 255.5,128.5 255.5,131.5 255.5,134.5C 229.661,134.831 203.995,134.498 178.5,133.5C 186.252,123.575 194.586,114.075 203.5,105C 220.783,94.6022 236.283,96.7689 250,111.5C 252.917,115.751 254.75,120.418 255.5,125.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#83be35" d="M 269.5,117.5 C 269.343,118.873 269.51,120.207 270,121.5C 287.333,137.5 304.667,137.5 322,121.5C 322.49,120.207 322.657,118.873 322.5,117.5C 327.162,133.638 321.829,145.471 306.5,153C 287.262,157.802 274.429,150.968 268,132.5C 267.333,128.5 267.333,124.5 268,120.5C 268.232,119.263 268.732,118.263 269.5,117.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cc2e" d="M 115.5,109.5 C 122.49,117.459 129.49,125.459 136.5,133.5C 135.636,134.688 134.636,135.855 133.5,137C 120.075,145.462 106.908,154.295 94,163.5C 93.3333,162.833 92.6667,162.167 92,161.5C 89.3201,164.562 86.1535,165.228 82.5,163.5C 72.8734,159.136 65.3734,161.469 60,170.5C 59.5001,186.83 59.3334,203.163 59.5,219.5C 59.5,230.833 59.5,242.167 59.5,253.5C 59.5,254.5 59.5,255.5 59.5,256.5C 58.1667,212.833 58.1667,169.167 59.5,125.5C 59.1692,133.196 59.5025,140.862 60.5,148.5C 78.3634,136.138 96.3634,123.971 114.5,112C 115.252,111.329 115.586,110.496 115.5,109.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cb22" d="M 136.5,133.5 C 141.833,139.5 147.167,145.5 152.5,151.5C 152.733,153.062 153.4,154.395 154.5,155.5C 154.063,157.074 153.063,158.241 151.5,159C 137.726,167.775 124.226,176.942 111,186.5C 109.27,184.398 107.437,184.565 105.5,187C 115.251,198.642 124.418,210.809 133,223.5C 134.741,226.309 135.908,229.309 136.5,232.5C 137.5,232.5 138.5,232.5 139.5,232.5C 139.448,234.903 139.781,237.236 140.5,239.5C 136.07,236.016 132.07,232.016 128.5,227.5C 126.745,224.32 124.745,221.32 122.5,218.5C 109.411,199.99 96.078,181.656 82.5,163.5C 86.1535,165.228 89.3201,164.562 92,161.5C 92.6667,162.167 93.3333,162.833 94,163.5C 106.908,154.295 120.075,145.462 133.5,137C 134.636,135.855 135.636,134.688 136.5,133.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#87bb0a" d="M 178.5,133.5 C 203.995,134.498 229.661,134.831 255.5,134.5C 255.667,146.505 255.5,158.505 255,170.5C 250.212,161.587 243.045,159.087 233.5,163C 224.205,173.781 215.539,184.947 207.5,196.5C 207.565,196.062 207.399,195.728 207,195.5C 201.623,199.275 196.123,199.442 190.5,196C 178.263,182.603 166.263,169.103 154.5,155.5C 153.4,154.395 152.733,153.062 152.5,151.5C 155.803,152.826 159.136,152.826 162.5,151.5C 167.851,145.427 173.184,139.427 178.5,133.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#739e01" d="M 255.5,125.5 C 256.665,168.998 256.831,212.665 256,256.5C 255.344,262.807 252.844,268.141 248.5,272.5C 249.912,251.692 251.245,230.859 252.5,210C 252.376,202.807 251.876,195.64 251,188.5C 247.147,176.885 240.314,174.719 230.5,182C 215.266,199.658 202.432,218.825 192,239.5C 191.501,244.823 191.334,250.156 191.5,255.5C 190.506,246.348 190.173,237.015 190.5,227.5C 188.435,227.517 186.435,227.85 184.5,228.5C 192.167,217.833 199.833,207.167 207.5,196.5C 215.539,184.947 224.205,173.781 233.5,163C 243.045,159.087 250.212,161.587 255,170.5C 255.5,158.505 255.667,146.505 255.5,134.5C 255.5,131.5 255.5,128.5 255.5,125.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#7aa500" d="M 248.5,272.5 C 240.12,282.351 229.454,286.185 216.5,284C 201.878,279.885 193.544,270.385 191.5,255.5C 191.334,250.156 191.501,244.823 192,239.5C 202.432,218.825 215.266,199.658 230.5,182C 240.314,174.719 247.147,176.885 251,188.5C 251.876,195.64 252.376,202.807 252.5,210C 251.245,230.859 249.912,251.692 248.5,272.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#9fd809" d="M 82.5,163.5 C 96.078,181.656 109.411,199.99 122.5,218.5C 101.673,219.497 80.6733,219.831 59.5,219.5C 59.3334,203.163 59.5001,186.83 60,170.5C 65.3734,161.469 72.8734,159.136 82.5,163.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#92cb0e" d="M 154.5,155.5 C 166.263,169.103 178.263,182.603 190.5,196C 196.123,199.442 201.623,199.275 207,195.5C 207.399,195.728 207.565,196.062 207.5,196.5C 199.833,207.167 192.167,217.833 184.5,228.5C 176.506,242.658 164.506,247.825 148.5,244C 145.609,242.726 142.942,241.226 140.5,239.5C 139.781,237.236 139.448,234.903 139.5,232.5C 138.5,232.5 137.5,232.5 136.5,232.5C 135.908,229.309 134.741,226.309 133,223.5C 124.418,210.809 115.251,198.642 105.5,187C 107.437,184.565 109.27,184.398 111,186.5C 124.226,176.942 137.726,167.775 151.5,159C 153.063,158.241 154.063,157.074 154.5,155.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#8fc73a" d="M 323.5,182.5 C 323.5,188.833 323.5,195.167 323.5,201.5C 305.167,201.5 286.833,201.5 268.5,201.5C 268.5,195.167 268.5,188.833 268.5,182.5C 272.145,168.405 281.311,160.738 296,159.5C 306.179,159.921 314.179,164.254 320,172.5C 321.868,175.605 323.035,178.938 323.5,182.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#9bd105" d="M 122.5,218.5 C 124.745,221.32 126.745,224.32 128.5,227.5C 126.901,227.232 125.568,227.566 124.5,228.5C 123.507,236.65 123.174,244.983 123.5,253.5C 102.167,253.5 80.8333,253.5 59.5,253.5C 59.5,242.167 59.5,230.833 59.5,219.5C 80.6733,219.831 101.673,219.497 122.5,218.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#86bb23" d="M 268.5,182.5 C 268.5,188.833 268.5,195.167 268.5,201.5C 286.833,201.5 305.167,201.5 323.5,201.5C 323.5,195.167 323.5,188.833 323.5,182.5C 324.495,194.322 324.828,206.322 324.5,218.5C 323.509,225.313 323.175,232.313 323.5,239.5C 305.167,239.5 286.833,239.5 268.5,239.5C 268.824,232.646 268.491,225.979 267.5,219.5C 267.171,206.989 267.505,194.655 268.5,182.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#96ca02" d="M 124.5,228.5 C 124.666,237.173 124.5,245.84 124,254.5C 119.83,276.339 106.663,286.172 84.5,284C 70.0737,280.28 61.7403,271.113 59.5,256.5C 59.5,255.5 59.5,254.5 59.5,253.5C 80.8333,253.5 102.167,253.5 123.5,253.5C 123.174,244.983 123.507,236.65 124.5,228.5 Z"/></g><g><path class="'.$class.'" style="opacity:1" fill="#7eaf0f" d="M 324.5,218.5 C 324.667,233.17 324.5,247.837 324,262.5C 317.49,281.007 304.657,287.84 285.5,283C 276.416,278.918 270.583,272.085 268,262.5C 267.5,248.171 267.333,233.837 267.5,219.5C 268.491,225.979 268.824,232.646 268.5,239.5C 286.833,239.5 305.167,239.5 323.5,239.5C 323.175,232.313 323.509,225.313 324.5,218.5 Z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_mastodon       ($label = auto, $align = auto, $add_wrapper = auto) { import_color("mastodon");      $class = "brand-mastodon";        return svg($label === auto ? "Mastodon"        : $label,   0,      0,      32,       32,     $align == auto ? false : !!$align, '<g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><path class="'.$class.'" d="M 15.9375 4.03125 C 12.917 4.0435 9.9179219 4.4269844 8.3574219 5.1464844 C 8.3574219 5.1464844 5 6.6748594 5 11.880859 C 5 18.077859 4.9955 25.860234 10.5625 27.365234 C 12.6945 27.938234 14.527953 28.061562 16.001953 27.976562 C 18.676953 27.825562 20 27.005859 20 27.005859 L 19.910156 25.029297 C 19.910156 25.029297 18.176297 25.640313 16.029297 25.570312 C 13.902297 25.495313 11.6615 25.335688 11.3125 22.679688 C 11.2805 22.432688 11.264625 22.182594 11.265625 21.933594 C 15.772625 23.052594 19.615828 22.420969 20.673828 22.292969 C 23.627828 21.933969 26.199344 20.081672 26.527344 18.388672 C 27.041344 15.720672 26.998047 11.880859 26.998047 11.880859 C 26.998047 6.6748594 23.646484 5.1464844 23.646484 5.1464844 C 22.000984 4.3779844 18.958 4.019 15.9375 4.03125 z M 12.705078 8.0019531 C 13.739953 8.0297031 14.762578 8.4927031 15.392578 9.4707031 L 16.001953 10.505859 L 16.609375 9.4707031 C 17.874375 7.5037031 20.709594 7.6264375 22.058594 9.1484375 C 23.302594 10.596438 23.025391 11.531 23.025391 18 L 23.025391 18.001953 L 20.578125 18.001953 L 20.578125 12.373047 C 20.578125 9.7380469 17.21875 9.6362812 17.21875 12.738281 L 17.21875 16 L 14.787109 16 L 14.787109 12.738281 C 14.787109 9.6362812 11.429688 9.7360938 11.429688 12.371094 L 11.429688 18 L 8.9765625 18 C 8.9765625 11.526 8.7043594 10.585438 9.9433594 9.1484375 C 10.622859 8.3824375 11.670203 7.9742031 12.705078 8.0019531 z"></path></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_seloger        ($label = auto, $align = auto, $add_wrapper = auto) { import_color("seloger");       $class = "brand-seloger";         return svg($label === auto ? "Seloger"         : $label,   0,      0,     152.0,    152.0,   $align == auto ? false : !!$align, '<g transform="translate(0.000000,152.000000) scale(0.100000,-0.100000)" stroke="none"><path class="'.$class.'" d="M0 760 l0 -760 760 0 760 0 0 760 0 760 -760 0 -760 0 0 -760z m1020 387 c0 -7 -22 -139 -50 -293 -27 -153 -50 -291 -50 -306 0 -39 25 -48 135 -48 l97 0 -7 -57 c-4 -31 -9 -62 -12 -70 -8 -21 -50 -28 -173 -28 -92 0 -122 4 -152 19 -54 26 -81 76 -81 145 1 51 98 624 109 643 3 4 45 8 95 8 66 0 89 -3 89 -13z m-364 -58 c91 -17 93 -18 81 -86 -5 -32 -12 -62 -16 -66 -4 -4 -60 -3 -125 3 -85 8 -126 8 -150 0 -33 -10 -50 -38 -40 -63 2 -7 55 -46 117 -87 131 -88 157 -120 157 -195 0 -129 -86 -217 -239 -245 -62 -11 -113 -9 -245 12 l-68 10 7 61 c3 34 9 65 11 69 3 4 69 5 148 2 97 -5 148 -3 163 4 24 13 38 56 25 78 -5 9 -57 48 -117 87 -60 40 -117 84 -128 99 -33 44 -34 125 -4 191 31 69 88 112 172 130 41 9 193 7 251 -4z m664 -28 c44 -23 80 -84 80 -135 0 -52 -40 -119 -84 -140 -26 -12 -64 -16 -157 -16 l-123 0 36 38 c31 32 35 40 26 62 -14 37 -4 113 20 147 43 61 134 81 202 44z"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
     function svg_deezer         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("deezer");        $class = "brand-deezer";          return svg($label === auto ? "Deezer"          : $label,   0,      0,     192.1,    192.1,   $align == auto ? false : !!$align, '<style type="text/css">.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#40AB5D;}.st1{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8192_1_);}.st2{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8199_1_);}.st3{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8206_1_);}.st4{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8213_1_);}.st5{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8220_1_);}.st6{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8227_1_);}.st7{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8234_1_);}.st8{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8241_1_);}.st9{fill-rule:evenodd;clip-rule:evenodd;fill:url(#rect8248_1_);}</style><g transform="translate(0,86.843818)"><rect x="155.5" y="-25.1" class="st0" width="42.9" height="25.1"/><linearGradient id="rect8192_1_" gradientUnits="userSpaceOnUse" x1="-111.7225" y1="241.8037" x2="-111.9427" y2="255.8256" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop offset="0" style="stop-color:#358C7B"/><stop  offset="0.5256" style="stop-color:#33A65E"/></linearGradient><rect x="155.5" y="9.7" class="st1" width="42.9" height="25.1"/><linearGradient id="rect8199_1_" gradientUnits="userSpaceOnUse" x1="-123.8913" y1="223.6279" x2="-99.7725" y2="235.9171" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#367B99"/></linearGradient><rect id="rect8199" x="155.5" y="44.5" class="st2" width="42.9" height="25.1"/><linearGradient id="rect8206_1_" gradientUnits="userSpaceOnUse" x1="-208.4319" y1="210.7725" x2="-185.0319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF9900"/><stop  offset="1" style="stop-color:#FF8000"/></linearGradient><rect x="0" y="79.3" class="st3" width="42.9" height="25.1"/><linearGradient id="rect8213_1_" gradientUnits="userSpaceOnUse" x1="-180.1319" y1="210.7725" x2="-156.7319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#FF8000"/><stop  offset="1" style="stop-color:#CC1953"/></linearGradient><rect x="51.8" y="79.3" class="st4" width="42.9" height="25.1"/><linearGradient id="rect8220_1_" gradientUnits="userSpaceOnUse" x1="-151.8319" y1="210.7725" x2="-128.4319" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect x="103.7" y="79.3" class="st5" width="42.9" height="25.1"/><linearGradient id="rect8227_1_" gradientUnits="userSpaceOnUse" x1="-123.5596" y1="210.7725" x2="-100.1596" y2="210.7725" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#222B90"/><stop  offset="1" style="stop-color:#3559A6"/></linearGradient><rect x="155.5" y="79.3" class="st6" width="42.9" height="25.1"/><linearGradient id="rect8234_1_" gradientUnits="userSpaceOnUse" x1="-152.7555" y1="226.0811" x2="-127.5083" y2="233.4639" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="0" style="stop-color:#CC1953"/><stop  offset="1" style="stop-color:#241284"/></linearGradient><rect x="103.7" y="44.5" class="st7" width="42.9" height="25.1"/><linearGradient id="rect8241_1_" gradientUnits="userSpaceOnUse" x1="-180.9648" y1="234.3341" x2="-155.899" y2="225.2108" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFCC00"/><stop  offset="0.9999" style="stop-color:#CE1938"/></linearGradient><rect x="51.8" y="44.5" class="st8" width="42.9" height="25.1"/><linearGradient id="rect8248_1_" gradientUnits="userSpaceOnUse" x1="-178.1651" y1="257.7539" x2="-158.6987" y2="239.791" gradientTransform="matrix(1.8318 0 0 -1.8318 381.8134 477.9528)"><stop  offset="2.669841e-03" style="stop-color:#FFD100"/><stop  offset="1" style="stop-color:#FD5A22"/></linearGradient><rect x="51.8" y="9.7" class="st9" width="42.9" height="25.1"/></g>', $add_wrapper == auto ? true : !!$add_wrapper); }
