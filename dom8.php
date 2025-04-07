@@ -6726,6 +6726,12 @@
                                         $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
              /* if (get("modernizr"))*/ $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
 
+                if (!!get("no_css"))    $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed")                         ));
+                if (!!get("no_js"))     $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed")                          ));
+
+                if (!!get("css-naked")) $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed-naked-day")               ));
+                if (!!get("js-naked"))  $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed-naked-day")                ));
+
                 //  Return html
 
                 return  raw_html('<!doctype html>'.comment("Welcome my fellow web developer!").'<html'.attributes_as_string($attributes).'>'.' ').
@@ -8727,6 +8733,8 @@
 
     function settings()
     {
+        if (!!get("no_js")) return "";
+        
         $char_system = "💻︎"; // ⚙
         $char_dark   = "☾"; 
         $char_light  = "☀︎"; // 💡︎
