@@ -13066,7 +13066,7 @@
 
         $anchor_name = slugify($name, $tolower, '-');
 
-        if (is_numeric($anchor_name[0])) $anchor_name = "+$anchor_name";
+        if (strlen($anchor_name) > 0 && is_numeric($anchor_name[0])) $anchor_name = "+$anchor_name";
 
         return $anchor_name;
     }
