@@ -491,6 +491,7 @@
             if ($link == false || $link == url_void() || $link == url_empty())
             {
                 $attributes = \dom\attributes_add_class($attributes, "transparent link");
+                $attributes = \dom\attributes_add($attributes, \dom\attributes(\dom\attr("type", "button") ));
 
                 return button($icon, $attributes);
             }
@@ -501,6 +502,7 @@
 
                 $attributes = \dom\attributes_add_class($attributes, "transparent link");
                 $attributes = \dom\attributes_add($attributes, \dom\attributes(\dom\attr("onclick", $js_function) ));
+                $attributes = \dom\attributes_add($attributes, \dom\attributes(\dom\attr("type", "button") ));
 
                 return button($icon, $attributes);
             }

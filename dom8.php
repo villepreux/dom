@@ -5566,7 +5566,7 @@
                     <title>Please wait...</title>
 
                     <meta name="format-detection" content="telephone=no">
-                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1">
+                    <meta name="viewport" content="width=device-width,initial-scale=1">
                     <meta http-equiv="refresh" content="3">
                     
                     <style>
@@ -5708,7 +5708,7 @@
                     <meta charset="utf-8">
                     <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
                     <meta name="format-detection" content="telephone=no">
-                    <meta name="viewport" content="width=device-width, minimum-scale=1, initial-scale=1">
+                    <meta name="viewport" content="width=device-width,initial-scale=1">
                     <meta http-equiv="refresh" content="3">
                 </head>
                 <body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: <?= string_system_font_stack("\'") ?>; padding-top: calc(50vh - 2em - 64px);">
@@ -6800,7 +6800,7 @@
     {
         return  eol().comment("Pragma directives") 
             .   meta_charset('utf-8')
-            .   meta('viewport', 'width=device-width, minimum-scale=1, initial-scale=1')
+            .   meta('viewport', 'width=device-width,initial-scale=1')
             ;        
     }
 
@@ -8071,20 +8071,21 @@
 
         return section(
 
+            style(".webmentions { padding-bottom: var(--gap); }").
             p("These are ".a("webmentions", "https://indieweb.org/Webmention")." via the ".a("IndieWeb", "https://indieweb.org/")." and ".a("webmention.io", "https://webmention.io")).
             div(
                 p("No known mention, yet").
                 noscript(p("Loading web mentions relies on JavaScript. Try enabling JavaScript and reloading.")), 
                 [ "data-webmentions" => true, "data-url" => webmentions_url($url) ]
                 ).
-            p(form(
+            div(form(
                 label("URL of your site:", "form-webmention-source", "sr-only")." ".
                 input("", "url",    "form-webmention-source",   [ "placeholder" => "https://example.com", "required" => "" ])." ".
                 input("", "hidden", "target",                   [ "name" => "target", "value" => "https://www.zachleat.com/web/google-fonts-display/" ]).
                 input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]),
                 [ "action" => "https://webmention.io/".live_domain()."/webmention", "method" => "post" ]
                 )).
-            "", [ "style" => "padding-bottom: var(--gap)", "class" => "webmentions requires-js" ]);
+            "", "webmentions requires-js");
     }
 
     /**
@@ -8304,7 +8305,7 @@
             
             .   eol()
             .   meta('format-detection',                    'telephone=no')/*
-            .   meta('viewport',                            'width=device-width, minimum-scale=1, initial-scale=1')*/
+            .   meta('viewport',                            'width=device-width,initial-scale=1')*/
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
             .   meta('description',                         strip_tags(get("og_description", get("description", get("title")))))
@@ -12995,21 +12996,26 @@
         {
             return span($html);
         }
-        else if (strip_tags($html) == $html)
+        else 
         {
-            $script         = "document.getElementById('".md5($html)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('".md5($html)."').innerHTML = '".$html."';";
-            $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
-            $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
+            $id = "x-".md5($html);
+    
+            if (strip_tags($html) == $html)
+            {
+                $script         = "document.getElementById('$id').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."'); document.getElementById('$id').innerHTML = '".$html."';";
+                $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
+                $attributes     = attributes_add($attributes, attributes(attr("id", $id)));
 
-            return a(str_repeat("x", strlen($html)), url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
-        }
-        else
-        {
-            $script         = "document.getElementById('".md5($html)."').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."');";
-            $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
-            $attributes     = attributes_add($attributes, attributes(attr("id", md5($html))));
+                return a(str_repeat("x", strlen($html)), url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
+            }
+            else
+            {
+                $script         = "document.getElementById('$id').setAttribute('href','".preg_replace("/\"/","\\\"",$url)."');";
+                $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
+                $attributes     = attributes_add($attributes, attributes(attr("id", $id)));
 
-            return a($html, url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
+                return a($html, url_void(), $attributes, $target).script("eval(unescape('".$crypted_script."'))");
+            }
         }
     }
 
@@ -13025,11 +13031,11 @@
         }
         else
         {
-            $script  = "document.getElementById('".md5($text)."').setAttribute('href','mailto:".preg_replace("/\"/","\\\"",$email)."'); document.getElementById('".md5($text)."').innerHTML = '".$text."';";
+            $script  = "document.getElementById('e-".md5($text)."').setAttribute('href','mailto:".preg_replace("/\"/","\\\"",$email)."'); document.getElementById('e-".md5($text)."').innerHTML = '".$text."';";
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a(str_repeat("x", strlen(strip_tags($text))), url_void(), array("aria-label" => "E-mail", "id" => md5($text)), $target).script("eval(unescape('".$crypted_script."'))");
+            return a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("e-".md5($text)) ], $target).script("eval(unescape('".$crypted_script."'))");
         }
     }
 
@@ -13058,7 +13064,11 @@
             $name = substr($name, 0, stripos($name, "<"));
         }
 
-        return slugify($name, $tolower, '-');
+        $anchor_name = slugify($name, $tolower, '-');
+
+        if (is_numeric($anchor_name[0])) $anchor_name = "+$anchor_name";
+
+        return $anchor_name;
     }
 
     function anchor($name, $character = false, $tolower = auto)
@@ -13496,7 +13506,7 @@
                         .' viewBox'         .'="'.  "$x $y $w $h"               .'"'
                         .' width'           .'="'.  min(24, $w-$x)              .'"'
                         .' height'          .'="'.  min(24, $h-$y)              .'"'
-                        .' style'           .'="'.  "fill: currentColor"        .'"'
+                      //.' style'           .'="'.  "fill: currentColor"        .'"'
                         .'>'                                                                    .(($label!="" && $label!=false && !$has_title)?(''
                         .'<title id="'.$id_title.'">'.$title.'</title>'
                       /*.'<desc id="'.$id_desc.'">'.$desc.'</desc>'*/                   ):'')
@@ -15093,6 +15103,8 @@
         $html = "";
 
         $footnotes = get("footnotes", []);
+
+        if (0 == count($footnotes)) return "";
 
         foreach ($footnotes as $i => $footnote)
         {
