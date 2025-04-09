@@ -625,8 +625,9 @@
             @ini_set('memory_limit', '-1');
         }
 
-        if (!!get("debug"))
+        if (!!get("debug") || is_localhost())
         {
+            @error_reporting(E_ALL);
             @ini_set('display_errors',1);
         }
         
