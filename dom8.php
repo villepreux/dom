@@ -5093,27 +5093,32 @@
         {
             die($doc);
         }
-
+        
         if (has("main"))
         {
             die();
         }
-
+        
         if (is_embeded())
         {
             return;
         }
-
+        
         if ("html" == get("doctype", false))
         {
             if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc, $attributes);
         }
-
+        
         if ("json" == get("doctype", false) && is_array($doc))
         {
-            $doc = json_encode($doc);
-        }
+            $json = json_encode($doc);
 
+            if (false === $json && is_array($doc)) { foreach ($doc as &$value) if (is_string($value)) $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8'); $json = json_encode($doc); }
+            if (false === $json) { $doc = "{}"; /*die("could not encode doc (".json_last_error_msg().")");*/ }
+
+            $doc = $json;
+        }
+        
         if (false !== stripos($doc, "DOM_HOOK_RSS_1"      )) $doc = placeholder_replace("DOM_HOOK_RSS_1"       , _rss      (true), $doc);
         if (false !== stripos($doc, "DOM_HOOK_JSONFEED_1" )) $doc = placeholder_replace("DOM_HOOK_JSONFEED_1"  , _jsonfeed (true), $doc);
         if (false !== stripos($doc, "DOM_HOOK_TILE_1"     )) $doc = placeholder_replace("DOM_HOOK_TILE_1"      , _tile     (true), $doc);
