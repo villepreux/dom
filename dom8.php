@@ -6788,7 +6788,7 @@
                  */
                 for (var option of [ "theme", "css", "js", "html" ]) {
 
-                    var stored_value = localStorage.getItem(option);
+                    var stored_value = window.localStorage.getItem(option);
 
                     if (null !== stored_value) {
 
@@ -8748,7 +8748,7 @@
 
         return 
 
-            style(css_layer([ "default", "component", "settings" ], '
+            style(css_layer([ "default", "component", "settings" ], (function() { HERE() ?><style><?= HERE() ?> 
             
                 .settings {
 
@@ -8772,7 +8772,7 @@
                     }
                 }
 
-                '), false, [ "layer" => "default", "media" => "screen" ]).
+                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()), false, [ "layer" => "default", "media" => "screen" ]).
 
             details(summary("User settings").form(
 
@@ -8802,7 +8802,7 @@
                 
                 ""), [ "class" => "settings requires-js" ]).
                     
-            script('
+            script((function () { HERE() ?><script><?= HERE() ?> 
 
                 /* Default UI must reflect current setting */
 
@@ -8811,17 +8811,17 @@
 
                 /* Handle user interractions */
 
-                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");             document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
-                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
-                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
+                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");             document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
+                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
+                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
                 
-                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="spec"]\'      ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="browser"]\'   ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
-                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll(\'style[layer="normalize"]\' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="default"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll(\'style[layer="app"]\').forEach(function(e) { e.setAttribute("media", "screen"); }); });
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="spec"]'      ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="browser"]'   ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "screen"); }); });
+                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="app"]').forEach(function(e) { e.setAttribute("media", "screen"); }); });
 
-                ');
+                <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
 
     function css_spec($layer = "spec")
