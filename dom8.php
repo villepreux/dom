@@ -8748,7 +8748,7 @@
 
         return 
 
-            style(css_layer([ "default", "component", "settings" ], (function() { HERE() ?><style><?= HERE() ?> 
+            style(css_layer([ "default", "component", "settings" ], (function() { HSTART() ?><style><?= HERE() ?> 
             
                 .settings {
 
@@ -8802,7 +8802,7 @@
                 
                 ""), [ "class" => "settings requires-js" ]).
                     
-            script((function () { HERE() ?><script><?= HERE() ?> 
+            script((function () { HSTART() ?><script><?= HERE() ?> 
 
                 /* Default UI must reflect current setting */
 
