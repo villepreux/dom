@@ -12054,6 +12054,7 @@
   //function del            ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function deleted        ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return  tag('em',                         $html,                                                $attributes                                                         );                      }
+    function small          ($html = "", $attributes = false) {                             return  tag('small',                      $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return  tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return  tag('figure',                     $html,                                                $attributes                                                         );                      }
     function figcaption     ($html = "", $attributes = false) {                             return  tag('figcaption',                 $html,                                                $attributes                                                         );                      }
@@ -12082,6 +12083,11 @@
     function input          ($html = "", $type = "", $id = "", $attributes = false) {       return  tag('input',                      "",                                   attributes_add( $attributes, attributes(attr("type",    $type),
                                                                                                                                                                                                                     attr("value",   $html),
                                                                                                                                                                                                                     attr("id",      $id))), false, true                 );                      }
+
+    function textarea       ($html = "", $rows = 4, $cols = 64, $id = "", $attributes = false) { return  tag('textarea', "", attributes_add( $attributes, attributes(attr("value",  $html),
+                                                                                                                                                                     attr("rows",   $rows),
+                                                                                                                                                                     attr("cols",   $cols),
+                                                                                                                                                                     attr("id",     $id)))); }
 
     function label          ($html = "", $for  = "", $attributes = false) {                 return  tag('label',                      $html,                            attributes_add( $attributes, attributes(attr("for", $for))) );                      }
 
