@@ -431,7 +431,7 @@
         // Early return if in cache
         global $__path_cache;
         $path_cache_key = "$path0".($default?"1":"0").($search?"1":"0").($depth0===auto?"auto":($depth0?"1":"0"))."$max_depth-$offset_path0".($bypass_root_hints?"1":"0");
-        if (array_key_exists($path_cache_key, $__path_cache)) { return $__path_cache[$path_cache_key]; }
+        if (is_array($__path_cache) && array_key_exists($path_cache_key, $__path_cache)) { return $__path_cache[$path_cache_key]; }
 
         // Early return if URL
         if (strlen($path0) >= 6 && ($path0[4] == ':' || $path0[5] == ':')) { $__path_cache[$path_cache_key] = $path0; return $path0; }
@@ -1339,7 +1339,11 @@
             {
                 if (!is_array($values2))
                 {
-                    if ($name2 == "style")
+                    if (!$values2)
+                    {
+                        $values2 = [];
+                    }
+                    else if ($name2 == "style")
                     {
                         $values2 = explode(";", $values2);
                     }
@@ -1651,10 +1655,10 @@
             ],
         ]);
 
-        $headers = @get_headers($url, false, $context);
+        $headers = !$url ? false : @get_headers($url, false, $context);
         if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
         
-        $headers = @get_headers("$url/", false, $context);
+        $headers = !$url ? false : @get_headers("$url/", false, $context);
         if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
 
         return false;
@@ -4843,7 +4847,7 @@
 
     function cache_stop()
     {
-        if (!!get("cache"))
+        if (!!get("cache") && !!get("cache_filename"))
         {
             $cache_file = @fopen(get("cache_filename"), 'w');
             
@@ -5037,6 +5041,7 @@
 
         if (!get("static") || !!get("fast")) // TODO Taking this shortcut for now as below code is too slow
         {
+            if (!$replaced_by) $replaced_by = "";
             return str_replace(placeholder($placeholder), $replaced_by, $in);
         }
 
@@ -14634,9 +14639,9 @@
 
     function int_rgb_to_hash_rrggbb($r, $g, $b)
     {
-        return "#". str_pad(dechex($r),2,"0",STR_PAD_LEFT).
-                    str_pad(dechex($g),2,"0",STR_PAD_LEFT).
-                    str_pad(dechex($b),2,"0",STR_PAD_LEFT);
+        return "#". str_pad(dechex((int)$r),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex((int)$g),2,"0",STR_PAD_LEFT).
+                    str_pad(dechex((int)$b),2,"0",STR_PAD_LEFT);
     }
 
     function dec_rgb_to_hash_rrggbb($r, $g, $b)

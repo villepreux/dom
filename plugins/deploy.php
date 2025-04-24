@@ -116,7 +116,7 @@ function deploy_log()
     $args = func_get_args();
     if (0 == count($args)) return deploy_log(0.0, "");
     $progress_percent = 0;
-    if (count($args) >= 2 && is_int($args[0]) && is_int($args[1])) { $progress_percent = (($args[0] + 1) / $args[1]); array_shift($args); array_shift($args); }
+    if (count($args) >= 2 && is_int($args[0]) && is_int($args[1])) { $progress_percent = (($args[0] + 1) / max(1, $args[1])); array_shift($args); array_shift($args); }
     if (count($args) >= 1 && is_numeric($args[0])) { $progress_percent = (float)array_shift($args); }
     if (0 == count($args)) return deploy_log($progress_percent, "");
 

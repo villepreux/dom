@@ -3,11 +3,11 @@
     <TileColor>#000</TileColor>
 </tile>
 <notification>
-    <polling-uri src="https://villepreux.net/dom/examples/cards/?rss=tile&amp;id=1">
-    <polling-uri2 src="https://villepreux.net/dom/examples/cards/?rss=tile&amp;id=2">
-    <polling-uri3 src="https://villepreux.net/dom/examples/cards/?rss=tile&amp;id=3">
-    <polling-uri4 src="https://villepreux.net/dom/examples/cards/?rss=tile&amp;id=4">
-    <polling-uri5 src="https://villepreux.net/dom/examples/cards/?rss=tile&amp;id=5">
+    <polling-uri src="https://villapirorum.netlify.app/dom/examples/cards/?rss=tile&amp;id=1">
+    <polling-uri2 src="https://villapirorum.netlify.app/dom/examples/cards/?rss=tile&amp;id=2">
+    <polling-uri3 src="https://villapirorum.netlify.app/dom/examples/cards/?rss=tile&amp;id=3">
+    <polling-uri4 src="https://villapirorum.netlify.app/dom/examples/cards/?rss=tile&amp;id=4">
+    <polling-uri5 src="https://villapirorum.netlify.app/dom/examples/cards/?rss=tile&amp;id=5">
     <frequency>30</frequency>
     <cycle>1</cycle>
 </notification>

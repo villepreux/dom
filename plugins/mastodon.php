@@ -676,7 +676,8 @@ function corresponding_post($permalink)
 
         foreach ($statuses as $post)
         {
-            if (@count(at($post, "reblog", [])) > 0) continue;
+            $reblog = at($post, "reblog", []);
+            if (!!$reblog && @count($reblog) > 0) continue;
 
             $contents[$host][] = htmlentities(strip_tags(at($post, "content")));
 
@@ -822,8 +823,6 @@ function article_excerpt_autopost_and_comments($visibility = auto /* private | p
     }
     else if (!get("static"))
     {
-        \dom\bye("WTF?");
-
         if (!get("mastodon/excerpt"))
         {
             $html = p("This article will be automatically posted on the Fediverse once an excerpt has been defined");
@@ -834,6 +833,8 @@ function article_excerpt_autopost_and_comments($visibility = auto /* private | p
         }
         else 
         {
+            \dom\bye("DEBUG IN PROGRESS ($live_permalink)");
+    
             $html = p("Posted $live_permalink to Fediverse...").
 
                     ((function($post_response) {

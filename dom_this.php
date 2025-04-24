@@ -179,6 +179,36 @@ function code_section($code, $client_source_url, $title = false, $attributes = f
     }
 }
 
+function highlight($code, $lang)
+{    
+    try {
+
+        if (class_exists("\Highlight\Highlighter")) 
+        {
+            $highlighter = @new \Highlight\Highlighter();
+
+            if ($highlighter) 
+            {
+                $code = $highlighter->highlight($lang, $code)->value;
+            } 
+            else 
+            {
+                $code = htmlentities($code);
+            }
+        } 
+        else 
+        {
+            $code = htmlentities($code);
+        }
+    }
+    catch (DomainException $e) 
+    {
+        $code = htmlentities($code);
+    }
+
+    return $code;
+}
+
 function code_highlight($code, $lang = "php")
 {
     $profiler = debug_track_timing();
@@ -221,31 +251,7 @@ function code_highlight($code, $lang = "php")
         }
     }
 
-    try {
-
-        if (class_exists("\Highlight\Highlighter")) 
-        {
-            $highlighter = @new \Highlight\Highlighter();
-
-            if ($highlighter) 
-            {
-                $code = $highlighter->highlight($lang, $code)->value;
-            } 
-            else 
-            {
-                $code = htmlentities($code);
-            }
-        } 
-        else 
-        {
-            $code = htmlentities($code);
-        }
-    }
-    catch (DomainException $e) 
-    {
-        $code = htmlentities($code);
-    }
-
+    $code = highlight($code, $lang);
     $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
 
     if ($lang == "php")
@@ -258,7 +264,8 @@ function code_highlight($code, $lang = "php")
 
             $embed_indent *= code_tab_dst_size / code_tab_src_size;
             
-            $embed = htmlentities($embed);
+          //$embed = htmlentities($embed);
+            $embed = highlight($embed, $embed_lang);
             $embed = dom\code($embed, [ "class" => "language-$embed_lang",  "style" => "padding-left: {$embed_indent}ch" ]);
 
           //$placeholder = comment("CODE-EMBED-$index");

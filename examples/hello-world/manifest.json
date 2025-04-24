@@ -5,7 +5,7 @@
     "theme_color": "#000",
     "shortcuts": [],
     "screenshots": [],
-    "start_url": "https:\/\/villepreux.net\/dom\/examples\/hello-world?&utm_source=homescreen",
+    "start_url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/hello-world?&utm_source=homescreen",
     "display": "standalone",
     "orientation": "portrait-primary",
     "launch_handler": {
@@ -17,7 +17,7 @@
     "related_applications": [
         {
             "platform": "web",
-            "url": "https:\/\/villepreux.net\/dom\/examples\/hello-world"
+            "url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/hello-world"
         }
     ],
     "icons": []

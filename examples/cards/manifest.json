@@ -10,7 +10,7 @@
         }
     ],
     "screenshots": [],
-    "start_url": "https:\/\/villepreux.net\/dom\/examples\/cards?&utm_source=homescreen",
+    "start_url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/cards?&utm_source=homescreen",
     "display": "standalone",
     "orientation": "portrait-primary",
     "launch_handler": {
@@ -22,7 +22,7 @@
     "related_applications": [
         {
             "platform": "web",
-            "url": "https:\/\/villepreux.net\/dom\/examples\/cards"
+            "url": "https:\/\/villapirorum.netlify.app\/dom\/examples\/cards"
         }
     ],
     "icons": []
