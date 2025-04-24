@@ -183,30 +183,37 @@ function highlight($code, $lang)
 {    
     try {
 
+        if (class_exists("\Tempest\Highlight\Highlighter")) 
+        {
+            $highlighter = @new \Tempest\Highlight\Highlighter();
+
+            if ($highlighter) 
+            {
+                return $highlighter->parse($code, $lang);
+            } 
+        } 
+    }
+    catch (Exception $e) 
+    {
+    }
+
+    try {
+
         if (class_exists("\Highlight\Highlighter")) 
         {
             $highlighter = @new \Highlight\Highlighter();
 
             if ($highlighter) 
             {
-                $code = $highlighter->highlight($lang, $code)->value;
+                return $highlighter->highlight($lang, $code)->value;
             } 
-            else 
-            {
-                $code = htmlentities($code);
-            }
         } 
-        else 
-        {
-            $code = htmlentities($code);
-        }
     }
-    catch (DomainException $e) 
+    catch (Exception $e) 
     {
-        $code = htmlentities($code);
     }
 
-    return $code;
+    $code = htmlentities($code);
 }
 
 function code_highlight($code, $lang = "php")

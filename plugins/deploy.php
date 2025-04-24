@@ -1166,7 +1166,7 @@ if (!!$cmdline_option_compile)
 {
     deploy_log("[i] Compiling...");
 
-    $derivatives = !$cmdline_option_gemini ? array("rss", "json", "tile") : array();
+    $derivatives = !$cmdline_option_gemini ? array("rss", "json"/*, "tile"*/) : array();
 
     // PASS #0 - Compute amount of files to process. So we can track progression
 

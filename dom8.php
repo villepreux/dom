@@ -8338,6 +8338,12 @@
             .   script('
 
                     var current_theme = document.documentElement.getAttribute("data-theme"); 
+
+                    if (null == current_theme) { 
+                        var l = document.querySelector("#setting-theme-light"); if (!!l && l.cheked) current_theme = "light";
+                        var d = document.querySelector("#setting-theme-dark");  if (!!d && d.cheked) current_theme = "dark";
+                    }
+
                     if (null !== current_theme) { 
                         document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", current_theme); });
                     }
@@ -8745,7 +8751,7 @@
 
     function settings()
     {
-        if (!!get("no_js")) return "";
+        //if (!!get("no_js")) return "";
         
         $char_system = "💻︎"; // ⚙
         $char_dark   = "☾"; 
@@ -8805,7 +8811,7 @@
                     
                     "", "css").
                 
-                ""), [ "class" => "settings requires-js" ]).
+                ""), [ "class" => ("settings"/*." requires-js"*/) ]).
                     
             script((function () { HSTART() ?><script><?= HERE() ?> 
 
@@ -8972,8 +8978,8 @@
 
                     color-scheme: light dark;
 
-                    &[data-theme^="light"] { color-scheme: light; }
-                    &[data-theme^="dark"]  { color-scheme: dark;  }
+                    &[data-theme^="light"], &:has(#setting-theme-light:checked) { color-scheme: light; }
+                    &[data-theme^="dark"],  &:has(#setting-theme-dark:checked)  { color-scheme: dark;  }
 
                     /*container-type: size;   */ /* ISSUE: https://github.com/w3c/csswg-drafts/issues/9003#issue-1772177852 */
                     interpolate-size: allow-keywords;
@@ -9859,11 +9865,11 @@
 
             /* Provide a way to dynamically change theme via a data-theme attribute */
 
-            [data-theme^='light'] {
+            [data-theme^='light'], &:has(#setting-theme-light:checked) {
                 <?= css_vars_color_scheme("light", 1) ?> 
             }
 
-            [data-theme^='dark'] {
+            [data-theme^='dark'],  &:has(#setting-theme-dark:checked) {
                 <?= css_vars_color_scheme("dark", 1) ?> 
             }
 
@@ -9897,13 +9903,13 @@
 
             <?php if ($need_nesting) { ?>
 
-            [data-theme^="light"] { <?= $css_light ?>  }
-            [data-theme^="dark"]  { <?= $css_dark  ?>  }
+            [data-theme^="light"], &:has(#setting-theme-light:checked) { <?= $css_light ?>  }
+            [data-theme^="dark"],  &:has(#setting-theme-dark:checked)  { <?= $css_dark  ?>  }
 
             <?php } else { ?>
 
-            [data-theme^="light"] <?= $css_light ?>
-            [data-theme^="dark"]  <?= $css_dark  ?>
+            [data-theme^="light"], &:has(#setting-theme-light:checked) <?= $css_light ?>
+            [data-theme^="dark"],  &:has(#setting-theme-dark:checked)  <?= $css_dark  ?>
 
             <?php } ?>
 
