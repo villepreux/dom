@@ -806,7 +806,7 @@ function article_excerpt_autopost_and_comments($visibility = auto /* private | p
     // When the workflow is compile php -> push compile static version live
     // The it needs to be double-posted in order to work
 
-    // TODO. Go all jaascript when static site ?
+    // TODO. Go all javascript when static site ?
 
     $live_permalink     = live_permalink();
     $corresponding_post = corresponding_post($live_permalink);
@@ -833,8 +833,6 @@ function article_excerpt_autopost_and_comments($visibility = auto /* private | p
         }
         else 
         {
-            \dom\bye("DEBUG IN PROGRESS ($live_permalink)");
-    
             $html = p("Posted $live_permalink to Fediverse...").
 
                     ((function($post_response) {
