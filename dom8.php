@@ -9905,13 +9905,13 @@
 
             <?php if ($need_nesting) { ?>
 
-            [data-theme^="light"], &:has(#setting-theme-light:checked) { <?= $css_light ?>  }
-            [data-theme^="dark"],  &:has(#setting-theme-dark:checked)  { <?= $css_dark  ?>  }
+            :is([data-theme^="light"], html:has(#setting-theme-light:checked)) { <?= $css_light ?>  }
+            :is([data-theme^="dark"],  html:has(#setting-theme-dark:checked))  { <?= $css_dark  ?>  }
 
             <?php } else { ?>
 
-            [data-theme^="light"], &:has(#setting-theme-light:checked) <?= $css_light ?>
-            [data-theme^="dark"],  &:has(#setting-theme-dark:checked)  <?= $css_dark  ?>
+            :is([data-theme^="light"], html:has(#setting-theme-light:checked)) <?= $css_light ?>
+            :is([data-theme^="dark"],  html:has(#setting-theme-dark:checked))  <?= $css_dark  ?>
 
             <?php } ?>
 
