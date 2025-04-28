@@ -2031,13 +2031,13 @@
     {
         if (is_string($str))
         {
-            $len = strlen($str);
+            $len = mb_strlen($str);
 
             while (true)
             {
                 $str = str_replace($from, $to, $str);
-                $new_len = strlen($str);
-                if ($new_len >= $len) break;
+                $new_len = mb_strlen($str);
+                if ($new_len == $len) break;
                 $len = $new_len;
             }
         }
@@ -14089,7 +14089,7 @@
         {
             $attributes = attributes_add($attributes, array("class" => "card", "style" => "transform: scale3d(1,1,1) rotate(".(0.01 * (float)rand( -100.0 * (float)get("random_cards_rotate"), 100.0 * (float)get("random_cards_rotate")))."deg);"));
         }
-
+        
         $attributes = attributes_add($attributes, attr_card());
         $attributes = attributes_add($attributes, component_class("article", "card").($horizontal ? (" ".component_class("article", "card-horizontal")) : ''));
 
