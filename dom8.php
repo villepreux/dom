@@ -2641,6 +2641,7 @@
     function _link_rel_image_preloads()
     {
         global $hook_image_preloads; 
+        if (!!get("no_preloads")) return "";
         return wrap_each($hook_image_preloads, "", "link_rel_image_preload", false);
     }
 
@@ -8811,7 +8812,7 @@
                     div(radio("setting-css", "setting-css-utilities"    ).label("Utilities",  "setting-css-utilities" )).
                     div(radio("setting-css", "setting-css-app"          ).label("App",        "setting-css-app"       )).
                     
-                    "", "css").
+                    "", "css requires-js").
                 
                 ""), [ "class" => ("settings"/*." requires-js"*/) ]).
                     
@@ -10625,7 +10626,7 @@
                 background-color: currentColor;
                 mask: url('data:image/svg+xml;utf8,<svg height="1024" width="768" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M640 768H128V257.90599999999995L256 258V128H0v768h768V576H640V768zM384 128l128 128L320 448l128 128 192-192 128 128V128H384z"/></svg>');
                 mask-size: cover;
-                                
+
                 position: relative;
                 width:  .60em;
                 height: .75em;
@@ -10664,7 +10665,7 @@
                 background-color: currentColor;
                 mask: url('data:image/svg+xml;utf8,<svg height="1024" width="768" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M640 768H128V257.90599999999995L256 258V128H0v768h768V576H640V768zM384 128l128 128L320 448l128 128 192-192 128 128V128H384z"/></svg>');
                 mask-size: cover;
-                                
+
                 position: relative;
                 width:  .60em;
                 height: .75em;
@@ -13287,11 +13288,18 @@
             set("img_nth", $img_nth + 1);
         }
 
+        $src = $path;
+
+        if (true !== $lazy && !!get("embeded-images"))
+        {
+            $src = "data:image/".ltrim($ext,".").";base64,".base64_encode(file_get_contents($path));
+        }
+
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
-             if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
-        else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
-        else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $path, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
+             if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
+        else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
+        else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
 
              if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
         else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
