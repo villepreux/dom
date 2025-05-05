@@ -6867,7 +6867,7 @@
 
             // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
             eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-            eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
+            eol().'<link rel="stylesheet" type="text/css" media="all">'. 
 
             eol().comment("styles").
 
@@ -6876,8 +6876,8 @@
             ( !$path_css  ? "" : (
 
                 eol(). comment("Project-specific main stylesheet").                                                 (!get("htaccess_rewrite_php") ? (
-                style_file($path_css, false, auto,     [ "layer" => "app", "media" => "screen" ]).       "") : (
-                link_style($path_css, "screen", false, [ "layer" => "app"  ]).                            "")).
+                style_file($path_css, false, auto,     [ "layer" => "app", "media" => "all" ]).           "") : (
+                link_style($path_css, "all", false,    [ "layer" => "app"  ]).                            "")).
 
             ""));
     }
@@ -8472,7 +8472,7 @@
         return link_rel("manifest", $filename); 
     }
 
-    function link_style($link, $media = "screen", $async = false, $attributes = false)
+    function link_style($link, $media = "all", $async = false, $attributes = false)
     {
         if (!!get("no_css"))             return '';
         if (!!get("include_custom_css")) return style_file($link, false, true);
@@ -8543,7 +8543,7 @@
         }
 
         if (false === $layer || !get("css_layers_support")) return $css;
-        return eol()."@layer $layer {".($css == "" ? "" : (eol(2).indent(trim(unindent($css)), 1).eol()))."}".eol();
+        return eol()."@layer $layer {".($css == "" ? "" : (eol(2).indent(trim(unindent($css)), 1).eol()))."} /* @layer $layer */ ".eol();
     }
 
     $__style_css_hooks = [];
@@ -8572,7 +8572,7 @@
     function layered_style($layer, $css, $force_minify = false, $attributes = false, $trim = auto, $order = auto)
     {
         $first_layer = is_array($layer) ? $layer[0] : $layer;
-        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => "screen"));
+        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => "all"));
 
         return style(css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
@@ -8664,8 +8664,8 @@
         if ($fonts === false) $fonts = get("fonts");
         if (!!$fonts)         $fonts = str_replace(' ','+', trim($fonts, ", /|"));
 
-        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "screen", $async) : '')
-                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
+        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "all", $async) : '')
+                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "all", $async) : '');
     }
     
     function link_styles($async = false, $fonts = false)
@@ -8685,22 +8685,22 @@
         $path_material_icons    = !$inline_css ? false : path("css/material-icons.css");
 
         return                                                                                                                                                                                                                                                                  (("normalize" == get("normalize")) ? (""
-            .   ($path_normalize      ? link_style($path_normalize      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . get("version_normalize") . '/normalize.min.css',                     "screen", false     ))  ) : "").    (("sanitize"  == get("normalize")) ? (""
-            .   ($path_sanitize       ? link_style($path_sanitize       , "screen", false)  :(link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/sanitize.min.css',                      "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/assets.min.css',                        "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/forms.min.css',                         "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/reduce-motion.min.css',                 "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/system-ui.min.css',                     "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/typography.min.css',                    "screen", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/ui-monospace.min.css',                  "screen", false     ))) ) : "").    (("evergreen" == get("reset"    )) ? (""
-            .   ($path_evergreen      ? link_style($path_evergreen      , "screen", false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_evergreen") . '/evergreen.min.css',                     "screen", false     ))  ) : "").    (("material"  == get("framework")) ? (""
-            .   ($path_material       ? link_style($path_material       , "screen", false)  : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',  "screen", false     ))  ) : "").    (("bootstrap" == get("framework")) ? (""
-            .   ($path_bootstrap      ? link_style($path_bootstrap      , "screen", false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                 "screen", false     ))  ) : "").    (("spectre"   == get("framework")) ? (""
+            .   ($path_normalize      ? link_style($path_normalize      , "all",   false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . get("version_normalize") . '/normalize.min.css',                     "all", false     ))  ) : "").    (("sanitize"  == get("normalize")) ? (""
+            .   ($path_sanitize       ? link_style($path_sanitize       , "all",   false)  :(link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/sanitize.min.css',                      "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/assets.min.css',                        "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/forms.min.css',                         "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/reduce-motion.min.css',                 "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/system-ui.min.css',                     "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/typography.min.css',                    "all", false     )  
+                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/ui-monospace.min.css',                  "all", false     ))) ) : "").    (("evergreen" == get("reset"    )) ? (""
+            .   ($path_evergreen      ? link_style($path_evergreen      , "all",    false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_evergreen") . '/evergreen.min.css',                     "all", false     ))  ) : "").    (("material"  == get("framework")) ? (""
+            .   ($path_material       ? link_style($path_material       , "all",    false)  : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',  "all", false     ))  ) : "").    (("bootstrap" == get("framework")) ? (""
+            .   ($path_bootstrap      ? link_style($path_bootstrap      , "all",    false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                 "all", false     ))  ) : "").    (("spectre"   == get("framework")) ? (""
             .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
             .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
             .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                ) : "").    (!!$fonts                              ? (""
-            .   ($path_google_fonts   ? link_style($path_google_fonts   , "screen", $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                               "screen", $async    ))  ) : "").    (("material"  == get("framework")) ? ("" 
-            .   ($path_material_icons ? link_style($path_material_icons , "screen", $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                         "screen", $async    ))  ) : "")
+            .   ($path_google_fonts   ? link_style($path_google_fonts   , "all",    $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                               "all", $async    ))  ) : "").    (("material"  == get("framework")) ? ("" 
+            .   ($path_material_icons ? link_style($path_material_icons , "all",    $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                         "all", $async    ))  ) : "")
             ;
     }
     
@@ -8786,7 +8786,7 @@
                     }
                 }
 
-                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()), false, [ "layer" => "default", "media" => "screen" ]).
+                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()), false, [ "layer" => "default", "media" => "all" ]).
 
             details(summary("User settings").form(
 
@@ -8829,11 +8829,11 @@
                 document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
                 document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
                 
-                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="spec"]'      ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="browser"]'   ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); });  });
-                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "screen"); }); });
-                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "screen"); }); document.querySelectorAll('style[layer="app"]').forEach(function(e) { e.setAttribute("media", "screen"); }); });
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="spec"]'      ).forEach(function(e) { e.setAttribute("media", "all"); });  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="browser"]'   ).forEach(function(e) { e.setAttribute("media", "all"); });  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); });  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "all"); }); });
+                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="app"]').forEach(function(e) { e.setAttribute("media", "all"); }); });
 
                 <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
@@ -9073,7 +9073,7 @@
                     }
                 }
 
-                :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([popover]) {
+                :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([hidden], .hidden, [popover]) {
 
                     display: flow-root;
                 }
@@ -9879,7 +9879,7 @@
             /* Print */
 
             :root {
-                --style-media: "screen";
+                --style-media: "all";
             }
 
             @media print {
@@ -10283,9 +10283,11 @@
                 width: 100%;
                 }
 
-            :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([popover]) {
+            :is(main, header, footer, article, aside, blockquote, nav, section, details, figcaption, figure, hgroup):not([hidden], .hidden, [popover]) {
+
                 display: flow-root;
             }
+
             /*abbr, b, bdi, bdo, br, cite, code, data, del, dfn, em, i, ins,
             kbd, mark, meter, progress, q, s, samp, small, span, strong, 
             sub, sup, time, u, var, wbr { display: inline-block; }*/
@@ -10538,10 +10540,12 @@
 
             /* Cards */
 
+            /* TODO P0 WE WANT TO AVOIR hidden overflows */
+            /*
             :is(.card-title, .card-media, .card-text, .card-actions) {
 
-                overflow: hidden; /* TODO P0 WE WANT TO AVOIR hidden overflows */
-            }
+                overflow: hidden; 
+            }*/
 
             .card-media > * {
 
@@ -10798,10 +10802,10 @@
 
         $styles .= eol().style(css_layers(),    false, false, auto, -1); // Ensure 1st rule!
 
-        $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "print"  ]);
-        $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "screen" ]);
-        $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "screen" ]);
-        $styles .= eol().style(css_default(),   false, [ "layer" => "default",    "media" => "screen" ]);
+        $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "none"   ]);
+        $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "all"    ]);
+        $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "all"    ]);
+        $styles .= eol().style(css_default(),   false, [ "layer" => "default",    "media" => "all"    ]);
 
         $scripts .= eol().script('
         
@@ -10811,12 +10815,12 @@
             
                 document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") });
                 
-                     if (current_css == "spec"      ) { document.querySelector(\'style[layer="spec"]\'      ).setAttribute("media", "screen");  }
-                else if (current_css == "browser"   ) { document.querySelector(\'style[layer="browser"]\'   ).setAttribute("media", "screen");  }
+                     if (current_css == "spec"      ) { document.querySelector(\'style[layer="spec"]\'      ).setAttribute("media", "all");  }
+                else if (current_css == "browser"   ) { document.querySelector(\'style[layer="browser"]\'   ).setAttribute("media", "all");  }
 
-                else if (current_css == "normalize" ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen");  }
-                else if (current_css == "default"   ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "screen");  }
-                else if (current_css == "app"       ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "screen"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "screen"); document.querySelector(\'style[layer="app"]\').setAttribute("media", "screen");  }
+                else if (current_css == "normalize" ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all");  }
+                else if (current_css == "default"   ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "all");  }
+                else if (current_css == "app"       ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "all"); document.querySelector(\'style[layer="app"]\').setAttribute("media", "all");  }
             }
 
             ');
@@ -10827,8 +10831,8 @@
             
             if (!get("no_css_toolbar"))
             {        
-                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout(), false, [ "layer" => "default", "media" => "screen" ]) : "");
-                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors(), false, [ "layer" => "default", "media" => "screen" ]) : "");
+                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout(), false, [ "layer" => "default", "all" => "all" ]) : "");
+                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors(), false, [ "layer" => "default", "all" => "all" ]) : "");
             }
             
             if (!get("no_css_brands"))

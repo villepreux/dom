@@ -167,7 +167,7 @@
             #<?= DOM_MENU_ID ?>-open        .menu                     { /*display: none;  */max-height:   0vh; }
             #<?= DOM_MENU_ID ?>-open:target .menu                     { display: flex !important; max-height: 100vh; } /* TODO change to flex ? */
 
-            .toolbar [hidden="hidden"] { display: none !important }
+            .toolbar [hidden="hidden"] { display: none }
 
             /* Scrollbar */
 
@@ -806,7 +806,7 @@
                 }
             }
             
-            '), false, [ "layer" => "default", "media" => "screen" ]).
+            '), false, [ "layer" => "default", "media" => "all" ]).
             $toolbar1.
           //$toolbar2.
           //scripts_body_toolbar().
