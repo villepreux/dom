@@ -3,6 +3,8 @@
 use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer, layered_style};
 use const dom\auto;
 
+define("CODE_RE_INDENT", false);
+
 const code_tab_src_size = 4;
 const code_tab_dst_size = 2;
 
@@ -229,9 +231,16 @@ function code_highlight($code, $lang = "php")
         foreach ([ "HERE", "dom\HERE", "heredoc_flush", "dom\heredoc_flush"] as $here_func)
         foreach ([
 
+            [ "xml",        '<xml>'                             .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_xml"'  ],
             [ "html",       '<html>'                            .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_html"' ],
             [ "javascript", '<script>'                          .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_js"'   ],
             [ "css",        '<style>'                           .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw_css"'  ],
+
+            [ "xml",        '<xml>'                             .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'_xml('  ],
+            [ "html",       '<html>'                            .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'_html(' ],
+            [ "javascript", '<script>'                          .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'_js('   ],
+            [ "css",        '<style>'                           .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'_css('  ],
+
             [ "markdown",   '<code class="language-markdown">'  .'<?= '.$here_func.'() ?>', '<?= '.$here_func.'("raw"'      ],
 
             ] as $language_embed)
@@ -269,7 +278,10 @@ function code_highlight($code, $lang = "php")
         {
             list($embed_lang, $embed, $embed_indent) = $embed;
 
-            $embed_indent *= code_tab_dst_size / code_tab_src_size;
+            if (CODE_RE_INDENT)
+            {
+                $embed_indent *= code_tab_dst_size / code_tab_src_size;
+            }
             
           //$embed = htmlentities($embed);
             $embed = highlight($embed, $embed_lang);
@@ -283,7 +295,7 @@ function code_highlight($code, $lang = "php")
             $code  = str_replace($placeholder, $embed, $code);
         }
     }
-        
+
     return pre($code, "language-$lang line-numbers");
 }
 
@@ -309,12 +321,20 @@ function code($code, $title = false, $attributes = false, $lang = "php", $syntax
         $code = pre(dom\code($code, "language-$lang"));
     }
 
-  //$code = code_transform_indent($code);
+    if (CODE_RE_INDENT)
+    {
+        $code = code_transform_indent($code);
+    }
 
     return code_section($code, $client_source_url, $title, $attributes);
 }
 
 function this($title = "", $attributes = false, $include_client_source = false, $syntax_highlight = auto, $code_sanitize = true)
+{
+    return \dom\delayed_component("_".__FUNCTION__, [ $title, $attributes, $include_client_source, $syntax_highlight, $code_sanitize ]);
+}
+
+function _this($title = "", $attributes = false, $include_client_source = false, $syntax_highlight = auto, $code_sanitize = true)
 {
     if (!!get("no-code")) return "";
 

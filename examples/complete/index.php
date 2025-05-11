@@ -3,7 +3,7 @@
 // Imports
 use function dom\{set,get,init,output,HSTART,HERE,HSTOP,path,html,rss,jsonfeed,head,head_boilerplate,link_style,css_light_dark_switch,body,header,footer,script,style,main,article,h2,h3,h4,lorem_ipsum,p,a,svg_rss,svg_facebook,url_img_random}; // Page
 use function dom\{grid,card,card_title,card_media,card_text,img,cards_async,url_img_loading}; // Image cards
-use function dom\{toolbar,toolbar_nav_title,toolbar_nav_toolbar,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,url_void,svg_darkandlight}; // Header toolbar
+use function dom\{toolbar,toolbar_styles,toolbar_nav_title,toolbar_nav_toolbar,toolbar_banner,toolbar_nav,toolbar_nav_menu,ul_menu_auto,url_void,svg_darkandlight}; // Header toolbar
 
 init();
 
@@ -16,6 +16,7 @@ output(
     html( // HTML document
         head(
             head_boilerplate().
+            toolbar_styles().
             link_style(path("css/highlight/styles/default.min.css"), "screen", true).
             style(css_light_dark_switch(
                 file_get_contents(path("css/highlight/styles/a11y-light.min.css")),

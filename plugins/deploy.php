@@ -542,7 +542,7 @@ else
 @dom\internal_include(dom\path("tokens.php"));
 @dom\internal_include(dom\path("vendor/autoload.php"));
 
-if (!deploy_is_localhost()) { die("Can only by run locally"); }
+if (!deploy_is_localhost()) { die("Can only be run locally"); }
 
 deploy_init_terminal($cmdline_option_cls);
 

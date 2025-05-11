@@ -19,7 +19,7 @@
             <title><h3>Card Title</h3></title>
             <text><p>Blah blah 1</p></text>
             <media>
-              <img src="https://source.unsplash.com/300x200/?chocolate&amp;ext=.jpg" width="300" height="200"/>
+              <img src="https://picsum.photos/seed/123/300/200.webp" width="300" height="200"/>
             </media>
             <text>
               <p>Blah blah 2</p>

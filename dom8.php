@@ -2289,7 +2289,8 @@
 
     function indent($raw, $indent = auto)
     {
-        $tab = ($indent === auto) ? DOM_TAB : (is_int($indent) ? tab($indent) : $indent);
+        if (false === $indent) return $raw;
+        $tab = ($indent === auto || $indent === true) ? DOM_TAB : (is_int($indent) ? tab($indent) : $indent);
 
         $lines = explode(PHP_EOL, $raw);
         foreach ($lines as $l => $line) $lines[$l] = $tab.$line;
@@ -2350,7 +2351,7 @@
                 //$converter = new GithubFlavoredMarkdownConverter($config);
                 $converter = new MarkdownConverter($environment);
 
-                $html = $converter->convert($text)->getContent();
+                $html = @$converter->convert($text)->getContent();
             }
             catch (\Exception $e)
             {
@@ -6153,6 +6154,7 @@
     
     function empty_string($_)   { return "";    }
     function self($html)        { return $html; }
+    function void()             { return true;  }
 
     function include_file($filename, $silent_errors = auto)
     {
@@ -8562,17 +8564,25 @@
         return "";
     }
 
-    function style($css = "", $force_minify = false, $attributes = false, $trim = auto, $order = auto) // TODO attributes at 2nd position
-    {
+    // TODO attributes at 2nd position
+    function style($css = "", $force_minify = auto, $attributes = auto, $trim = auto, $order = auto) 
+    {        
+        $force_minify   = (auto === $force_minify)  ? false : $force_minify;
+        $attributes     = (auto === $attributes)    ? false : $attributes;
+
         $profiler = debug_track_timing();
         if (!$css || $css == "") return '';
         return style_css_as_is(raw_css($css, $force_minify, $trim), $attributes, $order);
     }
 
-    function layered_style($layer, $css, $force_minify = false, $attributes = false, $trim = auto, $order = auto)
+    function layered_style($layer, $css, $force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto)
     {
+        $force_minify   = (auto === $force_minify)  ? false : $force_minify;
+        $attributes     = (auto === $attributes)    ? false : $attributes;
+        $media          = (auto === $media)         ? "all" : $media;
+
         $first_layer = is_array($layer) ? $layer[0] : $layer;
-        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => "all"));
+        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => $media));
 
         return style(css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
@@ -8762,7 +8772,7 @@
 
         return 
 
-            style(css_layer([ "default", "component", "settings" ], (function() { HSTART() ?><style><?= HERE() ?> 
+            layered_style([ "default", "component", "settings" ], (function() { HSTART() ?><style><?= HERE() ?> 
             
                 .settings {
 
@@ -8786,7 +8796,7 @@
                     }
                 }
 
-                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()), false, [ "layer" => "default", "media" => "all" ]).
+                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()).
 
             details(summary("User settings").form(
 
@@ -9313,7 +9323,7 @@
 
                 /* Language */
 
-                        span[lang]                   { display: inline !important }
+                         span[lang]                   { display: inline !important }
                 [lang^="fr"] [lang]:not([lang^="fr"]) { display: none   !important }
                 [lang^="en"] [lang]:not([lang^="en"]) { display: none   !important }
 
@@ -10800,14 +10810,14 @@
         $styles  = "";
         $scripts = "";
 
-        $styles .= eol().style(css_layers(),    false, false, auto, -1); // Ensure 1st rule!
+        $styles .= eol().style(css_layers(), false, false, auto, -1); // Ensure 1st rule!
+        
+        $styles .= eol().layered_style("spec",      css_spec(false), false, false, auto, auto, "none");
+        $styles .= eol().layered_style("browser",   css_browser(false));
+        $styles .= eol().layered_style("normalize", css_normalize(false));
+        $styles .= eol().layered_style("default",   css_default(false));
 
-        $styles .= eol().style(css_spec(),      false, [ "layer" => "spec",       "media" => "none"   ]);
-        $styles .= eol().style(css_browser(),   false, [ "layer" => "browser",    "media" => "all"    ]);
-        $styles .= eol().style(css_normalize(), false, [ "layer" => "normalize",  "media" => "all"    ]);
-        $styles .= eol().style(css_default(),   false, [ "layer" => "default",    "media" => "all"    ]);
-
-        $scripts .= eol().script('
+        $scripts .= eol().script((function () { HSTART() ?><script><?= HERE() ?>
         
             var current_css = document.documentElement.getAttribute("data-css");
 
@@ -10815,50 +10825,44 @@
             
                 document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") });
                 
-                     if (current_css == "spec"      ) { document.querySelector(\'style[layer="spec"]\'      ).setAttribute("media", "all");  }
-                else if (current_css == "browser"   ) { document.querySelector(\'style[layer="browser"]\'   ).setAttribute("media", "all");  }
+                     if (current_css == "spec"      ) { document.querySelector('style[layer="spec"]'      ).setAttribute("media", "all");  }
+                else if (current_css == "browser"   ) { document.querySelector('style[layer="browser"]'   ).setAttribute("media", "all");  }
 
-                else if (current_css == "normalize" ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all");  }
-                else if (current_css == "default"   ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "all");  }
-                else if (current_css == "app"       ) { document.querySelector(\'style[layer="normalize"]\' ).setAttribute("media", "all"); document.querySelector(\'style[layer="default"]\').setAttribute("media", "all"); document.querySelector(\'style[layer="app"]\').setAttribute("media", "all");  }
+                else if (current_css == "normalize" ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all");  }
+                else if (current_css == "default"   ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all"); document.querySelector('style[layer="default"]').setAttribute("media", "all");  }
+                else if (current_css == "app"       ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all"); document.querySelector('style[layer="default"]').setAttribute("media", "all"); document.querySelector('style[layer="app"]').setAttribute("media", "all");  }
             }
 
-            ');
-
-        if (!get("wip")) 
-        {        
-            // TODO: We cannot be dependent here of a plugin
-            
-            if (!get("no_css_toolbar"))
-            {        
-                $styles .= eol().comment("Base-Toolbar-Layout"). (is_callable("dom\\css_toolbar_layout") ? style(css_toolbar_layout(), false, [ "layer" => "default", "all" => "all" ]) : "");
-                $styles .= eol().comment("Base-Toolbar-Colors"). (is_callable("dom\\css_toolbar_colors") ? style(css_toolbar_colors(), false, [ "layer" => "default", "all" => "all" ]) : "");
-            }
-            
-            if (!get("no_css_brands"))
-            {        
-                $styles .= eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? style(css_brands()) : "");
-            }
-        }
+            <?= HERE_JS() ?></script><?php return HSTOP(); })());
 
         return delayed_component("_".__FUNCTION__).$scripts;
-        //return $styles.$scripts;
     }
 
     function _styles()
     {
-        $css_bundles = [];
         global $__style_css_hooks;
-        foreach ($__style_css_hooks as list($css, $attributes)) {
-            if (0 == count($css_bundles) || $attributes !== $css_bundles[count($css_bundles) - 1]["attributes"]) {
-                $css_bundles[] = [ "attributes" => $attributes, "css" => [] ];
-            }
-            $css_bundles[count($css_bundles) - 1]["css"][] = $css;
-        }
+
         $styles = [];
-        foreach ($css_bundles as $css_bundle) {
-            $css = implode(eol().eol(), $css_bundle["css"]);
-            $styles[] = tag('style', eol().$css.eol(), $css_bundle["attributes"]);
+        {
+            $css_bundles = [];
+            {        
+                foreach ($__style_css_hooks as list($css, $attributes)) 
+                {
+                    if (0 == count($css_bundles) || $attributes !== $css_bundles[count($css_bundles) - 1]["attributes"]) 
+                    {
+                        $css_bundles[] = [ "attributes" => $attributes, "css" => [] ];
+                    }
+    
+                    $css_bundles[count($css_bundles) - 1]["css"][] = $css;
+                }
+            }
+    
+            foreach ($css_bundles as $css_bundle)
+            {
+                $css = implode(eol().eol(), $css_bundle["css"]);
+
+                $styles[] = tag('style', eol().$css.eol(), $css_bundle["attributes"]);
+            }
         }
         
         return implode(eol(), $styles);
@@ -12121,9 +12125,9 @@
     function h5             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(5, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
     function h6             ($html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto) { return  h(6, $html, $attributes, $anchor, $headline_hook, $add_id_attribute); }
 
-    function section        ($html = "", $attributes = false) {                             return  tag('section',   eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
-    function header         ($html = "", $attributes = false) {                             return  tag('header',    eol().indent(    $html  ).eol(),                                   $attributes,                                                        );                      }
-    function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                            $attributes,                                                        );                      }
+    function section        ($html = "", $attributes = false, $indent = auto) {             return  tag('section',   eol().indent(    $html, $indent).eol(),                                $attributes,                                                        );                      }
+    function header         ($html = "", $attributes = false) {                             return  tag('header',    eol().indent(    $html         ).eol(),                                $attributes,                                                        );                      }
+    function _header        ($html = "", $attributes = false) {                             return  tag('header',                     $html,                                                $attributes,                                                        );                      }
                    
     function hr             (            $attributes = false) {                             return  tag('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return  tag('br',                         false,                                                $attributes, false, true                                            );                      }
@@ -12134,7 +12138,7 @@
 
     $__dom_is_first_main = true;
 
-    function main($html = "", $attributes = false)
+    function main($html = "", $attributes = false, $indent = auto)
     {
         if (has("main")) die($html);
         if (has("main-include")) set("main-include", $html);
@@ -12153,7 +12157,7 @@
 
         main_post_processing($html);
 
-        return tag("main", cosmetic(eol(1)).(!!get("minify") ? $html : indent($html)).cosmetic(eol(1)), $attributes); 
+        return tag("main", cosmetic(eol(1)).(!!get("minify") ? $html : indent($html, $indent)).cosmetic(eol(1)), $attributes); 
     }
 
     function main_post_processing($html)
@@ -13686,6 +13690,13 @@
         return raw_css($css);
     }
 
+    function brand_styles()
+    {
+        return (!!get("no_css_brands") ? "" : (
+            eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? layered_style("default", css_brands()) : "").
+        ""));
+    }
+
     // !TOOD DEPRECATE FUNCTION SIGNATURE AND REMOVE COLOR PARAM
 
     function svg_flickr         ($label = auto, $align = auto, $add_wrapper = auto) { import_color("flickr");        $class = "brand-flickr";          return svg($label === auto ? "Flickr"          : $label,   0,      0,     232.422, 232.422,  $align == auto ? false : !!$align, '<path class="'.$class.'" d="M43,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S66.71,73.211,43,73.211z"/><path class="'.$class.'-2" d="M189.422,73.211c-23.71,0-43,19.29-43,43s19.29,43,43,43c23.71,0,43-19.29,43-43S213.132,73.211,189.422,73.211z"/>', $add_wrapper == auto ? true : !!$add_wrapper); }
@@ -14995,9 +15006,14 @@
 
     // HEREDOC SNIPPET HELPER
 
-    function HSTART($offset = 0, $tab = "    ") { return heredoc_start($offset, $tab); }
-    function HSTOP($out = null, $transform_force_minify = false, $transform_trim = auto)  { return heredoc_stop($out,  $transform_force_minify, $transform_trim); }
-    function HERE($out  = null, $transform_force_minify = false, $transform_trim = auto)  { return heredoc_flush($out, $transform_force_minify, $transform_trim); }
+    function HSTART($offset = 0, $tab = "    ")                                             { return heredoc_start($offset, $tab); }
+    function HSTOP($out = null, $transform_force_minify = false, $transform_trim = auto)    { return heredoc_stop($out,  $transform_force_minify, $transform_trim); }
+    function HERE($out  = null, $transform_force_minify = false, $transform_trim = auto)    { return heredoc_flush($out, $transform_force_minify, $transform_trim); }
+
+    function HERE_JS($transform_force_minify = false, $transform_trim = auto)               { return HERE("raw_js",  $transform_force_minify, $transform_trim); }
+    function HERE_CSS($transform_force_minify = false, $transform_trim = auto)              { return HERE("raw_css",  $transform_force_minify, $transform_trim); }
+    function HERE_HTML($transform_force_minify = false, $transform_trim = auto)             { return HERE("raw_html", $transform_force_minify, $transform_trim); }
+    function HERE_XML($transform_force_minify = false, $transform_trim = auto)              { return HERE("raw_xml",  $transform_force_minify, $transform_trim); }
 
     #endregion
 
@@ -15303,6 +15319,77 @@
         }
 
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
+    }
+
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null)
+    { 
+        $curl_multi_handle = curl_multi_init();
+        $curl_handles      = [];
+
+        $index = -1;
+
+        foreach ($urls as $key => $url)
+        {
+            ++$index;
+
+            $curl_handles[$key] = curl_init($url);
+
+            curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($curl_handles[$key], CURLOPT_URL,            $url);
+            curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, 666);
+            curl_setopt($curl_handles[$key], CURLOPT_FOLLOWLOCATION, true);
+            
+            curl_multi_add_handle($curl_multi_handle, $curl_handles[$key]);
+
+            if ($callback_fetch && is_callable($callback_fetch))
+            {
+                ($callback_fetch)($key, $url, $index, $urls);
+            }
+        }
+
+        $responses = [];
+        {
+            $prev_active = $active = null;
+
+            do {
+                $mrc = curl_multi_exec($curl_multi_handle, $active);
+            } 
+            while ($mrc == CURLM_CALL_MULTI_PERFORM);
+            
+            while ($active && $mrc == CURLM_OK) 
+            {
+                if (curl_multi_select($curl_multi_handle) != -1) 
+                {
+                    do 
+                    {
+                        $mrc = curl_multi_exec($curl_multi_handle, $active);
+                                    
+                        if ($prev_active != $active)
+                        {
+                            $prev_active = $active;
+
+                            if ($callback_pending && is_callable($callback_pending))
+                            {
+                                ($callback_pending)($active, $urls);
+                            }
+                        }
+                    }
+                    while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                }
+            }
+
+            foreach ($curl_handles as $key => $ch) 
+            {
+                $responses[$key] = curl_multi_getcontent($ch);                
+                curl_multi_remove_handle($curl_multi_handle, $ch);
+            }
+            
+            curl_multi_close($curl_multi_handle);
+        }
+
+        return $responses;
     }
 
     ######################################################################################################################################
