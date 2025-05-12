@@ -4909,6 +4909,28 @@
         return false;
     }
 
+    function redirect_no_www()
+    {
+        if (has("ajax")) return false;
+
+        if (!is_localhost())
+        {
+            $url  = "https://";
+            $url .=  server_server_name();
+
+            if (0 === stripos($url, "https://www."))
+            {
+                $url .= (server_server_port("80") != "80" && server_server_port("80") != "443") ? (":".server_server_port()) : "";
+                $url .= server_request_uri();
+                $url  = str_replace("https://www.", "https://", $url);
+
+                return redirect($url);
+            }
+        }
+
+        return false;
+    }
+
     if (!is_embeded())
     {
         init_php();
@@ -12515,15 +12537,16 @@
 
                 <?= HERE("raw_css") ?></style><?php return HSTOP(); })()).
 
-                str_replace_all('href="/', 'href="https://fr.wikipedia.org/', 
-                str_replace_all('href="',  'target="_blank" href="', 
+                str_replace_all("hxrxexf", "href",
+                str_replace_all('href="/', 'hxrxexf="https://fr.wikipedia.org/', 
+                str_replace_all('href="',  'target="_blank" hxrxexf="', 
                     offset_html_headlines(
                         at(at(
                             array_open_url("https://fr.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1"), 
                             "parse"), "text"),
                         1
                         )
-                    )), 
+                ))), 
                 "wikipedia-api-parse"
                 );
     }
