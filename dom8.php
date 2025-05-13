@@ -2,6 +2,8 @@
 
     namespace dom;
 
+    if (PHP_MAJOR_VERSION < 8) die("NEED PHP 8");
+
     #region CONSTANTS
     ######################################################################################################################################
 
@@ -5883,7 +5885,8 @@
                 if (!is_callable($fn)) $fn = "dom\\$fn";
 
                 $new_content = $fn();
-                $new_content = utf8_encode($new_content);
+              //$new_content = utf8_encode($new_content); // DEPRECATED IN PHP > 8.2
+                $new_content = mb_convert_encoding($new_content, 'UTF-8', 'ISO-8859-1');
                 
                 if ($new_content != $old_content)
                 {
@@ -15344,12 +15347,17 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null)
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null)
     { 
         $curl_multi_handle = curl_multi_init();
         $curl_handles      = [];
 
         $index = -1;
+
+        if ($callback_before_fetches && is_callable($callback_before_fetches))
+        {
+            ($callback_before_fetches)($urls);
+        }
 
         foreach ($urls as $key => $url)
         {
@@ -15381,6 +15389,11 @@
             } 
             while ($mrc == CURLM_CALL_MULTI_PERFORM);
             
+            if ($callback_before_pendings && is_callable($callback_before_pendings))
+            {
+                ($callback_before_pendings)($urls);
+            }
+
             while ($active && $mrc == CURLM_OK) 
             {
                 if (curl_multi_select($curl_multi_handle) != -1) 
