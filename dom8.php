@@ -13654,6 +13654,8 @@
             $css .= eol().tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg stop.$class"."-".($i+1), $i == 0 ? 47 : 0)." { stop-color:". "              var(--fill-color"."-".($i+1).");  } "; // Fallback currently not working on stop-color
         }
 
+        bye($css);
+
         return raw_css($css);
     }
 
@@ -13733,10 +13735,10 @@
         return raw_css($css);
     }
 
-    function brand_styles()
+    function brand_styles($force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto, $layer_already_in_css = false)
     {
         return (!!get("no_css_brands") ? "" : (
-            eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? layered_style("default", css_brands()) : "").
+            eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? layered_style("default", css_brands(), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css) : "").
         ""));
     }
 
