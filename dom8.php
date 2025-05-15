@@ -6882,12 +6882,17 @@
     /* 5 */
     function head_synchronous_styles($async_css = false, $styles = true)
     {
-        $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
-            "./css/main.css",
-            "./main.css",
-            "./css/screen.css",
-            "./screen.css"
-            );
+        $path_css = false;
+
+        if (!get("wip"))
+        {
+            $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
+                "./css/main.css",
+                "./main.css",
+                "./css/screen.css",
+                "./screen.css"
+                );
+        }
 
         return 
             eol().comment("Synchronous styles").
@@ -8600,8 +8605,17 @@
         return style_css_as_is(raw_css($css, $force_minify, $trim), $attributes, $order);
     }
 
-    function layered_style($layer, $css, $force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto)
+    function layered_style($layer, $css, $force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto, $layer_already_in_css = false)
     {
+        if (!!get("wip") && 0 !== stripos($media, "WIP"))
+        {
+            return "";
+        }
+        else if (0 === stripos($media, "WIP"))
+        {
+            $media = "WIP" == $media ? auto : str_replace("WIP-", "", $media);
+        }
+
         $force_minify   = (auto === $force_minify)  ? false : $force_minify;
         $attributes     = (auto === $attributes)    ? false : $attributes;
         $media          = (auto === $media)         ? "all" : $media;
@@ -8609,7 +8623,7 @@
         $first_layer = is_array($layer) ? $layer[0] : $layer;
         $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => $media));
 
-        return style(css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
+        return style($layer_already_in_css ? $css : css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
 
     function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
@@ -8843,9 +8857,8 @@
                     div(radio("setting-css", "setting-css-browser"      ).label("Browser",    "setting-css-browser"   )).
                     div(radio("setting-css", "setting-css-normalize"    ).label("Normalize",  "setting-css-normalize" )).
                     div(radio("setting-css", "setting-css-default"      ).label("Default",    "setting-css-default"   )).
-                    div(radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     )).
-                    div(radio("setting-css", "setting-css-utilities"    ).label("Utilities",  "setting-css-utilities" )).
                     div(radio("setting-css", "setting-css-app"          ).label("App",        "setting-css-app"       )).
+                    div(radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     )).
                     
                     "", "css requires-js").
                 
@@ -8860,15 +8873,16 @@
 
                 /* Handle user interractions */
 
-                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");           document.documentElement.removeAttribute("data-theme");             document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
-                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem("theme", "dark");      document.documentElement.setAttribute("data-theme", "dark"  );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
-                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem("theme", "light");     document.documentElement.setAttribute("data-theme", "light" );      document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
+                document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");            document.documentElement.removeAttribute("data-theme");             document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
+                document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem(   "theme", "dark");    document.documentElement.setAttribute(   "data-theme", "dark");     document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
+                document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem(   "theme", "light");   document.documentElement.setAttribute(   "data-theme", "light");    document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
                 
-                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem("css", "spec");        document.documentElement.setAttribute("data-css", "spec" );         document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="spec"]'      ).forEach(function(e) { e.setAttribute("media", "all"); });  });
-                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem("css", "browser");     document.documentElement.setAttribute("data-css", "browser" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="browser"]'   ).forEach(function(e) { e.setAttribute("media", "all"); });  });
-                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem("css", "normalize");   document.documentElement.setAttribute("data-css", "normalize" );    document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); });  });
-                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem("css", "default");     document.documentElement.setAttribute("data-css", "default" );      document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "all"); }); });
-                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.removeItem("css");             document.documentElement.removeAttribute("data-css");               document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") }); document.querySelectorAll('style[layer="normalize"]' ).forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="default"]').forEach(function(e) { e.setAttribute("media", "all"); }); document.querySelectorAll('style[layer="app"]').forEach(function(e) { e.setAttribute("media", "all"); }); });
+                document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem(   "css", "spec");      document.documentElement.setAttribute(   "data-css", "spec");       dom.disable_all_layers(); dom.enable_layer("spec"    );  });
+                document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem(   "css", "browser");   document.documentElement.setAttribute(   "data-css", "browser");    dom.disable_all_layers(); dom.enable_layer("browser" );  });
+                document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem(   "css", "normalize"); document.documentElement.setAttribute(   "data-css", "normalize");  dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize");  });
+                document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem(   "css", "default");   document.documentElement.setAttribute(   "data-css", "default");    dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); });
+                document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.setItem(   "css", "app");       document.documentElement.setAttribute(   "data-css", "app");        dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); });
+                document.querySelector("#setting-css-theme"     ).addEventListener("click", function() { window.localStorage.removeItem("css");              document.documentElement.removeAttribute("data-css");               dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); dom.enable_layer("theme"); });
 
                 <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
@@ -10844,18 +10858,21 @@
 
         $scripts .= eol().script((function () { HSTART() ?><script><?= HERE() ?>
         
+            dom.disable_all_layers = function()      { document.querySelectorAll("style[layer]"             ).forEach(function(e) { e.setAttribute("media", "none" ); }); };
+            dom.enable_layer       = function(layer) { document.querySelectorAll('style[layer="'+layer+'"]' ).forEach(function(e) { e.setAttribute("media", "all"  ); }); };
+
             var current_css = document.documentElement.getAttribute("data-css");
 
             if (null !== current_css) { 
             
-                document.querySelectorAll("style[layer]").forEach(function(e) { e.setAttribute("media", "none") });
+                dom.disable_all_layers();
                 
-                     if (current_css == "spec"      ) { document.querySelector('style[layer="spec"]'      ).setAttribute("media", "all");  }
-                else if (current_css == "browser"   ) { document.querySelector('style[layer="browser"]'   ).setAttribute("media", "all");  }
-
-                else if (current_css == "normalize" ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all");  }
-                else if (current_css == "default"   ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all"); document.querySelector('style[layer="default"]').setAttribute("media", "all");  }
-                else if (current_css == "app"       ) { document.querySelector('style[layer="normalize"]' ).setAttribute("media", "all"); document.querySelector('style[layer="default"]').setAttribute("media", "all"); document.querySelector('style[layer="app"]').setAttribute("media", "all");  }
+                     if (current_css == "spec"      ) { dom.enable_layer("spec"); }
+                else if (current_css == "browser"   ) { dom.enable_layer("browser"); }
+                else if (current_css == "normalize" ) { dom.enable_layer("browser"); dom.enable_layer("normalize"); }
+                else if (current_css == "default"   ) { dom.enable_layer("browser"); dom.enable_layer("normalize"); dom.enable_layer("default"); }
+                else if (current_css == "app"       ) { dom.enable_layer("browser"); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); }
+                else if (current_css == "theme"     ) { dom.enable_layer("browser"); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); dom.enable_layer("theme"); }
             }
 
             <?= HERE_JS() ?></script><?php return HSTOP(); })());
