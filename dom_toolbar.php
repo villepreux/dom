@@ -204,17 +204,17 @@ function css_toolbar_colors()
 
         .toolbar-row                            { background-color: var(--theme-color, #000); --color: var(--text-on-theme-color, #000); color: var(--color); }
 
-        .toolbar-cell-left   :is(a, a:visited)  { color: var(--text-on-theme-color,         #eee); }
-        .toolbar-cell-center :is(a, a:visited)  { color: var(--text-on-theme-color,         #eee); }
-        .toolbar-cell-right  :is(a, a:visited)  { color: var(--text-on-accent-color,        #eee); }
+        .toolbar-cell-left   :is(a, a:visited)  { color: var(--text-on-theme-color,             #eee); }
+        .toolbar-cell-center :is(a, a:visited)  { color: var(--text-on-theme-color,             #eee); }
+        .toolbar-cell-right  :is(a, a:visited)  { color: var(--text-on-accent-color,            #eee); }
 
-        .toolbar-cell-left   :is(a:hover)       { color: var(--text-on-theme-color-accent,  #fff); }
-        .toolbar-cell-center :is(a:hover)       { color: var(--text-on-theme-color-accent,  #fff); }
-        .toolbar-cell-right  :is(a:hover)       { color: var(--text-on-accent-color-accent, #fff); }
+        .toolbar-cell-left   :is(a:hover)       { color: var(--text-on-theme-lighter-color,     #fff); }
+        .toolbar-cell-center :is(a:hover)       { color: var(--text-on-theme-lighter-color,     #fff); }
+        .toolbar-cell-right  :is(a:hover)       { color: var(--text-on-accent-lighter-color,    #fff); }
 
-        .toolbar-cell .menu                     { color: var(--text-darker-color,           #ddd); background-color: var(--background-lighter-color,    #222); box-shadow: 0px 0px 2px 2px #00000022; }
-        .toolbar-cell .menu :is(a, a:visited)   { color: var(--link-color,                  #eee); }
-        .toolbar-cell .menu a:hover             { color: var(--link-hover-color,            #fff); background-color: var(--background-darker-color,     #000);;}
+        .toolbar-cell .menu                     { color: var(--text-darker-color,               #ddd); background-color: var(--background-lighter-color,    #222); box-shadow: 0px 0px 2px 2px #00000022; }
+        .toolbar-cell .menu :is(a, a:visited)   { color: var(--link-color,                      #eee); }
+        .toolbar-cell .menu a:hover             { color: var(--link-hover-color,                #fff); background-color: var(--background-darker-color,     #000);;}
 
         /* Menu list */
 

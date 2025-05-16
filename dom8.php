@@ -33,7 +33,7 @@
 
     function at($a, $k, $d = false)                                                                                     { if (is_array($k)) { foreach ($k as $k0) { if (!is_array($a) || !array_key_exists($k0,$a)) return $d; $a = at($a, $k0, $d); } return $a; } else { return (is_array($a) && array_key_exists($k,$a)) ? $a[$k] : $d; } }
     function get_all(                                       $get = true, $post = true, $session = false, $dom = false)  { $a = []; if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } global $_DOM; if ($dom && isset($_DOM) && is_array($_DOM)) { $a = array_merge($a, $_DOM); } return $a; }
-    function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false, $dom = false)  { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session, $dom)); }
+    function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false, $dom = true)   { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session, $dom)); }
     function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false, $dom = true)   { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session, $dom), $k_or_a, $d_or_k); }
     function del($k)                                                                                                    { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
     function set($k, $v = true, $aname = false)                                                                         { global $_DOM; if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } else if ($aname === "DOM" && isset($_DOM)) { $_DOM[$k] = $v; } return $v; }
@@ -9704,60 +9704,32 @@
         return $default;
     }
 
-    function css_vars_color_scheme_light_base($tab = 1)
-    {
-        heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
-
-            --light-theme-color:                        <?= user_color("light", "theme_color",  "#8A0009") ?>;
-            --light-accent-color:                       <?= user_color("light", "accent_color", "#112299") ?>;
-
-            --light-link-color:                         <?= user_color("light", [                      "link_color", "theme_color"  ], "var(--light-theme-color,  var(--theme-color,  #aa4455))") ?>;
-            --light-link-color-accent:                  <?= user_color("light", [ "link_color_accent", "link_color", "accent_color" ], "var(--light-accent-color, var(--accent-color, #cc1133))") ?>;
-
-            --light-text-on-background-darker-color:    <?= "#000000" ?>;
-            --light-text-on-background-color:           <?= "#0d0d0d" ?>;
-            --light-text-on-background-lighter-color:   <?= "#1a1a1a" ?>;
-
-            --light-background-darker-color:            <?= "#e5e5e5" ?>;
-            --light-background-color:                   <?= "#f2f2f2" ?>;
-            --light-background-lighter-color:           <?= "#ffffff" ?>;
-            
-            --light-text-on-theme-darker-color:         <?= "#e5e5e5" ?>;
-            --light-text-on-theme-color:                <?= "#f2f2f2" ?>;
-            --light-text-on-theme-lighter-color:        <?= "#ffffff" ?>;
-
-            --light-text-on-accent-darker-color:        <?= "#e5e5e5" ?>;
-            --light-text-on-accent-color:               <?= "#f2f2f2" ?>;
-            --light-text-on-accent-lighter-color:       <?= "#ffffff" ?>;
-
-        <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
-    }
-
-    function css_vars_color_scheme_dark_base($tab = 1)
+    function css_vars_color_scheme_screen_base($tab = 1)
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
         
-            --dark-theme-color:                         <?= user_color("dark", "theme_color",  "#FFB7F8") ?>; /* #ff6eff */
-            --dark-accent-color:                        <?= user_color("dark", "accent_color", "#64DEFE") ?>; /* #22ccee */
+            --screen-theme-color:                               light-dark(<?= user_color("light", "theme_color",  "#8A0009") ?>, <?= user_color("dark", "theme_color",  "#FFB7F8") ?>); /* #ff6eff */
+            --screen-accent-color:                              light-dark(<?= user_color("light", "accent_color", "#112299") ?>, <?= user_color("dark", "accent_color", "#64DEFE") ?>); /* #22ccee */
 
-            --dark-link-color:                          <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--dark-theme-color,  var(--theme-color,  #FFBEC7))") /* TODO on  lighter background => #FF91FF; */ ?>;
-            --dark-link-color-accent:                   <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--dark-accent-color, var(--accent-color, #64DEFE))") ?>;
+            --screen-link-color:                                light-dark(<?= user_color("light", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #aa4455))") ?>, <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #FFBEC7))") ?>);
+            --screen-link-color-accent:                         light-dark(<?= user_color("light", [ "link_color_accent", "link_color", "accent_color" ], "var(--screen-accent-color, var(--accent-color, #cc1133))") ?>, <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--screen-accent-color, var(--accent-color, #64DEFE))") ?>); 
+            --screen-link-color-on-background-lighter-color:    light-dark(<?= user_color("light", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #aa4455))") ?>, <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #FF91FF))") ?>);
+            
+            --screen-text-on-background-darker-color:           light-dark(<?= "#000000" ?>, <?= "#e5e5e5" ?>);
+            --screen-text-on-background-color:                  light-dark(<?= "#0d0d0d" ?>, <?= "#f2f2f2" ?>);
+            --screen-text-on-background-lighter-color:          light-dark(<?= "#1a1a1a" ?>, <?= "#ffffff" ?>);
 
-            --dark-text-on-background-darker-color:     <?= "#e5e5e5" ?>;
-            --dark-text-on-background-color:            <?= "#f2f2f2" ?>;
-            --dark-text-on-background-lighter-color:    <?= "#ffffff" ?>;
-            
-            --dark-background-darker-color:             <?= "#040404" ?>; /* #000000 no need to be that dark anymore with new default font sizez */
-            --dark-background-color:                    <?= "#101318" ?>; /* #0d0d0d no need to be that dark anymore with new default font sizez */
-            --dark-background-lighter-color:            <?= "#202024" ?>; /* #181819 #1a1a1a no need to be that dark anymore with new default font sizez */
-            
-            --dark-text-on-theme-darker-color:          <?= "#000000" ?>;
-            --dark-text-on-theme-color:                 <?= "#0d0d0d" ?>;
-            --dark-text-on-theme-lighter-color:         <?= "#1a1a1a" ?>;
-            
-            --dark-text-on-accent-darker-color:         <?= "#000000" ?>;
-            --dark-text-on-accent-color:                <?= "#0d0d0d" ?>;
-            --dark-text-on-accent-lighter-color:        <?= "#1a1a1a" ?>;
+            --screen-background-darker-color:                   light-dark(<?= "#e5e5e5" ?>, <?= "#040404" ?>); /* #000000 no need to be that dark anymore with new default font sizez */
+            --screen-background-color:                          light-dark(<?= "#f2f2f2" ?>, <?= "#101318" ?>); /* #0d0d0d no need to be that dark anymore with new default font sizez */
+            --screen-background-lighter-color:                  light-dark(<?= "#ffffff" ?>, <?= "#202024" ?>); /* #181819 #1a1a1a no need to be that dark anymore with new default font sizez */
+
+            --screen-text-on-theme-darker-color:                light-dark(<?= "#e5e5e5" ?>, <?= "#000000" ?>);
+            --screen-text-on-theme-color:                       light-dark(<?= "#f2f2f2" ?>, <?= "#0d0d0d" ?>);
+            --screen-text-on-theme-lighter-color:               light-dark(<?= "#ffffff" ?>, <?= "#1a1a1a" ?>);
+
+            --screen-text-on-accent-darker-color:               light-dark(<?= "#e5e5e5" ?>, <?= "#000000" ?>);
+            --screen-text-on-accent-color:                      light-dark(<?= "#f2f2f2" ?>, <?= "#0d0d0d" ?>);
+            --screen-text-on-accent-lighter-color:              light-dark(<?= "#ffffff" ?>, <?= "#1a1a1a" ?>);
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -9791,30 +9763,30 @@
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
 
-    function css_vars_color_scheme_light_brands($tab = 1)
+    function css_vars_color_scheme_screen_brands($tab = 1)
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
 
-            <?= brand_color_css_properties("#dddddd", 35, "light") ?> 
+            <?= brand_color_css_properties("light-dark(#dddddd,#222222)", 35, "screen") ?> 
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
 
-    function css_vars_color_scheme_dark_brands($tab = 1)
+    function css_vars_color_scheme_print_brands($tab = 1)
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
     
-            <?= brand_color_css_properties("#222222", 35, "dark") ?> 
+            <?= brand_color_css_properties("#ffffff", 35, "print") ?> 
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
 
-    function brands_css_vars_color_scheme($theme, $tab = 1) { return delayed_component("_".__FUNCTION__, "$theme,$tab", 3); }
-    function _brands_css_vars_color_scheme($theme_tab)
+    function brands_css_vars_color_media($media, $tab = 1) { return delayed_component("_".__FUNCTION__, "$media,$tab", 3); }
+    function _brands_css_vars_color_media($media_tab)
     {
-        $theme_tab = explode(",", $theme_tab);
-        $theme = $theme_tab[0];
-        $tab   = $theme_tab[1];
+        $media_tab = explode(",", $media_tab);
+        $media = $media_tab[0];
+        $tab   = $media_tab[1];
 
         $css = "";
         //$css = ":root {";
@@ -9825,8 +9797,8 @@
                 $colors = $fn();
                 $colors = is_array($colors) ? $colors : array($colors);
 
-                                                $css .= eol()."--color-$brand:            var(--$theme-color-$brand);";
-                foreach ($colors as $c => $_) { $css .= eol()."--color-$brand-".($c+1).": var(--$theme-color-$brand-".($c+1).");"; }
+                                                $css .= eol()."--color-$brand:            var(--$media-color-$brand);";
+                foreach ($colors as $c => $_) { $css .= eol()."--color-$brand-".($c+1).": var(--$media-color-$brand-".($c+1).");"; }
 
                 } 
                 
@@ -9834,66 +9806,55 @@
 
         return raw_css($css);
     }
-
-    function css_vars_color_scheme($theme, $tab = 1)
+             
+    function css_vars_color_media($media, $tab = 1)
     {
-        $other = $theme == "dark" ? "light" : "dark";
-
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
 
-            --theme-color:                      var(--<?= $theme ?>-theme-color,                            #990011);
-            --accent-color:                     var(--<?= $theme ?>-accent-color,                           #112299);
-            
-            --link-color:                       var(--<?= $theme ?>-link-color,                             #aa4455);
-            --link-color-accent:                var(--<?= $theme ?>-link-color-accent,                      #cc1133);
+            --theme-color:                          var(--<?= $media ?>-theme-color,                        #990011);
+            --accent-color:                         var(--<?= $media ?>-accent-color,                       #112299);
 
-            --background-darker-color:          var(--<?= $theme ?>-background-darker-color,                #e5e5e5);
-            --background-color:                 var(--<?= $theme ?>-background-color,                       #f2f2f2);
-            --background-lighter-color:         var(--<?= $theme ?>-background-lighter-color,               #ffffff);
+            --link-color:                           var(--<?= $media ?>-link-color,                         #aa4455);
+            --link-color-accent:                    var(--<?= $media ?>-link-color-accent,                  #cc1133);
 
-            --text-on-background-darker-color:  var(--<?= $theme ?>-text-on-background-darker-color,        #000000);
-            --text-on-background-color:         var(--<?= $theme ?>-text-on-background-color,               #0d0d0d);
-            --text-on-background-lighter-color: var(--<?= $theme ?>-text-on-background-lighter-color,       #1a1a1a);
+            --background-darker-color:              var(--<?= $media ?>-background-darker-color,            #e5e5e5);
+            --background-color:                     var(--<?= $media ?>-background-color,                   #f2f2f2);
+            --background-lighter-color:             var(--<?= $media ?>-background-lighter-color,           #ffffff);
 
-            --text-on-theme-color-down:         var(--<?= $theme ?>-text-on-theme-<?= $other ?>er-color,    #e5e5e5);
-            --text-on-theme-color:              var(--<?= $theme ?>-text-on-theme-color,                    #f2f2f2);
-            --text-on-theme-color-accent:       var(--<?= $theme ?>-text-on-theme-<?= $theme ?>er-color,    #ffffff);
+            --text-on-background-darker-color:      var(--<?= $media ?>-text-on-background-darker-color,    #000000);
+            --text-on-background-color:             var(--<?= $media ?>-text-on-background-color,           #0d0d0d);
+            --text-on-background-lighter-color:     var(--<?= $media ?>-text-on-background-lighter-color,   #1a1a1a);
 
-            --text-on-accent-color-down:        var(--<?= $theme ?>-text-on-accent-<?= $other ?>er-color,   #e5e5e5);
-            --text-on-accent-color:             var(--<?= $theme ?>-text-on-accent-color,                   #f2f2f2);
-            --text-on-accent-color-accent:      var(--<?= $theme ?>-text-on-accent-<?= $theme ?>er-color,   #ffffff);
+            --text-on-theme-darker-color:           var(--<?= $media ?>-text-on-theme-darker-color,         #e5e5e5);
+            --text-on-theme-color:                  var(--<?= $media ?>-text-on-theme-color,                #f2f2f2);
+            --text-on-theme-lighter-color:          var(--<?= $media ?>-text-on-theme-lighter-color,        #ffffff);
 
-            --text-darker-color:                <?= "var(--text-on-background-darker-color   );" ?>
-            --text-color:                       <?= "var(--text-on-background-color          );" ?>
-            --text-lighter-color:               <?= "var(--text-on-background-lighter-color  );" ?>
+            --text-on-accent-darker-color:          var(--<?= $media ?>-text-on-accent-darker-color,        #e5e5e5);
+            --text-on-accent-color:                 var(--<?= $media ?>-text-on-accent-color,               #f2f2f2);
+            --text-on-accent-lighter-color:         var(--<?= $media ?>-text-on-accent-lighter-color,       #ffffff);
 
-            --transparent-fill-color:       transparent;
+            --text-darker-color:                    var(--text-on-background-darker-color   );
+            --text-color:                           var(--text-on-background-color          );
+            --text-lighter-color:                   var(--text-on-background-lighter-color  );
 
-            <?= brands_css_vars_color_scheme($theme, $tab) ?> 
+            --screen-transparent-fill-color:       transparent;
+
+            <?= brands_css_vars_color_media($media, $tab) ?> 
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
 
     #endregion
-    #region vars definitions in appropriate dark/light sections
+    #region vars definitions in appropriate screen/print sections
 
-    function css_base_colors_vars_schemes($layer = "base-colors")
+    function css_base_colors_vars_medias($layer = "base-colors")
     {
         return css_root(
 
-          //eol(1)."color-scheme: light dark;". // Moved to normalize.chocapic
-
-            eol(2).css_vars_color_scheme_light_base().
-            eol(2).css_vars_color_scheme_light_brands()./*          (is_callable("dom\\css_vars_color_scheme_light_brands_toolbar") ? (
-            eol(2).css_vars_color_scheme_light_brands_toolbar().    "") : "").
-            */
-            eol(2).css_vars_color_scheme_dark_base().
-            eol(2).css_vars_color_scheme_dark_brands()./*           (is_callable("dom\\css_vars_color_scheme_light_brands_toolbar") ? (
-            eol(2).css_vars_color_scheme_dark_brands_toolbar().     "") : "").
-            */
-            eol(2).css_vars_color_scheme_print_base()./*
-            eol(2).css_vars_color_scheme_print_brands().
-            eol(2).css_vars_color_scheme_print_brands_toolbar().*/
+            eol(2).css_vars_color_scheme_screen_base().
+          //eol(2).css_vars_color_scheme_screen_brands().
+            eol(2).css_vars_color_scheme_print_base().
+          //eol(2).css_vars_color_scheme_print_brands().
 
             "", $layer);
     }
@@ -9902,41 +9863,16 @@
     {  
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
-            /* Allow customization of default colors, via custom properties */
-
-            /* Provide good, AAA contrasted in all situations, defaults */
+            [data-theme^='light'], &:has(#setting-theme-light:checked) { color-scheme: light; }
+            [data-theme^='dark'],  &:has(#setting-theme-dark:checked)  { color-scheme: dark;  }
             
-            <?= css_root(css_vars_color_scheme("light")) ?> 
+            :root { --style-media: "all"; }
+            <?= css_root(css_vars_color_media("screen")) ?> 
 
-            /* Handling of dark theme variation */
-            
-            @media (prefers-color-scheme: dark) {
-
-                <?= css_root(css_vars_color_scheme("dark", 2)) ?> 
-            }
-
-            /* Provide a way to dynamically change theme via a data-theme attribute */
-
-            [data-theme^='light'], &:has(#setting-theme-light:checked) {
-                <?= css_vars_color_scheme("light", 1) ?> 
-            }
-
-            [data-theme^='dark'],  &:has(#setting-theme-dark:checked) {
-                <?= css_vars_color_scheme("dark", 1) ?> 
-            }
-
-            /* Print */
-
-            :root {
-                --style-media: "all";
-            }
-
-            @media print {
-
-                :root {
-                    --style-media: "print";
-                    <?= css_vars_color_scheme("print", 2) ?> 
-                }
+            @media print 
+            {
+                :root { --style-media: "print"; }
+                <?= css_root(css_vars_color_media("print", 2)) ?> 
             }
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
@@ -10071,12 +10007,12 @@
                 summary:not(details details summary),
                 footer,
 
-                blockquote, aside)      { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
+                blockquote, aside)      { background-color: var(--background-lighter-color); --screen-link-color: var(--screen-link-color-on-background-lighter-color); }
 
             /* Cards */
 
             .card                       { background-color: var(--background-color);         color: var(--text-color); }
-            .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); --dark-link-color: #FF91FF; }
+            .card-title                 { background-color: var(--background-lighter-color); color: var(--text-color); --screen-link-color: var(--screen-link-color-on-background-lighter-color); }
 
             .card                       { border:        1px solid var(--border-color); } /*
             .card                       { box-shadow:    2px 2px 8px 4px #00000033;     } 
@@ -10090,8 +10026,8 @@
 
             /* Cards inside articles */
 
-            :is(article, details) .card               { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
-            :is(article, details) .card .card-title   { background-color: var(--background-lighter-color); --dark-link-color: #FF91FF; }
+            :is(article, details) .card               { background-color: var(--background-lighter-color); --screen-link-color: var(--screen-link-color-on-background-lighter-color); }
+            :is(article, details) .card .card-title   { background-color: var(--background-lighter-color); --screen-link-color: var(--screen-link-color-on-background-lighter-color); }
 
             /* Headlines */
          
@@ -10147,7 +10083,7 @@
             }    
             :is(button, [type="button"], [type="submit"]):not(.transparent):hover {
                 background-color: var(--accent-color);
-                color: var(--text-on-accent-color-accent);
+                color: var(--text-on-accent-lighter-color);
             }
             :is(button, [type="button"], [type="submit"]).transparent:hover {
                 cursor: pointer;
@@ -10185,7 +10121,7 @@
             /* Editable styles */
             
             style[contenteditable="true"] {
-                --dark-link-color: #FF91FF;
+                --screen-link-color: var(--screen-link-color-on-background-lighter-color);
                 background-color: var(--background-lighter-color);
                 border-color: var(--border-color);
             }
@@ -10204,7 +10140,7 @@
                 width: calc(2 * var(--line-height));
                 height: auto;
                 aspect-ratio: 1;
-                --dark-link-color: #FF91FF;
+                --screen-link-color: var(--screen-link-color-on-background-lighter-color);
                 background-color: var(--background-lighter-color);
                 border: 3px solid var(--border-color);
                 border-radius: 50%;
@@ -10836,7 +10772,7 @@
         
                     HSTOP().
                     css_base_layout("layout").
-                    css_base_colors_vars_schemes("layout-colors").
+                    css_base_colors_vars_medias("layout-colors").
                     css_base_colors_vars("layout-colors").
                     css_base_colors("layout-colors").
                 "");
@@ -13654,8 +13590,6 @@
             $css .= eol().tab($tab); for ($i = 0; $i < count($colors); ++$i) $css .= pan("svg stop.$class"."-".($i+1), $i == 0 ? 47 : 0)." { stop-color:". "              var(--fill-color"."-".($i+1).");  } "; // Fallback currently not working on stop-color
         }
 
-        bye($css);
-
         return raw_css($css);
     }
 
@@ -13668,11 +13602,9 @@
                                 : (($color_contrast_target == "aa" ) ? DOM_COLOR_CONTRAST_AA_NORMAL
                                 : (($color_contrast_target == "aaa") ? DOM_COLOR_CONTRAST_AAA_NORMAL : $color_contrast_target)));
 
-        $fn       = "dom\color_$brand"; // For php 5.6 compatibility
-
-        if (!is_callable($fn)) $fn = "dom\\$fn";
-        $colors = [];
-        if (is_callable($fn)) $colors = $fn();
+        // For php 5.6 compatibility
+        $fn     = "dom\color_$brand";  if (!is_callable($fn)) $fn     = "dom\\$fn";
+        $colors = [];                  if ( is_callable($fn)) $colors = $fn();
 
         $colors   = is_array($colors) ? $colors : array($colors);
         $class    = "brand-$brand";
@@ -13701,21 +13633,44 @@
                     if (false !== stripos($background_color, "#")
                     &&  false !== stripos($color, "#"))
                     {   
-                        $color = correct_auto(
-                            $color,
-                            $background_color,
-                            $color_contrast_target,
-                            $ratio,
-                            $debug
-                            );
+                        if (false !== stripos($background_color, "light-dark("))
+                        {
+                            $background_colors = explode(",", trim(str_replace([ "light-dark(", ")" ], "", $background_color)));
+                            $light_dark_colors = [];
+                            
+                            foreach ($background_colors as $c => $bg) 
+                            {
+                                $light_dark_colors[] = correct_auto(
+                                    $color,
+                                    $bg,
+                                    $color_contrast_target,
+                                    $ratio,
+                                    $debug
+                                    );
+                            }
+
+                            $color = "light-dark(".trim($light_dark_colors[0]).", ".trim($light_dark_colors[1]).")";
+                        }
+                        else
+                        {
+                            $color = correct_auto(
+                                $color,
+                                $background_color,
+                                $color_contrast_target,
+                                $ratio,
+                                $debug
+                                );
+                        }
                     }
                 }
             }
 
             $basename = ($prefix != "") ? "$prefix-color" : "color";
 
-          //$css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." var(--color, ".$color.");";
-            $css .= pan("--$basename-".$brand.(($i > 0) ? ("-".($i+1)) : "").":", $i == 0 ? $pan : 0)." $color;";
+            if ($i == 0)
+                $css .= eol().pan("--$basename-$brand:", $pan)." $color;";
+
+            $css .= eol().pan("--$basename-$brand-".($i+1).":", $pan)." $color;";
         }
         
         return raw_css($css);
@@ -13738,7 +13693,18 @@
     function brand_styles($force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto, $layer_already_in_css = false)
     {
         return (!!get("no_css_brands") ? "" : (
-            eol().comment("Base-Brands").(is_callable("dom\\css_brands") ? layered_style("default", css_brands(), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css) : "").
+
+            eol().comment("Base-Brands").(
+                
+                is_callable("dom\\css_brands") 
+            
+                ? (layered_style("default", css_root(css_vars_color_scheme_screen_brands  ()), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css).
+                   layered_style("default", css_root(css_vars_color_scheme_print_brands   ()), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css).
+                   layered_style("default", css_brands(),                                      $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css) )
+                
+                : ""
+            ).
+
         ""));
     }
 
