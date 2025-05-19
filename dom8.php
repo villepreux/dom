@@ -1983,6 +1983,16 @@
     }
     
     #endregion
+    #region Math utilities
+
+    function clamp($min, $x, $max)
+    {
+        if ($x < $min) return $min;
+        if ($x > $max) return $max;
+        return $x;
+    }
+
+    #endregion
     #region Random utilities
 
     $__dom_rand_is_seeded = false;
@@ -1996,7 +2006,7 @@
         global $__dom_rand_is_seeded;
         $__dom_rand_is_seeded = true;
     }
-
+    
     function rand($min = auto, $max = auto)
     {
         global $__dom_rand_is_seeded;
@@ -5318,8 +5328,6 @@
               //$icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable any");
                 $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "any");
                 $icons[] = array("src"=> $filename, "sizes"=> "$w"."x"."$w", "type"=> "image/png", "density"=> "$density", "purpose"=> "maskable");
-
-
             }
         }
 
@@ -8124,12 +8132,12 @@
                 noscript(p("Loading web mentions relies on JavaScript. Try enabling JavaScript and reloading.")), 
                 [ "data-webmentions" => true, "data-url" => webmentions_url($url) ]
                 ).
-            div(form(
+            div(form(p(
                 label("URL of your site:", "form-webmention-source", "sr-only")." ".
                 input("", "url",    "form-webmention-source",   [ "placeholder" => "https://example.com", "required" => "" ])." ".
                 input("", "hidden", "target",                   [ "name" => "target", "value" => "https://www.zachleat.com/web/google-fonts-display/" ]).
-                input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]),
-                [ "action" => "https://webmention.io/".live_domain()."/webmention", "method" => "post" ]
+                input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]).
+                ""), [ "action" => "https://webmention.io/".live_domain()."/webmention", "method" => "post" ]
                 )).
             "", "webmentions requires-js");
     }
@@ -10070,6 +10078,7 @@
             }
     
             strong { color: var(--accent-color) }
+            u      { text-decoration: var(--accent-color, #f00) wavy underline; }
     
             :is(button, [type="button"], [type="submit"]).transparent {
                 background-color: transparent;
@@ -11829,6 +11838,11 @@
             $prefix = eol();
         }
 
+        if (!!get("obfuscate") && in_array($tag, [ "p","li","a","h1","h2","h3","h4","h5","h6" ]))
+        {
+            $html = obfuscate($html);
+        }
+
         return (false && has('rss') && !$force_display) ? '' : (
 
                 $prefix.                
@@ -12019,9 +12033,11 @@
         return tag('h'.$h, $html, $attributes);
     }
 
-    function p              ($html = "", $attributes = false) { if (is_array($html)) $html = implode(br(), $html);
-
-                                                                                            return  tag('p',                          $html,                                                $attributes                                                         );                      }
+    function p($html = "", $attributes = false) 
+    {
+        if (is_array($html)) $html = implode(br(), $html);
+        return tag('p', $html, $attributes);
+    }
     
     function noscript       ($html = "", $attributes = false) {                             return  tag('noscript',                   $html,                                                $attributes                                                         );                      }
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
@@ -12050,7 +12066,9 @@
 
     function bring          ($html = "", $attributes = false) {                             return  tag('b',                          $html,                                                $attributes                                                         );                      }
     function strong         ($html = "", $attributes = false) {                             return  tag('strong',                     $html,                                                $attributes                                                         );                      }
+    function mark           ($html = "", $attributes = false) {                             return  tag('mark',                       $html,                                                $attributes                                                         );                      }
     function strike         ($html = "", $attributes = false) {                             return  tag('s',                          $html,                                                $attributes                                                         );                      }
+    function idiomatic      ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
   //function del            ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function deleted        ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return  tag('em',                         $html,                                                $attributes                                                         );                      }
@@ -12059,6 +12077,11 @@
     function figure         ($html = "", $attributes = false) {                             return  tag('figure',                     $html,                                                $attributes                                                         );                      }
     function figcaption     ($html = "", $attributes = false) {                             return  tag('figcaption',                 $html,                                                $attributes                                                         );                      }
 
+    function non_textual    ($html = "", $attributes = false) {                             return  tag('u',                          $html,                                                $attributes                                                         );                      }
+
+    function bring_attention        ($html = "", $attributes = false) { return bring        ($html, $attributes); }
+    function non_textual_annotation ($html = "", $attributes = false) { return non_textual  ($html, $attributes); }
+    
     function hgroup         ($html = "", $attributes = false) {                             return  tag('hgroup',                     $html,                                                $attributes                                                         );                      }
 
     function blockquote     ($html = "", $attributes = false) {                             return  tag('blockquote',                 $html,                                                $attributes                                                         );                      }
@@ -15415,5 +15438,177 @@
 
     ######################################################################################################################################
     #endregion
-    
-?>
+    #region HTML Obfuscation
+
+    function obfuscate($html)
+    {
+        if (count(explode(' ', $html)) < 4) return $html;
+
+        $html_dom = \Dom\HTMLDocument::createFromString($html, LIBXML_NOERROR , "UTF-8");
+        if (!$html_dom) return $html;
+
+        obfuscate_node($html_dom->body);
+
+        $output_html = $html_dom->saveHTML($html_dom->body);
+        if (!$output_html) return $html;
+
+        $output_html = str_replace([ "<body>", "</body>" ], "", $output_html);
+        return $output_html;
+    }
+
+    function obfuscate_node(&$element)
+    {
+        if (!$element) return;
+
+        for ($i = 0; $i < $element->childNodes->length; ++$i)
+        {
+            if (!$element->childNodes[$i]) continue;
+
+            if ($element->childNodes[$i]->nodeType == XML_ELEMENT_NODE)
+            {
+                obfuscate_node($element->childNodes[$i]);
+            }
+            else if ($element->childNodes[$i]->nodeType == XML_TEXT_NODE)
+            {
+                if ($element->childNodes[$i]->nodeValue 
+                &&  $element->childNodes[$i]->nodeValue != ""
+                &&  $element->childNodes[$i]->nodeValue != " ")
+                {
+                    $str = $element->childNodes[$i]->nodeValue;
+
+                    if (strlen($str) > 2)
+                    {
+                        $a = $str[0]                == " " ? " " : "";
+                        $b = $str[strlen($str) - 1] == " " ? " " : "";
+
+                        $str = explode(" ", trim($str));
+                        shuffle($str);
+                        $str = $a.implode(" ", $str).$b;
+                    }
+                    $element->childNodes[$i]->nodeValue = $str;                    
+                }
+            }
+        }
+    }
+
+    function obfuscate_text_TMP($str, $randomstart = true, $groupsize = 4, $max = 128) 
+    {
+        if (!$str) return $str;
+
+        /**
+         * Join the tokens with proper typography
+         */
+
+        $cleanToken = function ($token,$capital) {
+            if ($capital){
+                $token = ucfirst($token);
+                $capital = false;
+            }
+
+            if (substr($token,-1,1) == '.'){
+                $capital = true;
+                return array($token . "  ",$capital);
+            } else {
+                return array($token . " ",$capital);
+            }
+        };
+
+        /**
+         * Naively find possible Markov Chains
+         */
+
+        $findChains = function($haystack, $needle) {
+            $return = array();
+            for ($i = 0; $i < sizeof($haystack) - sizeof($needle); $i++){
+                if ($haystack[$i] == $needle[0]){
+                    $matches = true;
+                    for ($j = 1; $j < sizeof($needle); $j++){
+                        if ($haystack[$i+$j] != $needle[$j]){
+                            $matches = false;
+                            break;
+                        }
+                    }
+                    if ($matches == true){
+                        array_push($return,$i+sizeof($needle));
+                    }
+                }
+            }
+            return $return;
+        };
+
+        if ($groupsize < 2) {
+            $groupsize = 2;
+        }
+            // Capitalize the first word
+        $capital = true;
+
+            //Remove from corpus, they just make the result confusing
+        $str = str_replace(array("(",")","[","]","{","}"), array(),$str);
+
+            //Break up tokens
+        $tokens = preg_split("/[ \r\n\t]/",$str);
+        
+            //Clean up token array
+        for ($i = 0; $i < sizeof($tokens); $i++){
+            if ($tokens[$i] == ""){
+                unset($tokens[$i]);
+            }
+        }
+
+        $tokens = array_values($tokens);
+
+            //Init variables
+        $return = "";
+        $lastmatch = array();
+
+            // if we start at the beginning, start there
+        if (!$randomstart) {
+            for ($n = 0; $n < $groupsize; $n++){
+                array_push($lastmatch,$tokens[$n]);
+                $res = $cleanToken($tokens[$n],$capital);
+                $return .= $res[0];
+                $capital = $res[1];
+            }
+        }
+
+        //Loop until we have enough output
+        $i = 0;
+        while ($i < $max + 32){
+                // Try and end on a full sentence
+            if ($i > $max - 8 and $capital){
+                break;
+            }
+
+                //If the lastmatch group isn't good enough, start randomly
+            if (sizeof($lastmatch) < $groupsize){
+                $loc = \rand(0,sizeof($tokens)-$groupsize);
+                $lastmatch = array();
+                for ($n = 0; $n < $groupsize; $n++){
+                    array_push($lastmatch,$tokens[clamp(0, $loc+$n, count($tokens) - 1)]);
+                    $res = $cleanToken($tokens[clamp(0, $loc+$n, count($tokens) - 1)],$capital);
+                    $return .= $res[0];
+                    $capital = $res[1];
+                }
+            } else {
+                $chains = $findChains($tokens, $lastmatch);
+                $lastmatch = array();
+
+                    // If there aren't enough chains, start randomly next time (avoid getting caught in loops)
+                if (sizeof($chains) > 2) {
+                    $loc = $chains[\rand(0, sizeof($chains)-1)];
+                    for ($n = 0; $n < $groupsize; $n++){
+                        array_push($lastmatch,$tokens[clamp(0, $loc+$n, count($tokens) - 1)]);
+                            $res = $cleanToken($tokens[clamp(0, $loc+$n, count($tokens) - 1)],$capital);
+                        $return .= $res[0];
+                        $capital = $res[1];
+                    }
+                }
+            }
+            $i++;
+        }
+
+        return $return;
+    }
+        
+    ######################################################################################################################################
+    #endregion
