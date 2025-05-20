@@ -12085,6 +12085,7 @@
     function hgroup         ($html = "", $attributes = false) {                             return  tag('hgroup',                     $html,                                                $attributes                                                         );                      }
 
     function blockquote     ($html = "", $attributes = false) {                             return  tag('blockquote',                 $html,                                                $attributes                                                         );                      }
+    function cite           ($html = "", $attributes = false) {                             return  tag('cite',                       $html,                                                $attributes                                                         );                      }
 
     function details        ($html = "", $attributes = false) {                             return  tag('details',                    $html,                                                $attributes                                                         );                      }
     function summary        ($html = "", $attributes = false) {                             return  tag('summary',                    $html,                                                $attributes                                                         );                      }
