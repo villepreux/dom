@@ -1690,7 +1690,10 @@
             return false;
         }
 
-        $url     = $urls;
+        $url = $urls;
+
+        if (!$url) return false;
+
         $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
         $header  = is_array($options) ? at($options, "header",  []) : [];
         
