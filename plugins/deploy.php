@@ -394,7 +394,7 @@ function deploy_scan($path, $parse_output = false)
 
     $scan = array();
 
-    foreach (scandir($path) as $name)
+    if (is_dir($path)) foreach (scandir($path) as $name)
     {
         if ($name[0] == ".")            continue;
         if ($name    == "vendor")       continue;
