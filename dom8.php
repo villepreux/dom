@@ -13093,7 +13093,7 @@
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
     
-    function anchor_name($name, $tolower = auto)
+    function anchor_name($name, $tolower = auto, $slugify_separator = "-", $extra_validating_character_prefix = "x")
     {
         $lang_span_tag_en = '<span lang="en">';
         $lang_span_pos_en = stripos($name, $lang_span_tag_en);
@@ -13104,9 +13104,12 @@
             $name = substr($name, 0, stripos($name, "<"));
         }
 
-        $anchor_name = slugify($name, $tolower, '-');
+        $anchor_name = slugify($name, $tolower, $slugify_separator);
 
-        if (strlen($anchor_name) > 0 && is_numeric($anchor_name[0])) $anchor_name = "+$anchor_name";
+        if (strlen($anchor_name) > 0 && is_numeric($anchor_name[0])) 
+        {
+            $anchor_name = $extra_validating_character_prefix.$anchor_name;
+        }
 
         return $anchor_name;
     }
