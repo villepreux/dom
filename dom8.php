@@ -13823,12 +13823,12 @@
             $url    = at($info, "url");
 
             $copyright  = array("id" => $id, "author" => $author, "url" => $url);
-            $copyrights = get("unsplash_copyrights", []);
+            $copyrights = get("images_copyrights", []);
 
             if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
 
             if (!in_array($copyright, $copyrights))
-                set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
+                set("images_copyrights", array_merge($copyrights, array($copyright)));
         }
 
         return "https://picsum.photos/seed/$seed/$w/$h.webp";
@@ -13859,12 +13859,12 @@
         if (!!$author)  $author = trim($author);
 
         $copyright  = array($id, $author);
-        $copyrights = get("unsplash_copyrights", []);
+        $copyrights = get("images_copyrights", []);
 
         if (is_localhost() && !!get("debug")) $copyright["source"] = debug_backtrace();
 
         if (!in_array($copyright, $copyrights))
-            set("unsplash_copyrights", array_merge($copyrights, array($copyright)));
+            set("images_copyrights", array_merge($copyrights, array($copyright)));
 
         foreach ([ "avif", "webp", "jpg", "png"] as $ext)
         {
