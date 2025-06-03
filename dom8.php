@@ -5774,8 +5774,7 @@
     {
         heredoc_start(-3); ?><script><?php heredoc_flush(null); ?> 
     
-          /*importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.1.2/workbox-sw.js");*/
-            importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js");
+            importScripts("https://storage.googleapis.com/workbox-cdn/releases/7.3.0/workbox-sw.js");
 
             if (workbox)
             {   
@@ -8439,6 +8438,10 @@
             .   meta('twitter:description',                 strip_tags(get("og_description", get("description", get("title")))))
             .   meta('twitter:image',                       path(get("canonical").'/'.get("image")))
             */
+                                                            .("non" != get("sense") ? "" : (""
+            .   eol()
+            .   meta('robots', 'noindex, nofollow')
+                                                            .""))
             
             .   eol()       
             .   meta('application-name',                    get("live_domain", get("og_site_name", get("title"))))  . ((has("pinterest_site_verification") || has("google_site_verification")) ? (""
