@@ -11841,7 +11841,7 @@
             $prefix = eol();
         }
 
-        if (!!get("obfuscate") && in_array($tag, [ "p","li","a","h1","h2","h3","h4","h5","h6" ]))
+        if ("non" == get("sense") && in_array($tag, [ "p","li","a","h1","h2","h3","h4","h5","h6" ]))
         {
             $html = obfuscate($html);
         }
@@ -12913,16 +12913,28 @@
             }
             else
             {
+                $hash_pos = stripos($extended_link,"#");
+
+                $extended_link_hash = "";
+            
+                if (false !== $hash_pos && 0 !== $hash_pos)
+                {
+                    $extended_link_hash = substr($extended_link,    $hash_pos);
+                    $extended_link      = substr($extended_link, 0, $hash_pos);
+                }
+                
                 foreach (get("forwarded_flags", []) as $forward_flag)
                 {
                     if (get($forward_flag) !== false
                     &&  false === stripos($extended_link,"?$forward_flag") 
                     &&  false === stripos($extended_link,"&$forward_flag") 
-                    &&  0     !== stripos($extended_link,"#"))
+                    &&  0     !== $hash_pos)
                     {
                         $extended_link .= ((false === stripos($extended_link,"?")) ? "?" : "") . ("&$forward_flag=".get($forward_flag));
                     }
                 }
+
+                $extended_link .= $extended_link_hash;
             }
         }
 
@@ -15454,7 +15466,24 @@
         $html_dom = \Dom\HTMLDocument::createFromString($html, LIBXML_NOERROR , "UTF-8");
         if (!$html_dom) return $html;
 
-        obfuscate_node($html_dom->body);
+        $replacements = [
+
+            "et"    => "et par la grace de Trum",
+            "and"   => "and by Trump's will",
+            "I"     => "Musk",
+            "je"    => "Musk",
+            "de"    => "du complot",
+            "of"    => "of fake news",
+            "le"    => "Dieu",
+            "the"   => "God",
+        ];
+
+        foreach ($replacements as $word => $replacement)
+        {
+            $replacements[ucfirst($word)] = ucfirst($replacement);
+        }
+
+        obfuscate_node($html_dom->body, $replacements);
 
         $output_html = $html_dom->saveHTML($html_dom->body);
         if (!$output_html) return $html;
@@ -15463,7 +15492,7 @@
         return $output_html;
     }
 
-    function obfuscate_node(&$element)
+    function obfuscate_node(&$element, $replacements)
     {
         if (!$element) return;
 
@@ -15473,7 +15502,7 @@
 
             if ($element->childNodes[$i]->nodeType == XML_ELEMENT_NODE)
             {
-                obfuscate_node($element->childNodes[$i]);
+                obfuscate_node($element->childNodes[$i], $replacements);
             }
             else if ($element->childNodes[$i]->nodeType == XML_TEXT_NODE)
             {
@@ -15488,9 +15517,18 @@
                         $a = $str[0]                == " " ? " " : "";
                         $b = $str[strlen($str) - 1] == " " ? " " : "";
 
-                        $str = explode(" ", trim($str));
-                        shuffle($str);
-                        $str = $a.implode(" ", $str).$b;
+                        $words = explode(" ", trim($str));
+                        shuffle($words);
+
+                        foreach ($words as &$word)
+                        {
+                            foreach ($replacements as $from => $to)
+                            {
+                                if ($word == $from) $word = $to;
+                            }
+                        }
+
+                        $str = $a.implode(" ", $words).$b;
                     }
                     $element->childNodes[$i]->nodeValue = $str;                    
                 }
