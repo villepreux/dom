@@ -8139,7 +8139,7 @@
             div(form(p(
                 label("URL of your site:", "form-webmention-source", "sr-only")." ".
                 input("", "url",    "form-webmention-source",   [ "placeholder" => "https://example.com", "required" => "" ])." ".
-                input("", "hidden", "target",                   [ "name" => "target", "value" => "https://www.zachleat.com/web/google-fonts-display/" ]).
+                input("", "hidden", "target",                   [ "name" => "target", "value" => webmentions_url($url) ]).
                 input("", "submit", "submit",                   [ "value" => "Send Webmention", "class" => "button"]).
                 ""), [ "action" => "https://webmention.io/".live_domain()."/webmention", "method" => "post" ]
                 )).
@@ -8984,17 +8984,13 @@
                     navigation: auto; 
                 }
 
-                @property --100vw { 
-                    
-                    syntax:         "<length>"; 
-                    initial-value:  0px; 
-                    inherits:       false; 
-                }
+                @property --100vw { syntax: "<length>"; initial-value: 0px; inherits: false; }
+                @property --100vh { syntax: "<length>"; initial-value: 0px; inherits: false; }
 
                 :root {
 
-                    --100vw: 100vw; 
-                    --unitless-viewport-width: tan(atan2(var(--100vw), 1px));
+                    --100vw: 100vw; --unitless-viewport-width:  tan(atan2(var(--100vw), 1px)); --100uvw: var(--unitless-viewport-width);
+                    --100vh: 100vh; --unitless-viewport-height: tan(atan2(var(--100vh), 1px)); --100uvh: var(--unitless-viewport-height);
 
                     /*
                     --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
@@ -10887,7 +10883,7 @@
     function script_google_analytics_snippet()
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
-
+        
         if (do_not_track())
         {
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
@@ -10899,15 +10895,7 @@
 
                 eol(1) . '/*  Google analytics */ '.
 
-                eol(2) . tab() . /*'window.ga=function() { ga.q.push(arguments) };'.
-
-                    ' ga.q=[];'.
-                    ' ga.l=+new Date;'.
-
-                    ' ga("create",'. ' "'.constant("TOKEN_GOOGLE_ANALYTICS").'",'. ' "auto"'.   ');'.
-                    ' ga("set",'.    ' "anonymizeIp",'.                           ' true'.     ');'.
-                    ' ga("set",'.    ' "transport",'.                             ' "beacon"'. ');'.
-                    ' ga("send",'.   ' "pageview"'.                                            ');'.*/
+                eol(2) . tab() . 
 
                     ' window.dataLayer = window.dataLayer || [];'.
                     ' function gtag(){dataLayer.push(arguments);}'.
@@ -12080,6 +12068,7 @@
   //function del            ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function deleted        ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return  tag('em',                         $html,                                                $attributes                                                         );                      }
+    function abbr           ($html = "", $attributes = false) {                             return  tag('abbr',                       $html,                                                $attributes                                                         );                      }
     function small          ($html = "", $attributes = false) {                             return  tag('small',                      $html,                                                $attributes                                                         );                      }
     function span           ($html = "", $attributes = false) {                             return  tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return  tag('figure',                     $html,                                                $attributes                                                         );                      }
