@@ -9428,11 +9428,11 @@
                 } */
 
                 select {
-
+                    /* This has brolen https://villepreux.net/web/contrasted-colors selects
                     &, &::picker(select) {
 
-                        appearance: base-select;
-                    }
+                        appearance: base-select; 
+                    }*/
                     
                     &::picker(select) {
 
@@ -14006,7 +14006,7 @@
 
                 if (!!$fallback_image_content)
                 {    
-                    if (!!file_put_contents($local_path, $fallback_image_content))
+                    if (!!@file_put_contents($local_path, $fallback_image_content))
                     {
                         return $local_path;
                     }
@@ -15370,83 +15370,141 @@
 
     function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null)
     { 
-        $curl_multi_handle = curl_multi_init();
-        $curl_handles      = [];
+        $parallelize = true;
 
-        $index = -1;
-
-        if ($callback_before_fetches && is_callable($callback_before_fetches))
+        if (!$parallelize)
         {
-            ($callback_before_fetches)($urls);
-        }
-
-        foreach ($urls as $key => $url)
-        {
-            ++$index;
-
-            $curl_handles[$key] = curl_init($url);
-
-            curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($curl_handles[$key], CURLOPT_URL,            $url);
-            curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, 666);
-            curl_setopt($curl_handles[$key], CURLOPT_FOLLOWLOCATION, true);
-            
-            curl_multi_add_handle($curl_multi_handle, $curl_handles[$key]);
-
-            if ($callback_fetch && is_callable($callback_fetch))
+            if ($callback_before_fetches && is_callable($callback_before_fetches))
             {
-                ($callback_fetch)($key, $url, $index, $urls);
+                ($callback_before_fetches)($urls);
             }
-        }
 
-        $responses = [];
-        {
-            $prev_active = $active = null;
+            $index = -1;
 
-            do {
-                $mrc = curl_multi_exec($curl_multi_handle, $active);
-            } 
-            while ($mrc == CURLM_CALL_MULTI_PERFORM);
-            
+            foreach ($urls as $key => $url)
+            {
+                ++$index;
+
+                if ($callback_fetch && is_callable($callback_fetch))
+                {
+                    ($callback_fetch)($key, $url, $index, $urls);
+                }
+            }
+
             if ($callback_before_pendings && is_callable($callback_before_pendings))
             {
                 ($callback_before_pendings)($urls);
             }
 
-            while ($active && $mrc == CURLM_OK) 
-            {
-                if (curl_multi_select($curl_multi_handle) != -1) 
-                {
-                    do 
-                    {
-                        $mrc = curl_multi_exec($curl_multi_handle, $active);
-                                    
-                        if ($prev_active != $active)
-                        {
-                            $prev_active = $active;
+            $index = -1;
+            
+            $responses = [];
 
-                            if ($callback_pending && is_callable($callback_pending))
-                            {
-                                ($callback_pending)($active, $urls);
-                            }
-                        }
-                    }
-                    while ($mrc == CURLM_CALL_MULTI_PERFORM);
+            foreach ($urls as $key => $url)
+            {
+                ++$index;
+
+                $curl_handle = curl_init($url);
+
+                curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curl_handle, CURLOPT_URL,            $url);
+                curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 666);
+                curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, true);
+                
+                $responses[$key] = curl_exec($curl_handle);
+            
+                $active = count($urls) - $index;
+
+                if ($callback_pending && is_callable($callback_pending))
+                {
+                    ($callback_pending)($active, $urls);
                 }
             }
 
-            foreach ($curl_handles as $key => $ch) 
-            {
-                $responses[$key] = curl_multi_getcontent($ch);                
-                curl_multi_remove_handle($curl_multi_handle, $ch);
-            }
-            
-            curl_multi_close($curl_multi_handle);
+            return $responses;
         }
+        else
+        {
+            $curl_multi_handle = curl_multi_init();
+            $curl_handles      = [];
 
-        return $responses;
+            $index = -1;
+
+            if ($callback_before_fetches && is_callable($callback_before_fetches))
+            {
+                ($callback_before_fetches)($urls);
+            }
+
+            foreach ($urls as $key => $url)
+            {
+                ++$index;
+
+                $curl_handles[$key] = curl_init($url);
+
+                curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curl_handles[$key], CURLOPT_URL,            $url);
+                curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, 666);
+                curl_setopt($curl_handles[$key], CURLOPT_FOLLOWLOCATION, true);
+                
+                curl_multi_add_handle($curl_multi_handle, $curl_handles[$key]);
+
+                if ($callback_fetch && is_callable($callback_fetch))
+                {
+                    ($callback_fetch)($key, $url, $index, $urls);
+                }
+            }
+
+            $responses = [];
+            {
+                $prev_active = $active = null;
+
+                do {
+                    $mrc = curl_multi_exec($curl_multi_handle, $active);
+                } 
+                while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                
+                if ($callback_before_pendings && is_callable($callback_before_pendings))
+                {
+                    ($callback_before_pendings)($urls);
+                }
+
+                while ($active && $mrc == CURLM_OK) 
+                {
+                    if (curl_multi_select($curl_multi_handle) != -1) 
+                    {
+                        do 
+                        {
+                            $mrc = curl_multi_exec($curl_multi_handle, $active);
+                                        
+                            if ($prev_active != $active)
+                            {
+                                $prev_active = $active;
+
+                                if ($callback_pending && is_callable($callback_pending))
+                                {
+                                    ($callback_pending)($active, $urls);
+                                }
+                            }
+                        }
+                        while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                    }
+                }
+
+                foreach ($curl_handles as $key => $ch) 
+                {
+                    $responses[$key] = curl_multi_getcontent($ch);                
+                    curl_multi_remove_handle($curl_multi_handle, $ch);
+                }
+                
+                curl_multi_close($curl_multi_handle);
+            }
+
+            return $responses;
+        }
     }
 
     ######################################################################################################################################

@@ -319,6 +319,7 @@ function should_be_parsed($path, $parse_output = false)
     if (!!$cmdline_option_static)
     {
         if (false !== stripos($path, "/vendor/")) return false; // INFO PHP dependencies not needed on a static site
+        if (false !== stripos($path, "/wiki/"))   return false; // Dokuwiki requires being php-served
     }
 
     if (false !== stripos($path, "/node_modules/")) return false; // TODO Handle that
@@ -658,14 +659,10 @@ $php_args_common = "";
 
         "";
 
-    if (!!$cmdline_option_debug)                $php_args_common .= " debug=1";
-    if (!!$cmdline_option_profiling)            $php_args_common .= " profiling=1";
-    if (!!$cmdline_option_fast)                 $php_args_common .= " fast=1";
-    
-    // TODO: do we really want ".static=1" ?
-
-    if (!!$cmdline_option_output
-    &&    $cmdline_option_output != "static")   $php_args_common .= " $cmdline_option_output=1";
+    if (!!$cmdline_option_debug)        $php_args_common .= " debug=1";
+    if (!!$cmdline_option_profiling)    $php_args_common .= " profiling=1";
+    if (!!$cmdline_option_fast)         $php_args_common .= " fast=1";
+    if (!!$cmdline_option_gemini)       $php_args_common .= " gemini=1";
 }
 
 $cmdline_values = [
@@ -697,7 +694,7 @@ if (!$cmdline_option_compile_one)
     foreach (explode(" ", $php_args_common) as $arg) deploy_log("[i] Generate static site php cmd-line option $arg");
 }
 
-$target_ext = ($cmdline_option_output == "gemini") ? "gmi" : "html";
+$target_ext = !!$cmdline_option_gemini ? "gmi" : "html";
 
 if (!!$cmdline_option_test)
 {
@@ -1745,7 +1742,7 @@ if (!!$cmdline_option_compile)
                     else
                     {
                         deploy_log($file_index, $nb_files);
-                    //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name"); /* Good for debugging long files */
+                      //deploy_log($file_index, $nb_files, "[i] $dst/$deploy_name"); /* Good for debugging long files */
                     }                
 
                     if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
@@ -1892,7 +1889,7 @@ if (!!$cmdline_option_compile)
 
                         if (!$html || $html == "")
                         {
-                                if ($extension == "php") { $html = '<!-- '  . 'empty' . ' //-->'; }
+                                 if ($extension == "php") { $html = '<!-- '  . 'empty' . ' //-->'; }
                             else if ($extension == "js" ) { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
                             else if ($extension == "css") { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
                             else                          { $html = '/'.'* ' . 'empty' . ' *'.'/'; }
