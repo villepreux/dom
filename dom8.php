@@ -5475,7 +5475,7 @@
             "start_url"        => $start_url,
             "display"          => "standalone",
 
-            "orientation"      => "portrait-primary",
+            "orientation"      => "any",
 
             "launch_handler" => array(
 
