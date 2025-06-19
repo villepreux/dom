@@ -7,7 +7,7 @@
     "screenshots": [],
     "start_url": "https:\/\/villepreux.net\/dom\/examples\/hello-world?&utm_source=homescreen",
     "display": "standalone",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "launch_handler": {
         "client_mode": [
             "navigate-existing",
