@@ -741,8 +741,6 @@
 
         set("keywords",                          ""); 
 
-        set("normalize",                        false);
-
         set("icons_path",                       "img/icons/");
 
         // Default to an AA (light) contrasted theme 
@@ -773,18 +771,7 @@
         set("dom-auto-include-css",             true);
             
         set("carousel",                         true);
-            
-        set("version_normalize",               "11.0.1");
-        set("version_sanitize",                "13.0.0");  
-        set("version_evergreen",               "10.0.0");  
-        set("version_material",                "0.38.2"); // latest => SimpleMenu got broken in 0.30.0 => Got fixed in CSS => latest => Broken in 0.39.0 => 0.38.0
-        set("version_bootstrap",                "4.1.1");
-        set("version_spectre",                  "x.y.z");
-        set("version_popper",                  "1.11.0");
-        set("version_jquery",                   "3.6.0"); // Was 3.5.1 / Was 3.2.1
-        set("version_prefixfree",               "1.0.7");
-        set("version_h5bp",                     "7.1.0");
-        
+
         set("cache_time",                       1*60*60); // 1h
 
         set("forwarded_flags",                  array("contrast","light","no_js","no_css","rss","wip"));
@@ -8741,31 +8728,24 @@
 
         $inline_css = get("inline_css", true);
 
-        $path_normalize         = !$inline_css ? false : path("css/normalize.min.css");
-        $path_sanitize          = !$inline_css ? false : path("css/sanitize.min.css");
-        $path_evergreen         = !$inline_css ? false : path("css/evergreen.min.css");
-        $path_material          = !$inline_css ? false : path("css/material-components-web.min.css");
-        $path_bootstrap         = !$inline_css ? false : path("css/bootstrap.min.css");
-        $path_google_fonts      = !$inline_css ? false : path("css/google-fonts.css");
-        $path_material_icons    = !$inline_css ? false : path("css/material-icons.css");
+        // If some well-known packages are localy present, then link to them automatically
+        // TODO Get rid of that ?
 
-        return                                                                                                                                                                                                                                                                  (("normalize" == get("normalize")) ? (""
-            .   ($path_normalize      ? link_style($path_normalize      , "all",   false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/normalize/'         . get("version_normalize") . '/normalize.min.css',                     "all", false     ))  ) : "").    (("sanitize"  == get("normalize")) ? (""
-            .   ($path_sanitize       ? link_style($path_sanitize       , "all",   false)  :(link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/sanitize.min.css',                      "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/assets.min.css',                        "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/forms.min.css',                         "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/reduce-motion.min.css',                 "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/system-ui.min.css',                     "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/typography.min.css',                    "all", false     )  
-                                                                                             .link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_sanitize")  . '/ui-monospace.min.css',                  "all", false     ))) ) : "").    (("evergreen" == get("reset"    )) ? (""
-            .   ($path_evergreen      ? link_style($path_evergreen      , "all",    false)  : link_style('https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/' . get("version_evergreen") . '/evergreen.min.css',                     "all", false     ))  ) : "").    (("material"  == get("framework")) ? (""
-            .   ($path_material       ? link_style($path_material       , "all",    false)  : link_style('https://unpkg.com/material-components-web@'                . get("version_material")  . '/dist/material-components-web.min.css',  "all", false     ))  ) : "").    (("bootstrap" == get("framework")) ? (""
-            .   ($path_bootstrap      ? link_style($path_bootstrap      , "all",    false)  : link_style('https://stackpath.bootstrapcdn.com/bootstrap/'             . get("version_bootstrap") . '/css/bootstrap.min.css',                 "all", false     ))  ) : "").    (("spectre"   == get("framework")) ? (""
-            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre.min.css')
-            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-exp.min.css')
-            .                                                                                 link_style('https://unpkg.com/spectre.css/dist/spectre-icons.min.css')                                                                                                ) : "").    (!!$fonts                              ? (""
-            .   ($path_google_fonts   ? link_style($path_google_fonts   , "all",    $async) : link_style('https://fonts.googleapis.com/css?family='.str_replace(' ','+', trim($fonts," /|")),                                               "all", $async    ))  ) : "").    (("material"  == get("framework")) ? ("" 
-            .   ($path_material_icons ? link_style($path_material_icons , "all",    $async) : link_style('https://fonts.googleapis.com/icon?family=Material+Icons',                                                                         "all", $async    ))  ) : "")
+        $path_normalize         = (!$inline_css || "normalize" != get("normalize")) ? false : path("css/normalize.min.css");
+        $path_sanitize          = (!$inline_css || "sanitize"  != get("normalize")) ? false : path("css/sanitize.min.css");
+        $path_evergreen         = (!$inline_css || "evergreen" != get("reset"))     ? false : path("css/evergreen.min.css");
+        $path_material          = (!$inline_css || "material"  != get("framework")) ? false : path("css/material-components-web.min.css");
+        $path_bootstrap         = (!$inline_css || "bootstrap" != get("framework")) ? false : path("css/bootstrap.min.css");
+        $path_google_fonts      = (!$inline_css || !$fonts)                         ? false : path("css/google-fonts.css");
+        $path_material_icons    = (!$inline_css || "material"  != get("framework")) ? false : path("css/material-icons.css");
+
+        return  ($path_normalize      ? link_style($path_normalize      , "all",    false)  : "")
+            .   ($path_sanitize       ? link_style($path_sanitize       , "all",    false)  : "")
+            .   ($path_evergreen      ? link_style($path_evergreen      , "all",    false)  : "")
+            .   ($path_material       ? link_style($path_material       , "all",    false)  : "")
+            .   ($path_bootstrap      ? link_style($path_bootstrap      , "all",    false)  : "")
+            .   ($path_google_fonts   ? link_style($path_google_fonts   , "all",    $async) : "")
+            .   ($path_material_icons ? link_style($path_material_icons , "all",    $async) : "")
             ;
     }
     
