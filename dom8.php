@@ -6228,6 +6228,8 @@
 
     function html_decode($html)
     {
+        $html = trim($html);
+        $html = str_replace("<br>", "<br/>", $html);
         return xml_decode($html);/*
         $doc = new \DOMDocument();
         @$doc->loadHTML($html, LIBXML_NOWARNING);
@@ -6240,9 +6242,10 @@
         libxml_use_internal_errors(true);
 
         $e = is_string($xml) ? simplexml_load_string($xml) : $xml;
-        
+
         foreach (libxml_get_errors() as $error) 
         {
+            //bye($xml.print_r($error, true).print_r(debug_callstack(), true));
             debug_log(json_encode($error));
         }
     
