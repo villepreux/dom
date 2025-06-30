@@ -11,7 +11,7 @@
 namespace dom\mastodon; 
 
 require_once(__DIR__."/../dom.php"); 
-use function \dom\{set,get,del,at,array_open_url,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li,article};
+use function \dom\{set,get,del,at,array_open_url,array_open_url_content_post_process,HSTART,HERE,HSTOP,style,script,noscript,header,main,footer,section,p,a,picture,source,img,span,div,ul,li,article,multi_fetch,bye};
 use const \dom\{auto,external_link,internal_link};
 
 #region Constants
@@ -26,7 +26,18 @@ function valid_username($username = false)
     return !!$username ? $username : trim(get("mastodon_author", get("mastodon_user", defined("TOKEN_MASTODON_USER") ? constant("TOKEN_MASTODON_USER") : get("author"))), "@");
 }
 
-function valid_account($host = false, $username = false)
+function valid_host_username($host = false, $username = false)
+{
+    $host     = !!$host     ? $host     : trim(get("mastodon_domain", "mastodon.social"), "@");
+    $username = !!$username ? $username : trim(get("mastodon_author", get("mastodon_user", defined("TOKEN_MASTODON_USER") ? constant("TOKEN_MASTODON_USER") : get("author"))), "@");
+
+    return [ $host, $username ];
+}
+
+#endregion constants
+#region constants fetching
+
+function array_user_account($host = false, $username = false)
 {
     list($host, $username) = valid_host_username($host, $username);
 
@@ -38,33 +49,36 @@ function valid_account($host = false, $username = false)
     );
 }
 
-function valid_userid($host = false, $username = false, $user_id = false)
+function fetch_userid($host = false, $username = false)
 {
     list($host, $username) = valid_host_username($host, $username);
-
-    $account = valid_account($host, $username);
-    
-    return !!$user_id ? $user_id : at($account, "id");
+    $account = array_user_account($host, $username);
+    return at($account, "id");
 }
 
-function valid_host_username($host = false, $username = false)
+function valid_or_fetch_userid($host = false, $username = false, $user_id = false)
 {
-    $host     = !!$host     ? $host     : trim(get("mastodon_domain", "mastodon.social"), "@");
-    $username = !!$username ? $username : trim(get("mastodon_author", get("mastodon_user", defined("TOKEN_MASTODON_USER") ? constant("TOKEN_MASTODON_USER") : get("author"))), "@");
-
-    return [ $host, $username ];
+    return !!$user_id ? $user_id : fetch_userid($host, $username);
 }
 
-function valid_host_username_userid($host = false, $username = false, $user_id = false)
+function valid_or_fetch_host_username_userid($host = false, $username = false, $user_id = false)
 {
     list($host, $username) = valid_host_username($host, $username);
-    $user_id = valid_userid($host, $username, $user_id);
+    $user_id = valid_or_fetch_userid($host, $username, $user_id);
     
     return [ $host, $username, $user_id ];
 }
 
-#endregion constants
+#endregion constants fetching
 #region URLs
+
+function url_user_following($host = false, $username = false, $user_id = false)
+{
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
+    if (!$host || !$username || !$user_id) return false;
+
+    return "https://$host/api/v1/accounts/$user_id/following";
+}
 
 function url_post($post_id, $host = false, $username = false)
 {
@@ -88,18 +102,84 @@ function url_post_context($post_id,  $host = false, $username = false)
 
 function url_user_statuses($host = false, $username = false, $user_id = false)
 {
-    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
 
     return "https://$host/api/v1/accounts/$user_id/statuses";
 }
 
+function url_user_profile($host = false, $username = false, $user_id = false)
+{
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
+    if (!$host || !$username || !$user_id) return false;
+
+    return "https://$host/api/v1/accounts/$user_id";
+}
+
 #endregion URLs
 #region Content requets
 
+function array_user_following($host = false, $username = false, $user_id = false)
+{
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
+    if (!$host || !$username || !$user_id) return false;
+
+    $next_batch_max_id = false;
+
+    $url = url_user_following($host, $username, $user_id);
+    
+    while (true)
+    {
+        $headers = [];
+
+        $following_batch = array_open_url(
+        
+            $url, 
+            "json", 
+            [ "token" => get("mastodon_app_token"), "timeout" => 60, "max_id" => $next_batch_max_id ],
+            [ /*"file_get_contents",*/ "curl" ], 
+            $headers
+        );
+
+        $links = [];
+        {
+            //"Link" => '<https://indieweb.social/api/v1/accounts/113384237985390849/following?max_id=862671>; rel="next", <https://indieweb.social/api/v1/accounts/113384237985390849/following?since_id=871963>; rel="prev"';
+
+            $links_header = explode(",", at($headers, "link"));
+
+            foreach ($links_header as &$link)
+            {
+                $link = explode(";", $link);
+                if (count($link) < 2) continue;
+                $link[0] = trim(trim($link[0]), "><");
+                $link[1] = explode("=", $link[1]);
+                $link[1] = trim($link[1][1], '"');
+                $links[$link[1]] = $link[0];
+            }            
+        }
+
+        if (count($following_batch) <= 0) break;
+
+        $min_id = PHP_INT_MAX;
+
+        foreach ($following_batch as $followed_account)
+        {
+            $id = at($followed_account, "id", PHP_INT_MAX);
+            if ($id < $min_id) $min_id = $id;
+
+            $following[] = $followed_account;
+        }
+        
+        $url = at($links, "next");
+        if (!$url) break;        
+    }
+
+    return $following;
+}
+
 function array_user_statuses($host = false, $username = false, $user_id = false)
 {
-    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
     
     return array_open_url(
@@ -110,7 +190,119 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
     );
 }
 
+function array_user_profile($host = false, $username = false, $user_id = false)
+{
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
+    if (!$host || !$username || !$user_id) return false;
+    
+    return array_open_url(
+    
+        url_user_profile($host, $username, $user_id), 
+        "json", 
+        [ "token" => get("mastodon_app_token"), "timeout" => 60 ]
+    );
+}
+
 #endregion Content requets
+#region Multi content requets
+
+function multi_array_user_account(&$host_username_list)
+{
+    $urls = [];
+
+    foreach ($host_username_list as $host_username)
+    {
+        list($host, $username) = array_values($host_username);
+        list($host, $username) = valid_host_username($host, $username);    
+
+        $urls["$username@$host"] = "https://$host/api/v1/accounts/lookup?acct=$username";
+    }
+
+    $contents = multi_fetch($urls, null, null, null, null,
+
+        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+    );
+
+    foreach ($contents as $username_at_host => $content)
+    {
+        list($account_username, $account_host) = explode("@", $username_at_host);
+        $account = array_open_url_content_post_process($content, "json");
+
+        foreach ($host_username_list as &$host_username)
+        {
+            list($host, $username) = array_values($host_username);
+            
+            if ($account_host     == $host
+            &&  $account_username == $username)
+            {
+                $host_username["account"]   = $account;
+                $host_username["fetch_url"] = "https://$host/api/v1/accounts/lookup?acct=$username";
+            }
+        }
+    }
+
+    return true;
+}
+
+function multi_array_user_following(&$host_username_userid_list)
+{
+    if (!multi_array_user_account($host_username_userid_list))
+    {
+        return false;
+    }
+
+    $urls = [];
+
+    foreach ($host_username_userid_list as $host_username_userid)
+    {
+        list($host, $username, $user_id) = [ 
+            at($host_username_userid, "host",       at($host_username_userid, 0, false)),
+            at($host_username_userid, "username",   at($host_username_userid, 1, false)),
+            at($host_username_userid, "user_id",    at($host_username_userid, 2, false)),
+        ];
+
+        if (!$user_id)
+        {
+            $user_id = at(at($host_username_userid, "account"), "id");
+        }
+
+        list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);    
+
+        $urls["$user_id@$username@$host"] = "https://$host/api/v1/accounts/$user_id/following";
+    }
+
+    $contents = multi_fetch($urls, null, null, null, null,
+
+        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+    );
+
+    foreach ($contents as $userid_at_username_at_host => $content)
+    {
+        list($account_userid, $account_username, $account_host) = explode("@", $userid_at_username_at_host);
+        $following = array_open_url_content_post_process($content, "json");
+
+        foreach ($host_username_userid_list as &$host_username_userid)
+        {
+            list($host, $username, $user_id) = [ 
+                at($host_username_userid, "host",       at($host_username_userid, 0, false)),
+                at($host_username_userid, "username",   at($host_username_userid, 1, false)),
+                at($host_username_userid, "user_id",    at($host_username_userid, 2, false)),
+            ];
+            
+            if ($account_host     == $host
+            &&  $account_username == $username
+            &&  $account_userid   == $user_id)
+            {
+                $host_username_userid["following"]   = $following;
+                $host_username_userid["fetch_url"] = "https://$host/api/v1/accounts/$user_id/following";
+            }
+        }
+    }
+
+    return true;
+}
+
+#endregion Multi content requets
 #region Components: Comments
 
 function comment_card(
@@ -354,7 +546,7 @@ function css_comments()
 
 function js_comments($post_id, $host = false, $username = false, $user_id = false)
 {
-    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return "";
 
     $token = "";
@@ -621,7 +813,7 @@ function section_mastodon_comments($post_id = auto, $host = false, $username = f
         if (count($post_info) > 0) $username  = array_shift($post_info);
     }
 
-    list($host, $username, $user_id) = valid_host_username_userid($host, $username, $user_id);
+    list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
 
     if (!$host || !$username || !$user_id) return "";
     

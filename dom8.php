@@ -2,7 +2,7 @@
 
     namespace dom;
 
-    if (PHP_MAJOR_VERSION < 8) die("NEED PHP 8");
+    //if (PHP_MAJOR_VERSION < 8) die("NEED PHP 8");
 
     #region CONSTANTS
     ######################################################################################################################################
@@ -22,8 +22,8 @@
     #region HELPERS : AUTORUN
     ######################################################################################################################################
 
-    @internal_include(path("tokens.php"));
-    @internal_include(path("vendor/autoload.php"));
+                                @internal_include(path("tokens.php"));
+    if (PHP_MAJOR_VERSION >= 8) @internal_include(path("vendor/autoload.php"));
 
     #endregion
     #region HELPERS : CONFIG
@@ -1660,7 +1660,7 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false)
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false, &$headers = null)
     {
         $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : /*$urls*/false);
 
@@ -1744,16 +1744,48 @@
                         $curl_options[CURLOPT_HTTPHEADER] = $curl_http_header;
                     }
 
+                    $headers = [];
+
                     $curl_options[CURLOPT_SSL_VERIFYHOST] = false;
                     $curl_options[CURLOPT_SSL_VERIFYPEER] = false;                
                     $curl_options[CURLOPT_USERAGENT]      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
                     $curl_options[CURLOPT_RETURNTRANSFER] = true;
                     $curl_options[CURLOPT_URL]            = $url;
                     $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
-                    $curl_options[CURLOPT_FOLLOWLOCATION] = true;
+                    $curl_options[CURLOPT_FOLLOWLOCATION] = true;                    
+                    $curl_options[CURLOPT_HEADERFUNCTION] = function($curl, $header_entry) use ($url, &$headers) {
+
+                        $len = strlen($header_entry);
+
+                        if (count($headers) == 0)
+                        {
+                            $headers["status"] = [ trim($header_entry) ];
+                            return $len;
+                        }
+                        
+                        $header_entry = explode(':', $header_entry, 2);
+                        if (count($header_entry) < 2) return $len; // ignore invalid headers
+
+                        if ( !isset($header_entry[1]) ) { $header_entry[1] = null; }
+
+                        $key = strtolower(trim($header_entry[0]));
+                        $val =            trim($header_entry[1]);
+
+                        $headers[$key][] = $val;
+
+                        return $len;
+                    };
 
                     $result_opt = curl_setopt_array($curl, $curl_options);
                     $content    = curl_exec($curl);
+
+                    foreach ($headers as &$header_entry)
+                    {
+                        if (is_array($header_entry) && count($header_entry) <= 1)
+                        {
+                            $header_entry = $header_entry[0];
+                        }
+                    }
 
                     update_dependency_graph($url);
 
@@ -1897,22 +1929,38 @@
         return $response;
     }
 
-    function array_open_url($urls, $content_type = 'json', $options = 7)
+    function array_open_url_content_post_process($content, $content_type = 'json')
     {
-        $content = content($urls, $options);
-
         if (!!$content)
         {
+            $options = [];
+
+            if (is_array($content_type))
+            {
+                $options = $content_type;
+                $content_type = $options["type"];
+                unset($options["type"]);
+            }
+
+            $separator = at($options, "separator", ";");
+
                  if ($content_type == 'xml')  $content_type = 'text/xml';
             else if ($content_type == 'json') $content_type = 'application/json';
             else if ($content_type == 'html') $content_type = 'text/html';
             else if ($content_type == 'csv')  $content_type = 'text/csv';
-
             
                  if (       "text/xml"  == $content_type) { $content = @json_decode(@json_encode(@simplexml_load_string($content,null,LIBXML_NOCDATA )),true); }
-            else if (       "text/csv"  == $content_type) { $content = @str_getcsv($content,"\n"); if (!!$content) foreach ($content as &$rrow) { $rrow = str_getcsv($rrow, ";"); } }
+            else if (       "text/csv"  == $content_type) { $content = @str_getcsv($content,"\n"); if (!!$content) foreach ($content as &$rrow) { $rrow = str_getcsv($rrow, $separator); } }
             else if ("application/json" == $content_type) { $content = @json_decode($content, true); }
         }
+
+        return $content;
+    }
+
+    function array_open_url($urls, $content_type = 'json', $options = 7, $methods_order = [ "file_get_contents", "curl" ], &$headers = null)
+    {
+        $content = content($urls, $options, $auto_fix = true, $debug_error_output = true, $methods_order, $profiling_annotations = false, $headers);
+        $content = array_open_url_content_post_process($content, $content_type);
 
         return $content;
     }
@@ -2342,28 +2390,38 @@
             $html = $parser->transform($text);
         }
 
-        if ($commonmark)
-        {   
-            try
-            {
-                $config = []; // Define your configuration, if needed
-                
-                $environment = new Environment($config); // Configure the Environment with all the CommonMark parsers/renderers
-                $environment->addExtension(new CommonMarkCoreExtension());
-                $environment->addExtension(new FrontMatterExtension()); // Add the extension
+        if (PHP_MAJOR_VERSION >= 8)
+        {
+            if ($commonmark)
+            {   
+                try
+                {
+                    $config = []; // Define your configuration, if needed
+                    
+                    $environment = new Environment($config); // Configure the Environment with all the CommonMark parsers/renderers
+                    $environment->addExtension(new CommonMarkCoreExtension());
+                    $environment->addExtension(new FrontMatterExtension()); // Add the extension
 
-                //$converter = new GithubFlavoredMarkdownConverter($config);
-                $converter = new MarkdownConverter($environment);
+                    //$converter = new GithubFlavoredMarkdownConverter($config);
+                    $converter = new MarkdownConverter($environment);
 
-                $html = @$converter->convert($text)->getContent();
+                    $html = @$converter->convert($text)->getContent();
+                }
+                catch (\Exception $e)
+                {
+                }
             }
-            catch (\Exception $e)
+
+            if ($smartypants) 
             {
+                $html = SmartyPants::defaultTransform($html);
             }
         }
 
-        if ($smartypants) $html = SmartyPants::defaultTransform($html);
-        if ($hard_wrap)   $html = str_replace("\n", "<br>", $html);
+        if ($hard_wrap)
+        {
+            $html = str_replace("\n", "<br>", $html);
+        }
 
         if (!!$no_header)
         {
@@ -12146,8 +12204,11 @@
     {
         if (!!get("toc-required"))
         {
-            set("toc-html", extract_toc_from_html($html, 3, "ul",  "li",      "span"),    "DOM");
-          //set("toc-html", extract_toc_from_html($html, 3, "div", "details", "summary"), "DOM");
+            if (PHP_MAJOR_VERSION >= 8)
+            {
+                set("toc-html", extract_toc_from_html($html, 3, "ul",  "li",      "span"),    "DOM");
+              //set("toc-html", extract_toc_from_html($html, 3, "div", "details", "summary"), "DOM");
+            }
         }
     }
 
@@ -12187,63 +12248,70 @@
         return $html;
     }
 
-    function extract_toc_from_html($html, $max_depth = 3, $list_tag = "ul", $list_item_tag = "li", $list_item_wrapper_tag = "span")
+    if (PHP_MAJOR_VERSION >= 8)
     {
-        // Based on Terence Eden's https://shkspr.mobi/blog/2025/03/create-a-table-of-contents-based-on-html-heading-elements/
-
-        $dom = new \DOMDocument();
-        libxml_use_internal_errors( true );
-        $dom->loadHTML("<!DOCTYPE html><html><head><meta charset=UTF-8></head><body>" . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
-        libxml_clear_errors();
-
-        $xpath = new \DOMXPath($dom);
-        $headings = $xpath->query( "//h1 | //h2 | //h3 | //h4 | //h5 | //h6" );
-
-        $root  = [ [ "children" => [] ] ];
-        $stack = [&$root];
-
-        foreach ($headings as $heading) 
+        function extract_toc_from_html($html, $max_depth = 3, $list_tag = "ul", $list_item_tag = "li", $list_item_wrapper_tag = "span")
         {
-            $element = $heading->nodeName;  //  e.g. h2, h3, h4, etc
-            $text    = trim( $heading->textContent );  
-            $id      = $heading->getAttribute("id");
-            $level   = (int)substr($element, 1);
-            $node    = [ "text" => $text, "id" => $id, "children" => [] ];
+            // Based on Terence Eden's https://shkspr.mobi/blog/2025/03/create-a-table-of-contents-based-on-html-heading-elements/
 
-            //  Ensure there are no gaps in the heading hierarchy
+            $dom = new \DOMDocument();
+            libxml_use_internal_errors( true );
+            $dom->loadHTML("<!DOCTYPE html><html><head><meta charset=UTF-8></head><body>" . $html, LIBXML_NOERROR | LIBXML_NOWARNING);
+            libxml_clear_errors();
 
-            while (count($stack) > $level) array_pop($stack);
+            $xpath = new \DOMXPath($dom);
+            $headings = $xpath->query( "//h1 | //h2 | //h3 | //h4 | //h5 | //h6" );
 
-            //  If a gap exists (e.g., h4 without an immediately preceding h3), create placeholders
+            $root  = [ [ "children" => [] ] ];
+            $stack = [&$root];
 
-            while (count($stack) < $level) 
+            foreach ($headings as $heading) 
             {
-                $stackSize = count($stack);
-                $lastIndex = count($stack[$stackSize - 1]) - 1; //  What's the last element in the stack?
-                
-                if ($lastIndex < 0)  //  If there is no previous sibling, create a placeholder parent
+                $element = $heading->nodeName;  //  e.g. h2, h3, h4, etc
+                $text    = trim( $heading->textContent );  
+                $id      = $heading->getAttribute("id");
+                $level   = (int)substr($element, 1);
+                $node    = [ "text" => $text, "id" => $id, "children" => [] ];
+
+                //  Ensure there are no gaps in the heading hierarchy
+
+                while (count($stack) > $level) array_pop($stack);
+
+                //  If a gap exists (e.g., h4 without an immediately preceding h3), create placeholders
+
+                while (count($stack) < $level) 
                 {
-                    $stack[$stackSize - 1][] = [ "text" => "", "children" => [] ];
-                    $stack[] = &$stack[count($stack) - 1][0]['children'];
-                } 
-                else 
-                {
-                    $stack[] = &$stack[count($stack) - 1][$lastIndex]['children'];
+                    $stackSize = count($stack);
+                    $lastIndex = count($stack[$stackSize - 1]) - 1; //  What's the last element in the stack?
+                    
+                    if ($lastIndex < 0)  //  If there is no previous sibling, create a placeholder parent
+                    {
+                        $stack[$stackSize - 1][] = [ "text" => "", "children" => [] ];
+                        $stack[] = &$stack[count($stack) - 1][0]['children'];
+                    } 
+                    else 
+                    {
+                        $stack[] = &$stack[count($stack) - 1][$lastIndex]['children'];
+                    }
                 }
+
+                //  Add the node to the current level
+
+                $stack[count($stack) - 1][] = $node;
+                $stack[] = &$stack[count($stack) - 1][count($stack[count($stack) - 1]) - 1]['children'];
             }
 
-            //  Add the node to the current level
-
-            $stack[count($stack) - 1][] = $node;
-            $stack[] = &$stack[count($stack) - 1][count($stack[count($stack) - 1]) - 1]['children'];
+            return toc_tree_to_html_list($root, $max_depth, $list_tag, $list_item_tag, $list_item_wrapper_tag);
         }
 
-        return toc_tree_to_html_list($root, $max_depth, $list_tag, $list_item_tag, $list_item_wrapper_tag);
+        function toc()  { set("toc-required", "DOM"); return delayed_component("_".__FUNCTION__, false); }
+        function _toc() { return get("toc-html", ""); }
+    }
+    else 
+    {
+        function toc() { return false; }
     }
     
-    function toc()  { set("toc-required", "DOM"); return delayed_component("_".__FUNCTION__, false); }
-    function _toc() { return get("toc-html", ""); }
-
     function sup($html, $attributes = false)
     {
         return tag("sup", $html, $attributes); 
@@ -15351,8 +15419,25 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null)
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7)
     { 
+        $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
+        $header  = is_array($options) ? at($options, "header",  []) : [];
+        
+        $token          = at($header, "Authorization",   at($options, "Authorization",   at($header, "token",        at($options, "token"               ))));
+        $content_type   = at($header, "Content-Type",    at($options, "Content-Type",    at($header, "content-type", at($options, "content-type"        ))));
+        $charset        = at($header, "Charset",         at($options, "Charset",         at($header, "charset",      at($options, "charset",    "utf-8" ))));
+        $language       = at($header, "Accept-language", at($options, "Accept-language", at($header, "language",     at($options, "language"            ))));
+        $client_id      = at($header, "Client-ID",       at($options, "Client-ID",       at($header, "client-id",    at($options, "client-id"           ))));
+
+        if (!!$token)        $header["Authorization"]   = "Bearer $token";
+        if (!!$content_type) $header["Content-Type"]    = $content_type.(!$charset ? "" : "; charset=$charset");
+        if (!!$language)     $header["Accept-language"] = $language;
+        if (!!$client_id)    $header["Client-ID"]       = $client_id;
+
+        if (0 == count($header)) $header = false;
+
+
         $parallelize = true;
 
         if (!$parallelize)
@@ -15389,11 +15474,22 @@
 
                 $curl_handle = curl_init($url);
 
-                curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+                if (!!$header)
+                {
+                    $curl_http_header = array_map(function($key, $val) { 
+                        $val = /*urlencode*/((is_array($val) || is_object($val)) ? json_encode($val) : $val);
+                        return "$key: $val"; 
+                    }, array_keys($header), array_values($header));
+
+                    curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $curl_http_header);
+                }
+
                 curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl_handle, CURLOPT_USERAGENT,      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl_handle, CURLOPT_URL,            $url);
-                curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, 666);
+                curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, $timeout);
                 curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, true);
                 
                 $responses[$key] = curl_exec($curl_handle);
@@ -15426,11 +15522,22 @@
 
                 $curl_handles[$key] = curl_init($url);
 
-                curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
+                if (!!$header)
+                {
+                    $curl_http_header = array_map(function($key, $val) { 
+                        $val = /*urlencode*/((is_array($val) || is_object($val)) ? json_encode($val) : $val);
+                        return "$key: $val"; 
+                    }, array_keys($header), array_values($header));
+
+                    curl_setopt($curl_handles[$key], CURLOPT_HTTPHEADER, $curl_http_header);
+                }
+
                 curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYHOST, false);
+                curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($curl_handles[$key], CURLOPT_USERAGENT,      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl_handles[$key], CURLOPT_URL,            $url);
-                curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, 666);
+                curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, $timeout);
                 curl_setopt($curl_handles[$key], CURLOPT_FOLLOWLOCATION, true);
                 
                 curl_multi_add_handle($curl_multi_handle, $curl_handles[$key]);
