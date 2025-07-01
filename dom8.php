@@ -9027,11 +9027,15 @@
 
                 @property --100vw { syntax: "<length>"; initial-value: 0px; inherits: false; }
                 @property --100vh { syntax: "<length>"; initial-value: 0px; inherits: false; }
+                @property --1em   { syntax: "<length>"; initial-value: 0px; inherits: false; }
+                @property --1rem  { syntax: "<length>"; initial-value: 0px; inherits: false; }
 
                 :root {
 
                     --100vw: 100vw; --unitless-viewport-width:  tan(atan2(var(--100vw), 1px)); --100uvw: var(--unitless-viewport-width);
                     --100vh: 100vh; --unitless-viewport-height: tan(atan2(var(--100vh), 1px)); --100uvh: var(--unitless-viewport-height);
+                    --1em:     1em; --unitless-em:              tan(atan2(var(--1em),   1px));
+                    --1rem:   1rem; --unitless-rem:             tan(atan2(var(--1rem),  1px));
 
                     /*
                     --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
