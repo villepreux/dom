@@ -101,7 +101,10 @@ function code_css()
             width:          fit-content;
             max-width:      100%;
             border:         none;
-            background:     unset;
+        }
+
+        .ide pre, .ide code, .ide code[class*=language-]  {
+            background:     unset !important; /* as applying 3rd party highligh lib theme might try to override it most of the time */
         }
 
         :is(.card, details).ide :is(code, code[class*=language-]) {            
