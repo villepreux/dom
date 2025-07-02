@@ -14,6 +14,10 @@
     const author        = "Antoine Villepreux";
     const version       = "0.8.6";
 
+    const media_all     = "all";
+    const media_screen  = "screen";
+    const media_print   = "print";
+
     define("DOM_EOL", eol());
     define("DOM_TAB", tab());
     define("DOM_CLI", isset($argv) || php_sapi_name() == "cli");
@@ -645,22 +649,21 @@
 
     /* TODO
 
-    Distinguer
-     - Outils d'extraction d'info d'une URL
-     - Fonction basées sur l'URL du host courant (le vrai, qui peut etre différent entre local et live)
-     - Fonctions basées sur l'URL live (meme si on est local)
-     - Fonctions basées sur l'URL local (meme si on est live) (est-ce utile ? un cas d'utilisation ? oui: switch-to-local)
+        Distinguer
+        - Outils d'extraction d'info d'une URL
+        - Fonction basées sur l'URL du host courant (le vrai, qui peut etre différent entre local et live)
+        - Fonctions basées sur l'URL live (meme si on est local)
+        - Fonctions basées sur l'URL local (meme si on est live) (est-ce utile ? un cas d'utilisation ? oui: switch-to-local)
 
-    Préciser ce que ca fait en mode "simulé" (cad par ex. je suis en localhost mais je simule la présence live via les set("live_domain") et cie
+        Préciser ce que ca fait en mode "simulé" (cad par ex. je suis en localhost mais je simule la présence live via les set("live_domain") et cie
 
-    Distinguer pour chaque fonction les version relative et absolue
+        Distinguer pour chaque fonction les version relative et absolue
 
-    Avoir un get_root_url() qui envoit a la racine du site
+        Avoir un get_root_url() qui envoit a la racine du site
 
-    Gérer le cas du "//" qui renvoit pas forcément a la racine du site dans le cas du localhost multisite
+        Gérer le cas du "//" qui renvoit pas forcément a la racine du site dans le cas du localhost multisite
 
     */
-
     
     function url_code($url, $headers = [], $userAgent = false, $proxy = false)
     {
@@ -6835,7 +6838,7 @@
 
                 //  Return html
 
-                return  raw_html('<!doctype html>'.comment("Welcome my fellow web developer!").'<html'.attributes_as_string($attributes).'>'.' ').
+                return  raw_html('<!doctype html>'.comment("🏳️‍⚧️🏳️‍🌈▲ Welcome my fellow web developer!").'<html'.attributes_as_string($attributes).'>'.' ').
                         $html.eol().$debug_console.
                         raw_html('</html>'.comment("DOM.PHP ".version));
             }
@@ -6959,7 +6962,7 @@
 
             // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
             eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
-            eol().'<link rel="stylesheet" type="text/css" media="all">'. 
+            eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
 
             eol().comment("styles").
 
@@ -6967,9 +6970,9 @@
             ( !$styles    ? "" : styles()).
             ( !$path_css  ? "" : (
 
-                eol(). comment("Project-specific main stylesheet").                                                 (!get("htaccess_rewrite_php") ? (
-                style_file($path_css, false, auto,     [ "layer" => "app", "media" => "all" ]).           "") : (
-                link_style($path_css, "all", false,    [ "layer" => "app"  ]).                            "")).
+                eol(). comment("Project-specific main stylesheet").                                           (!get("htaccess_rewrite_php") ? (
+                style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "screen" ]).      "") : (
+                link_style($path_css, "screen", false, [ "layer" => "app"  ]).                          "")).
 
             ""));
     }
@@ -8568,32 +8571,20 @@
         return link_rel("manifest", $filename); 
     }
 
-    function link_style($link, $media = "all", $async = false, $attributes = false)
+    function link_style($link, $media = "screen", $async = false, $attributes = false)
     {
         if (!!get("no_css"))             return '';
         if (!!get("include_custom_css")) return style_file($link, false, true);
 
-        $is_external_url = ((0 === stripos($link, "http"))
-                         || (0 === stripos($link, "//"  )));
-
         if ($async)
         {
-            $method = 2;
-
-            if ($method == 1)
-            {
-                $attributes = attributes_add($attributes, array("type" => "text/css", "media" => "nope!", "onload" => "this.media='$media'"));
-                return link_rel("stylesheet", $link, $attributes);
-            }
-            else // https://web.dev/defer-non-critical-css/#optimize
-            {
-                $attributes = attributes_add($attributes, array("as" => "style", "onload" => "this.onload=null;this.rel='stylesheet'"));
-                return link_rel("preload", $link, $attributes).tag("noscript", link_rel("stylesheet", $link));
-            }
+            // https://web.dev/defer-non-critical-css/#optimize
+            $attributes = attributes_add($attributes, array("as" => "style", "onload" => "this.onload=null;this.rel='stylesheet'"));
+            return link_rel("preload", $link, $attributes).tag("noscript", link_rel("stylesheet", $link));
         }
         else
         {
-            $attributes = attributes_add($attributes, array("type" => "text/css", "media" => $media));
+            $attributes = attributes_add($attributes, array("type" => "text/css", "data-media" => $media, "media" => $media));
             return link_rel("stylesheet", $link, $attributes);
         }
     }
@@ -8680,12 +8671,12 @@
             $media = "WIP" == $media ? auto : str_replace("WIP-", "", $media);
         }
 
-        $force_minify   = (auto === $force_minify)  ? false : $force_minify;
-        $attributes     = (auto === $attributes)    ? false : $attributes;
-        $media          = (auto === $media)         ? "all" : $media;
+        $force_minify   = (auto === $force_minify)  ? false    : $force_minify;
+        $attributes     = (auto === $attributes)    ? false    : $attributes;
+        $media          = (auto === $media)         ? "screen" : $media;
 
         $first_layer = is_array($layer) ? $layer[0] : $layer;
-        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "media" => $media));
+        $attributes  = attributes_add($attributes, array("layer" => $first_layer, "data-media" => $media, "media" => $media));
 
         return style($layer_already_in_css ? $css : css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
@@ -8777,8 +8768,8 @@
         if ($fonts === false) $fonts = get("fonts");
         if (!!$fonts)         $fonts = str_replace(' ','+', trim($fonts, ", /|"));
 
-        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "all", $async) : '')
-                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "all", $async) : '');
+        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "screen", $async) : '')
+                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
     }
     
     function link_styles($async = false, $fonts = false)
@@ -9833,7 +9824,7 @@
     {
         heredoc_start(-2 + $tab); ?><style>:root {<?php heredoc_flush(null); ?> 
     
-            <?= brand_color_css_properties("#ffffff", 35, "print") ?> 
+            <?= brand_color_css_properties("#ffffff", 35, media_print) ?> 
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -9923,7 +9914,7 @@
             [data-theme^='light'], &:has(#setting-theme-light:checked) { color-scheme: light; }
             [data-theme^='dark'],  &:has(#setting-theme-dark:checked)  { color-scheme: dark;  }
             
-            :root { --style-media: "all"; }
+            :root { --style-media: "screen"; }
             <?= css_root(css_vars_color_media("screen")) ?> 
 
             @media print 
@@ -10845,15 +10836,15 @@
 
         $styles .= eol().style(css_layers(), false, false, auto, -1); // Ensure 1st rule!
         
-        $styles .= eol().layered_style("spec",      css_spec(false), false, false, auto, auto, "none");
-        $styles .= eol().layered_style("browser",   css_browser(false));
-        $styles .= eol().layered_style("normalize", css_normalize(false));
-        $styles .= eol().layered_style("default",   css_default(false));
+        $styles .= eol().layered_style("spec",      css_spec(false),      false, false, auto, auto, /*media*/"none"   );
+        $styles .= eol().layered_style("browser",   css_browser(false),   auto,  auto,  auto, auto, /*media*/"all"    );
+        $styles .= eol().layered_style("normalize", css_normalize(false), auto,  auto,  auto, auto, /*media*/"all"    );
+        $styles .= eol().layered_style("default",   css_default(false),   auto,  auto,  auto, auto, /*media*/"screen" );
 
         $scripts .= eol().script((function () { HSTART() ?><script><?= HERE() ?>
         
-            dom.disable_all_layers = function()      { document.querySelectorAll("style[layer]"             ).forEach(function(e) { e.setAttribute("media", "none" ); }); };
-            dom.enable_layer       = function(layer) { document.querySelectorAll('style[layer="'+layer+'"]' ).forEach(function(e) { e.setAttribute("media", "all"  ); }); };
+            dom.disable_all_layers = function()      { document.querySelectorAll("style[layer]"             ).forEach(function(e) { var data_media = e.getAttribute("data-media"); var media = e.getAttribute("media"); if (null === data_media && null !== media) { e.setAttribute("data-media", e.getAttribute("media")); }   e.setAttribute("media", "none"     ); }); };
+            dom.enable_layer       = function(layer) { document.querySelectorAll('style[layer="'+layer+'"]' ).forEach(function(e) { var data_media = e.getAttribute("data-media");                                      if (null === data_media)                   { data_media = "screen"; }                                   e.setAttribute("media", data_media ); }); };
 
             var current_css = document.documentElement.getAttribute("data-css");
 
@@ -11907,14 +11898,28 @@
     function body($html = "", $html_post_scripts = "", $dark_theme = auto)
     {
         $profiler = debug_track_timing();
+        
+        $body = body_boilerplate_start().
+                $html.
+                body_boilerplate_end($html_post_scripts);
 
-        $attributes = false;
+        if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
 
-        if (is_array($html_post_scripts))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-        {
-            $attributes         = $html_post_scripts;
-            $html_post_scripts  = at($attributes, "script", "");
-        }
+        $attributes = array_merge(array(
+            "id"    => top_id(),
+            "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
+            ));
+
+        return eol().tag(
+            'body',
+            $body,
+            $attributes
+            );
+    }
+    
+    function body_boilerplate_start()
+    {
+        $profiler = debug_track_timing();
         
         $properties_organization = array
         (
@@ -11955,7 +11960,6 @@
         if (has("tumblr_avatar"))       $properties_person_same_as[] = url_tumblr_avatar        (get("tumblr_avatar"));         // ($blogname = false, $size = 64);
         if (has("messenger"))           $properties_person_same_as[] = url_messenger            (get("messenger"));             // ($id       = false);
         if (has("whatsapp"))            $properties_person_same_as[] = url_whatsapp             (get("whatsapp"));              // ($phone    = false);
-
             
         $properties_person = array
         (
@@ -11966,9 +11970,7 @@
             "sameAs"    => $properties_person_same_as
         );
         
-        $app_js = path_coalesce("js/app.js","app.js");
-        
-        $body = ''
+        return ''
 
       //Not needed anymore, as we assume evergreen browser in many parts of this framework
       //. if_browser('lte IE 9', eol().p('You are using an '.strong('outdated').' browser. Please '.a('upgrade your browser', "https://browsehappy.com/").' to improve your experience and security.', 'browserupgrade'))
@@ -11976,8 +11978,24 @@
         . (get("support_metadata_person",       false) ? script_json_ld($properties_person)         : "")
         . (get("support_metadata_organization", false) ? script_json_ld($properties_organization)   : "")
 
-        . eol()
-        . $html
+        . eol();
+    }
+    
+    function body_boilerplate_end($html_post_scripts = "")
+    {
+        $profiler = debug_track_timing();
+
+        $attributes = false;
+
+        if (is_array($html_post_scripts))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+        {
+            $attributes         = $html_post_scripts;
+            $html_post_scripts  = at($attributes, "script", "");
+        }
+                
+        $app_js = path_coalesce("js/app.js","app.js");
+        
+        return ''
 
         . eol().comment("Body boilerplate markup")/*
         . back_to_top_link()*/
@@ -12032,19 +12050,6 @@
 
         . eol()
         ;
-
-        if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
-
-        $attributes = array_merge(array(
-            "id"    => top_id(),
-            "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
-            ));
-
-        return eol().tag(
-            'body',
-            $body,
-            $attributes
-            );
     }
     
     function cosmetic($html)
