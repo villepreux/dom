@@ -41,11 +41,20 @@ function array_user_account($host = false, $username = false)
 {
     list($host, $username) = valid_host_username($host, $username);
 
+    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
+    bye(array(
+        
+        "https://$host/api/v1/accounts/lookup?acct=$username",
+        "json",
+        [ "token" => $token, "timeout" => 7 ]
+    ));
+
     return array_open_url(
         
         "https://$host/api/v1/accounts/lookup?acct=$username",
         "json",
-        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+        [ "token" => $token, "timeout" => 7 ]
     );
 }
 
@@ -132,11 +141,13 @@ function array_user_following($host = false, $username = false, $user_id = false
     {
         $headers = [];
 
+        $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
         $following_batch = array_open_url(
         
             $url, 
             "json", 
-            [ "token" => get("mastodon_app_token"), "timeout" => 60, "max_id" => $next_batch_max_id ],
+            [ "token" => $token, "timeout" => 60, "max_id" => $next_batch_max_id ],
             [ /*"file_get_contents",*/ "curl" ], 
             $headers
         );
@@ -182,11 +193,13 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
     list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
     
+    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
     return array_open_url(
     
         url_user_statuses($host, $username, $user_id), 
         "json", 
-        [ "token" => get("mastodon_app_token"), "timeout" => 60 ]
+        [ "token" => $token, "timeout" => 60 ]
     );
 }
 
@@ -195,11 +208,13 @@ function array_user_profile($host = false, $username = false, $user_id = false)
     list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
     
+    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
     return array_open_url(
     
         url_user_profile($host, $username, $user_id), 
         "json", 
-        [ "token" => get("mastodon_app_token"), "timeout" => 60 ]
+        [ "token" => $token, "timeout" => 60 ]
     );
 }
 
@@ -218,9 +233,11 @@ function multi_array_user_account(&$host_username_list)
         $urls["$username@$host"] = "https://$host/api/v1/accounts/lookup?acct=$username";
     }
 
+    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
     $contents = multi_fetch($urls, null, null, null, null,
 
-        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+        [ "token" => $token, "timeout" => 7 ]
     );
 
     foreach ($contents as $username_at_host => $content)
@@ -271,9 +288,11 @@ function multi_array_user_following(&$host_username_userid_list)
         $urls["$user_id@$username@$host"] = "https://$host/api/v1/accounts/$user_id/following";
     }
 
+    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+
     $contents = multi_fetch($urls, null, null, null, null,
 
-        [ "token" => get("mastodon_app_token"), "timeout" => 7 ]
+        [ "token" => $token, "timeout" => 7 ]
     );
 
     foreach ($contents as $userid_at_username_at_host => $content)
