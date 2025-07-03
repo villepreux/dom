@@ -4,6 +4,7 @@ namespace dom\bluesky;
 
 require_once(__DIR__."/../dom.php");
 use function dom\{get,set,at,array_open_url};
+use const dom\{auto};
 
 function url_api() 
 {
@@ -26,18 +27,27 @@ function likes($post_url, $limit = false)
 	return at(cache_or_fetch(url_api().".feed.getLikes?uri=$post_at_uri".(!$limit ? "" : "&limit=$limit")), "likes");
 }
 
-function posts($user_handle, $limit = false) 
+function posts($user_handle = auto, $limit = false) 
 {
+    if (auto === $user_handle) $user_handle = get("bluesky-handle");
+    if (!$user_handle) return false;
+
 	return at(cache_or_fetch(url_api().".feed.getActorFeeds?actor=$user_handle".(!$limit ? "" : "&limit=$limit")), "feeds");
 }
 
-function profile($user_handle) 
+function profile($user_handle = auto) 
 {
+    if (auto === $user_handle) $user_handle = get("bluesky-handle");
+    if (!$user_handle) return false;
+
     return cache_or_fetch(url_api().".actor.getProfile?actor=$user_handle");
 }
 
-function user_did($user_handle)
+function user_did($user_handle = auto)
 {	
+    if (auto === $user_handle) $user_handle = get("bluesky-handle");
+    if (!$user_handle) return false;
+
     if (0 === stripos($user_handle, "did:")) return $user_handle;
 	return at(profile($user_handle), "did");
 }
