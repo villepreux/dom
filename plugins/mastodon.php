@@ -43,13 +43,6 @@ function array_user_account($host = false, $username = false)
 
     $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
 
-    bye(array(
-        
-        "https://$host/api/v1/accounts/lookup?acct=$username",
-        "json",
-        [ "token" => $token, "timeout" => 7 ]
-    ));
-
     return array_open_url(
         
         "https://$host/api/v1/accounts/lookup?acct=$username",
