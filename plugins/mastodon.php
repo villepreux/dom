@@ -16,6 +16,10 @@ use const \dom\{auto,external_link,internal_link};
 
 #region Constants
 
+function app_id($token     = auto) { return auto !== $token ? $token : (get("mastodon_app_id",     defined("TOKEN_MASTODON_APPID")  ? constant("TOKEN_MASTODON_APPID")  : false)); }
+function app_secret($token = auto) { return auto !== $token ? $token : (get("mastodon_app_secret", defined("TOKEN_MASTODON_SECRET") ? constant("TOKEN_MASTODON_SECRET") : false)); }
+function app_token($token  = auto) { return auto !== $token ? $token : (get("mastodon_app_token",  defined("TOKEN_MASTODON")        ? constant("TOKEN_MASTODON")        : false)); }
+
 function valid_host($host = false)
 {
     return !!$host ? $host : trim(get("mastodon_domain", "mastodon.social"), "@");
@@ -41,7 +45,7 @@ function array_user_account($host = false, $username = false)
 {
     list($host, $username) = valid_host_username($host, $username);
 
-    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+    $token = app_token();
 
     return array_open_url(
         
@@ -134,7 +138,7 @@ function array_user_following($host = false, $username = false, $user_id = false
     {
         $headers = [];
 
-        $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+        $token = app_token();
 
         $following_batch = array_open_url(
         
@@ -186,7 +190,7 @@ function array_user_statuses($host = false, $username = false, $user_id = false)
     list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
     
-    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+    $token = app_token();
 
     return array_open_url(
     
@@ -201,7 +205,7 @@ function array_user_profile($host = false, $username = false, $user_id = false)
     list($host, $username, $user_id) = valid_or_fetch_host_username_userid($host, $username, $user_id);
     if (!$host || !$username || !$user_id) return false;
     
-    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+    $token = app_token();
 
     return array_open_url(
     
@@ -226,7 +230,7 @@ function multi_array_user_account(&$host_username_list)
         $urls["$username@$host"] = "https://$host/api/v1/accounts/lookup?acct=$username";
     }
 
-    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+    $token = app_token();
 
     $contents = multi_fetch($urls, null, null, null, null,
 
@@ -281,7 +285,7 @@ function multi_array_user_following(&$host_username_userid_list)
         $urls["$user_id@$username@$host"] = "https://$host/api/v1/accounts/$user_id/following";
     }
 
-    $token = get("mastodon_app_token", constant("TOKEN_MASTODON"));
+    $token = app_token();
 
     $contents = multi_fetch($urls, null, null, null, null,
 
@@ -937,9 +941,9 @@ function post_excerpt($visibility = auto /* private | public | unlisted | privat
 {
     $visibility = auto === $visibility ? "private" : $visibility;
 
-    $mastodon_villapirorum_app_id       = get("mastodon_app_id");
-    $mastodon_villapirorum_app_secret   = get("mastodon_app_secret");
-    $mastodon_villapirorum_app_token    = get("mastodon_app_token"); 
+    $mastodon_villapirorum_app_id       = app_id();
+    $mastodon_villapirorum_app_secret   = app_secret();
+    $mastodon_villapirorum_app_token    = app_token(); 
 
     $api_url = "https://".get("mastodon_domain", "mastodon.social");
 

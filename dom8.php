@@ -4889,17 +4889,23 @@
                         echo fread($cache_file, filesize($cache_filename));
                         fclose($cache_file);            
 
-                        echo    eol().
-                                comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
-                                
-                                (!get("debug") ? "" : (debug_log().debug_console())).
+                        if ("html" == get("doctype"))
+                        {
+                            echo    eol().
+                                    comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
+                                    footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
+                                    
+                                    (!get("debug") ? "" : (debug_log().debug_console())).
 
-                                "";
+                                    "";
+                        }
                     }
                     else
                     {
-                        echo eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                        if ("html" == get("doctype"))
+                        {
+                            echo eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                        }
                     }
 
                     exit;
