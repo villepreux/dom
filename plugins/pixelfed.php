@@ -11,11 +11,15 @@ use const \dom\{auto};
 // https://docs.joinmastodon.org/methods/
 // https://beta-preview.pixelfed.io
 
-set("pixelfed_host", "pixelfed.social");
+function host($host = auto)
+{
+    if (auto !== $host && true !== $host && is_string($host) && "" != $host) return $host;
+    return get("pixelfed_host", "pixelfed.social");
+}
 
 function verify_credentials($token = auto, $timeout = 7, &$debug_error_output = null)
 {
-    return api_get("https://".get("pixelfed_host")."/api/v1", "accounts/verify_credentials", $token, $timeout, $debug_error_output);
+    return api_get("https://".host()."/api/v1", "accounts/verify_credentials", $token, $timeout, $debug_error_output);
 }
 
 function account_id($token = auto, $timeout = 7, &$debug_error_output = null)
@@ -27,26 +31,26 @@ function account($account_id = auto, $token = auto, $timeout = 7, &$debug_error_
 {
     $account_id = auto === $account_id ? account_id($token) : $account_id;
 
-    return api_get("https://".get("pixelfed_host")."/api/v1", "accounts/$account_id", $token, $timeout, $debug_error_output);
+    return api_get("https://".host()."/api/v1", "accounts/$account_id", $token, $timeout, $debug_error_output);
 }
 
 function status($status_id, $token = auto, $timeout = 7, &$debug_error_output = null)
 {
-    return api_get("https://".get("pixelfed_host")."/api/v1", "statuses/$status_id", $token, $timeout, $debug_error_output);
+    return api_get("https://".host()."/api/v1", "statuses/$status_id", $token, $timeout, $debug_error_output);
 }
 
 function statuses($account_id = auto, $limit = 999, $token = auto, $timeout = 7, &$debug_error_output = null)
 {
     $account_id = auto === $account_id ? account_id($token) : $account_id;
 
-    return api_get("https://".get("pixelfed_host")."/api/v1", "accounts/$account_id/statuses?limit=$limit", $token, $timeout, $debug_error_output);
+    return api_get("https://".host()."/api/v1", "accounts/$account_id/statuses?limit=$limit", $token, $timeout, $debug_error_output);
 }
 
 function following($account_id = auto, $limit = 999, $token = auto, $timeout = 7, &$debug_error_output = null)
 {
     $account_id = auto === $account_id ? account_id($token) : $account_id;
 
-    return api_get("https://".get("pixelfed_host")."/api/v1", "accounts/$account_id/following?limit=$limit", $token, $timeout, $debug_error_output);
+    return api_get("https://".host()."/api/v1", "accounts/$account_id/following?limit=$limit", $token, $timeout, $debug_error_output);
 }
 
 function send_media($path, $name, $alt, $token = auto, $timeout = 7, &$debug_error_output = null)
@@ -55,7 +59,7 @@ function send_media($path, $name, $alt, $token = auto, $timeout = 7, &$debug_err
   
     return api_post(
         
-        "https://".get("pixelfed_host")."/api/v2", "media", 
+        "https://".host()."/api/v2", "media", 
         
         [   "file"          => curl_file_create($path == "" ? $name : "$path/$name", 'image/jpeg', $name),
             "description"   => $alt, ], 
@@ -108,7 +112,7 @@ function send_status($message, $medias = [], $token = auto, $timeout = 7, &$debu
 
     return api_post(
         
-        "https://".get("pixelfed_host")."/api/v1", "statuses", 
+        "https://".host()."/api/v1", "statuses", 
         
         $params, 
         
@@ -146,7 +150,7 @@ function send_status($message, $medias = [], $token = auto, $timeout = 7, &$debu
 
     return api_post(
         
-        "https://".get("pixelfed_host")."/api/v1.1", "status/create", 
+        "https://".host()."/api/v1.1", "status/create", 
         $params, 
         [ "Content-Type" => "multipart/form-data", "Accept" => "application/json" ], 
         $token, 
