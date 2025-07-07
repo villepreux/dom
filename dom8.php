@@ -42,6 +42,29 @@
     function del($k)                                                                                                    { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
     function set($k, $v = true, $aname = false)                                                                         { global $_DOM; if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } else if ($aname === "DOM" && isset($_DOM)) { $_DOM[$k] = $v; } return $v; }
 
+    function var_backup($var, $unset_fallback = null)
+    {
+        $var_backup_stack = get("$var-backup", []);
+        $var_backup_stack[] = get($var, $unset_fallback);
+        set("$var-backup", $var_backup_stack);
+    }
+
+    function var_restore($var, $unset_fallback = null)
+    {
+        $var_backup_stack = get("$var-backup", []);
+        if (count($var_backup_stack) == 0) bye("INTERNAL ERROR VBR1");
+        $backup = array_pop($var_backup_stack);
+    
+        if ($unset_fallback === $backup)
+        {
+            del($var);
+        }
+        else
+        {
+            set($var, $backup);
+        }
+    }
+
     #endregion
     #region HELPERS : MISSING FUNCTIONS
     ######################################################################################################################################
@@ -775,7 +798,7 @@
             
         set("carousel",                         true);
 
-        set("cache_time",                       1*60*60); // 1h
+        set("cache-duration",                   1*60*60); // 1h
 
         set("forwarded_flags",                  array("contrast","light","no_js","no_css","rss","wip"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
@@ -4876,7 +4899,7 @@
                 $cache_basename         = md5(url(true).version);
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
-                $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache_time", 1*60*60)) < filemtime($cache_filename));
+                $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 1*60*60)) < filemtime($cache_filename));
                 
                 set("cache_filename", $cache_filename);
                 
@@ -5258,6 +5281,22 @@
             ob_end_clean();
             echo $doc;
         }
+    }
+
+    function response($response, $type = "json")
+    { 
+        init($type); 
+
+        if ("json" == $type && is_array($response)) // TODO Not needed. output() is handling it already
+        {
+            $response = json_encode($response);
+        }
+
+        $ret = output($response); 
+
+        die;
+
+        return $ret;
     }
 
     #endregion
