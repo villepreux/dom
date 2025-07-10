@@ -15473,7 +15473,7 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7)
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true)
     { 
         $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
         $header  = is_array($options) ? at($options, "header",  []) : [];
@@ -15490,9 +15490,6 @@
         if (!!$client_id)    $header["Client-ID"]       = $client_id;
 
         if (0 == count($header)) $header = false;
-
-
-        $parallelize = true;
 
         if (!$parallelize)
         {
