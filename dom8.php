@@ -15473,7 +15473,7 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true)
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true, $callback_response = null)
     { 
         $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
         $header  = is_array($options) ? at($options, "header",  []) : [];
@@ -15550,6 +15550,11 @@
                 if ($callback_pending && is_callable($callback_pending))
                 {
                     ($callback_pending)($active, $urls);
+                }
+
+                if ($callback_response && is_callable($callback_response))
+                {
+                    ($callback_response)($key, $responses[$key]);
                 }
             }
 
@@ -15639,6 +15644,11 @@
                 {
                     $responses[$key] = curl_multi_getcontent($ch);                
                     curl_multi_remove_handle($curl_multi_handle, $ch);
+
+                    if ($callback_response && is_callable($callback_response))
+                    {
+                        ($callback_response)($key, $responses[$key]);
+                    }
                 }
                 
                 curl_multi_close($curl_multi_handle);
