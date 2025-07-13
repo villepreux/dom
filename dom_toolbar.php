@@ -740,7 +740,7 @@ function toolbar_nav_title($html, $attributes = false)
     if ($html !== false && $html != "")
     { 
         if (false === stripos($html,"<a"))   $html =   a($html, '.'); /* */ // CHOCA_WIP
-        if (false === stripos($html,"<h1"))  $html =  h1($html);
+        if (false === stripos($html,"<h1"))  $html =  h1($html, [ "style" => ("view-transition-name: ".\dom\view_transition_name($html)) ]);
     }
 
     if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
