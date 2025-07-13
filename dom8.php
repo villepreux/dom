@@ -2037,7 +2037,7 @@
     #endregion
     #region Time & Durations utilities
 
-    function age($yyyy, $mm, $dd)
+    function age($yyyy, $mm, $dd, $unit = false)
     {
         if ($dd  >    31) swap($yyyy, $dd);
         if ($yyyy < 1000) $yyyy += 2000;
@@ -2045,7 +2045,14 @@
         if (is_integer($mm) && $mm < 10) $mm = "0$mm";
         if (is_integer($dd) && $dd < 10) $dd = "0$dd";
 
-        return (int)date_diff(date_create("$yyyy-$mm-$dd"), date_create())->format('%y');
+        $age = (int)date_diff(date_create("$yyyy-$mm-$dd"), date_create())->format('%y');
+
+        if (!$unit)
+        {
+            return $age;
+        }
+
+        return "$age $unit".($age > 1 ? "s" : "");
     }
     
     #endregion
@@ -5229,7 +5236,7 @@
         {
             return;
         }
-        
+
         if ("html" == get("doctype", false))
         {
             if (false === stripos($doc, "<html") && !has("ajax")) $doc = html($doc, $attributes);
@@ -13224,6 +13231,35 @@
 
         return $anchor_name;
     }
+    
+    function view_transition_name($html)
+    {
+        $html = trim($html);
+
+        $tag_pos = strpos($html, '<');
+
+        if (0 === $tag_pos)
+        {
+            if (0 === strpos($html, '<a'))
+            {
+                $bgn  = strpos($html, '>', $tag_pos) + 1;
+                $end  = strpos($html, '</a>');
+                $html = substr($html, $bgn, $end - $bgn);
+                
+                return view_transition_name($html);
+            }
+            else
+            {
+                $html = strip_tags($html);
+            }
+        }
+        else if (false !== $tag_pos)
+        {
+            $html = substr($html, 0, $tag_pos);
+        }
+
+        return anchor_name($html);
+    }
 
     function anchor($name, $character = false, $tolower = auto)
     {
@@ -15554,7 +15590,7 @@
 
                 if ($callback_response && is_callable($callback_response))
                 {
-                    ($callback_response)($key, $responses[$key]);
+                    ($callback_response)($key, $responses[$key], $active, $urls);
                 }
             }
 
@@ -15640,14 +15676,19 @@
                     }
                 }
 
+                $index = -1;
+
                 foreach ($curl_handles as $key => $ch) 
                 {
+                    ++$index;
+                    $active = count($urls) - $index;
+
                     $responses[$key] = curl_multi_getcontent($ch);                
                     curl_multi_remove_handle($curl_multi_handle, $ch);
 
                     if ($callback_response && is_callable($callback_response))
                     {
-                        ($callback_response)($key, $responses[$key]);
+                        ($callback_response)($key, $responses[$key], $active, $urls);
                     }
                 }
                 
@@ -15857,6 +15898,6 @@
 
         return $return;
     }
-        
+
     ######################################################################################################################################
     #endregion
