@@ -2339,6 +2339,8 @@
 
         foreach ($lines as $line)
         {
+            $line = trim($line, "\r"); // In case windows files have been transfered keeping \r\n 
+
             $len = strlen($line);
             $indent = 0;
 
@@ -4849,9 +4851,11 @@
     {
         if (false !== stripos(str_replace("https://", "https:XX", str_replace("http://", "http:XX", $js)), "//")) return $js;
         
+        $js = str_replace_all("\r\n  ",   "\r\n ",  $js);
         $js = str_replace_all("\n  ",   "\n ",  $js);
         $js = str_replace_all(PHP_EOL,  " ",    $js);
         $js = str_replace_all("\n",     " ",    $js);
+        $js = str_replace_all("\r",     " ",    $js);
         
         return $js;
     }
