@@ -5719,7 +5719,6 @@
                 <head>
 
                     <meta charset="utf-8">
-                    <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
                     
                     <title>Please wait...</title>
 
@@ -5864,7 +5863,6 @@
                 <head>
                     <title>Please wait...</title>
                     <meta charset="utf-8">
-                    <meta http-equiv="x-ua-compatible" content="ie=edge,chrome=1">
                     <meta name="format-detection" content="telephone=no">
                     <meta name="viewport" content="width=device-width,initial-scale=1">
                     <meta http-equiv="refresh" content="3">
@@ -7116,8 +7114,8 @@
         return // Head ordering : Following "capo" ordering : https://rviscomi.github.io/capo.js/user/rules/
 
             eol().head_pragma_directives().
-            eol().head_user_preferences(). // Only addition to date to capo ordering. Here to prevent any FOUC effect
             eol().head_title(). 
+            eol().head_user_preferences(). // Only addition to date to capo ordering. Here to prevent any FOUC effect
             eol().head_preconnect_hints().
             eol().head_asynchronous_scripts($scripts).
             eol().head_import_styles().
@@ -8500,8 +8498,7 @@
     {
         $profiler = debug_track_timing();
         
-        return  meta_http_equiv('x-ua-compatible',   'IE=edge')
-            .   eol()       
+        return  eol()       
             .   meta('keywords', strip_tags(get("title")).((!!get("keywords") && "" != get("keywords")) ? (', '.get("keywords")) : "")    )
             
             .   eol()
@@ -9075,10 +9072,6 @@
     {
         heredoc_start(-2); ?><style><?php heredoc_flush(null); ?> 
 
-            /* Pico */
-            /* does not work nested inside a layer. Use layer(name) instead
-            @import url(https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css);
-            */
             /*
 
             Some reset references
