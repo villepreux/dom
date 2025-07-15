@@ -980,6 +980,8 @@
 
         foreach ($lines as &$line)
         {
+            $line = trim($line, "\r"); // In case windows files have been transfered keeping \r\n 
+
             $iterations = $tab_offset;
 
             while ($iterations++ < 0)
@@ -12983,7 +12985,14 @@
     // Components with BlogPosting microdata
     // NOTE. Currently, only cards with title, text, and properties sub-components are almost usable for indieweb content
 
-    function article            ($html = "", $attributes = false)   { return tag('article', eol().indent($html).eol(), attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))); }
+    function article($html = "", $attributes = false, $indent = auto)
+    { 
+        return tag(
+            'article', 
+            eol().($indent === false ? $html : indent($html)).eol(), 
+            attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))
+            ); 
+    }
     
     function a_author           ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_author()           )); }
     function a_category         ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_category()         )); }
