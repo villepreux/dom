@@ -1123,7 +1123,7 @@
             dom.log_css_dom             = "margin-right: 0px; font-weight: bold; color: #000; padding: 0 4px 0 4px; background-color: #ff6eff; border-radius: 6px 0 0 6px; border: 1px solid white;";
             dom.log_css_dom_version     = "margin-right: 4px; font-weight: bold; color: #000; padding: 0 4px 0 4px; background-color: #22ccee; border-radius: 0 6px 6px 0; border: 1px solid white;";
 
-            dom.console                 = console.context("dom");
+            dom.console                 = (typeof console.context == "undefined") ? console : console.context("dom");
 
             dom.log = function() {
 
@@ -8536,7 +8536,7 @@
                     }
 
                     if (null !== current_theme) { 
-                        document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", current_theme); });
+                        document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", current_theme); });
                     }
             
                 <?= HERE("raw_js") ?></script><?php return HSTOP(); })())
