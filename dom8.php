@@ -6925,6 +6925,14 @@
     #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
+    function script_common_head()               { return script(js_common_head());              }
+    function script_ajax_head()                 { return script(js_ajax_head());                }
+    function script_ajax_body()                 { return script(js_ajax_body());                }
+    function script_inside_iframe()             { return script(js_inside_iframe());            }
+    function script_scan_and_print_head()       { return script(js_scan_and_print_head());      }
+    function script_on_document_events_head()   { return script(js_on_document_events_head());  }
+    function script_storage()                   { return script(js_storage());                  }
+
     /**
      * 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type
      */
@@ -6975,29 +6983,52 @@
     /* 9 */
     function head_preconnect_hints()
     {
-        return  eol().comment("Preconnect hints").                              (!get("unsplash-preconnect") ? '' : (
-                eol().link_rel("preconnect", "https://source.unsplash.com").    '')).
-                eol().comment("...");
+        return  eol().comment("Preconnect hints").                              (!get("unsplash-preconnect") ? (
+                eol().comment("...").                                           "") : (
+                eol().link_rel("preconnect", "https://source.unsplash.com").    "")).
+
+                "";
     }
 
     /* 8 */
     function head_asynchronous_scripts($scripts = true)
     {
+        if (!$scripts)      return "";
+        if (!!get("no_js")) return "";
+
         return  eol().comment("Asynchronous scripts"). // <script async src>
-                scripts_head($scripts). // !TODO !WARNING not really async scripts !
-                "";
+
+                eol().comment("...").
+
+            ""; 
     }
 
     /* 7 */
     function head_import_styles()
     {
-        return eol().comment("Import styles");
+        return eol().comment("Import styles").
+
+                eol().comment("...").
+
+            ""; 
     }
 
     /* 6 */
     function head_synchronous_scripts($scripts = true)
     {
-        return eol().comment("Synchronous scripts");
+        if (!$scripts)      return "";
+        if (!!get("no_js")) return "";
+
+        return  eol().comment("Synchronous scripts").
+        
+                eol().script_common_head().
+                eol().script_ajax_head().
+                eol().script_inside_iframe().
+                eol().script_scan_and_print_head().           ((!!get("script_document_events", true)) ? (
+                eol().script_on_document_events_head().
+                eol().script_storage().                       "") : "").
+        
+            "";
     }
 
     /* 5 */
@@ -7019,16 +7050,16 @@
             eol().comment("Synchronous styles").
 
             // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
+            eol().
             eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
             eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
-
-            eol().comment("styles").
 
             (!!$async_css ? "" : link_styles($async_css)). // if $async_css == false otherwise move to #2
             ( !$styles    ? "" : styles()).
             ( !$path_css  ? "" : (
 
-                eol(). comment("Project-specific main stylesheet").                                           (!get("htaccess_rewrite_php") ? (
+                eol().
+                eol().comment("Project-specific main stylesheet").                                           (!get("htaccess_rewrite_php") ? (
                 style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "screen" ]).      "") : (
                 link_style($path_css, "screen", false, [ "layer" => "app"  ]).                          "")).
 
@@ -7049,6 +7080,8 @@
 
         return  eol().comment("Deferred scripts").
                 //script_google_analytics should be call here if needed
+                eol().comment("...").
+                
                 "";
     }
 
@@ -7080,10 +7113,10 @@
     {
         $profiler = debug_track_timing();
 
-        return // Head ordering : https://rviscomi.github.io/capo.js/user/rules/
+        return // Head ordering : Following "capo" ordering : https://rviscomi.github.io/capo.js/user/rules/
 
             eol().head_pragma_directives().
-            eol().head_user_preferences(). // Only addition to date to capo ordering 
+            eol().head_user_preferences(). // Only addition to date to capo ordering. Here to prevent any FOUC effect
             eol().head_title(). 
             eol().head_preconnect_hints().
             eol().head_asynchronous_scripts($scripts).
@@ -7093,7 +7126,8 @@
             eol().head_preload_hints().
             eol().head_deferred_scripts($scripts).
             eol().head_prefetch_and_prerender_hints($async_css).
-            eol().head_everything_else($scripts).            
+            eol().head_everything_else($scripts).
+
             "";
     }
 
@@ -8491,7 +8525,8 @@
             .   eol()            .   meta('color-scheme',                        'dark light')            
             .   meta([ 'name' => 'color-scheme', 'media' => '(prefers-color-scheme: light)', 'content' => "light" ])
             .   meta([ 'name' => 'color-scheme', 'media' => '(prefers-color-scheme: dark)',  'content' => "dark" ])
-            .   script('
+
+            .   script((function () { HSTART(-4) ?><script><?= HERE() ?> 
 
                     var current_theme = document.documentElement.getAttribute("data-theme"); 
 
@@ -8503,9 +8538,8 @@
                     if (null !== current_theme) { 
                         document.querySelectorAll(\'meta[name="color-scheme"]\').forEach(function(e) { e.setAttribute("content", current_theme); });
                     }
-                
             
-                ')
+                <?= HERE("raw_js") ?></script><?php return HSTOP(); })())
 
             .   eol()       
             .   meta('geo.region',                          get("geo_region"))
@@ -8811,11 +8845,6 @@
     function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
-    function script_common_head()   { return script(js_common_head());   }
-    function script_ajax_head()     { return script(js_ajax_head());     }
-    function script_ajax_body()     { return script(js_ajax_body());     }
-    function script_inside_iframe() { return script(js_inside_iframe()); }
-    
     function schema($type, $properties = [], $parent_schema = false)
     {
         return array_merge(($parent_schema === false) ? [] : $parent_schema, array("@context" => "https://schema.org", "@type" => $type), $properties);
@@ -8970,7 +8999,7 @@
                 
                 ""), [ "class" => ("settings"/*." requires-js"*/) ]).
                     
-            script((function () { HSTART() ?><script><?= HERE() ?> 
+            script((function () { HSTART(-3) ?><script><?= HERE() ?> 
 
                 /* Default UI must reflect current setting */
 
@@ -10899,7 +10928,7 @@
         $styles .= eol().layered_style("normalize", css_normalize(false), auto,  auto,  auto, auto, /*media*/"all"    );
         $styles .= eol().layered_style("default",   css_default(false),   auto,  auto,  auto, auto, /*media*/"screen" );
 
-        $scripts .= eol().script((function () { HSTART() ?><script><?= HERE() ?>
+        $scripts .= eol().script((function () { HSTART(-2) ?><script><?= HERE() ?>
         
             dom.disable_all_layers = function()      { document.querySelectorAll("style[layer]"             ).forEach(function(e) { var data_media = e.getAttribute("data-media"); var media = e.getAttribute("media"); if (null === data_media && null !== media) { e.setAttribute("data-media", e.getAttribute("media")); }   e.setAttribute("media", "none"     ); }); };
             dom.enable_layer       = function(layer) { document.querySelectorAll('style[layer="'+layer+'"]' ).forEach(function(e) { var data_media = e.getAttribute("data-media");                                      if (null === data_media)                   { data_media = "screen"; }                                   e.setAttribute("media", data_media ); }); };
@@ -10951,22 +10980,6 @@
         }
         
         return implode(eol(), $styles);
-    }
-
-    function scripts_head($scripts)
-    {   
-        $profiler = debug_track_timing();
-
-        if (!$scripts) return ""; // TODO while no test of no_js here ?
-
-        return  script_common_head($scripts).
-                script_ajax_head().
-                script_inside_iframe().
-
-                script(js_scan_and_print_head()     ).      ((!!get("script_document_events", true)) ? (
-                script(js_on_document_events_head() ).
-                script(js_storage()                 ).      "") : "").
-            ""; 
     }
 
     function back_to_top_link()
