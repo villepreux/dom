@@ -3760,7 +3760,13 @@
     
     function sort_cmp_post_timestamp($a,$b)
     {
-        return (int)at($a,"post_timestamp",0) < (int)at($b,"post_timestamp",0);
+        $t1 = (int)at($a, "post_timestamp", 0);
+        $t2 = (int)at($b, "post_timestamp", 0);
+
+        if ($t1 < $t2) return -1;
+        if ($t1 > $t2) return -1;
+
+        return 0;
     }
     
     function array_socials_posts($sources = false, $filter = "", $tags_in = false, $tags_out = false)
