@@ -8510,8 +8510,12 @@
             .   eol()
             .   meta('format-detection',                    'telephone=no')/*
             .   meta('viewport',                            'width=device-width,initial-scale=1')*/
+
           //.   meta('robots',                              'NOODP') // Deprecated
           //.   meta('googlebot',                           'NOODP')
+                                                                        .(("non" != get("sense")) ? "" : (""
+            .   meta('robots',                              'none')     ))  /* none = nofollow, noindex */
+
             .   meta('description',                         strip_tags(get("og_description", get("description", get("title")))))
             .   meta('author',                              get("author", author))                                                      .(!get("mastodon_user") ? "" : (""
             .   meta('fediverse:creator',                   "@".get("mastodon_user")."@".get("mastodon_domain", "mastodon.social"))     ))
@@ -8549,7 +8553,7 @@
             .   meta('geo.placename',                       get("geo_placename"))
             .   meta('geo.position',                        get("geo_position_x").';'. get("geo_position_y"))
             .   meta('ICBM',                                get("geo_position_x").', '.get("geo_position_y"))              
-            
+
             .   eol()       
 
             .   meta_property('og:title',                   strip_tags(get("og_title", get("title"))))
@@ -9677,6 +9681,11 @@
 
                         margin: initial;
                     }
+                }
+                
+                li + li {
+  
+                    margin-block-start: .2em;
                 }
                 
                 .grid {
@@ -13493,6 +13502,11 @@
              if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
         else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
         else                      { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+
+        if ($preload && $img_nth == 1) {
+        
+            $attributes = attributes_add($attributes, array("fetchpriority" => "high"));
+        }
 
         //if ($debug_this) bye([ "alt" => $alt, "lazy" => $lazy, "path" => $path, "attributes" => $attributes, "preload" => $preload ]);
 
