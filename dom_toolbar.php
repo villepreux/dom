@@ -88,55 +88,7 @@ function css_toolbar_layout($layer = [ "default", "component", "toolbar" ])
         .menu-toggle a,       .toolbar-title a,
         .menu-toggle a:hover, .toolbar-title a:hover    { text-decoration: none; }
 
-        @supports (animation-timeline: scroll()) {
-            /*     
-            @property --toolbar-box-shadow-blur {
-
-                syntax: "<length>";
-                inherits: true;
-                initial-value: 0px;
-            }
-
-            @keyframes toolbar-scroll {
-
-                0% { --toolbar-box-shadow-blur:  0px; }
-                100% { --toolbar-box-shadow-blur: 16px; }
-            }
-
-            .toolbar {
-
-                --toolbar-box-shadow-blur: 0px;
-
-                animation:          toolbar-scroll ease both;
-                animation-timeline: scroll();
-                animation-range:    0px var(--header-height);
-                animation-duration: 1ms;
-
-                box-shadow: 0 0 var(--toolbar-box-shadow-blur) 0 black;
-            }
-
-            @keyframes toolbar-row-banner-scroll {
-
-                    0% { height: var(--header-height);        --toolbar-box-shadow-blur:  0px; }
-                100% { height: var(--header-min-height);    --toolbar-box-shadow-blur: 1rem; }
-            }
-            
-            .toolbar-row-banner {
-
-                height:             var(--header-height);
-
-                animation:          toolbar-row-banner-scroll ease both;
-                animation-timeline: scroll();
-                animation-range:    0px var(--header-height);
-                animation-duration: 1ms;
-            }
-            */
-        } /* @supports (animation-timeline: scroll()) */
-
         /* Menu open/close mechanism */
-
-        /*.menu                       { display: none }*/ /* BY DEFAULT, DYNAMIC MENU IS NOT SUPPORTED */
-        /*a.menu-switch-link.close    { display: none }*/
 
         /* Menu list */
             
@@ -194,7 +146,7 @@ function css_toolbar_layout($layer = [ "default", "component", "toolbar" ])
     <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
 }
 
-function css_toolbar_colors()
+function css_toolbar_colors($layer = [ "default", "component", "toolbar" ])
 {
     if (has("dom_toolbar_no_css")) return "";
     
@@ -220,237 +172,8 @@ function css_toolbar_colors()
 
         .menu                                           { box-shadow: 1px 1px 4px 0 rgba(0,0,0,.2); }
     
-    <?php heredoc_flush("raw_css"); ?></style><?php return css_layer([ "default", "component", "toolbar" ], heredoc_stop(null));
+    <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
 }
-/*
-function include_css_main_toolbar_adaptation($main_selector = "main") { return delayed_component("_".__FUNCTION__, $main_selector); }
-
-function _include_css_main_toolbar_adaptation($main_selector)
-{
-    if (has("dom_toolbar_no_js")) return "";
-    
-    if (!!get("toolbar_banner") && !!get("toolbar_nav")) return "$main_selector { margin-top: calc(var(--header-height) + var(--header-toolbar-height)); }";
-    if (!!get("toolbar_banner"))                         return "$main_selector { margin-top: calc(var(--header-height)); }";
-    if (!!get("toolbar_nav"))                            return "$main_selector { margin-top: calc(var(--header-toolbar-height)); }";
-
-    return "";
-}*/
-
-/*function js_toolbar_height()
-{
-    if (has("dom_toolbar_no_js") || !!get("no_css")) return "";
-
-    // TOOLBAR
-    // Needed until Firefox and Safari support scroll-driven animations
-            
-    heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-
-        var idAnimationFrame = null;
-    
-        function updateToolbarHeight(animate)
-        {
-            var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
-            var toolbars            = document.querySelectorAll(".toolbar");
-
-            var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
-            var toolbar             = toolbars            ? toolbars[0]            : null;
-
-            if (toolbar != null && toolbar_row_banner != null)
-            {
-                var header_height     = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue(    "height").replace("px",""), 10);
-                var header_max_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("max-height").replace("px",""), 10);
-                var header_min_height = parseInt(window.getComputedStyle(toolbar_row_banner, null).getPropertyValue("min-height").replace("px",""), 10);
-
-                var stuck_height = header_max_height - header_min_height;
-
-                if (window.scrollY > stuck_height) { toolbar.classList.add(   "scrolled"); toolbar.classList.remove("top"); }
-                else                               { toolbar.classList.remove("scrolled"); toolbar.classList.add(   "top"); }
-    
-                var target = Math.max(0, header_max_height - window.scrollY);
-
-                var h = (animate) 
-                    ? (header_height + ((target > header_height) ? 1 : -1) * 0.1 * Math.max(1, Math.abs(target - header_height))) 
-                    : target;
-
-                h = parseInt(Math.max(0, h), 0);
-
-                toolbar_row_banner.style.height = h + "px";
-
-                if (Math.abs(h - target) > 0.1)
-                {
-                    idAnimationFrame = window.requestAnimationFrame(onUpdateToolbarHeight);
-                }
-            }
-        }
-    
-        function onUpdateToolbarHeight()
-        {
-            window.cancelAnimationFrame(idAnimationFrame);
-            updateToolbarHeight(true);
-        }
-        
-        function onInitToolbarHeight()
-        {
-            var toolbars = document.querySelectorAll(".toolbar:not(html[data-css-naked-day] .toolbar)");
-            var toolbar  = toolbars ? toolbars[0] : null;
-            var position = toolbar  ? getComputedStyle(toolbar).getPropertyValue("position") : "static";
-
-            var toolbar_duplicate = (toolbars && toolbars.length >= 2) ? toolbars[1] : null;
-
-            if (toolbar && position != "static")
-            {
-                toolbar.style.top      = "0px";
-                toolbar.style.position = "fixed";                    
-                if (toolbar_duplicate)
-                    toolbar_duplicate.style.display = "flow-root";
-                    
-                var under_toolbar_element = document.querySelector("body > main");
-
-                if (under_toolbar_element)
-                {                
-                    var toolbar_nav    = toolbar.querySelector(".toolbar-row-nav");
-                    var toolbar_banner = toolbar.querySelector(".toolbar-row-banner");
-
-                            if (toolbar_banner && toolbar_nav) { under_toolbar_element.style.marginTop = "calc(var(--header-height) + var(--header-toolbar-height))";   }
-                    else if (toolbar_banner)                { under_toolbar_element.style.marginTop = "calc(var(--header-height))";                                  }
-                    else if (toolbar_nav)                   { under_toolbar_element.style.marginTop = "calc(var(--header-toolbar-height))";                          }
-                }
-                
-                window.cancelAnimationFrame(idAnimationFrame);
-                updateToolbarHeight(false);
-            }
-        }
-
-        function disableToolbarHeight()
-        {
-            window.cancelAnimationFrame(idAnimationFrame);
-
-            document.querySelector(".toolbar"           ).style.position    = "";
-            document.querySelector(".toolbar-row-banner").style.animation   = "";
-            document.querySelector("body > main"        ).style.marginTop   = "";
-        }
-
-        dom.on_loaded(onInitToolbarHeight);
-        dom.on_scroll(onUpdateToolbarHeight);
-
-    <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-}*/
-
-/*function js_toolbar_menu()
-{
-    if (has("dom_toolbar_no_js")) return "";
-
-    // TOOLBAR MENU
-    
-    heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-
-        function show(selector) {
-
-            document.querySelector(selector).removeAttribute("hidden");
-        }
-
-        function hide(selector) {
-
-            document.querySelector(selector).setAttribute("hidden", "hidden");
-        }
-
-        document.querySelectorAll('#menu-open .menu-switch-link.open').forEach(function (e) { e.addEventListener('click', function(ev) {
-    
-            hide("#menu-open .menu-switch-link.open"  );
-            show("#menu-open .menu-switch-link.close" );
-            show("#menu-open .menu");
-
-            document.querySelector("#menu-open .menu").style.maxHeight = "100vh";
-
-            ev.preventDefault();
-            
-            }); });
-
-        document.querySelectorAll('#menu-open .menu-switch-link.close').forEach(function (e) { e.addEventListener('click', function(ev) {
-    
-            show("#menu-open .menu-switch-link.open"  );
-            hide("#menu-open .menu-switch-link.close" );
-            hide("#menu-open .menu");
-
-            document.querySelector("#menu-open .menu").style.maxHeight = "initial";
-
-            ev.preventDefault();
-
-            }); });
-
-        document.querySelectorAll('#menu-open .menu-list a').forEach(function (e) { e.addEventListener('click', function(ev) {
-
-            show("#menu-open .menu-switch-link.open"  );
-            hide("#menu-open .menu-switch-link.close" );
-            hide("#menu-open .menu");
-
-            document.querySelector("#menu-open .menu").style.maxHeight = "initial";
-
-            }); });
-
-    <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-}*/
-
-/*function js_toolbar_banner_rotation()
-{
-    if (has("dom_toolbar_no_js")) return "";
-
-    // TOOLBAR BANNER IMAGE ROTATION
-
-    heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-        
-        function onInitRotatingHeaders()
-        {
-            var rotate_backgrounds = function(content)
-            {
-                if (content != "")
-                {
-                    var index_url = 0;
-                    var urls = content.split(",");
-        
-                    if (urls && !(typeof urls === "undefined") && urls.length > 0)
-                    {
-                        setInterval(function()
-                        {
-                            var toolbar_row_banners = document.querySelectorAll(".toolbar-row-banner");
-                            var toolbar_row_banner  = toolbar_row_banners ? toolbar_row_banners[0] : null;
-
-                            if (toolbar_row_banner)
-                            {
-                                toolbar_row_banner.style.backgroundImage = "var(--linear-gradient), url(" + urls[index_url] + ")";
-                                index_url = (index_url + 1) % urls.length;
-                            }
-
-        
-                        }, 10*1000);
-                    }
-                }
-            };
-            
-            <?php if (has("noajax") && is_string(get("support_header_backgrounds"))) { ?>
-            rotate_backgrounds("<?= get("support_header_backgrounds") ?>"); 
-            <?php } else { ?> 
-            ajax("?ajax=header-backgrounds", rotate_backgrounds);
-            <?php } ?> 
-        }
-
-        on_loaded(onInitRotatingHeaders);
-    
-    <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-}*/
-
-/*function scripts_body_toolbar()
-{
-    if (has("ajax"))            return "";
-    if (!!get("no_js_toolbar")) return "";
-
-    $html =                                                           ((!!get("toolbar_support_height",      true)) ? (
-            script(js_toolbar_height                ()).   "") : ""). ((!!get("support_header_backgrounds", false)) ? (
-            script(js_toolbar_banner_rotation       ()).   "") : ""). ((!!get("script_toolbar_menu",         true)) ? (
-            script(js_toolbar_menu                  ()).   "") : "");
-
-    return $html;
-}*/
 
 // ICONS
 
@@ -549,10 +272,12 @@ function menu_li_attributes($item, $__add_transition_names = auto)
 
     $attributes = [];
     {
-        $attributes["class"]    = component_class("li", "list-item");               /*
-        $attributes[""role"]    = "menuitem";                                   */  /*
-        $attributes["tabindex"] = "0";                                          */  if ($transition_name != "" && $add_transition_names) {
-        $attributes["style"]    = "view-transition-name: $transition_name;";    }
+        $attributes["class"] = component_class("li", "list-item");
+        
+        if ($transition_name != "" && $add_transition_names) 
+        {
+            $attributes["style"] = "view-transition-name: $transition_name;";
+        }
         
     }
 
@@ -578,11 +303,10 @@ function ul_menu($menu_entries = array(), $default_target = internal_link, $side
         {
             if ($menu_entry == array() || $menu_entry == "")
             {
-                $menu_lis .= li("", array("class" => component_class("li", "list-item-separator")/*, "role" => "separator"*/));
+                $menu_lis .= li("", array("class" => component_class("li", "list-item-separator")));
             }
             else
             {    
-            //  if (!is_array($menu_entry)) $menu_entry = array($menu_entry, url_void());
                 if (!is_array($menu_entry)) $menu_entry = array($menu_entry, "#".anchor_name($menu_entry));
                         
                 $item       = get($menu_entry, "item",       get($menu_entry, 0, ""));
@@ -595,21 +319,13 @@ function ul_menu($menu_entries = array(), $default_target = internal_link, $side
         }
     }
 
-    $html = "";
-
-            if (get("framework") == "bootstrap")   { $html = div($menu_lis, array(/*"role" => "group",*/ "class" => component_class("div", 'menu-list')                                 /*, "role" => "menu", "aria-hidden" => "true", "aria-labelledby" => "navbarDropdownMenuLink" */ )); }
-    else                                        { $html =  ul($menu_lis, array(/*"role" => "group",*/ "class" => component_class("ul",  'menu-list')                                 /*, "role" => "menu" */                                                                         )); }
-
-    return $html;
+    return ul($menu_lis, array("class" => component_class("ul", 'menu-list')));
 }
 
 function menu_switch() { 
 
-    //if (get("framework") == "material")  return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons mdc-top-app-bar__icon--menu",        /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                                                               ));
-    //if (get("framework") == "bootstrap") return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
-    //if (get("framework") == "spectre")   return a(span("☰", "menu-switch-symbol menu-toggle-content"), url_void(),                 array("class" => "menu-switch-link nav-link material-icons",                                    /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle"),*/ "data-toggle" =>"dropdown", "id" => "navbarDropdownMenuLink"  ));
-                                    $a_toggle = a(span("☰", "menu-switch-symbol menu-toggle-content"), "#".DOM_MENU_ID."-open",    array("class" => "menu-switch-link open nav-link material-icons"/*, "name" => "menu-close"*/,   /*"role" => "button", "aria-haspopup" => "true", "aria-expanded" => "false",*/ /* "on" => ("tap:".DOM_MENU_ID.".toggle") */                     ));
-                                    $a_close  = a(span("✕", "menu-close-symbol menu-close-content"),   "#".DOM_MENU_ID."-close",   array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden"/*, "aria-label" => "Menu Toggle"*/));
+    $a_toggle = a(span("☰", [ "class" => "menu-switch-symbol menu-toggle-content", "aria-label" => "Open menu"  ]), "#".DOM_MENU_ID."-open",    array("class" => "menu-switch-link open  nav-link material-icons",                      ));
+    $a_close  = a(span("✕", [ "class" => "menu-close-symbol  menu-close-content",  "aria-label" => "Close menu" ]), "#".DOM_MENU_ID."-close",   array("class" => "menu-switch-link close nav-link material-icons", "hidden" => "hidden" ));
     
     return $a_toggle.$a_close;
 }
@@ -644,14 +360,12 @@ function toolbar_section($html, $attributes = false)
 
 function toolbar_skip_to_main()
 {
-    //return a(T("Skip to main"), "#".anchor_name(get("title")),  "skip-to-main");
-    //return a(T("Skip to main"), "#main",                        "skip-to-main");
-    return a(T("Skip to main"), "#main",                        "visually-hidden");        
+    return a(T("Skip to main"), "#main", "visually-hidden");        
 }
 
 function toolbar_banner_sections_builder($section1 = false, $section2 = false, $section3 = false)
 {
-    $skip_to_main = delayed_component("toolbar_skip_to_main");
+    $skip_to_main = delayed_component("toolbar_skip_to_main"); // in case main content id has to be discovered on the way
 
     if (is_array($section1)) $section1 = toolbar_section($skip_to_main." ". icon_entries($section1), component_class("div", "toolbar-cell-left"   ));
     if (is_array($section2)) $section2 = toolbar_section(                   icon_entries($section2), component_class("div", "toolbar-cell-center" ));
@@ -710,7 +424,7 @@ function toolbar_nav_toolbar($html = false)
 
     return toolbar_section(($html === false) ? '' : $html,  array(
         
-        "role"  => ("navigation"/*." "."menuItem"*/),
+        "role"  => "navigation",
         "class" => (component_class("div", "toolbar-cell-right") . ' ' . 
                     component_class("div", "toolbar-cell-right-shrink"))));
 }
@@ -735,7 +449,7 @@ function toolbar_nav_menu($html = false, $attributes = false, $menu_entries_shri
 
 function toolbar_nav_title($html, $attributes = false)
 {
-    hook_toolbar_nav_title_to_title($html);
+    hook_markup_to_title($html);
 
     if ($html !== false && $html != "")
     { 
@@ -745,7 +459,7 @@ function toolbar_nav_title($html, $attributes = false)
 
     if (false === stripos($html,"<div")) $html = div($html, "toolbar-title");
     
-    return toolbar_section(($html === false) ? '' : $html, attributes(/*attr("role", "navigation menuitem"), */component_class("div", "toolbar-cell-center")));
+    return toolbar_section(($html === false) ? '' : $html, attributes(component_class("div", "toolbar-cell-center")));
 }
 
 function toolbar_nav($html, $attributes = false)
@@ -754,33 +468,23 @@ function toolbar_nav($html, $attributes = false)
 
     if (false === stripos($html,"toolbar-cell")) $html = toolbar_nav_menu().toolbar_nav_title($html);
     
-    return toolbar_row($html, array(/*"id" => "toolbar-row-nav",*/ /*"role" => "menubar",*/ "class" => "toolbar-row-nav"));
+    return toolbar_row($html, array("class" => "toolbar-row-nav"));
 }
 
 function toolbar($html, $attributes = false)
 {
-    //if (!!get("gemini")) return "";
-
     if (false === stripos($html,"toolbar-row")) $html = toolbar_banner().toolbar_nav($html);
     
-    $attributes1 = $attributes;
-    $attributes1 = attributes_add($attributes1, component_class("header", "toolbar toolbar-container"));
+    $attributes = attributes_add($attributes, component_class("header", "toolbar toolbar-container"));
 
-    $attributes2 = $attributes;
-    $attributes2 = attributes_add($attributes2, attributes(attr("style", "view-transition-name-@: toolbar") ));
-    $attributes2 = attributes_add($attributes2, attributes(attr("aria-hidden", "true") ));
-    $attributes2 = attributes_add($attributes2, component_class("header", "toolbar toolbar-container toolbar-duplicate"));
-
-    set("transition_names", true);  $toolbar1 = header($html, $attributes1);
-    set("transition_names", false); $toolbar2 = header($html, $attributes2);
+    set("transition_names");
+    $toolbar = header($html, $attributes);
     del("transition_names");
 
-    $toolbar2 = str_replace('id="',                     'id="duplicate-',                   $toolbar2);
-    $toolbar2 = str_replace('view-transition-name:',    'view-transition-name-duplicate:',  $toolbar2);
-    $toolbar2 = str_replace('view-transition-name-@:',  'view-transition-name:',            $toolbar2);
-
     return  
+
         comment("PRE Toolbar").
+
         style(css_layer([ "default", "component", "toolbar" ], '
 
         body > header {
@@ -807,17 +511,18 @@ function toolbar($html, $attributes = false)
         }
         
         '), false, [ "layer" => "default", "media" => "all" ]).
-        $toolbar1.
-        //$toolbar2.
-        //scripts_body_toolbar().
-        //script('onInitToolbarHeight();').
+
+        $toolbar.
+        
         "";
 }
 
-function toolbar_styles()
+function toolbar_styles($layer = [ "default", "component", "toolbar" ])
 {
     return (!!get("no_css_toolbar") ? "" : (
-        eol().comment("Base-Toolbar-Layout").layered_style([ "default", "component", "toolbar" ], css_toolbar_layout(false)).
-        eol().comment("Base-Toolbar-Colors").layered_style([ "default", "component", "toolbar" ], css_toolbar_colors(false)).
+
+        eol().comment("Base-Toolbar-Layout").layered_style($layer, css_toolbar_layout(false)).
+        eol().comment("Base-Toolbar-Colors").layered_style($layer, css_toolbar_colors(false)).
+
     ""));
 }

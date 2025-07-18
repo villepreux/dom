@@ -95,6 +95,7 @@
                     $headers[str_replace(' ', '-', ucwords(strtolower(str_replace('_', ' ', substr($name, 5)))))] = $value;
                 }
             }
+
             return $headers;
         }
     }
@@ -761,6 +762,13 @@
 
     function init_options()
     {
+        init_options_hard_defaults();
+        init_options_from_url_params_or_default();
+        init_options_from_precedent_options();
+    }
+    
+    function init_options_hard_defaults()
+    {
         // Cannot be modified at browser URL level
 
         del("title");                                       // Will be deducted/overriden from document headlines, if any
@@ -768,9 +776,7 @@
         set("keywords",                          ""); 
 
         set("icons_path",                       "img/icons/");
-
-        // Default to an AA (light) contrasted theme 
-                
+        
         set("css_layers_support",               true);
     
         set("default_image_ratio_w",            "300");
@@ -818,17 +824,24 @@
         
             ], "DOM");
 
+    }
+
+    function init_options_from_url_params_or_default()
+    {
         // Can be modified at browser URL level
+        // Logic hiere is : if (false !== x) set("var", x); <=> Dont set to false.
 
         if (false !== get("canonical",    url()   )) set("canonical",    get("canonical",    url()   ));
-        if (false !== get("framework",    false   )) set("framework",    get("framework",    false   ));
         if (false !== get("generate",     false   )) set("generate",     get("generate",     false   ));
         if (false !== get("clean",        false   )) set("clean",        get("clean",        false   ));
         if (false !== get("cache",        false   )) set("cache",        get("cache",        false   ));
         if (false !== get("minify",       true    )) set("minify",       get("minify",       true    )); // Performances first
         if (false !== get("page",         1       )) set("page",         get("page",         1       ));
         if (false !== get("n",            12      )) set("n",            get("n",            12      ));
+    }
 
+    function init_options_from_precedent_options()
+    {
         // Options that impact others
 
         if (!!get("beautify"))  {   set("minify",  false);      }
@@ -1106,14 +1119,16 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_common_head()
+    function js_console()
     {
         $svg_light = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjYWEyMjAwKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICM1NWRkZmYpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
         $svg_dark  = 'data:image/svg+xml;base64,PHN2ZyBjbGFzcz0idmlsbGFwaXJvcnVtLWZhdmljb24iIHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4NCiA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPjwhW0NEQVRBWw0KICAgIC52aWxsYXBpcm9ydW0tZmF2aWNvbiB7IA0KICAgICAgICAtLXByaW1hcnktY29sb3I6ICAgIHZhcigtLXRoZW1lLWNvbG9yLCAjZmY2ZWZmKTsNCiAgICAgICAgLS1zZWNvbmRhcnktY29sb3I6ICB2YXIoLS1hY2NlbnQtY29sb3IsICMyMmNjZWUpOw0KICAgICAgICB3aWR0aDogdmFyKC0td2lkdGgsIDUxMnB4KTsNCiAgICAgICAgaGVpZ2h0OiB2YXIoLS1oZWlnaHQsIDUxMnB4KTsNCiAgICAgICAgfQ0KICBdXT48L3N0eWxlPg0KIDxkZWZzPg0KICA8bGluZWFyR3JhZGllbnQgc3ByZWFkTWV0aG9kPSJwYWQiIHkyPSIwIiB4Mj0iMSIgeTE9IjAiIHgxPSIwIiBpZD0idmlsbGFwaXJvcnVtLWljb24tZ3JhZGllbnQiPg0KICAgPHN0b3AgY2xhc3M9InN0b3AtcHJpbWFyeSIgb2Zmc2V0PSIwIiAvPg0KICAgPHN0b3AgY2xhc3M9InN0b3Atc2Vjb25kYXJ5IiBvZmZzZXQ9IjEiIC8+DQogIDwvbGluZWFyR3JhZGllbnQ+DQogICAgPHN0eWxlIHR5cGU9InRleHQvY3NzIj48IVtDREFUQVsNCiAgICAuc3RvcC1wcmltYXJ5ICAgeyBzdG9wLWNvbG9yOiB2YXIoLS1wcmltYXJ5LWNvbG9yKTsgICB9DQogICAgLnN0b3Atc2Vjb25kYXJ5IHsgc3RvcC1jb2xvcjogdmFyKC0tc2Vjb25kYXJ5LWNvbG9yKTsgfQ0KICAgIF1dPjwvc3R5bGU+DQogIDxmaWx0ZXIgaGVpZ2h0PSIyMDAlIiB3aWR0aD0iMjAwJSIgeT0iLTUwJSIgeD0iLTUwJSIgaWQ9InZpbGxhcGlyb3J1bS1pY29uLWJsdXIiPg0KICAgPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMTAiIGluPSJTb3VyY2VHcmFwaGljIi8+DQogIDwvZmlsdGVyPg0KIDwvZGVmcz4NCiA8Zz4NCiAgPGVsbGlwc2UgZmlsdGVyPSJ1cmwoI3ZpbGxhcGlyb3J1bS1pY29uLWJsdXIpIiBzdHJva2U9IiNmZmYiIHJ5PSIyMDAiIHJ4PSIyMDAiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1zdmctNSIgY3k9IjI1NiIgY3g9IjI1NiIgc3Ryb2tlLW9wYWNpdHk9Im51bGwiIHN0cm9rZS13aWR0aD0iMCIgZmlsbD0idXJsKCN2aWxsYXBpcm9ydW0taWNvbi1ncmFkaWVudCkiPg0KICAgIDxhbmltYXRlVHJhbnNmb3JtIGF0dHJpYnV0ZU5hbWU9InRyYW5zZm9ybSIgYXR0cmlidXRlVHlwZT0iWE1MIiB0eXBlPSJyb3RhdGUiIGZyb209IjAgMjU2IDI1NiIgdG89IjM2MCAyNTYgMjU2IiBkdXI9IjEwcyIgcmVwZWF0Q291bnQ9ImluZGVmaW5pdGUiLz4NCiAgPC9lbGxpcHNlPg0KICA8cGF0aCBkPSJtNDYuNSwzODkuMDQ5OTg4YzAsMCAzLjU0OTE1NiwxLjk1NTE3IDcsM2MwLjk1NzA5MiwwLjI4OTc5NSA0LjkyMTU3NCwtMS4xMjI5NTUgOCwtM2M4Ljc5MDQzNiwtNS4zNTk4OTQgMjAuNzQ1MTE3LC0xMC43MjEyMjIgMzQsLTE1YzE4LjY5Njg2MSwtNi4wMzU1MjIgMjkuOTI1Nzk3LC02LjQ5NzU1OSAzNSwtN2M3Ljk2MTA2LC0wLjc4ODMgMTIuMjI4MzYzLDAuODUxOTU5IDE1LDJjMi42MTMxMjksMS4wODIzOTcgMy41NDg2MywyLjc2OTkyOCA1LDdjMS42NTQ4MTYsNC44MjMwMjkgMy40OTgyOTEsMTAuOTM3OTU4IDQsMTdjMC43NDIzMjUsOC45NjkzMyAtMC43MzMwOTMsMTYuMDQ0OTUyIDAsMjJjMC41MDM3NjksNC4wOTIyMjQgMC44Nzc2NTUsNi4wNjYwMSAyLDhjMS44MDk3MjMsMy4xMTg0NjkgNiw2IDEwLDhjNCwyIDQuMDUzNDk3LDEuNTQwNDk3IDYsMmM0LjM1MjUwOSwxLjAyNzQ5NiAxMy43NDkxNDYsNi45MzE2MSAyNywxMGMxOC43Mzk1MzIsNC4zMzkzNTUgMzEuODkxNzA4LDcuODA0MjMgMzksNGMxLjk3MTQ4MSwtMS4wNTUxMTUgMS43MTQxMjcsLTMuMjExNjcgNCwtNmMzLjU4NjM4LC00LjM3NDY5NSA3LjQzMjg3NywtNy44MDI0MjkgMTAsLTE0YzIuNDIwMzAzLC01Ljg0MzE0IDMuNzEwMjA1LC05LjA0MjkwOCA0LC0xMGMxLjA0NDgzLC0zLjQ1MDgzNiA0LjYwNjQ0NSwtNS41Mzg2OTYgNiwtOGMyLjAzMTQ2NCwtMy41ODc5MjEgMi4yODg1NzQsLTUuODY4Mjg2IDQsLTEwYzIuNDIwMjg4LC01Ljg0MzE0IDIsLTE0IDIsLTE4bDAsLTMiIGlkPSJ2aWxsYXBpcm9ydW0taWNvbi1kaXNrIiBmaWxsLW9wYWNpdHk9Im51bGwiIHN0cm9rZS1vcGFjaXR5PSJudWxsIiBzdHJva2Utd2lkdGg9IjAiIHN0cm9rZT0iI2ZmZiIgZmlsbD0ibm9uZSIvPg0KIDwvZz4NCjwvc3ZnPg==';
 
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?>
 
-            var dom = function () {}; /* TODO put all dom js utilities in there */
+            /* DOM base utilities: dom custom log console */
+
+            var dom = function () {};
 
             dom.log_format_logo         = "%c ";
             dom.log_format_dom          = "%cDOM";
@@ -2615,7 +2630,7 @@
             }
         }
 
-        if ($h == get("headline-level-title", 1))          $title                     = hook_headline_to_title($title);
+        if ($h == get("headline-level-title", 1))          $title                     = hook_markup_to_title($title);
         if ($h == get("headline-level-toc",   2)) list($h, $title, $link_to, $anchor) = hook_headline_to_toc_link($h, $title, $link_to, $anchor);
 
         call_user_hook("headline", $title);
@@ -2645,21 +2660,19 @@
     function hook_markup_to_title($title)
     {
         if (!!$title && false === get("title", false))
-        {
-            set("title", trim(strip_tags($title)));
+        {            
+            $title = trim(strip_tags($title));
+
+            $pos = strpos($title, "."); if (false !== $pos) $title = substr($title, 0, $pos);
+            $pos = strpos($title, "!"); if (false !== $pos) $title = substr($title, 0, $pos + 1);
+            $pos = strpos($title, "?"); if (false !== $pos) $title = substr($title, 0, $pos + 1);
+            
+            if (mb_strlen($title) > 32) $title = substr($title, 0, 31)."…";
+
+            set("title", $title);
         }        
 
         return $title;
-    }
-
-    function hook_toolbar_nav_title_to_title($title)
-    {
-        return hook_markup_to_title($title);
-    }
-
-    function hook_headline_to_title($title)
-    {
-        return hook_markup_to_title($title);
     }
 
     function hook_headline_to_toc_link($h, $title, $link_to, $anchor)
@@ -5074,9 +5087,24 @@
         update_dependency_graph();
     }
     
+    class DOMInit {
+        
+        function output($doc = "", $attributes = false) 
+        {
+            \dom\output($doc, $attributes);
+            return $this;
+        }
+    }
+
+    $__dom_init = new DOMInit();
+
     function init($doctype = auto, $encoding = auto, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
     {
-        if (is_embeded()) return;
+        global $__dom_init;
+
+        init_options_from_precedent_options();
+
+        if (is_embeded()) return $__dom_init;
 
         if (!!get("profiling")) debug_enable_profiling();
 
@@ -5171,7 +5199,9 @@
         clean_all();
         generate_all_preprocess();
         
-        init_footnotes();        
+        init_footnotes(); 
+        
+        return $__dom_init;
     }
 
     function placeholder_replace($placeholder, $replaced_by, $in, $container_tag = false, $container_attributes = false)
@@ -5190,7 +5220,7 @@
             {
                 $in = str_replace(
                     tab($tab).placeholder($placeholder), 
-                    $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false), 
+                    $replaced_by, 
                     $in);
 
                 break;
@@ -5220,10 +5250,7 @@
             if (false !== ($pos = ($order == "desc" ? strripos($in, $ph) : stripos($in, $ph))))
             {
                 $replaced_by = $replaced_by_cb();
-                $by = $replaced_by == "" ? "" : cosmetic_indent($replaced_by, $tab, $container_tag, $container_attributes, false);
-
-              //$in = str_replace($ph, $by, $in);
-                $in = substr($in, 0, $pos).$by.substr($in, $pos + strlen($ph));
+                $in = substr($in, 0, $pos).$replaced_by.substr($in, $pos + strlen($ph));
 
                 break;
             }
@@ -5234,20 +5261,9 @@
 
     function output($doc = "", $attributes = false)
     {   
-        if (!!get("binary"))
-        {
-            die($doc);
-        }
-        
-        if (has("main"))
-        {
-            die();
-        }
-        
-        if (is_embeded())
-        {
-            return;
-        }
+        if (!!get("binary"))    die($doc);        
+        if (has("main"))        die();        
+        if (is_embeded())       return;
 
         if ("html" == get("doctype", false))
         {
@@ -5304,18 +5320,9 @@
 
     function response($response, $type = "json")
     { 
-        init($type); 
-
-        if ("json" == $type && is_array($response)) // TODO Not needed. output() is handling it already
-        {
-            $response = json_encode($response);
-        }
-
-        $ret = output($response); 
-
+        $ret = init($type)->output($response);
+        if (is_int($ret) && $ret >= 0 && $ret <  255) die($ret);
         die;
-
-        return $ret;
     }
 
     #endregion
@@ -5424,7 +5431,7 @@
         return $__cached_getimagesize[$src];
     }
 
-    function json_manifest()
+    function array_manifest()
     {
         $shortcuts_count_max   = 4; // More than that, google chrome is echoing a warning
         $screenshots_count_max = 5;
@@ -5616,8 +5623,8 @@
     function string_manifest()
     {
         return  (!get("minify") && defined("JSON_PRETTY_PRINT")) 
-              ? json_encode(json_manifest(), JSON_PRETTY_PRINT)
-              : json_encode(json_manifest());
+              ? json_encode(array_manifest(), JSON_PRETTY_PRINT)
+              : json_encode(array_manifest());
     }
 
     function string_robots()
@@ -5668,7 +5675,7 @@
             /* SITE */
 
             Standards  : HTML, CSS, JS
-            Language   : French, English
+            Language   : English, French
             Doctype    : HTML
             Components : DOM.php, Highlight.js, Lunr.js
             IDE        : Visual Studio Code
@@ -5748,18 +5755,7 @@
 
                     <p>Offline<br>Please wait...</p>
 
-                    <p><svg viewBox="0 0 100 100" width="100" height="100" class="lds-spinner" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" style="shape-rendering: auto; animation-play-state: running; animation-delay: 0s; background: none;">
-                        <g transform="rotate(360 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.9s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(396 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.8s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(432 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.7s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(108 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.6s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(144 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.5s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(180 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.4s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(216 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.3s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(252 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.2s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(288 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.1s" repeatCount="indefinite"></animate></rect></g>
-                        <g transform="rotate(324 50 50)" ><rect x="45" y="15" rx="18" ry="6" width="10" height="10" fill="var(--fill, #FF00AA)" ><animate attributeName="opacity" values="1;0" keyTimes="0;1" dur="1s" begin="-0.0s" repeatCount="indefinite"></animate></rect></g>
-                    </svg></p>
+                    <p><?= string_loading_svg($force_minify) ?></p>
 
                 </body>
 
@@ -6929,22 +6925,15 @@
     #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
-    function script_common_head()               { return script(js_common_head());              }
-    function script_ajax_head()                 { return script(js_ajax_head());                }
-    function script_ajax_body()                 { return script(js_ajax_body());                }
-    function script_inside_iframe()             { return script(js_inside_iframe());            }
-    function script_scan_and_print_head()       { return script(js_scan_and_print_head());      }
-    function script_on_document_events_head()   { return script(js_on_document_events_head());  }
-    function script_storage()                   { return script(js_storage());                  }
-
     /**
      * 11 <meta http-equiv> default-style x-dns-prefetch-control accept-ch delegate-ch content-security-policy origin-trial content-type
      */
     function head_user_preferences()
     {
-        return eol().comment("User preferences").
-
-            script((function() { HSTART(-3) ?><script><?= HERE() ?>
+        return 
+        
+            eol().comment("User preferences").
+            eol().script((function() { HSTART(-3) ?><script><?= HERE() ?>
 
                 /**
                  * If user-preference is having js disabled then this wont occure and class="no-js" will remain in place on html tag
@@ -6962,8 +6951,8 @@
 
                         document.documentElement.setAttribute("data-" + option, stored_value);
                     }
-                }                           
-        
+                }
+
             <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
     }
 
@@ -6973,8 +6962,8 @@
     function head_pragma_directives()
     {
         return  eol().comment("Pragma directives") 
-            .   meta_charset('utf-8')
-            .   meta('viewport', 'width=device-width,initial-scale=1')
+            .   eol().meta_charset('utf-8')
+            .   eol().meta('viewport', 'width=device-width,initial-scale=1')
             ;        
     }
 
@@ -7025,12 +7014,12 @@
 
         return  eol().comment("Synchronous scripts").
         
-                eol().script_common_head().
-                eol().script_ajax_head().
-                eol().script_inside_iframe().
-                eol().script_scan_and_print_head().           ((!!get("script_document_events", true)) ? (
-                eol().script_on_document_events_head().
-                eol().script_storage().                       "") : "").
+                eol().script(js_console()).              
+                eol().script(js_ajax_head()).            
+                eol().script(js_inside_iframe()).        
+                eol().script(js_scan_and_print_head()).         ((!!get("script_document_events", true)) ? (
+                eol().script(js_document_events_head()). 
+                eol().script(js_storage()).                     "") : "").
         
             "";
     }
@@ -7053,7 +7042,7 @@
         return 
             eol().comment("Synchronous styles").
 
-            // link without href is invalid. Yes. We now. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
+            // link without href is invalid. Yes. We know. But needed anyway for https://dohliam.github.io/dropin-minimal-css/ to work
             eol().
             eol().comment("Placeholder for 3rd parties who look for a css <link> in order to insert something before").
             eol().'<link rel="stylesheet" type="text/css" media="screen">'. 
@@ -8874,25 +8863,24 @@
 
         $inline_css = get("inline_css", true);
 
-        // If some well-known packages are localy present, then link to them automatically
+        // If some well-known packages are localy present and requested, then link to them automatically
         // TODO Get rid of that ?
 
         $path_normalize         = (!$inline_css || "normalize" != get("normalize")) ? false : path("css/normalize.min.css");
         $path_sanitize          = (!$inline_css || "sanitize"  != get("normalize")) ? false : path("css/sanitize.min.css");
         $path_evergreen         = (!$inline_css || "evergreen" != get("reset"))     ? false : path("css/evergreen.min.css");
-        $path_material          = (!$inline_css || "material"  != get("framework")) ? false : path("css/material-components-web.min.css");
         $path_bootstrap         = (!$inline_css || "bootstrap" != get("framework")) ? false : path("css/bootstrap.min.css");
         $path_google_fonts      = (!$inline_css || !$fonts)                         ? false : path("css/google-fonts.css");
         $path_material_icons    = (!$inline_css || "material"  != get("framework")) ? false : path("css/material-icons.css");
 
-        return  ($path_normalize      ? link_style($path_normalize      , "all",    false)  : "")
-            .   ($path_sanitize       ? link_style($path_sanitize       , "all",    false)  : "")
-            .   ($path_evergreen      ? link_style($path_evergreen      , "all",    false)  : "")
-            .   ($path_material       ? link_style($path_material       , "all",    false)  : "")
-            .   ($path_bootstrap      ? link_style($path_bootstrap      , "all",    false)  : "")
-            .   ($path_google_fonts   ? link_style($path_google_fonts   , "all",    $async) : "")
-            .   ($path_material_icons ? link_style($path_material_icons , "all",    $async) : "")
-            ;
+        return  ($path_normalize      ? link_style($path_normalize      , "all",    false)  : "").
+                ($path_sanitize       ? link_style($path_sanitize       , "all",    false)  : "").
+                ($path_evergreen      ? link_style($path_evergreen      , "all",    false)  : "").
+                ($path_bootstrap      ? link_style($path_bootstrap      , "all",    false)  : "").
+                ($path_google_fonts   ? link_style($path_google_fonts   , "all",    $async) : "").
+                ($path_material_icons ? link_style($path_material_icons , "all",    $async) : "").
+
+            "";
     }
     
     function css_line($selectors = "", $styles = "", $tab = 1, $pad = 54)
@@ -11304,19 +11292,6 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_framework_material()
-    {
-        if ("material" != get("framework")) return "";
-
-        heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
-
-        /* MDC (MATERIAL DESIGN COMPONENTS) FRAMEWORK */
-   
-        if (typeof window.mdc !== "undefined") { window.mdc.autoInit(); }
-   
-        <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
-    }
-
     function js_images_loading()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
@@ -11528,7 +11503,7 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_on_document_events_head()
+    function js_document_events_head()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
@@ -11614,7 +11589,7 @@
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
     }
 
-    function js_on_document_events()
+    function js_document_events_body()
     {
         heredoc_start(-2); ?><script><?php heredoc_flush(null); ?> 
 
@@ -11637,8 +11612,7 @@
     {
         $inline_js = get("inline_js", false);
 
-        return  ("material"  == get("framework") ? (script_src('https://unpkg.com/material-components-web@'        . get("version_material")  . '/dist/material-components-web'.(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
-            .   ("bootstrap" == get("framework") ? (script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
+        return  ("bootstrap" == get("framework") ? (script_src('https://cdnjs.cloudflare.com/ajax/libs/popper.js/' . get("version_popper")    . '/umd/popper'                  .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
             .   ("bootstrap" == get("framework") ? (script_src('https://stackpath.bootstrapcdn.com/bootstrap/'     . get("version_bootstrap") . '/js/bootstrap'                .(is_localhost() ? '' : '.min').'.js', false, "async")) : "")
             ;
     }
@@ -11653,14 +11627,13 @@
         $images_loading = !!get("script-images-loading", true) && (count($hook_need_lazy_loding) > 0 || !!get("script-images-loading", false));
 
         return  script_third_parties              ().
-                script_ajax_body                  ().
+                script(js_ajax_body               ()).
                 script_google_analytics           ().               ((!!get("script_document_events",       true)) ? (
-                script(js_on_document_events      ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
+                script(js_document_events_body    ()).   "") : ""). ((!!get("script_back_to_top",          false)) ? (
                 script(js_back_to_top             ()).   "") : ""). (($images_loading                            ) ? (
                 script(js_images_loading          ()).   "") : ""). ((!!get("support_service_worker",      false)) ? (
                 script(js_service_worker          ()).   "") : ""). ((!!get("script_pwa_install",          false)) ? (
-                script(js_pwa_install             ()).   "") : ""). ((!!get("script_framework_material",   false)) ? (
-                script(js_framework_material      ()).   "") : ""). ((!!get("script_scan_and_print",       false)) ? (
+                script(js_pwa_install             ()).   "") : ""). ((!!get("script_scan_and_print",       false)) ? (
                 script(js_scan_and_print_body     ()).   "") : ""). ((!!get("webmentions",                 false)) ? (
                 script(js_webmentions             ()).   "") : "")
                 ;
@@ -11681,82 +11654,6 @@
     function comment($text) { return (has("rss") || !!get("gemini")) ? "" : html_comment($text); }
     
     function placeholder($text, $eol = 0)  { return eol($eol).html_comment("DOM_PLACEHOLDER_".str_replace(" ", "_", strtoupper($text))); }
-
-    function cosmetic_indent($html, $tabs = 1, $container_tag = false, $container_attributes = false, $wrapper_eol = true)
-    {
-        // TODO THIS FUNCTION IS OUR CURRENT BOTTLENECK : WAY TOO SLOW
-
-        if (!get("minify") && $html != "" && in_array($container_tag, array(
-
-          /*"head",
-            "script",
-            "style",
-            "body",
-            "main",
-            "article",
-            "header",
-            "footer",
-            "section",
-            "div",
-            "picture",
-            "pre",
-            "ul",
-            "ol",
-            "table"*/
-
-            )))
-        {
-            $dom = [];
-
-            while (true)
-            {
-                $tag_bgn = "<pre>";
-                $tag_end = "</pre>";
-                $pos_bgn = stripos($html, $tag_bgn);
-                $pos_end = stripos($html, $tag_end);
-
-                if (false === $pos_bgn || false === $pos_end)
-                {
-                    $dom[] = array("html", $html);
-                    break;
-                }
-                else
-                {                
-                    $dom[] = array("html", substr($html, 0, $pos_bgn));
-                    $dom[] = array("pre",  substr($html, $pos_bgn, $pos_end + strlen($tag_end) - $pos_bgn));
-                    
-                    $html = substr($html, $pos_end + strlen($tag_end));
-                }
-            }
-
-            $html_reconstructed = "";
-
-            foreach ($dom as $section)
-            {
-                $html = $section[1];
-
-                if ($section[0] == "html")
-                {
-                    $eol = "{{PHP_EOL}}";
-
-                    $html = str_replace(eol(),      $eol, $html);
-                    $html = str_replace(PHP_EOL,    $eol, $html);
-                    $html = str_replace("\r\n",     $eol, $html);
-                    $html = str_replace($eol,       "\n", $html);
-
-                    $html = tab($tabs).str_replace("\n", eol().tab($tabs), trim($html));
-
-                    if ($wrapper_eol) $html = eol().$html.eol();
-                }
-                
-                $html_reconstructed .= $html;
-            }
-
-            $html = $html_reconstructed;
-        }
-
-        return $html;
-    }
 
     function gemini_tag($tag, $html, $attributes)
     {
@@ -11817,19 +11714,10 @@
             $html = $html == "" ? "" : "<a>$html";
         }
 
-        //$debug = false;
+        $classnames = is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", "");
 
-        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", ""), 'toolbar-title ')
-        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", "")) == 'toolbar-title' )
-        {
-            $html .= "<toolbar-title>";
-        }
-
-        if (false !== stripos(is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", ""), 'toolbar ')
-        ||                   (is_array(at($attributes, "class")) ? implode(" ", at($attributes, "class", [])) : at($attributes, "class", "")) == 'toolbar' )
-        {
-            $html .= "<toolbar>";
-        }
+        if (false !== stripos($classnames, 'toolbar-title ' ) || $classnames == 'toolbar-title' ) $html .= "<toolbar-title>";
+        if (false !== stripos($classnames, 'toolbar '       ) || $classnames == 'toolbar'       ) $html .= "<toolbar>";
 
         if (/*$tag  == "a" ||*/ $is_block_tag)
         {
@@ -11910,8 +11798,6 @@
 
         $space_pos = strpos($tag, ' ');
 
-        $html = cosmetic_indent($html, 1, $tag, $attributes);
-        
         $prefix = "";
 
         $is_block_tag = in_array($tag, array(
@@ -11949,7 +11835,7 @@
             $prefix = eol();
         }
 
-        if ("non" == get("sense") && in_array($tag, [ "p","li","a","h1","h2","h3","h4","h5","h6" ]))
+        if ("non" == get("sense") && in_array($tag, [ "p","li","a","h1","h2","h3","h4","h5","h6","span" ]))
         {
             $html = obfuscate($html);
         }
@@ -12080,8 +11966,7 @@
         . back_to_top_link()*/
 
         . eol() . comment("Body scripts")
-        . scripts_body()          /*. (is_callable("dom\\scripts_body_toolbar") ? (""
-        . scripts_body_toolbar()    ) : "")*/
+        . scripts_body()          
 
         . eol() . ($app_js ? comment('CUSTOM script') : comment('Could not find any app.js default user script'))
                                                                     .((!get("htaccess_rewrite_php")) ? (""
@@ -12161,6 +12046,9 @@
     function p($html = "", $attributes = false) 
     {
         if (is_array($html)) $html = implode(br(), $html);
+
+        if (!get("title")) hook_markup_to_title($html); // h tags should arrive before p, but just in case
+
         return tag('p', $html, $attributes);
     }
     
@@ -12407,8 +12295,8 @@
 
     function footer     ($html = "", $attributes = false) { $profiler = debug_track_timing(); return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
     
-    function icon           ($icon, $attributes = false) { return      i($icon,      attributes_add_class($attributes, 'material-icons')); }
-    function button_icon    ($icon, $label      = false) { return button(icon($icon, component_class('i','action-button-icon')), array("class" => component_class("button","action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
+    function icon           ($icon, $attributes = false) { return i($icon, attributes_add_class($attributes, 'material-icons')); }
+    function button_icon    ($icon, $label      = false) { return button(icon($icon, component_class('i', 'action-button-icon')), array("class" => component_class("button","action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
 
     function supported_ratios()
     {
@@ -13238,9 +13126,10 @@
     function char_email()  { return char_text("✉"); }
     function char_anchor() { return char_text("⚓"); }
     
-    function char_glue()   { return !!get("gemini") ? ""  : "&#8288;"; }
-    function char_unsec()  { return !!get("gemini") ? " " : " "/*"&nbsp;"*/; }
-    function char_amp()    { return !!get("gemini") ? "&" : "&amp;";  }
+    function char_zero_width_space()    { return !!get("gemini") ? ""  : "&ZeroWidthSpace;"; } // &#8203;
+    function char_glue()                { return !!get("gemini") ? ""  : "&#8288;"; }
+    function char_unsec()               { return !!get("gemini") ? " " : " "; }
+    function char_amp()                 { return !!get("gemini") ? "&" : "&amp;";  }
    
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
@@ -13756,8 +13645,6 @@
 
         return $html;
     }
-
-    // https://materialdesignicons.com/
 
     $used_colors = [];
 
@@ -14480,7 +14367,7 @@
                     at($data, "title_link"),        // link/link_main
                     false,                          // link_subtitle
                     false,                          // link_icon
-                    3//get_card_headline()          // level // TODO Correct way for user to specify headline level + decide if used for toolbar nav menu
+                    3//get_card_headline()          // level // TODO Correct way for user to specify headline level + decide if used for header nav menu
                     
                     )
                 ).
@@ -15743,31 +15630,57 @@
     #region HTML Obfuscation
 
     function obfuscate($html)
-    {
-        if (count(explode(' ', $html)) < 4) return $html;
+    {   
+        //if (count(explode(' ', $html)) < 4) return $html;
 
         $html_dom = \Dom\HTMLDocument::createFromString($html, LIBXML_NOERROR , "UTF-8");
         if (!$html_dom) return $html;
 
-        $replacements = [
+        $words_replacements = [
 
-            "et"    => "et par la grace de Trum",
-            "and"   => "and by Trump's will",
-            "I"     => "Musk",
-            "je"    => "Musk",
-            "de"    => "du complot",
-            "of"    => "of fake news",
-            "le"    => "Dieu",
-            "the"   => "God",
+            "et"        => "et, par la grace de Trump,",
+            "and"       => "and, by Trump's will,",
+            "I"         => "Musk",
+            "je"        => "Musk",
+            "de"        => "du complot et de",
+            "of"        => "of fake news and of",
+            "le"        => "los",
+            "the"       => "da",
+            "code"      => "tariff",
+            "site"      => "pancake",
+            "website"   => "cupcake",
+            "quand"     => "quand on aura mangé les riches et quand",
+            "when"      => "when rich will be eaten, and when",
         ];
 
-        foreach ($replacements as $word => $replacement)
+        $parts_replacements = [
+
+            "respect"   => "disrespect",
+            "access"    => "inaccess",
+        ];
+
+        foreach ($words_replacements as $word => $replacement)
         {
-            $replacements[ucfirst($word)] = ucfirst($replacement);
+            $words_replacements[ucfirst($word)] = ucfirst($replacement);
         }
 
-        obfuscate_node($html_dom->body, $replacements);
+        foreach ($parts_replacements as $part => $replacement)
+        {
+            $parts_replacements[ucfirst($part)] = ucfirst($replacement);
+        }
+        /*
+        foreach ($words_replacements as $word => $replacement)
+        {
+            $words_replacements[$word] = $words_replacements[$word][0].char_zero_width_space().substr($words_replacements[$word], 1);
+        }
 
+        foreach ($parts_replacements as $part => $replacement)
+        {
+            $parts_replacements[$part] = $parts_replacements[$part][0].char_zero_width_space().substr($parts_replacements[$part], 1);
+        }*/
+
+        obfuscate_node($html, $html_dom->body, $words_replacements, $parts_replacements);
+        
         $output_html = $html_dom->saveHTML($html_dom->body);
         if (!$output_html) return $html;
 
@@ -15775,7 +15688,7 @@
         return $output_html;
     }
 
-    function obfuscate_node(&$element, $replacements)
+    function obfuscate_node($html, &$element, $words_replacements, $parts_replacements, $depth = 0)
     {
         if (!$element) return;
 
@@ -15783,11 +15696,11 @@
         {
             if (!$element->childNodes[$i]) continue;
 
-            if ($element->childNodes[$i]->nodeType == XML_ELEMENT_NODE)
+            /*if ($element->childNodes[$i]->nodeType == XML_ELEMENT_NODE)
             {
-                obfuscate_node($element->childNodes[$i], $replacements);
+                obfuscate_node($html, $element->childNodes[$i], $words_replacements, $parts_replacements, $depth + 1);
             }
-            else if ($element->childNodes[$i]->nodeType == XML_TEXT_NODE)
+            else */if ($element->childNodes[$i]->nodeType == XML_TEXT_NODE)
             {
                 if ($element->childNodes[$i]->nodeValue 
                 &&  $element->childNodes[$i]->nodeValue != ""
@@ -15800,142 +15713,49 @@
                         $a = $str[0]                == " " ? " " : "";
                         $b = $str[strlen($str) - 1] == " " ? " " : "";
 
-                        $words = explode(" ", trim($str));
-                        shuffle($words);
+                        $block0 = $str;
 
-                        foreach ($words as &$word)
-                        {
-                            foreach ($replacements as $from => $to)
+                        $seps  = [ "! ", ". ", "; ", ", ", " "];
+                        $seps0 = []; foreach ($seps as $sep) $seps0[] = $sep[0];
+
+                        $blocks1 = explode($seps[0], trim($block0));   shuffle($blocks1); foreach ($blocks1 as &$block1) {
+                        $blocks2 = explode($seps[1], trim($block1));   shuffle($blocks2); foreach ($blocks2 as &$block2) { 
+                        $blocks3 = explode($seps[2], trim($block2));   shuffle($blocks3); foreach ($blocks3 as &$block3) { 
+                        $blocks4 = explode($seps[3], trim($block3));   shuffle($blocks4); foreach ($blocks4 as &$block4) {
+                        $blocks5 = explode($seps[4], trim($block4)); /*shuffle($blocks5);*/
+
+                            foreach ($blocks5 as &$block5)
                             {
-                                if ($word == $from) $word = $to;
-                            }
-                        }
+                                if (strlen($block5) < 2) continue; $aa = ""; if (in_array($block5[0],                   $seps0)) { $aa = $block5[0];                   $block5 = ltrim($block5, $aa); }
+                                if (strlen($block5) < 2) continue; $bb = ""; if (in_array($block5[strlen($block5) - 1], $seps0)) { $bb = $block5[strlen($block5) - 1]; $block5 = rtrim($block5, $bb); }
 
-                        $str = $a.implode(" ", $words).$b;
+                                foreach ($words_replacements as $from => $to)
+                                {
+                                    if ($block5 == $from) $block5 = $to;
+                                }
+
+                                foreach ($parts_replacements as $from => $to)
+                                {
+                                    $block5 = str_replace($from, $to, $block5);
+                                }
+
+                                $block5 = $aa.$block5.$bb;
+                            }
+
+                        $block4 = implode(" ",  $blocks5); }
+                        $block3 = implode(", ", $blocks4); }
+                        $block2 = implode("; ", $blocks3); }
+                        $block1 = implode(". ", $blocks2); }
+                        $block0 = implode("! ", $blocks1); 
+
+                        $str = $block0;                        
+
+                        $str = $a.$str.$b;
                     }
                     $element->childNodes[$i]->nodeValue = $str;                    
                 }
             }
         }
-    }
-
-    function obfuscate_text_TMP($str, $randomstart = true, $groupsize = 4, $max = 128) 
-    {
-        if (!$str) return $str;
-
-        /**
-         * Join the tokens with proper typography
-         */
-
-        $cleanToken = function ($token,$capital) {
-            if ($capital){
-                $token = ucfirst($token);
-                $capital = false;
-            }
-
-            if (substr($token,-1,1) == '.'){
-                $capital = true;
-                return array($token . "  ",$capital);
-            } else {
-                return array($token . " ",$capital);
-            }
-        };
-
-        /**
-         * Naively find possible Markov Chains
-         */
-
-        $findChains = function($haystack, $needle) {
-            $return = array();
-            for ($i = 0; $i < sizeof($haystack) - sizeof($needle); $i++){
-                if ($haystack[$i] == $needle[0]){
-                    $matches = true;
-                    for ($j = 1; $j < sizeof($needle); $j++){
-                        if ($haystack[$i+$j] != $needle[$j]){
-                            $matches = false;
-                            break;
-                        }
-                    }
-                    if ($matches == true){
-                        array_push($return,$i+sizeof($needle));
-                    }
-                }
-            }
-            return $return;
-        };
-
-        if ($groupsize < 2) {
-            $groupsize = 2;
-        }
-            // Capitalize the first word
-        $capital = true;
-
-            //Remove from corpus, they just make the result confusing
-        $str = str_replace(array("(",")","[","]","{","}"), array(),$str);
-
-            //Break up tokens
-        $tokens = preg_split("/[ \r\n\t]/",$str);
-        
-            //Clean up token array
-        for ($i = 0; $i < sizeof($tokens); $i++){
-            if ($tokens[$i] == ""){
-                unset($tokens[$i]);
-            }
-        }
-
-        $tokens = array_values($tokens);
-
-            //Init variables
-        $return = "";
-        $lastmatch = array();
-
-            // if we start at the beginning, start there
-        if (!$randomstart) {
-            for ($n = 0; $n < $groupsize; $n++){
-                array_push($lastmatch,$tokens[$n]);
-                $res = $cleanToken($tokens[$n],$capital);
-                $return .= $res[0];
-                $capital = $res[1];
-            }
-        }
-
-        //Loop until we have enough output
-        $i = 0;
-        while ($i < $max + 32){
-                // Try and end on a full sentence
-            if ($i > $max - 8 and $capital){
-                break;
-            }
-
-                //If the lastmatch group isn't good enough, start randomly
-            if (sizeof($lastmatch) < $groupsize){
-                $loc = \rand(0,sizeof($tokens)-$groupsize);
-                $lastmatch = array();
-                for ($n = 0; $n < $groupsize; $n++){
-                    array_push($lastmatch,$tokens[clamp(0, $loc+$n, count($tokens) - 1)]);
-                    $res = $cleanToken($tokens[clamp(0, $loc+$n, count($tokens) - 1)],$capital);
-                    $return .= $res[0];
-                    $capital = $res[1];
-                }
-            } else {
-                $chains = $findChains($tokens, $lastmatch);
-                $lastmatch = array();
-
-                    // If there aren't enough chains, start randomly next time (avoid getting caught in loops)
-                if (sizeof($chains) > 2) {
-                    $loc = $chains[\rand(0, sizeof($chains)-1)];
-                    for ($n = 0; $n < $groupsize; $n++){
-                        array_push($lastmatch,$tokens[clamp(0, $loc+$n, count($tokens) - 1)]);
-                            $res = $cleanToken($tokens[clamp(0, $loc+$n, count($tokens) - 1)],$capital);
-                        $return .= $res[0];
-                        $capital = $res[1];
-                    }
-                }
-            }
-            $i++;
-        }
-
-        return $return;
     }
 
     ######################################################################################################################################
