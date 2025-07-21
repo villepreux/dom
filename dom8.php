@@ -9850,9 +9850,9 @@
             --screen-text-on-background-color:                  light-dark(<?= "#0d0d0d" ?>, <?= "#f2f2f2" ?>);
             --screen-text-on-background-lighter-color:          light-dark(<?= "#1a1a1a" ?>, <?= "#ffffff" ?>);
 
-            --screen-background-darker-color:                   light-dark(<?= "#e5e5e5" ?>, <?= "#040404" ?>); /* #000000 no need to be that dark anymore with new default font sizez */
-            --screen-background-color:                          light-dark(<?= "#f2f2f2" ?>, <?= "#101318" ?>); /* #0d0d0d no need to be that dark anymore with new default font sizez */
-            --screen-background-lighter-color:                  light-dark(<?= "#ffffff" ?>, <?= "#202024" ?>); /* #181819 #1a1a1a no need to be that dark anymore with new default font sizez */
+            --screen-background-darker-color:                   light-dark(<?= "#e5e5e5FF" ?>, <?= "#040404FF" ?>);
+            --screen-background-color:                          light-dark(<?= "#ffffffAA" ?>, <?= "#1A1A1A99" ?>);
+            --screen-background-lighter-color:                  light-dark(<?= "#ffffffFF" ?>, <?= "#202024FF" ?>);
 
             --screen-text-on-theme-darker-color:                light-dark(<?= "#e5e5e5" ?>, <?= "#000000" ?>);
             --screen-text-on-theme-color:                       light-dark(<?= "#f2f2f2" ?>, <?= "#0d0d0d" ?>);
