@@ -9671,7 +9671,7 @@
                     }
                 }
                 
-                li + li {
+                :where(li + li):not(nav :where(li + li)) {
   
                     margin-block-start: .2em;
                 }
