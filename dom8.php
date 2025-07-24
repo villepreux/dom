@@ -622,7 +622,7 @@
     }
     
     #endregion
-    #region WIP DEPENDENCIES
+    #region DEPENDENCIES
     ######################################################################################################################################
     
     //@internal_include(path("tokens.php"));
@@ -755,7 +755,7 @@
     }
 
     #endregion
-    #region WIP SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
+    #region SYSTEM : DEFAULT CONFIG AND AVAILABLE USER OPTIONS
     ######################################################################################################################################
 
     const manifest_id = "dom.manifest.id";
@@ -2028,12 +2028,12 @@
     }
 
     #endregion
-    #region WIP API : UTILITIES : VARIABLES
+    #region API : UTILITIES : VARIABLES
 
     function swap(&$x, &$y) { $tmp = $x; $x = $y; $y = $tmp; }
 
     #endregion
-    #region WIP API : UTILITIES : STRINGS MANIPULATION
+    #region API : UTILITIES : STRINGS MANIPULATION
 
     function dup($html, $n)                 { $new = ""; for ($i = 0; $i < $n; ++$i) $new .= $html; return $new; }
     function eol($n = 1)                    { if ($n == 0) return ""; if (!!get("minify",false)) return '';  switch (strtoupper(substr(PHP_OS,0,3))) { case 'WIN': return dup("\r\n",$n); case 'DAR': return dup("\r",$n); } return dup("\n",$n); }
@@ -2514,7 +2514,7 @@
     }
 
     #endregion
-    #region WIP LOREM IPSUM
+    #region LOREM IPSUM
 
     function lorem_ipsum($nb_paragraphs = 5, $tag = "p", $flavor = "lorem")
     {
@@ -2569,7 +2569,7 @@
     function lorem($nb_paragraphs = 5, $tag = "p") { return lorem_ipsum($nb_paragraphs, $tag); }
 
     #endregion
-    #region WIP HELPERS : HOOKS & PAGINATION
+    #region HELPERS : HOOKS & PAGINATION
     ######################################################################################################################################
 
     $__user_hooks = [];
@@ -2913,7 +2913,7 @@
     }
     
     #endregion
-    #region WIP HELPERS : PAGINATION
+    #region HELPERS : PAGINATION
 
     $__next_post_index = 0;
     
@@ -2940,7 +2940,7 @@
     }
 
     #endregion
-    #region WIP HELPERS : XML DOM PARSER
+    #region HELPERS : XML DOM PARSER
 
     function doc_load_from_html($html)
     {
@@ -3138,7 +3138,7 @@
     }
         
     #endregion
-    #region WIP HELPERS : JSON API END-POINTS
+    #region HELPERS : JSON API END-POINTS
     ######################################################################################################################################
     
     function json_pinterest_pin($pin, $token = false)
@@ -3768,7 +3768,7 @@
     }
     
     #endregion
-    #region WIP HELPERS : JSON METADATA FROM SOCIAL NETWORKS 
+    #region HELPERS : JSON METADATA FROM SOCIAL NETWORKS 
     ######################################################################################################################################
     
     function sort_cmp_post_timestamp($a,$b)
@@ -4847,7 +4847,7 @@
     function array_cards ($source, $type, $ids = false, $filter = "", $tags_in = false, $tags_out = false, $attributes = false)  { global $__card_headline; $__card_headline = 1+get_last_headline_level(); return array_cards_from_metadata(call_user_func("dom\array_".$source."_".$type, $ids, $filter, $tags_in, $tags_out), ($type == "thumbs") ? attributes_add_class($attributes, component_class("article", 'card card-thumb')) : $attributes); }
     
     #endregion
-    #region WIP HELPERS : DEBUG
+    #region HELPERS : DEBUG
     ######################################################################################################################################
     
     function raw_array_debug($content, $html_entities = false, $fields_sep = " ")
@@ -4860,7 +4860,7 @@
     }
     
     #endregion
-    #region WIP HELPERS : MINIFIERS (QUICK AND DIRTY)
+    #region HELPERS : MINIFIERS (QUICK AND DIRTY)
     ######################################################################################################################################
 
     function minify_html($html)
@@ -4897,7 +4897,7 @@
     }
 
     #endregion
-    #region WIP API : CACHE SYSTEM
+    #region API : CACHE SYSTEM
     ######################################################################################################################################
 
     function cache_global_reset($cache_dir = auto)
@@ -4996,7 +4996,7 @@
     }
     
     #endregion
-    #region WIP API : PHP DOCUMENT
+    #region API : PHP DOCUMENT
     ######################################################################################################################################
 
     function html_refresh_page($url)
@@ -5326,7 +5326,7 @@
     }
 
     #endregion
-    #region WIP DOCUMENTS GENERATION
+    #region DOCUMENTS GENERATION
 
     function string_ms_browserconfig()
     {
@@ -6105,7 +6105,7 @@
     }
 
     #endregion
-    #region WIP API : CSS snippets
+    #region API : CSS snippets
     ######################################################################################################################################
     
     function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
@@ -6144,7 +6144,7 @@
     }
 
     #endregion
-    #region WIP API : DOM : URLS
+    #region API : DOM : URLS
     ######################################################################################################################################
 
     /*
@@ -6241,7 +6241,7 @@
     function url_print                      ()                                                  { return "javascript:scan_and_print();"; }
     
     #endregion
-    #region WIP API : DOM : COLORS
+    #region API : DOM : COLORS
     ######################################################################################################################################
 
     // https://paulund.co.uk/social-media-colours
@@ -6288,7 +6288,7 @@
     function color_shareopenly      () { return '#FFFFFF'; }
    
     #endregion
-    #region WIP API : DOM : HTML COMPONENTS : SPECIAL TAGS
+    #region API : DOM : HTML COMPONENTS : SPECIAL TAGS
     ######################################################################################################################################
 
     /**
@@ -6609,7 +6609,7 @@
     function if_browser($condition, $html) { return (has("rss") || !!get("gemini")) ? '' : ('<!--[if '.$condition.']>' . $html . '<![endif]-->'); }
 
     #endregion
-    #region WIP API : DOM : HTML COMPONENTS : DOCUMENT ROOT
+    #region API : DOM : HTML COMPONENTS : DOCUMENT ROOT
     ######################################################################################################################################
 
     function jsonfeed($json = false)
@@ -6922,7 +6922,7 @@
     }
 
     #endregion
-    #region WIP API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
+    #region API : DOM : HTML COMPONENTS : MARKUP : HEAD, SCRIPTS & STYLES
     ######################################################################################################################################
 
     /**
@@ -7027,17 +7027,12 @@
     /* 5 */
     function head_synchronous_styles($async_css = false, $styles = true)
     {
-        $path_css = false;
-
-        if (!get("wip"))
-        {
-            $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
-                "./css/main.css",
-                "./main.css",
-                "./css/screen.css",
-                "./screen.css"
-                );
-        }
+        $path_css = !get("dom-auto-include-css") ? false : path_coalesce(
+            "./css/main.css",
+            "./main.css",
+            "./css/screen.css",
+            "./screen.css"
+            );
 
         return 
             eol().comment("Synchronous styles").
@@ -8748,25 +8743,15 @@
         return style_css_as_is(raw_css($css, $force_minify, $trim), $attributes, $order);
     }
 
-    function layered_style($layer, $css, $force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto, $layer_already_in_css = false)
+    function layered_style($layer, $css, $force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto)
     {
-        if (!!get("wip") && 0 !== stripos($media, "WIP"))
-        {
-            return "";
-        }
-        else if (0 === stripos($media, "WIP"))
-        {
-            $media = "WIP" == $media ? auto : str_replace("WIP-", "", $media);
-        }
-
-        $force_minify   = (auto === $force_minify)  ? false    : $force_minify;
-        $attributes     = (auto === $attributes)    ? false    : $attributes;
-        $media          = (auto === $media)         ? "screen" : $media;
+        $attributes = (auto === $attributes)    ? false    : $attributes;
+        $media      = (auto === $media)         ? "screen" : $media;
 
         $first_layer = is_array($layer) ? $layer[0] : $layer;
         $attributes  = attributes_add($attributes, array("layer" => $first_layer, "data-media" => $media, "media" => $media));
 
-        return style($layer_already_in_css ? $css : css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
+        return style(css_layer($layer, $css), $force_minify, $attributes, $trim, $order);
     }
 
     function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
@@ -10721,7 +10706,7 @@
     
             /* UTILITY CLASSES */
 
-            /* EXPERIMENTAL / WIP / LINK ICONS ALL THE THINGS ! */
+            /* EXPERIMENTAL / LINK ICONS ALL THE THINGS ! */
             a > img.link-icon:not(.no-link-icons a > img) {
                 
                 display: inline !important; 
@@ -10918,11 +10903,14 @@
         $scripts = "";
 
         $styles .= eol().style(css_layers(), false, false, auto, -1); // Ensure 1st rule!
-        
-        $styles .= eol().layered_style("spec",      css_spec(false),      false, false, auto, auto, /*media*/"none"   );
-        $styles .= eol().layered_style("browser",   css_browser(false),   auto,  auto,  auto, auto, /*media*/"all"    );
-        $styles .= eol().layered_style("normalize", css_normalize(false), auto,  auto,  auto, auto, /*media*/"all"    );
-        $styles .= eol().layered_style("default",   css_default(false),   auto,  auto,  auto, auto, /*media*/"screen" );
+
+        if (!get("wip"))
+        {        
+            $styles .= eol().layered_style("spec",      css_spec(false),      false, false, auto, auto, /*media*/"none"   );
+            $styles .= eol().layered_style("browser",   css_browser(false),   auto,  auto,  auto, auto, /*media*/"all"    );
+            $styles .= eol().layered_style("normalize", css_normalize(false), auto,  auto,  auto, auto, /*media*/"all"    );
+            $styles .= eol().layered_style("default",   css_default(false),   auto,  auto,  auto, auto, /*media*/"screen" );
+        }
 
         $scripts .= eol().script((function () { HSTART(-2) ?><script><?= HERE() ?>
         
@@ -11640,7 +11628,7 @@
     }
     
     #endregion
-    #region WIP API : DOM : HTML COMPONENTS : MARKUP : BODY
+    #region API : DOM : HTML COMPONENTS : MARKUP : BODY
     ######################################################################################################################################
 
     function html_comment_bgn()  { return "<!-- ";  }
@@ -11657,8 +11645,6 @@
 
     function gemini_tag($tag, $html, $attributes)
     {
-        $WIP =  "";//PHP_EOL."THIS PAGE IS WORK IN PROGRESS! ";
-
         $attributes = to_attributes($attributes);
 
         debug_log(json_encode(["tag" => $tag, "html" => $html, "attributes" => $attributes]));
@@ -11676,7 +11662,7 @@
         if (in_array($tag, [ "pre"        ])) return "```".PHP_EOL.$html.PHP_EOL."```";
         if (in_array($tag, [ "blockquote" ])) return "> ".implode(" ", explode(PHP_EOL, $html));
 
-        if ($tag == "h1") return PHP_EOL.PHP_EOL."# ".   "<h1>".            implode(" ", explode(PHP_EOL, $html)).$WIP;
+        if ($tag == "h1") return PHP_EOL.PHP_EOL."# ".   "<h1>".            implode(" ", explode(PHP_EOL, $html));
         if ($tag == "h2") return PHP_EOL.PHP_EOL."## ".  "<h2>".            implode(" ", explode(PHP_EOL, $html));
         if ($tag == "h3") return PHP_EOL.PHP_EOL."### ". "<h3>".            implode(" ", explode(PHP_EOL, $html));
         if ($tag == "h4") return PHP_EOL.PHP_EOL."".     "<h4>". strtoupper(implode(" ", explode(PHP_EOL, $html)) );
@@ -14418,7 +14404,7 @@
     }
         
     #endregion
-    #region WIP API : DOM : HTML COMPONENTS : ASYNC
+    #region API : DOM : HTML COMPONENTS : ASYNC
     ######################################################################################################################################
     
     $call_asyncs_started = false;
@@ -14541,7 +14527,7 @@
     function google_calendar_async                            ($ids = false, $w = false, $h = false)                                                 { return ajax_call("dom\google_calendar", $ids, $w, $h); }
 
     #endregion
-    #region WIP API : DOM : RSS
+    #region API : DOM : RSS
     ######################################################################################################################################
 
     function cdata($html) { return "<![CDATA[$html]]>"; }
@@ -14593,7 +14579,7 @@
     function rss_copyright      ($author = false)                   { return tag('copyright', "Copyright " . ((false === $author) ? get("author", author) : $author), false, true); }
     
     #endregion
-    #region WIP API : DOM : TILE
+    #region API : DOM : TILE
     ######################################################################################################################################
 
     function tile_sanitize($html) { return trim(htmlspecialchars($html, ENT_QUOTES, 'utf-8')); }
@@ -14623,7 +14609,7 @@
     function tile_text      ($txt = "", $id = 1)    { return raw('<text id="'.$id.'">'.tile_sanitize($txt).'</text>'); }
     
     #endregion
-    #region WIP HELPERS - COLOR
+    #region HELPERS - COLOR
     ######################################################################################################################################
     
     function valid_hex($hex)
