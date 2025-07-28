@@ -12312,7 +12312,15 @@
             foreach ($headings as $heading) 
             {
                 $element = $heading->nodeName;  //  e.g. h2, h3, h4, etc
-                $text    = trim( $heading->textContent );  
+
+                $text = trim($heading->textContent);
+                {
+                    if ($heading->hasChildNodes())
+                    {
+                        $text = trim($heading->childNodes[0]->textContent);
+                    }
+                }
+
                 $id      = $heading->getAttribute("id");
                 $level   = (int)substr($element, 1);
                 $node    = [ "text" => $text, "id" => $id, "children" => [] ];
