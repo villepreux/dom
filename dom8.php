@@ -39,7 +39,7 @@
     function get_all(                                       $get = true, $post = true, $session = false, $dom = false)  { $a = []; if ($get) $a = array_merge($a, $_GET); if ($post) $a = array_merge($a, $_POST); if ($session && isset($_SESSION) && is_array($_SESSION)) { $a = array_merge($a, $_SESSION); } global $_DOM; if ($dom && isset($_DOM) && is_array($_DOM)) { $a = array_merge($a, $_DOM); } return $a; }
     function has($k_or_a, $__or_k = false,                  $get = true, $post = true, $session = false, $dom = true)   { return (is_array($k_or_a)) ? @array_key_exists($__or_k, $k_or_a) : @array_key_exists($k_or_a, get_all($get, $post, $session, $dom)); }
     function get($k_or_a, $d_or_k = false, $__or_d = false, $get = true, $post = true, $session = false, $dom = true)   { return (is_array($k_or_a)) ? at($k_or_a, $d_or_k, $__or_d) : at(get_all($get, $post, $session, $dom), $k_or_a, $d_or_k); }
-    function del($k)                                                                                                    { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); }
+    function del($k)                                                                                                    { if (has($_GET,$k)) unset($_GET[$k]); if (has($_POST,$k)) unset($_POST[$k]); if (isset($_SESSION) && has($_SESSION,$k)) unset($_SESSION[$k]); global $_DOM; if (isset($_DOM) && has($_DOM,$k)) unset($_DOM[$k]); }
     function set($k, $v = true, $aname = false)                                                                         { global $_DOM; if ($aname === false)  { $_GET[$k] = $v; } else if ($aname === "GET")  { $_GET[$k] = $v; } else if ($aname === "POST") { $_POST[$k] = $v; } else if ($aname === "SESSION" && isset($_SESSION)) { $_SESSION[$k] = $v; } else if ($aname === "DOM" && isset($_DOM)) { $_DOM[$k] = $v; } return $v; }
 
     function var_backup($var, $unset_fallback = null)
@@ -123,6 +123,7 @@
     function server_http_host                   ($default = "127.0.0.1")            { return        at(get_server_vars(), 'HTTP_HOST',                          $default);  }
     function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
+    function server_http_user_agent             ($default = "Unknwon user agent")   { return        at(get_server_vars(), 'HTTP_USER_AGENT',                    $default);  }
 
     function do_not_track($static_default = true)
     {
@@ -268,6 +269,8 @@
                 width:              100%;
                 font-family:        monospace;
                 line-height:        24px;
+                padding:            1rem;
+                z-index:            1;
                     
                 details:not(details details),        
                        :not(details details) summary { background-color: black; color: green; }
@@ -1444,6 +1447,42 @@
     function component_class($tag, $classnames = "") 
     {        
         return trim($classnames);
+    }
+
+    #endregion
+    #region HELPERS : USER AGENT/BROWSER
+    ######################################################################################################################################
+    
+    function client_browser()
+    {
+        $browser_info = @get_browser(null, true);
+
+        if (is_array($browser_info))
+        {
+            return strtolower(trim(at($browser_info, "browser",  "unknown")));
+        }
+        else
+        {
+            $user_agent = server_http_user_agent();
+
+            if (false !== stripos($user_agent, 'SamsungBrowser'))   return 'samsung-internet';    // Check for Samsung Internet. I think it might include 'Chrome' so check it early
+            if (false !== stripos($user_agent, 'Brave'))            return 'brave';               // Brave needs to be checked before Google Chrome
+            if (false !== stripos($user_agent, 'OPR'))              return 'opera';               // Opera also includes 'Chrome'
+            if (false !== stripos($user_agent, 'Edg'))              return 'edge';                // Microsoft Edge includes 'Chrome'
+            if (false !== stripos($user_agent, 'QQBrowser'))        return 'qq-browser';          // QQ Browser also includes 'Chrome'
+            if (false !== stripos($user_agent, 'UCBrowser'))        return 'uc-browser';          // UC Browser also includes 'Chrome'
+
+            if (false !== stripos($user_agent, 'Mastodon'))         return 'mastodon-api';        // Comming from a Mastodon request
+
+            if (false !== stripos($user_agent, 'MSIE'))             return "internet-explorer";
+            if (false !== stripos($user_agent, 'Trident'))          return "internet-explorer";   // For supporting IE 11
+            if (false !== stripos($user_agent, 'Firefox'))          return "firefox";
+            if (false !== stripos($user_agent, 'Chrome'))           return "chrome";
+            if (false !== stripos($user_agent, 'Opera'))            return "opera";
+            if (false !== stripos($user_agent, 'Safari'))           return "safari";
+        }
+
+        return 'unknwon';
     }
 
     #endregion
@@ -2635,7 +2674,7 @@
 
         call_user_hook("headline", $title);
 
-        return [ $h, $title, $anchor ];
+        return [ $h, $title, $anchor];
     }
 
     function get_last_headline_level()
@@ -2686,7 +2725,7 @@
                     
             [ $link_to, "#$id" ]
 
-            ]));
+            ]), "DOM");
 
         return [ $h, $title, $link_to, $anchor ];
     }
@@ -2814,7 +2853,7 @@
             $hook_external_links[]  = array("title" => $title, "url" => $url);
 
             // TODO On a flag, add this link to a dedicated .json file
-            set("external_links", array_merge(get("external_links", []), [ array("title" => $title, "url" => $url) ]));
+            set("external_links", array_merge(get("external_links", []), [ array("title" => $title, "url" => $url) ]), "DOM");
         }
     }
 
@@ -2860,7 +2899,7 @@
         ,   "timestamp"     =>                $timestamp
         ,   "date"          => date(DATE_RSS, $timestamp)
         
-        ))));
+        ))), "DOM");
 
         return "";
     }
@@ -5629,43 +5668,55 @@
 
     function string_robots()
     {
+        $robots = "";
+
         $trusted_source_content = file_get_contents("https://raw.githubusercontent.com/ai-robots-txt/ai.robots.txt/refs/heads/main/robots.txt");
 
         if (!!$trusted_source_content)
         {
-            return $trusted_source_content;
+            $robots = trim($trusted_source_content);
+        }
+        else
+        {
+            $robots = implode(PHP_EOL, [
+
+                "User-agent: AdsBot-Google",
+                "User-agent: Amazonbot",
+                "User-agent: anthropic-ai",
+                "User-agent: Applebot",
+                "User-agent: AwarioRssBot",
+                "User-agent: AwarioSmartBot",
+                "User-agent: Bytespider",
+                "User-agent: CCBot",
+                "User-agent: ChatGPT-User",
+                "User-agent: ClaudeBot",
+                "User-agent: Claude-Web",
+                "User-agent: cohere-ai",
+                "User-agent: DataForSeoBot",
+                "User-agent: FacebookBot",
+                "User-agent: Google-Extended",
+                "User-agent: GoogleOther",
+                "User-agent: GPTBot",
+                "User-agent: ImagesiftBot",
+                "User-agent: magpie-crawler",
+                "User-agent: omgili",
+                "User-agent: omgilibot",
+                "User-agent: peer39_crawler",
+                "User-agent: peer39_crawler/1.0",
+                "User-agent: PerplexityBot",
+                "User-agent: YouBot",
+                "Disallow: /",
+
+                ]);
         }
 
-        return implode(PHP_EOL, [
+        $robots .= PHP_EOL;
+        $robots .= PHP_EOL."User-agent: *";
+      //$robots .= PHP_EOL."Disallow: /*sense=non*";
+      //$robots .= PHP_EOL."Disallow: /*action=*";
+        $robots .= PHP_EOL."Disallow: /*?*";
 
-            "User-agent: AdsBot-Google",
-            "User-agent: Amazonbot",
-            "User-agent: anthropic-ai",
-            "User-agent: Applebot",
-            "User-agent: AwarioRssBot",
-            "User-agent: AwarioSmartBot",
-            "User-agent: Bytespider",
-            "User-agent: CCBot",
-            "User-agent: ChatGPT-User",
-            "User-agent: ClaudeBot",
-            "User-agent: Claude-Web",
-            "User-agent: cohere-ai",
-            "User-agent: DataForSeoBot",
-            "User-agent: FacebookBot",
-            "User-agent: Google-Extended",
-            "User-agent: GoogleOther",
-            "User-agent: GPTBot",
-            "User-agent: ImagesiftBot",
-            "User-agent: magpie-crawler",
-            "User-agent: omgili",
-            "User-agent: omgilibot",
-            "User-agent: peer39_crawler",
-            "User-agent: peer39_crawler/1.0",
-            "User-agent: PerplexityBot",
-            "User-agent: YouBot",
-            "Disallow: /",
-
-            ]);
+        return $robots;
     }
 
     function string_human()
@@ -7167,7 +7218,7 @@
 
         $delayed_components = get("delayed_components", []);
         $index = count($delayed_components);
-        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior, $trim))));
+        set("delayed_components", array_merge($delayed_components, array(array($callback, $arg, $priority, $behavior, $trim))), "DOM");
         return placeholder($callback.($behavior == "all" ? $index : ""), $eol);
     }
     
@@ -9517,6 +9568,25 @@
                 a         { color: var(--Link);         }
                 a:visited { color: var(--VisitedText);  }
                 a:hover   { color: var(--ActiveText);   }
+
+                :where(h1,h2,h3,h4,h5,h6):has(a[href^="#"]) {
+
+                    :where(a):not(
+                    
+                        :where(h1,h2,h3,h4,h5,h6):focus  a, 
+                        :where(h1,h2,h3,h4,h5,h6):hover  a, 
+                        :where(h1,h2,h3,h4,h5,h6):active a
+                    
+                    ):not(
+                        
+                        a:focus, 
+                        a:hover, 
+                        a:active):last-of-type {
+
+                        opacity: .25;
+
+                    }
+                }
 
                 /* Add at least this, if we have a rese before normalize */ /*
                 p {
@@ -12009,8 +12079,10 @@
     
 //  HTML tags
         
-    function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto)
+    function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto, $add_anchor_link = auto)
     {
+        if (auto === $add_anchor_link) $add_anchor_link = true;
+
         $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
         $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
         
@@ -12026,7 +12098,17 @@
                                 $attributes = attributes_add($attributes, attr("class", component_class("h$h")));
         if ($add_id_attribute)  $attributes = attributes_add($attributes, attr("id",    $id));
 
-        return tag('h'.$h, $html, $attributes);
+        $anchor_link = "";
+
+        if ($add_anchor_link)
+        {
+            if (false === stripos($html, "<a"))
+            {
+                $anchor_link = nbsp().a(span("#", [ "aria-hidden" => true ]).span("anchor", "visually-hidden"), "#$id");
+            }
+        }
+
+        return tag('h'.$h, $html.$anchor_link, $attributes);
     }
 
     function p($html = "", $attributes = false) 

@@ -868,7 +868,7 @@ if (!!$cmdline_option_test)
 if (!!$cmdline_option_generate) dom\del("generate");
 if (!!$cmdline_option_clean)    dom\del("clean");
 
-if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod)
+if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod || !!$cmdline_option_villa11ty_dev)
 {
     function parse_11ty_index_html_files($root_path)
     {
@@ -908,12 +908,16 @@ if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod)
         return $timestamp_comments;
     }
 
+    $backup_11ty_index_html_file_comments = [];
+}
+
+if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod)
+{
     // Set 11ty folder to "PROD" mode
 
     // TODO | make it generic: parse. find folder with _eleventy subfolder, and 
     // TODO | apply 2nd method swithing betweeen eleventy.config.prod.js and eleventy.config.dev.js config files
     
-    $backup_11ty_index_html_file_comments = [];
     $backup_11ty_index_html_file_comments = array_merge($backup_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/11tytheme.sjoy.lol"));
     $backup_11ty_index_html_file_comments = array_merge($backup_11ty_index_html_file_comments, parse_11ty_index_html_file_comments("$main_src/web/11ty/base-blog"));
     
@@ -1085,6 +1089,7 @@ if (!!$cmdline_option_compile_main_index)
 }
 
 // Pre-parsing to detect any possible optimization based on actual sources
+if (true)
 {
     if (!$cmdline_option_compile_one)
     {
