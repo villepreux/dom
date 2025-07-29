@@ -7198,15 +7198,23 @@
         return link_rel("share-url", "https://".get("mastodon_domain", "mastodon.social")."/share?text=$text");
     }
 
-    function a_shareopenly($html = auto, $url = auto, $attributes = false)
+    function shareopenly_url($title = auto, $text = auto, $url = auto)
     {
-        $html = $html !== auto ? $html : DOM_I18N_SHARE;
-        $url  = $url  !== auto ? $url  : live_url();
+        $title = $title !== auto ? $title : live_domain();
+        $text  = $text  !== auto ? $text  : "Happy to share!";
+        $url   = $url   !== auto ? $url   : live_url();
 
         $url  = urlencode($url);
-        $text = urlencode("Happy to share!");
+        $text = urlencode("$title - $text");
 
-        return a($html, "https://shareopenly.org/share/?url=$url&text=$text", $attributes);
+        return "https://shareopenly.org/share/?url=$url&text=$text";
+    }
+
+    function a_shareopenly($html = auto, $title = auto, $text = auto, $url = auto, $attributes = false)
+    {
+        $html = $html !== auto ? $html : DOM_I18N_SHARE;
+
+        return a($html, shareopenly_url($title, $text, $url), $attributes);
     }
 
     /* DELAYED COMPONENTS */
@@ -10792,9 +10800,9 @@
     
             /* Should it be part of this base (dom framework independant) css ? */
         
-            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
-            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
-            :is(a, button.link):not([data-favicon="start"]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
+            :is(a, button.link):not([data-favicon="start"], [data-tooltip]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="//"]:after, 
+            :is(a, button.link):not([data-favicon="start"], [data-tooltip]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe))[href^="http"]:after, 
+            :is(a, button.link):not([data-favicon="start"], [data-tooltip]):not(:has(img:not(.link-icon),picture,video,audio,svg,iframe)).external:after {
 
                 display: inline-block;
                 content: '';
