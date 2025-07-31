@@ -581,7 +581,7 @@
         $__dom_internal_included = false;
         if ($no_echo) ob_end_clean();
 
-        update_dependency_graph($path);
+        //update_dependency_graph($path);
 
         return "";
     }
@@ -612,7 +612,7 @@
 
         global $argv;
         if (!!$path) require($path);
-        if ($track_dependencies) update_dependency_graph($path);
+        //if ($track_dependencies) update_dependency_graph($path);
 
         include_restore($backup);
 
@@ -1805,7 +1805,7 @@
                     $content = @file_get_contents($url);
                 }
 
-                update_dependency_graph($url);
+                //update_dependency_graph($url);
             }
 
             if ($method == "curl" && (!$content || $content == ""))
@@ -1869,7 +1869,7 @@
                         }
                     }
 
-                    update_dependency_graph($url);
+                    //update_dependency_graph($url);
 
                     if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""/* || $content == "error code: 520"*/))
                     {
@@ -2006,7 +2006,7 @@
         $error          =           curl_error($curl);
         $error_details  = [ "url" => $curl_url, "options" => $curl_options, "error" => $error, "code" => $code ];
 
-        update_dependency_graph($curl_url);
+        //update_dependency_graph($curl_url);
     
         return $response;
     }
@@ -2595,11 +2595,17 @@
             if ($nb_paragraphs >= 0.8) $html .= "Duis nulla mauris, rhoncus eget vestibulum placerat, posuere in sem. ";
             if ($nb_paragraphs >= 0.9) $html .= "Nulla imperdiet suscipit felis, a blandit ante dictum a. ";
 
-                                       $html  = $tag($html);
-            if ($nb_paragraphs >= 2.0) $html .= $tag("Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
-            if ($nb_paragraphs >= 3.0) $html .= $tag("Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
-            if ($nb_paragraphs >= 4.0) $html .= $tag("Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
-            if ($nb_paragraphs >= 5.0) $html .= $tag("Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
+            $html  = $tag($html);
+
+            while($nb_paragraphs >= 4)
+            {
+                if ($nb_paragraphs >= 2.0) $html .= $tag("Nunc lobortis dapibus justo, non eleifend arcu blandit ut. Fusce viverra massa purus, vel dignissim justo dictum quis. Maecenas interdum turpis in lacinia imperdiet. In vel dui leo. Curabitur vel iaculis leo. Sed efficitur libero sed massa porttitor tristique. Nam sit amet mi elit. Donec pellentesque sit amet tellus ut aliquam. Fusce consequat commodo dui, tempus fringilla diam fermentum eu. Etiam finibus felis egestas velit elementum, at bibendum lectus volutpat. Donec non odio varius, ornare felis mattis, fermentum dui.");
+                if ($nb_paragraphs >= 3.0) $html .= $tag("Phasellus ut consectetur justo. Nam eget libero augue. Praesent ut purus dignissim, imperdiet turpis sed, gravida metus. Praesent cursus fringilla justo et maximus. Donec ut porttitor tellus. Ut ac justo imperdiet, accumsan ligula et, facilisis ligula. Sed ac nulla at purus pretium tempor. Suspendisse nec iaculis lectus.");
+                if ($nb_paragraphs >= 4.0) $html .= $tag("Nulla varius dui luctus augue blandit, non commodo lectus pulvinar. Aenean lacinia dictum lorem nec molestie. Curabitur hendrerit, tellus quis lobortis pretium, odio felis convallis metus, sed pulvinar massa libero non sapien. Praesent aliquet posuere ex, vitae rutrum magna maximus id. Sed at eleifend libero. Cras maximus lacus eget sem hendrerit hendrerit. Nullam placerat ligula metus, eget elementum risus egestas non. Sed bibendum convallis nisl ac pretium. Sed ac magna mi. Aliquam sollicitudin quam augue, at tempus quam sagittis id. Aliquam convallis consectetur est non vulputate. Phasellus rutrum elit at neque aliquam aliquet. Phasellus tincidunt sem pharetra libero pellentesque fermentum. Donec tellus mauris, pulvinar consequat est vel, faucibus lacinia ante. Proin et posuere sem, nec luctus ligula.");
+                if ($nb_paragraphs >= 5.0) $html .= $tag("Ut volutpat ultrices massa id rhoncus. Vestibulum maximus non leo in dapibus. Phasellus pellentesque dolor id dui mollis, eget laoreet est pulvinar. Ut placerat, ex sit amet interdum lobortis, magna dolor volutpat ante, a feugiat tortor ante nec nulla. Pellentesque dictum, velit vitae tristique elementum, ex augue euismod arcu, in varius quam neque efficitur lorem. Fusce in purus nunc. Fusce sed dolor erat.");
+
+                $nb_paragraphs -= 4;
+            }
         }
 
         return $html;
@@ -3416,7 +3422,7 @@
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
 
-        update_dependency_graph($url);
+        //update_dependency_graph($url);
 
         if ($html)
         {            
@@ -3443,7 +3449,7 @@
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
 
-        update_dependency_graph($url);
+        //update_dependency_graph($url);
             
         if ($html)
         {            
@@ -5046,8 +5052,8 @@
     function redirect($url)
     {
         if (is_embeded()) return true;
-
-        if ("dependency-graph" == get("doctype")) die("[]");
+        /*
+        if ("dependency-graph" == get("doctype")) die("[]");*/
 
         if (!!get("static")) { echo html_refresh_page($url);     return true; }
         if (!headers_sent()) { \header("Location: ".href($url)); return true; }
@@ -5102,7 +5108,7 @@
         init_options();
         init_internals();
     }
-
+    /*
     function update_dependency_graph($files = auto)
     {
         $dependency_graph = get("dependency-graph", []);
@@ -5124,7 +5130,7 @@
     if ("dependency-graph" == get("doctype", false))
     {
         update_dependency_graph();
-    }
+    }*/
     
     class DOMInit {
         
@@ -6048,7 +6054,7 @@
                 
                 $old_content = @file_get_contents($dst_path);
                 
-                update_dependency_graph($dst_path);
+                //update_dependency_graph($dst_path);
 
                 $fn = $generated["function"];
                 if (!is_callable($fn)) $fn = "dom\\$fn";
@@ -6374,7 +6380,7 @@
         if ($silent_errors) { $content = @file_get_contents($filename); }
         else                { $content =  file_get_contents($filename); }
 
-        update_dependency_graph($filename);
+        //update_dependency_graph($filename);
         
         if (false !== $content) { return $content; }
 
@@ -7846,7 +7852,7 @@
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
 
-            update_dependency_graph($url);
+            //update_dependency_graph($url);
 
             return array(
                 'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
@@ -7878,7 +7884,7 @@
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
             
-            update_dependency_graph($url);
+            //update_dependency_graph($url);
 
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             return array(
@@ -7914,7 +7920,7 @@
             if (self::$_proxy) curl_setopt($ch, CURLOPT_PROXY, self::$_proxy);
             $response = curl_exec($ch);
 
-            update_dependency_graph($url);
+            //update_dependency_graph($url);
 
             self::_debug($response);
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
@@ -9577,7 +9583,7 @@
                 a:visited { color: var(--VisitedText);  }
                 a:hover   { color: var(--ActiveText);   }
 
-                :where(h1,h2,h3,h4,h5,h6):has(a[href^="#"]) {
+                :where(h1,h2,h3,h4,h5,h6):has(a.anchor[href^="#"]) {
 
                     :where(a):not(
                     
@@ -12112,7 +12118,7 @@
         {
             if (false === stripos($html, "<a"))
             {
-                $anchor_link = nbsp().a(span("#", [ "aria-hidden" => true ]).span("anchor", "visually-hidden"), "#$id");
+                $anchor_link = nbsp().a(span("#", [ "aria-hidden" => "true" ]).span("anchor", "visually-hidden"), "#$id", "anchor");
             }
         }
 
@@ -13971,7 +13977,7 @@
 
         $info = @json_decode(@file_get_contents($url), true);
 
-        update_dependency_graph($url);
+        //update_dependency_graph($url);
 
         if (!!$info)
         {
