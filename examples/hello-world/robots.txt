@@ -11,6 +11,7 @@ User-agent: bedrockbot
 User-agent: Brightbot 1.0
 User-agent: Bytespider
 User-agent: CCBot
+User-agent: ChatGPT Agent
 User-agent: ChatGPT-User
 User-agent: Claude-SearchBot
 User-agent: Claude-User
@@ -74,7 +75,6 @@ User-agent: Scrapy
 User-agent: SemrushBot-OCOB
 User-agent: SemrushBot-SWA
 User-agent: Sidetrade indexer bot
-User-agent: SummalyBot
 User-agent: Thinkbot
 User-agent: TikTokSpider
 User-agent: Timpibot
@@ -82,6 +82,7 @@ User-agent: VelenPublicWebCrawler
 User-agent: WARDBot
 User-agent: Webzio-Extended
 User-agent: wpbot
+User-agent: YaK
 User-agent: YandexAdditional
 User-agent: YandexAdditionalBot
 User-agent: YouBot
