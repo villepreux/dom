@@ -7105,7 +7105,7 @@
 
                 eol().
                 eol().comment("Project-specific main stylesheet").                                           (!get("htaccess_rewrite_php") ? (
-                style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "screen" ]).      "") : (
+                style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "all" ]).         "") : (
                 link_style($path_css, "screen", false, [ "layer" => "app"  ]).                          "")).
 
             ""));
@@ -12138,7 +12138,6 @@
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
     function nav            ($html = "", $attributes = false) {                             return  tag('nav',                        $html,                                                $attributes                                                         );                      }
     function div            ($html = "", $attributes = false) {                             return  tag('div',                        $html,                                                $attributes                                                         );                      }
-    function i              ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return  tag('pre',                        $html,                                                $attributes                                                         );                      }
     function code           ($html = "", $attributes = false) {                             return  tag('code',                       $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return  tag('ul',                         $html,                                                $attributes                                                         );                      }
@@ -12159,11 +12158,11 @@
     function td             ($html = "", $attributes = false) {                             return  tag('td',                         $html,                                                $attributes                                                         );                      }
     function th             ($html = "", $attributes = false) {                             return  tag('th',                         $html,                                                $attributes                                                         );                      }
 
-    function bring          ($html = "", $attributes = false) {                             return  tag('b',                          $html,                                                $attributes                                                         );                      }
+    function b              ($html = "", $attributes = false) {                             return  tag('b',                          $html,                                                $attributes                                                         );                      }
     function strong         ($html = "", $attributes = false) {                             return  tag('strong',                     $html,                                                $attributes                                                         );                      }
     function mark           ($html = "", $attributes = false) {                             return  tag('mark',                       $html,                                                $attributes                                                         );                      }
     function strike         ($html = "", $attributes = false) {                             return  tag('s',                          $html,                                                $attributes                                                         );                      }
-    function idiomatic      ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
+    function i              ($html = "", $attributes = false) {                             return  tag('i',                          $html,                                                $attributes                                                         );                      }
   //function del            ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function deleted        ($html = "", $attributes = false) {                             return  tag('del',                        $html,                                                $attributes                                                         );                      }
     function em             ($html = "", $attributes = false) {                             return  tag('em',                         $html,                                                $attributes                                                         );                      }
@@ -12172,11 +12171,14 @@
     function span           ($html = "", $attributes = false) {                             return  tag('span',                       $html,                                                $attributes                                                         );                      }
     function figure         ($html = "", $attributes = false) {                             return  tag('figure',                     $html,                                                $attributes                                                         );                      }
     function figcaption     ($html = "", $attributes = false) {                             return  tag('figcaption',                 $html,                                                $attributes                                                         );                      }
+    function u              ($html = "", $attributes = false) {                             return  tag('u',                          $html,                                                $attributes                                                         );                      }
 
-    function non_textual    ($html = "", $attributes = false) {                             return  tag('u',                          $html,                                                $attributes                                                         );                      }
-
-    function bring_attention        ($html = "", $attributes = false) { return bring        ($html, $attributes); }
-    function non_textual_annotation ($html = "", $attributes = false) { return non_textual  ($html, $attributes); }
+    function idiomatic              ($html = "", $attributes = false) { return i    ($html, $attributes); }
+    function non_textual            ($html = "", $attributes = false) { return u    ($html, $attributes); }
+    function emphasis               ($html = "", $attributes = false) { return em   ($html, $attributes); }
+    function bring                  ($html = "", $attributes = false) { return b    ($html, $attributes); }
+    function bring_attention        ($html = "", $attributes = false) { return b    ($html, $attributes); }
+    function non_textual_annotation ($html = "", $attributes = false) { return u    ($html, $attributes); }
     
     function hgroup         ($html = "", $attributes = false) {                             return  tag('hgroup',                     $html,                                                $attributes                                                         );                      }
 
@@ -13224,7 +13226,7 @@
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
     
-    function anchor_name($name, $tolower = auto, $slugify_separator = "-", $extra_validating_character_prefix = "x")
+    function anchor_name($name, $tolower = auto, $slugify_separator = "-", $extra_validating_character_prefix = "-")
     {
         $lang_span_tag_en = '<span lang="en">';
         $lang_span_pos_en = stripos($name, $lang_span_tag_en);
