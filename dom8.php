@@ -2130,7 +2130,11 @@
     {
         if (auto === $seed) $seed = rss_auto_seed(null);
         debug_log("rand_seed: ".(!!$seed ? $seed : "AUTO"));
-        mt_srand($seed);
+
+        if ($seed !== null) 
+        {
+            mt_srand($seed);
+        }
 
         global $__dom_rand_is_seeded;
         $__dom_rand_is_seeded = true;
@@ -2142,7 +2146,7 @@
 
         if (!$__dom_rand_is_seeded)
         {
-            rand_seed();            
+            rand_seed();
             $__dom_rand_is_seeded = true;
         }
 
