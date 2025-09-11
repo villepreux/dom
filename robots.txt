@@ -13,6 +13,7 @@ User-agent: bigsur.ai
 User-agent: Brightbot 1.0
 User-agent: Bytespider
 User-agent: CCBot
+User-agent: TerraCotta
 User-agent: ChatGPT Agent
 User-agent: ChatGPT-User
 User-agent: Claude-SearchBot
@@ -38,6 +39,7 @@ User-agent: FriendlyCrawler
 User-agent: Gemini-Deep-Research
 User-agent: Google-CloudVertexBot
 User-agent: Google-Extended
+User-agent: Google-Firebase
 User-agent: GoogleAgent-Mariner
 User-agent: GoogleOther
 User-agent: GoogleOther-Image
@@ -54,6 +56,7 @@ User-agent: meta-externalagent
 User-agent: Meta-ExternalAgent
 User-agent: meta-externalfetcher
 User-agent: Meta-ExternalFetcher
+User-agent: meta-webindexer
 User-agent: MistralAI-User
 User-agent: MistralAI-User/1.0
 User-agent: MyCentralAIScraperBot
@@ -79,6 +82,7 @@ User-agent: SBIntuitionsBot
 User-agent: Scrapy
 User-agent: SemrushBot-OCOB
 User-agent: SemrushBot-SWA
+User-agent: ShapBot
 User-agent: Sidetrade indexer bot
 User-agent: Thinkbot
 User-agent: TikTokSpider
