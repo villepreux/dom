@@ -12177,13 +12177,6 @@
     function figcaption     ($html = "", $attributes = false) {                             return  tag('figcaption',                 $html,                                                $attributes                                                         );                      }
     function u              ($html = "", $attributes = false) {                             return  tag('u',                          $html,                                                $attributes                                                         );                      }
 
-    function idiomatic              ($html = "", $attributes = false) { return i    ($html, $attributes); }
-    function non_textual            ($html = "", $attributes = false) { return u    ($html, $attributes); }
-    function emphasis               ($html = "", $attributes = false) { return em   ($html, $attributes); }
-    function bring                  ($html = "", $attributes = false) { return b    ($html, $attributes); }
-    function bring_attention        ($html = "", $attributes = false) { return b    ($html, $attributes); }
-    function non_textual_annotation ($html = "", $attributes = false) { return u    ($html, $attributes); }
-    
     function hgroup         ($html = "", $attributes = false) {                             return  tag('hgroup',                     $html,                                                $attributes                                                         );                      }
 
     function blockquote     ($html = "", $attributes = false) {                             return  tag('blockquote',                 $html,                                                $attributes                                                         );                      }
@@ -12235,6 +12228,15 @@
                    
     function hr             (            $attributes = false) {                             return  tag('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return  tag('br',                         false,                                                $attributes, false, true                                            );                      }
+
+    
+    function idiomatic              ($html = "", $attributes = false) { return i    ($html, $attributes); }
+    function non_textual            ($html = "", $attributes = false) { return u    ($html, $attributes); }
+    function emphasis               ($html = "", $attributes = false) { return em   ($html, $attributes); }
+    function bring                  ($html = "", $attributes = false) { return b    ($html, $attributes); }
+    function bring_attention        ($html = "", $attributes = false) { return b    ($html, $attributes); }
+    function non_textual_annotation ($html = "", $attributes = false) { return u    ($html, $attributes); }
+    
 
     function clearfix       () { return div("","clearfix"); }
 
