@@ -7037,11 +7037,15 @@
     /* 9 */
     function head_preconnect_hints()
     {
-        return  eol().comment("Preconnect hints").                              (!get("unsplash-preconnect") ? (
-                eol().comment("...").                                           "") : (
-                eol().link_rel("preconnect", "https://source.unsplash.com").    "")).
+        $preconnect_hints = "";
+    
+        if (!!get("fonts"))                 $preconnect_hints .= link_rel("preconnect", "https://fonts.googleapis.com");
+        if (!!get("fonts"))                 $preconnect_hints .= link_rel("preconnect", "https://fonts.gstatic.com", [ "crossorigin" => "anonymous" ]);
+        if (!!get("unsplash-preconnect"))   $preconnect_hints .= link_rel("preconnect", "https://source.unsplash.com");
 
-                "";
+        if ("" == $preconnect_hints) $preconnect_hints = eol().comment("...");
+
+        return  eol().comment("Preconnect hints").$preconnect_hints;
     }
 
     /* 8 */
@@ -8715,7 +8719,7 @@
     function meta_property(     $property, $content, $pan = 0) { return meta(array("property"   => $property, "content" => $content)/*, false, array(40,80)*/); }
     function meta_itemprop(     $itemprop, $content, $pan = 0) { return meta(array("itemprop"   => $itemprop, "content" => $content)/*, false, array(40,80)*/); }
     
-    function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))  return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
+    function link_HTML($attributes, $pan = 0)               { if (!!get("no_html"))      return ''; return tag('link', '', attributes_as_string($attributes,$pan), false, true); }
     function link_rel($rel, $href, $type = false, $pan = 0) { if (!$href || $href == "") return ''; return link_HTML(array_merge(array("rel" => $rel, "href" => $href), ($type !== false) ? (is_array($type) ? $type : array("type" => $type)) : []), $pan); }
     
     function manifest($filename = "manifest.json") 
@@ -8900,13 +8904,17 @@
         return array_merge(($parent_schema === false) ? [] : $parent_schema, array("@context" => "https://schema.org", "@type" => $type), $properties);
     }
     
-    function link_style_google_fonts($fonts = false, $async = true)
+    function link_style_google_fonts($fonts = false, $async = true, $material_icons = false)
     {    
         if ($fonts === false) $fonts = get("fonts");
-        if (!!$fonts)         $fonts = str_replace(' ','+', trim($fonts, ", /|"));
-
-        return            (!!$fonts ? link_style("https://fonts.googleapis.com/css?family=$fonts",          "screen", $async) : '')
-                . eol() . (true     ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons", "screen", $async) : '');
+        if (!$fonts) return "";
+        $fonts = str_replace(' ','+', trim($fonts, ", /|"));
+        
+        return  /*
+                eol() . (!!$fonts        ? link_rel("preconnect", "https://fonts.googleapis.com")                                        : '').
+                eol() . (!!$fonts        ? link_rel("preconnect", "https://fonts.gstatic.com", [ "crossorigin" => "" ])                  : '').*/
+                eol() . (!!$fonts        ? link_style("https://fonts.googleapis.com/css2?family=$fonts&display=swap", "screen", $async)  : '').
+                eol() . ($material_icons ? link_style("https://fonts.googleapis.com/icon?family=Material+Icons",      "screen", $async)  : '');
     }
     
     function link_styles($async = false, $fonts = false)
@@ -9185,6 +9193,8 @@
                     --h4-font-weight: 500;
                     --h5-font-weight: 500;
                     --h6-font-weight: 400;
+
+                    --font-family: <?= string_system_font_stack() ?>;
                     
                     --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
@@ -9252,7 +9262,7 @@
                     width:      100%;
 
                     font-weight: var(--text-font-weight);
-                    font-family: <?= string_system_font_stack() ?>; 
+                    font-family: var(--font-family); 
                     text-underline-offset: 0.24em; /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
                     word-break: break-word; 
                     text-wrap: pretty;
@@ -10541,7 +10551,7 @@
             body                    { word-break: break-word; text-wrap: pretty;   } /*
             <?= $grid ?> *          { word-break: normal; text-overflow: ellipsis; } */ /* TODO: WHy that ? */
         
-            body,h1,h2,h3,h4,h5,h6  { font-family: <?= string_system_font_stack() ?>; } /* TODO: Aren't headlines inheriting it? */
+            body,h1,h2,h3,h4,h5,h6  { font-family: var(--font-family); } /* TODO: Aren't headlines inheriting it? */
                  h1,h2,h3,h4,h5,h6  { text-wrap: balance; }
     
                   :is(nav, [role="navigation"]) a          { text-decoration: none }
@@ -12089,7 +12099,7 @@
         . eol()
         ;
     }
-    
+
     function cosmetic($html)
     {
         return !!get("minify") ? '' : $html;
@@ -12229,7 +12239,7 @@
     function hr             (            $attributes = false) {                             return  tag('hr',                         false,                                                $attributes, false, true                                            );                      }
     function br             (            $attributes = false) {                             return  tag('br',                         false,                                                $attributes, false, true                                            );                      }
 
-    
+
     function idiomatic              ($html = "", $attributes = false) { return i    ($html, $attributes); }
     function non_textual            ($html = "", $attributes = false) { return u    ($html, $attributes); }
     function emphasis               ($html = "", $attributes = false) { return em   ($html, $attributes); }
