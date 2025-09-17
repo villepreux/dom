@@ -11956,7 +11956,7 @@
 
         $attributes = array_merge(array(
             "id"    => top_id(),
-            "class" => (component_class('body', 'body').($dark_theme ? component_class('body','dark') : ''))
+            "class" => (component_class('body').($dark_theme ? component_class('body','dark') : ''))
             ));
 
         return eol().tag(
@@ -12109,7 +12109,7 @@
         
     function h($h, $html = "", $attributes = false, $anchor = false, $headline_hook = true, $add_id_attribute = auto, $add_anchor_link = auto)
     {
-        if (auto === $add_anchor_link) $add_anchor_link = true;
+        if (auto === $add_anchor_link) $add_anchor_link = get("auto_anchor_links", true);
 
         $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
         $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
@@ -12261,7 +12261,7 @@
 
         $profiler = debug_track_timing();
         
-        $attributes = attributes_add($attributes, attributes(attr("class", component_class("main")), attr("class", component_class("main","content"))));
+        $attributes = attributes_add($attributes, attributes(attr("class", component_class("main")), attr("class", component_class("main"))));
 
         global $__dom_is_first_main;
         
