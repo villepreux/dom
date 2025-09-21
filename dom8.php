@@ -6377,7 +6377,7 @@
         {
             if ($silent_errors) { @internal_include($filename); $content = @ob_get_clean(); }
             else                {  internal_include($filename); $content =  ob_get_clean(); }
-                        
+
             if (false !== $content) { return $content; }
         }
         
@@ -14047,7 +14047,8 @@
         if (!in_array($copyright, $copyrights))
             set("images_copyrights", array_merge($copyrights, array($copyright)));
 
-        foreach ([ "avif", "webp", "jpg", "png"] as $ext)
+        foreach ([ "avif", "webp", "jpg", "png",] as $ext)
+      //foreach ([ "png", "jpg", "avif", "webp",] as $ext) // NO AVIF FOR FUCKING WEBKIT
         {
             $local_path = path("img/unsplash/$id.$ext");
             if (!!$local_path) return $local_path;
