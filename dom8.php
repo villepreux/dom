@@ -812,7 +812,7 @@
         set("forwarded_flags",                  array("contrast","light","no_js","no_css","rss","wip"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
 
-        set("img_lazy_loading_after",           3);
+        set("img_lazy_loading_after",           get("img_lazy_loading_after", 3));
 
         set("css-layers", [ 
 
@@ -2887,7 +2887,7 @@
     function link_rel_prefetchs() { return delayed_component("_".__FUNCTION__); }
     function _link_rel_prefetchs()
     {
-        if (!!get("auto_prefetch"))
+        if (!!get("auto_prefetch") && !get("not_prefetch"))
         {
             global $hook_prefetch_links;
             return wrap_each($hook_prefetch_links, "", "hooked_link_rel_prefetch", false);
