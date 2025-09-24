@@ -6957,7 +6957,7 @@
 
                 //  Return html
 
-                return  raw_html('<!doctype html>'.comment("🏳️‍⚧️🏳️‍🌈▲ Welcome my fellow web developer!").'<html'.attributes_as_string($attributes).'>'.' ').
+                return  raw_html('<!doctype html>'.comment(get("code-intro-comment", "🏳️‍⚧️🏳️‍🌈▲ Welcome my fellow web developer!")).'<html'.attributes_as_string($attributes).'>'.' ').
                         $html.eol().$debug_console.
                         raw_html('</html>'.comment("DOM.PHP ".version));
             }
@@ -13207,15 +13207,22 @@
         }
     }
 
-    function a_email($text = false, $email = false, $attributes = false, $target = external_link)
+    function a_email($text = false, $email = false, $attributes = false, $target = external_link, $force_js = false)
     {
         if ($email      === false
         &&  $attributes === false
         &&  $target     === external_link) $email = strip_tags($text);
 
+        $no_js = get("no_js");
+
+        if ($force_js)
+        {
+            del("no_js");
+        }
+
         if (!!get("no_js"))
         {
-            return span($text);
+            $html = span($text);
         }
         else
         {
@@ -13223,8 +13230,15 @@
             
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            return a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("e-".md5($text)) ], $target).script("eval(unescape('".$crypted_script."'))");
+            $html = a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("e-".md5($text)) ], $target).script("eval(unescape('".$crypted_script."'))");
         }
+
+        if (!!$no_js && $force_js)
+        {
+            set("no_js", $no_js);
+        }
+
+        return $html;
     }
 
     function char_emoji($c) { return !!get("gemini") ? "$c" : span("$c&#xFE0F;", "emoji");   }
