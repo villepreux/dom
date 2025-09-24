@@ -1784,6 +1784,8 @@
         $content           = false;
         $curl_debug_errors = [];
 
+        if (!is_array($methods_order)) $methods_order = [ $methods_order ];
+
         foreach ($methods_order as $method)
         {        
             if ($method == "file_get_contents" && (!$content || $content == ""))
@@ -1825,6 +1827,8 @@
 
                         $curl_options[CURLOPT_HTTPHEADER] = $curl_http_header;
                     }
+
+                    //bye($curl_http_header);
 
                     $headers = [];
 
@@ -1869,11 +1873,14 @@
                         }
                     }
 
+                    //bye([ "headers" => $headers, "content" => $content ]);
+
                     //update_dependency_graph($url);
 
                     if (!!$debug_error_output && !!get("debug") && (!$content || $content == ""/* || $content == "error code: 520"*/))
                     {
                         $curl_debug_errors[] = "CURL ERROR: ".curl_error($curl).(!$content ? " - false result" : ($content == "" ? " - Empty result" : "Error detected!"));
+                        $curl_debug_errors[] = to_string(curl_getinfo($curl));
                         $curl_debug_errors[] = to_string(curl_getinfo($curl));
                     }
 
@@ -1908,10 +1915,13 @@
         return $content;
     }
 
-    function post($api, $url, $params = [], $options = [], $method = "GET", $usr = false, $pwd = false, $user_agent = "DOM", &$code = null, &$error = null, &$error_details = null, $force_no_url_params = false)
+    function post($api, $url, $params = [], $options = [], $method = auto, $usr = false, $pwd = false, $user_agent = auto, &$code = null, &$error = null, &$error_details = null, $force_no_url_params = false, $body_type = "array")
     {
         $curl_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
-      //$curl_user_agent = $user_agent; // Unused for now
+      //$curl_user_agent = $user_agent === auto ? "DOM" : $user_agent; // Unused for now
+
+        $method = (auto === $method)                                          ? "GET" : $method;
+        $params = (auto === $params || true === $params || false === $params) ? []    : $params;
 
         $timeout = is_array($options) ? at($options, "timeout", 7 )       : $options;
         $header  = is_array($options) ? at($options, "header",  $options) : [];
@@ -1954,26 +1964,39 @@
                 return "$key: $val"; 
             }, array_keys($header), array_values($header));
 
-        $curl_postfield_params = [];
-        {
-            foreach ($params as $key => $param)
-            {
-                if (is_array($param))
-                {
-                    if (!$force_no_url_params)
-                    {
-                        continue; // param will be in URL
-                    }
-                    else
-                    {
-                        $param = json_encode($param);
-                    }
-                }
-                
-              //if (is_object($param)) $param = json_encode($param); // Don't do. Could be CURLFile object
+        $curl_postfield_params = "";
 
-                $curl_postfield_params[$key] = $param;
+        if ($body_type == "array")
+        {
+            $curl_postfield_params = [];
+            {
+                foreach ($params as $key => $param)
+                {
+                    if (is_array($param))
+                    {
+                        if (!$force_no_url_params)
+                        {
+                            continue; // param will be in URL
+                        }
+                        else
+                        {
+                            $param = json_encode($param);
+                        }
+                    }
+                    
+                //if (is_object($param)) $param = json_encode($param); // Don't do. Could be CURLFile object
+
+                    $curl_postfield_params[$key] = $param;
+                }
             }
+        }
+        else if (is_array($params))
+        {
+            $curl_postfield_params = http_build_query($params);
+        }
+        else 
+        {
+            $curl_postfield_params = $params;
         }
 
         $curl_options = [];
@@ -1990,7 +2013,7 @@
             $curl_options[CURLOPT_FOLLOWLOCATION ] = true;
             $curl_options[CURLOPT_SSL_VERIFYPEER ] = false;
             $curl_options[CURLOPT_SSL_VERIFYHOST ] = false;
-            $curl_options[CURLOPT_USERAGENT      ] = $curl_user_agent;
+          //$curl_options[CURLOPT_USERAGENT      ] = $curl_user_agent;
             
             if ($usr != false && $pwd != false) { $curl_options[CURLOPT_USERPWD     ] = "$usr:$pwd";            }
             if ($method != "POST")              { $curl_options[CURLOPT_POST        ] = 1;                      }
@@ -2637,7 +2660,7 @@
 
         $args = func_get_args();
         $hook_id = array_shift($args);
-        
+
         if (!array_key_exists($hook_id, $__user_hooks)) return true;
 
         $hooks = $__user_hooks[$hook_id];
@@ -2730,6 +2753,8 @@
         if (false === $anchor)  $anchor  = $link_to;
         
         $id = anchor_name($anchor);
+        
+        $link_to = strip_tags($link_to); // NEW - TODO Watch for regressions
 
         set("hook_sections", array_merge(get("hook_sections", []), [
                     
