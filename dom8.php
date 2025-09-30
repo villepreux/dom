@@ -1326,6 +1326,9 @@
 
     function attributes_add($attributes1, $attributes2, $value = null)
     {
+        if (auto === $attributes1) $attributes1 = false;
+        if (auto === $attributes2) $attributes2 = false;
+
         $attributes1 = to_attributes($attributes1);
         $attributes2 = to_attributes($attributes2);
 
@@ -2440,7 +2443,7 @@
                 $min_indent = $indent;
             }
         }
-
+            
         if ($min_indent > 0)
         {
             foreach ($lines as $l => $line)
@@ -5915,15 +5918,20 @@
     function array_system_font_stack_regular(               $quote = '"') { return [ 'Inter', 'Roboto', '-apple-system', 'system-ui', 'BlinkMacSystemFont', 'ui-sans-serif', $quote.'Segoe UI'.$quote, $quote.'San Francisco'.$quote, 'Helvetica', 'Arial', 'sans-serif', $quote.'Apple Color Emoji'.$quote, $quote.'Segoe UI Emoji'.$quote, $quote.'Segoe UI Symbol'.$quote ]; }
     function array_system_font_stack_condensed(             $quote = '"') { return [ $quote.'Arial Narrow'.$quote, $quote.'AvenirNextCondensed-Bold'.$quote, $quote.'Futura-CondensedExtraBold'.$quote, 'HelveticaNeue-CondensedBold', $quote.'Ubuntu Condensed'.$quote, $quote.'Liberation Sans Narrow'.$quote, $quote.'Franklin Gothic Demi Cond'.$quote, 'sans-serif-condensed', 'Arial', $quote.'Trebuchet MS'.$quote, $quote.'Lucida Grande'.$quote, 'Tahoma', 'Verdana', 'sans-serif' ]; }
 
-    function string_system_font_stack($quote = '"', $type = false)
+    function string_system_font_stack($quote = '"', $type = auto)
     {
         if ($quote === true || $quote === false || (is_string($quote) && strlen($quote) > 1)) { $type = $quote; $quote = '"'; }
-        if (!is_string($type) && $type == true)  $type = "condensed";
-        if (!is_string($type) && $type == false) $type = "neogrotestque";
+
+             if (                     $type === auto)  $type = "systemui";        
+        else if (!is_string($type) && $type ==  true)  $type = "condensed";
+        else if (!is_string($type) && $type ==  false) $type = "neogrotestque";
 
         $fn = "\dom\array_system_font_stack_$type";
      
-        if (is_callable($fn)) return implode(", ", get("font_stack_$type", $fn($quote)));
+        if (is_callable($fn)) 
+        {            
+            return implode(", ", get("font_stack_$type", $fn($quote)));
+        }
 
         return string_system_font_stack($quote, "humanist");
     }
@@ -9078,6 +9086,15 @@
                     div(radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     )).
                     
                     "", "css requires-js").
+
+                fieldset(
+
+                    legend("Fun").
+                    
+                    div(checkbox("setting-fun-drunk" ).label("Drunk", "setting-fun-drunk" )).
+                    div(checkbox("setting-fun-party" ).label("Party", "setting-fun-party" )).
+                    
+                    "", "fun").
                 
                 ""), [ "class" => ("settings"/*." requires-js"*/) ]).
                     
@@ -9212,15 +9229,15 @@
                     
                     --text-font-weight: 400;
 
-                    --h1-font-weight: 600;
-                    --h2-font-weight: 600;
-                    --h3-font-weight: 500;
-                    --h4-font-weight: 500;
-                    --h5-font-weight: 500;
+                    --h1-font-weight: 800;
+                    --h2-font-weight: 800;
+                    --h3-font-weight: 600;
+                    --h4-font-weight: 600;
+                    --h5-font-weight: 400;
                     --h6-font-weight: 400;
 
                     --font-family: <?= string_system_font_stack() ?>;
-                    
+                    --tab-size: 4;
                     --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
                     --gap: min(1rem, 16px);
@@ -9265,6 +9282,7 @@
                     hanging-punctuation:    first allow-end last; 
                     font-size:              var(--root-font-size);
                     line-height:            var(--line-height); 
+                    tab-size:               var(--tab-size); 
 
                     scrollbar-gutter: stable;
                 }
@@ -9344,12 +9362,12 @@
                 
                 h1,h2,h3,h4,h5,h6 { text-wrap: balance; }
 
-                h1 { font-size: var(--h1-font-size); /*line-height: 1.250;*/ font-weight: var(--h1-font-weight); margin: var(--h1-block-start-margin) 0; }
-                h2 { font-size: var(--h2-font-size); /*line-height: 1.250;*/ font-weight: var(--h2-font-weight); }
-                h3 { font-size: var(--h3-font-size); /*line-height: 1.250;*/ font-weight: var(--h3-font-weight); }
-                h4 { font-size: var(--h4-font-size); /*line-height: 1.250;*/ font-weight: var(--h4-font-weight); }
-                h5 { font-size: var(--h5-font-size); /*line-height: 1.250;*/ font-weight: var(--h5-font-weight); }
-                h6 { font-size: var(--h6-font-size); /*line-height: 1.250;*/ font-weight: var(--h6-font-weight); }
+                h1 { font-size: var(--h1-font-size); line-height: calc(var(--line-height) * 0.90); font-weight: var(--h1-font-weight); letter-spacing: -0.02rem; margin: var(--h1-block-start-margin) 0; }
+                h2 { font-size: var(--h2-font-size); line-height: calc(var(--line-height) * 0.92); font-weight: var(--h2-font-weight); letter-spacing: -0.02rem; }
+                h3 { font-size: var(--h3-font-size); line-height: calc(var(--line-height) * 0.94); font-weight: var(--h3-font-weight); }
+                h4 { font-size: var(--h4-font-size); line-height: calc(var(--line-height) * 0.96); font-weight: var(--h4-font-weight); }
+                h5 { font-size: var(--h5-font-size); line-height: calc(var(--line-height) * 0.98); font-weight: var(--h5-font-weight); }
+                h6 { font-size: var(--h6-font-size); line-height: calc(var(--line-height) * 1.00); font-weight: var(--h6-font-weight); }
     
                 h1 {
                     margin-block-start: 1.2em;
@@ -9441,10 +9459,13 @@
                     display: block;
                 }
                 
-                a {
-
-                    font-weight: 600; /* For a11y */
-                }
+                a    { font-weight:     600; } /* For a11y */
+                h1 a { font-weight: max(600, var(--h1-font-weight)); }
+                h2 a { font-weight: max(600, var(--h2-font-weight)); }
+                h3 a { font-weight: max(600, var(--h3-font-weight)); }
+                h4 a { font-weight: max(600, var(--h4-font-weight)); }
+                h5 a { font-weight: max(600, var(--h5-font-weight)); }
+                h6 a { font-weight: max(600, var(--h6-font-weight)); }
                 
                 a.emoticon {
 
@@ -12228,8 +12249,8 @@
     function checkbox       ($id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('checkbox')),                attr("id" , $id), attr("type", "checkbox") ) ));  }
     function checkbox_label ($id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','checkbox-label')),  attr("for", $id)                           ) ));  }
 
-    function radio          ($group, $id, $html = "", $attributes = false) {                        return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('radio')),               attr("name" , $group), attr("id" , $id), attr("type", "radio") ) ));  }
-    function radio_label    ($group, $id, $html = "", $attributes = false) {                        return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','radio-label')), attr("for", $id)                           ) ));  }
+    function radio          ($group, $id, $html = "", $attributes = false) {                return  tag('input',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('radio')),               attr("name" , $group), attr("id" , $id), attr("type", "radio") ) ));  }
+    function radio_label    ($group, $id, $html = "", $attributes = false) {                return  tag('label',                      $html, attributes_add( $attributes, attributes(attr("class", component_class('label','radio-label')), attr("for", $id)                           ) ));  }
 
     function button         ($html = "", $attributes = false) {                             return  tag('button',                     $html,                     attributes(  $attributes, attributes(attr("class", component_class('button'))))                            );                      }
     function button_label   ($html = "", $attributes = false) {                             return  tag('span',                       $html,                     attributes(  $attributes, attributes(attr("class", component_class('label','button-label'))))                      );                      }
@@ -12279,14 +12300,18 @@
 
     $__dom_is_first_main = true;
 
-    function main($html = "", $attributes = false, $indent = auto)
+    function main($html = "", $attributes = false, $indent = auto, $tag = "main")
     {
         if (has("main")) die($html);
         if (has("main-include")) set("main-include", $html);
 
         $profiler = debug_track_timing();
         
-        $attributes = attributes_add($attributes, attributes(attr("class", component_class("main")), attr("class", component_class("main"))));
+        $attributes = attributes_add($attributes, attributes(
+            
+            attr("class", component_class("main")), 
+            attr("class", component_class("main"))
+        ));
 
         global $__dom_is_first_main;
         
@@ -12298,7 +12323,9 @@
 
         main_post_processing($html);
 
-        return tag("main", cosmetic(eol(1)).(!!get("minify") ? $html : indent($html, $indent)).cosmetic(eol(1)), $attributes); 
+        if (auto === $indent) $indent = (false === stripos($html, "</pre>")); // TODO : Optimize
+
+        return tag($tag, cosmetic(eol(1)).(!!get("minify") ? $html : indent($html, $indent)).cosmetic(eol(1)), $attributes); 
     }
 
     function main_post_processing($html)
@@ -13027,12 +13054,14 @@
     // Components with BlogPosting microdata
     // NOTE. Currently, only cards with title, text, and properties sub-components are almost usable for indieweb content
 
-    function article($html = "", $attributes = false, $indent = auto)
+    function article($html = "", $attributes = auto, $indent = auto)
     { 
+        if (auto === $indent) $indent = (false === stripos($html, "</pre>")); // TODO : Optimize
+
         return tag(
             'article', 
             eol().($indent === false ? $html : indent($html)).eol(), 
-            attributes_add(/*attributes_add(*/$attributes/*, attr_article())*/, array("class" => "article"))
+            attributes_add($attributes, array("class" => "article"))
             ); 
     }
     
