@@ -15,8 +15,9 @@ output(
         main(
             markdown(
                 str_replace("20XX", date("Y"), 
-                str_replace("https://github.com/villepreux/dom/tree/master/", "", 
-                    include_file(path("README.md"))
+                str_replace([   "https://codeberg.org/villepreux/dom/tree/master", 
+                                "https://github.com/villepreux/dom/tree/master/" ], "", 
+                        include_file(path("README.md"))
                     ))
                 )
             )

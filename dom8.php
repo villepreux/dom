@@ -2733,7 +2733,26 @@
     }
 
     function hook_markup_to_title($title)
-    {
+    {/*
+        if (!!$title)
+        {            
+            $title = trim(strip_tags($title));
+
+            $pos = strpos($title, "."); if (false !== $pos) $title = substr($title, 0, $pos);
+            $pos = strpos($title, "!"); if (false !== $pos) $title = substr($title, 0, $pos + 1);
+            $pos = strpos($title, "?"); if (false !== $pos) $title = substr($title, 0, $pos + 1);
+            
+            if (mb_strlen($title) > 32) $title = substr($title, 0, 31)."…";
+
+            if (false === get("title", false))
+            {
+                set("title", $title);
+            }
+        }        
+
+        return $title;*/
+
+        
         if (!!$title && false === get("title", false))
         {            
             $title = trim(strip_tags($title));
@@ -5922,7 +5941,8 @@
     {
         if ($quote === true || $quote === false || (is_string($quote) && strlen($quote) > 1)) { $type = $quote; $quote = '"'; }
 
-             if (                     $type === auto)  $type = "systemui";        
+             if (                     $type === auto)  $type = "humanist";
+           //if (                     $type === auto)  $type = "systemui";
         else if (!is_string($type) && $type ==  true)  $type = "condensed";
         else if (!is_string($type) && $type ==  false) $type = "neogrotestque";
 
@@ -9093,6 +9113,8 @@
                     
                     div(checkbox("setting-fun-drunk" ).label("Drunk", "setting-fun-drunk" )).
                     div(checkbox("setting-fun-party" ).label("Party", "setting-fun-party" )).
+
+                    p("Drunk idea ".a("from Terence Eden", "https://shkspr.mobi/blog/2025/09/drunk-css")).
                     
                     "", "fun").
                 
@@ -12159,6 +12181,8 @@
 
         $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
         $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
+
+        $title = trim(strip_tags($html));
         
         if ($headline_hook)
         {
@@ -12178,7 +12202,7 @@
         {
             if (false === stripos($html, "<a"))
             {
-                $anchor_link = nbsp().a(span("#", [ "aria-hidden" => "true" ]).span("anchor", "visually-hidden"), "#$id", "anchor");
+                $anchor_link = nbsp().a(span("#", [ "aria-hidden" => "true", "aria-label" => "Anchor to $title" ]), "#$id", "anchor");
             }
         }
 
@@ -13486,7 +13510,44 @@
     {
         return array("width" => $w, "height" => $h/*, "style" => "aspect-ratio: $w / $h"*/);
     }
+
+    /**
+     * Image intrinsic size
+     */
+    function preprocess_img_size($path, $w, $h, $precompute_size = auto, $fallback_max_w = 600, $fallback_max_h = 400)
+    {   
+        $max_w = !$w ? $fallback_max_w : $w;
+        $max_h = !$h ? $fallback_max_h : $h;
+
+        $precompute_size = (auto === $precompute_size) ? get("img_precompute_size") : $precompute_size;
+
+        if ((!$w || !$h) && $precompute_size)
+        {
+            $size = cached_getimagesize($path);
+
+            if (is_array($size) && count($size) >= 2)
+            {
+                list($computed_w, $computed_h) = $size;
+
+                if (!$w) $w = $computed_w;
+                if (!$h) $h = $computed_h;
+            }
+        }
+
+        if (!$w) $w = get("default_image_ratio_w", $fallback_max_w);
+        if (!$h) $h = get("default_image_ratio_h", $fallback_max_h);
+
+
+        if ($w > $max_w) { $h = (int)($h * $max_w / $w); $w = $max_w; }
+        if ($h > $max_h) { $w = (int)($w * $max_h / $h); $h = $max_h; }
+
+        return [ $w, $h ];
+    }
+
     
+    /**
+     * Image component
+     */
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true)
     {
         $debug_this = (false !== stripos($path, "coryd") && auto !== $lazy);
@@ -13519,11 +13580,6 @@
             return img(at($attributes, "src", $path), at($attributes, "width"), at($attributes, "height"), $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images);
         }
 
-        if (auto === $precompute_size)
-        {
-            $precompute_size = get("img_precompute_size");
-        }
-
         $valid_path = path($path);
         $path       = !$valid_path ? $path : $valid_path;
         $info       = explode('?', $path);
@@ -13537,12 +13593,7 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        $size0 = ($precompute_size ? cached_getimagesize($path) : array(0,0));
-        list($w0, $h0) = (is_array($size0) ? $size0 : array(0, 0));
-        if ($w0 == 0 || $h0 == 0) list($w0, $h0) = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
-                        
-        $w = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$w ? $w : $w0;
-        $h = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$h ? $h : $h0;
+        list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -13581,10 +13632,8 @@
         return tag('img', $content, $attributes, false, $content == '');
     }
         
-    function gif($path, $width = false, $height = false, $attributes = false, $alt = false, $precompute_size = auto)
+    function gif($path, $w = false, $h = false, $attributes = false, $alt = false, $precompute_size = auto)
     {
-        $precompute_size = (auto === $precompute_size) ? get("img_precompute_size") : $precompute_size;
-
         // Image path. Deduce ext and alt if not provided (bad)
 
         $valid_path = path($path);
@@ -13601,11 +13650,7 @@
 
         // Image size
 
-        $size0 = ($precompute_size ? cached_getimagesize($path) : array(0,0));
-        list($w0, $h0) = (is_array($size0) ? $size0 : array(0, 0));
-        if ($w0 == 0 || $h0 == 0) list($w0, $h0) = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
-        $width  = /*(is_array($attributes) && array_key_exists("width",  $attributes)) ? $attributes["width"] */!!$width  ? $width  : $w0;
-        $height = /*(is_array($attributes) && array_key_exists("height", $attributes)) ? $attributes["height"]*/!!$height ? $height : $h0;
+        list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size);
 
         $attributes = attributes_as_string($attributes);
         $attributes = $attributes == "" ? "" : " $attributes";
@@ -13728,7 +13773,7 @@
                     <?php if ($has_webp) { ?><source type="image/webp" srcset="<?= $clip ?>.webp" ><?php } ?> 
                     <?php if ($has_apng) { ?><source type="image/apng" srcset="<?= $clip ?>.apng" ><?php } ?> 
 
-                    <?php if ($has_gif)  { ?><img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>""><?php } ?> 
+                    <?php if ($has_gif)  { ?><img <?= $attributes ?> src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $w ?>" height="<?= $h ?>" style="--width: <?= $w ?>; --height: <?= $h ?>""><?php } ?> 
 
                 </picture>
 
@@ -13736,12 +13781,12 @@
 
             <?php if ($has_video) { ?>
 
-                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $width ?>" height="<?= $height ?>" style="--width: <?= $width ?>; --height: <?= $height ?>"> 
+                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $w ?>" height="<?= $h ?>" style="--width: <?= $w ?>; --height: <?= $h ?>"> 
 
                     <?php if ($has_webm) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
                     <?php if ($has_mp4)  { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
 
-                    <?php if ($has_gif)  { ?><img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $width ?>" height="<?= $height ?>"><?php } ?> 
+                    <?php if ($has_gif)  { ?><img src="<?= $clip ?>.gif" alt="<?= $alt ?>" width="<?= $w ?>" height="<?= $h ?>"><?php } ?> 
 
                 </video>
 

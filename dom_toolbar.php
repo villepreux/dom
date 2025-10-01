@@ -4,6 +4,7 @@ namespace dom;
 
 require_once(__DIR__."/dom8.php");
 
+
 if (!defined("DOM_MENU_ID")) define("DOM_MENU_ID", "menu");
 
 function hook_toolbar($row)

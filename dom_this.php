@@ -1,4 +1,4 @@
-<?php require_once(__DIR__."/dom_html.php");
+<?php require_once(__DIR__."/dom.php");
 
 use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer, layered_style};
 use const dom\auto;
