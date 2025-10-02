@@ -9114,11 +9114,11 @@
                     div(checkbox("setting-fun-drunk" ).label("Drunk", "setting-fun-drunk" )).
                     div(checkbox("setting-fun-party" ).label("Party", "setting-fun-party" )).
 
-                    p("Drunk idea ".a("from Terence Eden", "https://shkspr.mobi/blog/2025/09/drunk-css")).
+                    p("Drunk idea ".a("from Terence Eden", "https://shkspr.mobi/blog/2025/09/drunk-css").".".br()."Party mode remixing ".a("Matthias Ott", "https://matthiasott.com")." Jitter knob, himself using ".a("Fabien Fellay filter", "https://inkscape.org/~fabien.fellay/★chromatic-aberration-filters")).
                     
                     "", "fun").
                 
-                ""), [ "class" => ("settings"/*." requires-js"*/) ]).
+                ""), [ "id" => "settings", "class" => ("settings"/*." requires-js"*/) ]).
                     
             script((function () { HSTART(-3) ?><script><?= HERE() ?> 
 
