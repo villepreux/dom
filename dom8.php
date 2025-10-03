@@ -5024,7 +5024,7 @@
                     redirect(".");
                 }
 
-                $cache_basename         = md5(url(true).version);
+                $cache_basename         = slugify(url(true)."-".version).".html";
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
                 $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 1*60*60)) < filemtime($cache_filename));
