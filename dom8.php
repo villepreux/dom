@@ -807,9 +807,9 @@
             
         set("carousel",                         true);
 
-        set("cache-duration",                   1*60*60); // 1h
+        set("cache-duration",                   24*60*60); // 24h
 
-        set("forwarded_flags",                  array("contrast","light","no_js","no_css","rss","wip"));
+        set("forwarded_flags",                  array("no_js","no_css","rss","wip"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
 
         set("img_lazy_loading_after",           get("img_lazy_loading_after", 3));
@@ -5024,10 +5024,18 @@
                     redirect(".");
                 }
 
-                $cache_basename         = slugify(url(true)."-".version).".html";
+                $cache_basename = "";
+                {
+                    $cache_basename = url_branch(false);
+                    $cache_basename = slugify($cache_basename);
+                    if ("" == $cache_basename) $cache_basename = "index";
+                    $cache_basename .= ".".md5(url(true));
+                    $cache_basename .= ".html";
+                }
+
                 $cache_filename         = "$cache_dir/$cache_basename";
                 $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
-                $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 1*60*60)) < filemtime($cache_filename));
+                $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 24*60*60)) < filemtime($cache_filename));
                 
                 set("cache_filename", $cache_filename);
                 
@@ -5513,7 +5521,7 @@
             
             if ($size === false)
             {
-                $size = !!get("debug") ? getimagesize($src) : @getimagesize($src);
+                $size = @getimagesize($src);
             }
             
             /*if ($size === false)
@@ -8848,7 +8856,7 @@
     {
         if (!$css || $css == "") return '';
         //return tag('style',  eol().$css.eol(), $attributes);
-        
+
         global $__style_css_hooks;
         if (-1 === $order)
             $__style_css_hooks = array_merge([ [ $css, $attributes ] ], $__style_css_hooks);
@@ -13594,6 +13602,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size);
+        $lqip_css = cached_lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -13622,6 +13631,18 @@
         if ($preload && $img_nth == 1) {
         
             $attributes = attributes_add($attributes, array("fetchpriority" => "high"));
+        }
+
+        if ($lqip_css != "")
+        {
+            if (is_array($attributes["style"]))
+            {
+                $attributes["style"][] = $lqip_css;
+            }
+            else
+            {
+                $attributes["style"] .= " $lqip_css";
+            }
         }
 
         //if ($debug_this) bye([ "alt" => $alt, "lazy" => $lazy, "path" => $path, "attributes" => $attributes, "preload" => $preload ]);
@@ -15978,6 +15999,274 @@
                 }
             }
         }
+    }
+
+    ######################################################################################################################################
+    #endregion
+    #region LQIP Utilities
+
+        
+    function gamma_inv($x) 
+    {
+        return $x >= 0.04045 ? pow(($x + 0.055) / 1.055, 2.4) : $x / 12.92;
+    }
+
+    function cbrt($x)
+    {
+        return $x < 0 ? -((- $x) ** (1/3)) : $x ** (1/3);
+    }
+
+    function rgbToOkLab($r, $g, $b) 
+    {
+        $r = gamma_inv($r / 255);
+        $g = gamma_inv($g / 255);
+        $b = gamma_inv($b / 255);
+
+        $l = cbrt(0.4122214708 * $r + 0.5363325363 * $g + 0.0514459929 * $b);
+        $m = cbrt(0.2119034982 * $r + 0.6806995451 * $g + 0.1073969566 * $b);
+        $s = cbrt(0.0883024619 * $r + 0.2817188376 * $g + 0.6299787005 * $b);
+
+        return [
+
+            ($l * +0.2104542553 + $m * +0.7936177850 + $s * -0.0040720468),
+            ($l * +1.9779984951 + $m * -2.4285922050 + $s * +0.4505937099),
+            ($l * +0.0259040371 + $m * +0.7827717662 + $s * -0.8086757660),
+        ];
+    }
+
+    function scaleComponentForDiff($x, $chroma) {
+
+        return $x / (1e-6 + pow($chroma, 0.5));
+    }
+
+    function bitsToLab($ll, $aaa, $bbb) {
+
+        $L = ( $ll       / 0b0011) * 0.6 + 0.20;
+        $a = ( $aaa      / 0b1000) * 0.7 - 0.35;
+        $b = (($bbb + 1) / 0b1000) * 0.7 - 0.35;
+
+        return [ $L, $a, $b ];
+    }
+
+    function findOklabBits($targetL, $targetA, $targetB) {
+        
+        $targetChroma = hypot($targetA, $targetB);
+
+        $scaledTargetA = scaleComponentForDiff($targetA, $targetChroma);
+        $scaledTargetB = scaleComponentForDiff($targetB, $targetChroma);
+
+        $bestBits = [ 0, 0, 0 ];
+        $bestDifference = INF;
+
+        for ($lli  = 0; $lli  <= 0b011; ++$lli)
+        for ($aaai = 0; $aaai <= 0b111; ++$aaai)
+        for ($bbbi = 0; $bbbi <= 0b111; ++$bbbi)
+        {
+            list($L, $a, $b) = bitsToLab($lli, $aaai, $bbbi);
+
+            $chroma  = hypot($a, $b);
+            $scaledA = scaleComponentForDiff($a, $chroma);
+            $scaledB = scaleComponentForDiff($b, $chroma);
+
+            $difference = sqrt(
+
+                pow($L       - $targetL,       2) +
+                pow($scaledA - $scaledTargetA, 2) +
+                pow($scaledB - $scaledTargetB, 2)
+            );
+
+            if ($difference < $bestDifference)
+            {
+                $bestDifference = $difference;
+                $bestBits = [$lli, $aaai, $bbbi];
+            }
+        }
+
+        return [ $bestBits[0], $bestBits[1], $bestBits[2] ];
+    }
+
+    function get_lqip_info($path, &$lqip, &$main_color)
+    {
+      //list($width, $height) = getimagesize($path);
+        $width = $height = false;
+        {
+            $size = cached_getimagesize($path);
+            
+            if (false === $size || !is_array($size) || count($size) < 2)
+            {
+                return false;
+            }
+            else
+            {
+                list($width, $height) = array_values($size);
+            }
+        }
+
+        $ext = false;
+        {
+            $clean_path = $path;
+            $pos = stripos($clean_path, "?");
+            if (false !== $pos) $clean_path = substr($clean_path, 0, $pos);
+            $pos = strripos($clean_path, ".");
+            if (false !== $pos) 
+                $ext = substr($clean_path, 1 + $pos);
+            else 
+                $ext = "png"; // Fallback type if no extension is present
+        }
+
+        $imagecreate_func = null;
+
+             if ("jpg"  == $ext) $imagecreate_func = "imagecreatefromjpeg";
+        else if ("png"  == $ext) $imagecreate_func = "imagecreatefrompng";
+        else if ("avif" == $ext) $imagecreate_func = "imagecreatefromavif";
+        else if ("webp" == $ext) $imagecreate_func = "imagecreatefromwebp";
+        else if ("gif"  == $ext) $imagecreate_func = "imagecreatefromgif";
+        else 
+        {
+            return false;
+        }
+
+        // Handling of wrongly supported formats
+        if (!function_exists($imagecreate_func)) return false;
+
+        $src = @($imagecreate_func)($path);
+
+        // Handling of wrong extensions
+        if (!$src) return false;
+
+        $dst =   imagecreatetruecolor(1, 1);
+                 imagecopyresampled($dst, $src, 0, 0, 0, 0, 1, 1, $width, $height);
+        $index = imagecolorat($dst, 0, 0);
+        $color = imagecolorsforindex($dst, $index);
+
+        list($rawL,  $rawA,  $rawB)  = rgbToOkLab(    $color["red"], $color["green"], $color["blue"] );
+        list($ll,    $aaa,   $bbb)   = findOklabBits( $rawL,         $rawA,           $rawB          );
+        list($baseL, $baseA, $baseB) = bitsToLab(     $ll,           $aaa,            $bbb           );
+
+        list($rawL, $rawA, $rawB) = rgbToOkLab($color["red"], $color["green"], $color["blue"]);
+
+        $main_color = [ $rawL, $rawA, $rawB ];
+
+        $dst = imagecreatetruecolor(3, 2);
+               imagecopyresampled($dst, $src, 0, 0, 0, 0, 3, 2, $width, $height);
+               imagecopymergegray($dst, $dst, 0, 0, 0, 0, 3, 2, 0);
+
+        $values = [];
+
+        for ($x = 0; $x < 3; ++$x)
+        for ($y = 0; $y < 2; ++$y)
+        {
+            $index = imagecolorat($dst, $x, $y);
+            $color = imagecolorsforindex($dst, $index);
+
+            list($rawL, $rawA, $rawB) = rgbToOkLab($color["red"], $color["green"], $color["blue"]);
+            
+            $values[] = clamp(0, 0.5 + $rawL - $baseL, 1);
+        }
+
+        $ca = round($values[0] * 0b11);
+        $cb = round($values[1] * 0b11);
+        $cc = round($values[2] * 0b11);
+        $cd = round($values[3] * 0b11);
+        $ce = round($values[4] * 0b11);
+        $cf = round($values[5] * 0b11);
+
+        $lqip = - pow(2, 19) +
+
+            (($ca  & 0b011) << 18) +
+            (($cb  & 0b011) << 16) +
+            (($cc  & 0b011) << 14) +
+            (($cd  & 0b011) << 12) +
+            (($ce  & 0b011) << 10) +
+            (($cf  & 0b011) <<  8) +
+            (($ll  & 0b011) <<  6) +
+            (($aaa & 0b111) <<  3) +
+            (($bbb & 0b111) <<  0);
+
+        return true;
+    }
+
+    function lqip_css($path)
+    {
+        $lqip   = 0;
+        $color  = "#0000";
+
+        if (!get_lqip_info($path, $lqip, $color))
+        {
+            return "";
+        }
+
+        list($l, $a, $b) = $color;
+
+        return " --lqip: $lqip; --color: oklab($l $a $b); ";
+    }
+
+    function lqip_global_css()
+    {
+        return (function() { HSTART() ?><style><?= HERE() ?>
+            
+            [style*="--lqip:"]:is( :not(img), img[loading=lazy], .force-lqip ) {
+
+                --lqip-ca:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 18))), 4);
+                --lqip-cb:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 16))), 4);
+                --lqip-cc:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 14))), 4);
+                --lqip-cd:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 12))), 4);
+                --lqip-ce:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 10))), 4);
+                --lqip-cf:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2,  8))), 4);
+
+                --lqip-ll:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2,  6))), 4);
+                --lqip-aaa: mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2,  3))), 8);
+                --lqip-bbb: mod(            calc( var(--lqip) + pow(2, 19)),                8);
+
+                --lqip-ca-clr: hsl(0 0% calc(var(--lqip-ca) / 3 * 60% + 20%));
+                --lqip-cb-clr: hsl(0 0% calc(var(--lqip-cb) / 3 * 60% + 20%));
+                --lqip-cc-clr: hsl(0 0% calc(var(--lqip-cc) / 3 * 60% + 20%));
+                --lqip-cd-clr: hsl(0 0% calc(var(--lqip-cd) / 3 * 60% + 20%));
+                --lqip-ce-clr: hsl(0 0% calc(var(--lqip-ce) / 3 * 60% + 20%));
+                --lqip-cf-clr: hsl(0 0% calc(var(--lqip-cf) / 3 * 60% + 20%));
+
+                --lqip-base-clr: oklab(calc(var(--lqip-ll) / 3 * 0.6 + 0.2) calc(var(--lqip-aaa) / 8 * 0.7 - 0.35) calc((var(--lqip-bbb) + 1) / 8 * 0.7 - 0.35));
+                
+                --lqip-stop10:  2%;
+                --lqip-stop20:  8%;
+                --lqip-stop30: 18%;
+                --lqip-stop40: 32%;
+
+                filter: unset;
+                background-blend-mode: hard-light, hard-light, hard-light, hard-light, hard-light, hard-light, normal;
+                background-image: radial-gradient(50% 75% at 16.67% 25%, var(--lqip-ca-clr), rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 50% 25%, var(--lqip-cb-clr), rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 83.33% 25%, var(--lqip-cc-clr), rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 16.67% 75%, var(--lqip-cd-clr), rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 50% 75%, var(--lqip-ce-clr), rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 83.33% 75%, var(--lqip-cf-clr), rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), linear-gradient(0deg, var(--lqip-base-clr), var(--lqip-base-clr));
+            }
+
+            [style*="--color:"] {
+
+                background-color: var(--color);
+
+                filter: unset;
+            }
+
+        <?= HERE("raw_css") ?></style><?php return HSTOP(); })();
+    }
+
+    $__cached_lqip_css = [];
+
+    function cached_lqip_css($path)
+    {
+        $profiler = debug_track_timing();
+
+        if (!is_string($path)) 
+        {
+            bye("INTERNAL ERROR 16239");
+            return "";
+        }
+
+        global $__cached_lqip_css;
+
+        if (!array_key_exists($path, $__cached_lqip_css)) 
+        {
+            $__cached_lqip_css[$path] = !!get("debug") ? lqip_css($path) : @lqip_css($path);
+        }
+        
+        return $__cached_lqip_css[$path];
     }
 
     ######################################################################################################################################
