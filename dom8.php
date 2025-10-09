@@ -9139,7 +9139,7 @@
             $html = section($html, [ "id" => "settings", "class" => ("settings"/*." requires-js"*/) ]);
         }
                     
-        $script = script((function () { HSTART(-3) ?><script><?= HERE() ?> 
+        $script = script((function () use ($themes, $layers) { HSTART(-3) ?><script><?= HERE() ?> 
 
                 /* Default UI must reflect current setting */
 
@@ -9148,16 +9148,24 @@
 
                 /* Handle user interractions */
 
+                <?php if ($themes) { ?>
+
                 document.querySelector("#setting-theme-system"  ).addEventListener("click", function() { window.localStorage.removeItem("theme");            document.documentElement.removeAttribute("data-theme");             document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light dark" ); }); });
                 document.querySelector("#setting-theme-dark"    ).addEventListener("click", function() { window.localStorage.setItem(   "theme", "dark");    document.documentElement.setAttribute(   "data-theme", "dark");     document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "dark"       ); }); });
                 document.querySelector("#setting-theme-light"   ).addEventListener("click", function() { window.localStorage.setItem(   "theme", "light");   document.documentElement.setAttribute(   "data-theme", "light");    document.querySelectorAll('meta[name="color-scheme"]').forEach(function(e) { e.setAttribute("content", "light"      ); }); });
                 
+                <?php } ?>
+
+                <?php if ($layers) { ?>
+
                 document.querySelector("#setting-css-spec"      ).addEventListener("click", function() { window.localStorage.setItem(   "css", "spec");      document.documentElement.setAttribute(   "data-css", "spec");       dom.disable_all_layers(); dom.enable_layer("spec"    );  });
                 document.querySelector("#setting-css-browser"   ).addEventListener("click", function() { window.localStorage.setItem(   "css", "browser");   document.documentElement.setAttribute(   "data-css", "browser");    dom.disable_all_layers(); dom.enable_layer("browser" );  });
                 document.querySelector("#setting-css-normalize" ).addEventListener("click", function() { window.localStorage.setItem(   "css", "normalize"); document.documentElement.setAttribute(   "data-css", "normalize");  dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize");  });
                 document.querySelector("#setting-css-default"   ).addEventListener("click", function() { window.localStorage.setItem(   "css", "default");   document.documentElement.setAttribute(   "data-css", "default");    dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); });
                 document.querySelector("#setting-css-app"       ).addEventListener("click", function() { window.localStorage.setItem(   "css", "app");       document.documentElement.setAttribute(   "data-css", "app");        dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); });
                 document.querySelector("#setting-css-theme"     ).addEventListener("click", function() { window.localStorage.removeItem("css");              document.documentElement.removeAttribute("data-css");               dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); dom.enable_layer("theme"); });
+
+                <?php } ?>
 
                 <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
 
