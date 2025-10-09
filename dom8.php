@@ -5031,6 +5031,8 @@
                     if ("" == $cache_basename) $cache_basename = "index";
                     $cache_basename .= ".".md5(url(true));
                     $cache_basename .= ".html";
+
+                    //file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL."Start: ".url(true));
                 }
 
                 $cache_filename         = "$cache_dir/$cache_basename";
@@ -5087,6 +5089,8 @@
             
             if (!!$cache_file)
             {   
+                //file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL."Stop.: ".url(true));
+
                 fwrite($cache_file, ob_get_contents());
                 fclose($cache_file);            
             }
@@ -9054,7 +9058,7 @@
     
     #region Third Parties CSS
 
-    function settings()
+    function settings($details = true, $fun = true, $layers = true, $themes = true)
     {
         //if (!!get("no_js")) return "";
         
@@ -9062,9 +9066,7 @@
         $char_dark   = "☾"; 
         $char_light  = "☀︎"; // 💡︎
 
-        return 
-
-            layered_style([ "default", "component", "settings" ], (function() { HSTART() ?><style><?= HERE() ?> 
+        $style = layered_style([ "default", "component", "settings" ], (function() { HSTART() ?><style><?= HERE() ?> 
             
                 .settings {
 
@@ -9088,47 +9090,56 @@
                     }
                 }
 
-                <?= HERE("raw_css") ?></style><?php return HSTOP(); })()).
+                <?= HERE("raw_css") ?></style><?php return HSTOP(); })());
 
-            details(summary("User settings").form(
+        $html = "";
 
-                fieldset(
+        if ($themes) $html .= fieldset(
 
-                    legend("Color-scheme preferences").
+            legend("Color-scheme preferences").
 
-                    div(radio("setting-theme", "setting-theme-system"   ).label($char_system, "setting-theme-system", [ "aria-label" => "System" ])).
-                    div(radio("setting-theme", "setting-theme-dark"     ).label($char_dark,   "setting-theme-dark",   [ "aria-label" => "Dark"   ])).
-                    div(radio("setting-theme", "setting-theme-light"    ).label($char_light,  "setting-theme-light",  [ "aria-label" => "Light"  ])).
+            div(radio("setting-theme", "setting-theme-system"   ).label($char_system, "setting-theme-system", [ "aria-label" => "System" ])).
+            div(radio("setting-theme", "setting-theme-dark"     ).label($char_dark,   "setting-theme-dark",   [ "aria-label" => "Dark"   ])).
+            div(radio("setting-theme", "setting-theme-light"    ).label($char_light,  "setting-theme-light",  [ "aria-label" => "Light"  ])).
+            
+            "", "theme");
+
+        if ($layers) $html .= fieldset(
+
+            legend("CSS layers preferences").
+            
+            div(radio("setting-css", "setting-css-spec"         ).label("Spec",       "setting-css-spec"      )).
+            div(radio("setting-css", "setting-css-browser"      ).label("Browser",    "setting-css-browser"   )).
+            div(radio("setting-css", "setting-css-normalize"    ).label("Normalize",  "setting-css-normalize" )).
+            div(radio("setting-css", "setting-css-default"      ).label("Default",    "setting-css-default"   )).
+            div(radio("setting-css", "setting-css-app"          ).label("App",        "setting-css-app"       )).
+            div(radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     )).
+            
+            "", "css requires-js");
+
+        if ($fun) $html .= fieldset(
+
+            legend("Fun").
+            
+            div(checkbox("setting-fun-drunk" ).label("Drunk", "setting-fun-drunk" )).
+            div(checkbox("setting-fun-party" ).label("Party", "setting-fun-party" )).
+
+            p("Drunk idea ".a("from Terence Eden", "https://shkspr.mobi/blog/2025/09/drunk-css").".".br()."Party mode remixing ".a("Matthias Ott", "https://matthiasott.com")." Jitter knob, himself using ".a("Fabien Fellay filter", "https://inkscape.org/~fabien.fellay/★chromatic-aberration-filters")).
+            
+            "", "fun");
+        
+        $html = form($html);
+
+        if ($details) 
+        {
+            $html = details(summary("User settings").$html, [ "id" => "settings", "class" => ("settings"/*." requires-js"*/) ]);
+        }
+        else 
+        {
+            $html = section($html, [ "id" => "settings", "class" => ("settings"/*." requires-js"*/) ]);
+        }
                     
-                    "", "theme").
-
-                fieldset(
-
-                    legend("CSS layers preferences").
-                    
-                    div(radio("setting-css", "setting-css-spec"         ).label("Spec",       "setting-css-spec"      )).
-                    div(radio("setting-css", "setting-css-browser"      ).label("Browser",    "setting-css-browser"   )).
-                    div(radio("setting-css", "setting-css-normalize"    ).label("Normalize",  "setting-css-normalize" )).
-                    div(radio("setting-css", "setting-css-default"      ).label("Default",    "setting-css-default"   )).
-                    div(radio("setting-css", "setting-css-app"          ).label("App",        "setting-css-app"       )).
-                    div(radio("setting-css", "setting-css-theme"        ).label("Theme",      "setting-css-theme"     )).
-                    
-                    "", "css requires-js").
-
-                fieldset(
-
-                    legend("Fun").
-                    
-                    div(checkbox("setting-fun-drunk" ).label("Drunk", "setting-fun-drunk" )).
-                    div(checkbox("setting-fun-party" ).label("Party", "setting-fun-party" )).
-
-                    p("Drunk idea ".a("from Terence Eden", "https://shkspr.mobi/blog/2025/09/drunk-css").".".br()."Party mode remixing ".a("Matthias Ott", "https://matthiasott.com")." Jitter knob, himself using ".a("Fabien Fellay filter", "https://inkscape.org/~fabien.fellay/★chromatic-aberration-filters")).
-                    
-                    "", "fun").
-                
-                ""), [ "id" => "settings", "class" => ("settings"/*." requires-js"*/) ]).
-                    
-            script((function () { HSTART(-3) ?><script><?= HERE() ?> 
+        $script = script((function () { HSTART(-3) ?><script><?= HERE() ?> 
 
                 /* Default UI must reflect current setting */
 
@@ -9149,6 +9160,8 @@
                 document.querySelector("#setting-css-theme"     ).addEventListener("click", function() { window.localStorage.removeItem("css");              document.documentElement.removeAttribute("data-css");               dom.disable_all_layers(); dom.enable_layer("browser" ); dom.enable_layer("normalize"); dom.enable_layer("default"); dom.enable_layer("app"); dom.enable_layer("theme"); });
 
                 <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
+
+        return $style.$html.$script;
     }
 
     function css_spec($layer = "spec")
@@ -13524,6 +13537,8 @@
      */
     function preprocess_img_size($path, $w, $h, $precompute_size = auto, $fallback_max_w = 600, $fallback_max_h = 400)
     {   
+        $profiler = debug_track_timing();
+
         $max_w = !$w ? $fallback_max_w : $w;
         $max_h = !$h ? $fallback_max_h : $h;
 
@@ -13602,7 +13617,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size);
-        $lqip_css = cached_lqip_css($path);
+        $lqip_css = !get("lqip", true) ? "" : cached_lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -16087,6 +16102,8 @@
 
     function get_lqip_info($path, &$lqip, &$main_color)
     {
+        $profiler = debug_track_timing();
+
       //list($width, $height) = getimagesize($path);
         $width = $height = false;
         {
