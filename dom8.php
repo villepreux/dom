@@ -12732,7 +12732,7 @@
         return $html;
     }
   
-    function wikipedia($page)
+    function wikipedia($page, $lang = "fr")
     {
         return         
             div(            
@@ -12751,15 +12751,16 @@
                     .wikipedia-api-parse table img { width: auto }
                     .wikipedia-api-parse .flagicon { max-width: 64px; display: inline-block; }
                     .wikipedia-api-parse .mw-halign-right { float: right; }
+                    .wikipedia-api-parse :is(.mw-parser-output .navbox, .mw-parser-output .navbox-subgroup) { background: transparent };
 
                 <?= HERE("raw_css") ?></style><?php return HSTOP(); })()).
 
                 str_replace_all("hxrxexf", "href",
-                str_replace_all('href="/', 'hxrxexf="https://fr.wikipedia.org/', 
+                str_replace_all('hxrxexf="/', 'hxrxexf="https://'.$lang.'.wikipedia.org/', 
                 str_replace_all('href="',  'target="_blank" hxrxexf="', 
                     offset_html_headlines(
                         at(at(
-                            array_open_url("https://fr.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1"), 
+                            array_open_url("https://$lang.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1"), 
                             "parse"), "text"),
                         1
                         )
