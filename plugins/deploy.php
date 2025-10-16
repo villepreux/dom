@@ -2329,6 +2329,9 @@ if (!!$cmdline_option_blogroll)
             $xml = deploy_exec("$php_exe -f index.php -- $php_args $args", false);
         }
         chdir($cwd);
+
+        // QUICK HOTFIX
+        $xml = str_replace("villepreux.net/../villepreux.net", "villepreux.net", $xml);
         
         file_put_contents($filename, $xml);
         deploy_log("[+] $filename");

@@ -466,6 +466,9 @@
         $path_cache_key = "$path0".($default?"1":"0").($search?"1":"0").($depth0===auto?"auto":($depth0?"1":"0"))."$max_depth-$offset_path0".($bypass_root_hints?"1":"0");
         if (is_array($__path_cache) && array_key_exists($path_cache_key, $__path_cache)) { return $__path_cache[$path_cache_key]; }
 
+        // Early return if invalid
+        if ($path0 == "" || !$path0) return false;
+
         // Early return if URL
         if (strlen($path0) >= 6 && ($path0[4] == ':' || $path0[5] == ':')) { $__path_cache[$path_cache_key] = $path0; return $path0; }
 
@@ -4545,24 +4548,7 @@
         $username   = ($username === false) ? get("facebook_page")  : $username;        
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
         $posts      = [];
-        /*
-        return array(array
-        (
-            "TYPE"              => "facebook"
-        ,   "user_name"         => get("name")
-        ,   "user_url"          => get("url")
-        ,   "user_img_url"      => "image.jpg"
-        ,   "post_title"        => get("title")
-        ,   "post_text"         => get("description")
-        ,   "post_timestamp"    => strtotime(date("Y/m/d", time()))
-        ,   "post_url"          => get("url")
-        ,   "post_img_url"      => "image.jpg"
-        ,   "DEBUG_SOURCE"      => array("content" => $content)
-        ,   "LAZY"              => true
-        ));*/
-
         $articles   = array_facebook_articles(get("facebook_page"));
-        
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
 
@@ -6778,16 +6764,16 @@
                 
                             rss_title           (strip_tags(get("title")))
                 . eol() .   rss_description     (get("keywords", strip_tags(get("title"))))
-                . eol() .   rss_link            (get("url")."/"."rss")
+                . eol() .   rss_link            (url()."/rss")
                 . eol() .   rss_lastbuilddate   ()
                 . eol() .   rss_copyright       ()
-
+                                                                                    .(!get("image") ? "" : (""
                 . eol() .   rss_image(
                             
-                                        rss_url     (get("url")."/".get("image"))
+                                        rss_url     (url()."/".get("image"))
                             . eol() .   rss_title   (strip_tags(get("title")))
-                            . eol() .   rss_link    (get("url")."/"."rss")
-                            )
+                            . eol() .   rss_link    (url()."/rss")
+                            )                                                       ))
 
                 . eol() .   wrap_each(get("rss_items", []), eol(), "rss_item_from_item_info", false)
                 );
