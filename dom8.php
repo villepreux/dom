@@ -1727,18 +1727,22 @@
 
     function url_exists($url)
     {
-        $context = stream_context_create( [
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-            ],
-        ]);
+        $context = stream_context_create( [ 'ssl' => [
+
+            'verify_peer'      => false,
+            'verify_peer_name' => false,
+
+        ], ]);
 
         $headers = !$url ? false : @get_headers($url, false, $context);
-        if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
+        if (is_array($headers) && (false !== stripos($headers[0], "200 OK")
+                                || false !== stripos($headers[0], "302 Found"))) return true;
         
         $headers = !$url ? false : @get_headers("$url/", false, $context);
-        if (is_array($headers) && false !== stripos($headers[0], "200 OK")) return true;
+        if (is_array($headers) && (false !== stripos($headers[0], "200 OK")
+                                || false !== stripos($headers[0], "302 Found"))) return true;
+
+        if (false !== stripos($url, "https:")) bye([ "url" => $url, "headers" => $headers ]);
 
         return false;
     }
@@ -4549,6 +4553,7 @@
         $content    = json_facebook($username, array("id","name","about","mission","hometown","website","cover","picture"));
         $posts      = [];
         $articles   = array_facebook_articles(get("facebook_page"));
+        
         $tags_in    = explode(',',$tags_in);
         $tags_out   = explode(',',$tags_out);
 
@@ -8724,14 +8729,19 @@
             // TODO FIX URL QUERY ARGS (incompatible with static sites)
 
             .   eol().comment("Alternate URLs")   
+
             // /rss.xml and not /rss because /rss is /rss/index.html, which is not a RSS feed. Even if it contains a refresh redirection to /rss.xml
             .   delayed_component("_meta_rss_alternates")
 
             .   eol().comment("Icons")
+
             .   link_rel_icon("img/icon.svg")
-            .   link_rel_icon(get("image"), false, false, false, false, $alternate = true)/*
+            .   link_rel_icon(get("image"), false, false, false, false, $alternate = true)
+            
+            /* --------- FAVICONS -------- */
 
             .   eol().comment("'Fav' Icons")
+
             .   link_rel_icon(array(
              
                     get("icons_path")."favicon",
@@ -8741,9 +8751,13 @@
 
                     array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512),
                     
-                    false, false, false, false, $alternate = true)*/
+                    false, false, false, false, $alternate = true)
+                    
+            /* --------- FAVICONS -------- */
+
 
             .   eol().comment("Apple-splash icons")
+
             .   link_rel_icon(get("icons_path")."apple-splash", "2048x2732" , array(1024, 1366, 2)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1668x2388" , array( 834, 1194, 2)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1668x2224" , array( 834, 1112, 2)  )
