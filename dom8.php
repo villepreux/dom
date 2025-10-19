@@ -8960,7 +8960,7 @@
         return tag('script', $js, $type != "text/javascript" ? array("type" => $type) : false);
     }
 
-    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return (tag('script', '', ($type === false || $type == "text/javascript") ? array("src" => $src) : array("type" => $type, "src" => $src), false, false, $extra)); }
+    function script_src($src,               $type = "text/javascript", $extra = false, $force = false)  { if (!!get("no_js")) return ''; return (tag('script', '', is_array($type) ? array_merge(array("src" => $src), $type) : (($type === false || $type == "text/javascript") ? array("src" => $src) : array("type" => $type, "src" => $src)), false, false, $extra)); }
     function script_module($src,            $type = "module",          $extra = false, $force = false)  { return script_src($src, $type, $extra, $force); }
     function script_json_ld($properties)                                                                { return script((((!get("minify",false)) && defined("JSON_PRETTY_PRINT")) ? json_encode($properties, JSON_PRETTY_PRINT) : json_encode($properties)), "application/ld+json", true); }
     
@@ -13282,6 +13282,8 @@
         return tag('a', $favicon.$html, $attributes);
     }
 
+    $__a_encrypted_id_index = 0;
+
     function a_encrypted($html, $url = false, $attributes = false, $target = external_link)
     {
         if ($url        === false
@@ -13294,7 +13296,9 @@
         }
         else 
         {
-            $id = "x-".md5($html);
+            global $__a_encrypted_id_index;
+            ++$__a_encrypted_id_index;
+            $id = "x-".md5($html.$url.$__a_encrypted_id_index);
     
             if (strip_tags($html) == $html)
             {
@@ -13315,6 +13319,8 @@
         }
     }
 
+    $__a_email_id_index = 0;
+
     function a_email($text = false, $email = false, $attributes = false, $target = external_link, $force_js = false)
     {
         if ($email      === false
@@ -13334,11 +13340,14 @@
         }
         else
         {
-            $script  = "document.getElementById('e-".md5($text)."').setAttribute('href','mailto:".preg_replace("/\"/","\\\"",$email)."'); document.getElementById('e-".md5($text)."').innerHTML = '".$text."';";
-            
+            global $__a_email_id_index;
+            ++$__a_email_id_index;
+            $id = "e-".md5($text.$email.$__a_email_id_index);
+
+            $script = "document.getElementById('".$id."').setAttribute('href', 'mailto:".preg_replace("/\"/","\\\"",$email)."');document.getElementById('".$id."').innerHTML = '".$text."';";
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            $html = a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("e-".md5($text)) ], $target).script("eval(unescape('".$crypted_script."'))");
+            $html = a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("".$id) ], $target).script("eval(unescape('".$crypted_script."'))");
         }
 
         if (!!$no_js && $force_js)
