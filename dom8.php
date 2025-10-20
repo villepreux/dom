@@ -5004,6 +5004,24 @@
         }
     }
 
+    function cache_page_reset()
+    {
+        $cache_dir = path(".cache");
+        
+        $cache_basename = "";
+        {
+            $cache_basename = url_branch(false);
+            $cache_basename = slugify($cache_basename);
+            if ("" == $cache_basename) $cache_basename = "index";
+            $cache_basename .= ".".md5(url(true));
+            $cache_basename .= ".html";
+        }
+    
+        $cache_filename = "$cache_dir/$cache_basename";
+
+        @unlink($cache_filename);
+    }
+
     function cache_start($cache_dir = auto)
     {
         $profiler = debug_track_timing();
@@ -5014,9 +5032,15 @@
 
             if ($cache_dir)
             {
-                if (has("cache-reset")) 
+                if ("cache-reset" == get("action")) 
                 {
                     cache_global_reset();
+                    redirect(".");
+                }
+
+                if ("cache-page-reset" == get("action")) 
+                {
+                    cache_page_reset();
                     redirect(".");
                 }
 
@@ -5050,7 +5074,7 @@
                         {
                             echo    eol().
                                     comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                    footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?cache-reset=1", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
+                                    footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?action=cache-page-reset", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
                                     
                                     (!get("debug") ? "" : (debug_log().debug_console())).
 
