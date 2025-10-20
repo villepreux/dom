@@ -124,6 +124,7 @@
     function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
     function server_http_user_agent             ($default = "Unknwon user agent")   { return        at(get_server_vars(), 'HTTP_USER_AGENT',                    $default);  }
+    function server_http_referer                ($default = "Unknwon referer")      { return        at(get_server_vars(), 'HTTP_REFERER',                       $default);  }
 
     function do_not_track($static_default = true)
     {
@@ -655,7 +656,7 @@
             }
         }
 
-        if (is_localhost() || !!get("static"))
+        if (!!get("debug") || is_localhost() || !!get("static"))
         {
             @set_time_limit(24*60*60);
             @ini_set('memory_limit', '-1');
@@ -5022,18 +5023,27 @@
         @unlink($cache_filename);
     }
 
-    // CACHE-DEBUG ------------------------>
     function cache_debug_log($text)
     {
         file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL.$text);
     }                
-    // CACHE-DEBUG ------------------------>
 
     function cache_start($cache_dir = auto)
     {
         $profiler = debug_track_timing();
 
-        if (!!get("cache"))
+        del("cache_filename");
+
+        $url_branch = url_branch(false);
+
+        $probable_spam = false;
+        {
+                 if (!$probable_spam && false !== stripos($url_branch, "index/"))        $probable_spam = true;
+            else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    $probable_spam = true;
+            else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  $probable_spam = true;
+        }
+
+        if (!!get("cache") && !$probable_spam)
         {
             if (auto === $cache_dir) $cache_dir = path(".cache");
 
@@ -5053,15 +5063,11 @@
 
                 $cache_basename = "";
                 {
-                    $cache_basename = url_branch(false);
+                    $cache_basename = $url_branch;
                     $cache_basename = slugify($cache_basename);
                     if ("" == $cache_basename) $cache_basename = "index";
                     $cache_basename .= ".".md5(url(true));
                     $cache_basename .= ".html";
-
-                    // CACHE-DEBUG ------------------------>
-                    // cache_debug_log("Start: ".url(true));
-                    // CACHE-DEBUG ------------------------>
                 }
 
                 $cache_filename         = "$cache_dir/$cache_basename";
@@ -5071,9 +5077,9 @@
                 set("cache_filename", $cache_filename);
 
                 // CACHE-DEBUG ------------------------>
-                set("cache_url_branch", url_branch(false));
-                set("cache_url",        url(true));
-                set("cache_vars",       get_all());
+                set("cache_url_branch", $url_branch);
+                //set("cache_url",        url(true));
+                //set("cache_vars",       get_all());
                 // CACHE-DEBUG ------------------------>
                 
                 if ($cache_file_exists && $cache_file_uptodate) 
@@ -5120,7 +5126,7 @@
     {
         if (!!get("cache") && !!get("cache_filename"))
         {
-            $content = ob_get_contents();
+            $content = @ob_get_contents();
 
             /**
              * Currently ?rss subpages might not end up here.
@@ -5132,14 +5138,14 @@
                 if (!!$cache_file)
                 {   
                     // CACHE-DEBUG ------------------------>
-                    /*
+                    
                     cache_debug_log("Write cache: ".get("cache_filename"));
-                    cache_debug_log(" - URL&params: ".get("cache_url"));
-                    cache_debug_log(" - Content: ".($content == "" ? "<EMPTY>" : substr($content, 0, 128)));
+                    //cache_debug_log(" - URL&params: ".get("cache_url"));
+                    //cache_debug_log(" - Content: ".($content == "" ? "<EMPTY>" : substr($content, 0, 128)));
                     cache_debug_log(" - Path: ".get("cache_url_branch"));
-                    cache_debug_log(" - URL: ".get("cache_url"));
-                    cache_debug_log(" - Vars: ".print_r(get("cache_vars"), true));
-                    */
+                    //cache_debug_log(" - URL: ".get("cache_url"));
+                    //cache_debug_log(" - Vars: ".print_r(get("cache_vars"), true));
+                    
                     // CACHE-DEBUG ------------------------>
                     
                     fwrite($cache_file, $content);
@@ -7080,7 +7086,8 @@
                         
                             comment("DOM.PHP ".version).
 
-                            comment("VARIABLES".PHP_EOL.print_r(get_all(), true)).
+                            comment("SERVER VARIABLES". PHP_EOL.print_r(get_server_vars(),  true)).
+                            comment("DOM VARIABLES".    PHP_EOL.print_r(get_all(),          true)).
 
                         "");
             }
