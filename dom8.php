@@ -854,6 +854,11 @@
         if (!!get("gemini"))    {   set("static",  true);
                                     set("noajax",  true);
                                     set("nolazy",  true);       }
+
+        if ("non" == get("sense"))
+        {
+            del("cache");
+        }
     }
 
     #endregion
