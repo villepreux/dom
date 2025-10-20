@@ -5022,6 +5022,13 @@
         @unlink($cache_filename);
     }
 
+    // CACHE-DEBUG ------------------------>
+    function cache_debug_log($text)
+    {
+        file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL.$text);
+    }                
+    // CACHE-DEBUG ------------------------>
+
     function cache_start($cache_dir = auto)
     {
         $profiler = debug_track_timing();
@@ -5052,7 +5059,9 @@
                     $cache_basename .= ".".md5(url(true));
                     $cache_basename .= ".html";
 
-                    //file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL."Start: ".url(true));
+                    // CACHE-DEBUG ------------------------>
+                    // cache_debug_log("Start: ".url(true));
+                    // CACHE-DEBUG ------------------------>
                 }
 
                 $cache_filename         = "$cache_dir/$cache_basename";
@@ -5060,6 +5069,12 @@
                 $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 24*60*60)) < filemtime($cache_filename));
                 
                 set("cache_filename", $cache_filename);
+
+                // CACHE-DEBUG ------------------------>
+                set("cache_url_branch", url_branch(false));
+                set("cache_url",        url(true));
+                set("cache_vars",       get_all());
+                // CACHE-DEBUG ------------------------>
                 
                 if ($cache_file_exists && $cache_file_uptodate) 
                 {
@@ -5105,18 +5120,35 @@
     {
         if (!!get("cache") && !!get("cache_filename"))
         {
-            $cache_file = @fopen(get("cache_filename"), 'w');
-            
-            if (!!$cache_file)
-            {   
-                //file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL."Stop.: ".url(true));
+            $content = ob_get_contents();
 
-                fwrite($cache_file, ob_get_contents());
-                fclose($cache_file);            
-            }
-            else if (!has("ajax"))
+            /**
+             * Currently ?rss subpages might not end up here.
+             */
+            if (!!$content)
             {
-                if ("html" == get("doctype",false)) echo eol().comment("Could not generate cache! " . get("cache_filename"));
+                $cache_file = @fopen(get("cache_filename"), 'w');
+                
+                if (!!$cache_file)
+                {   
+                    // CACHE-DEBUG ------------------------>
+                    /*
+                    cache_debug_log("Write cache: ".get("cache_filename"));
+                    cache_debug_log(" - URL&params: ".get("cache_url"));
+                    cache_debug_log(" - Content: ".($content == "" ? "<EMPTY>" : substr($content, 0, 128)));
+                    cache_debug_log(" - Path: ".get("cache_url_branch"));
+                    cache_debug_log(" - URL: ".get("cache_url"));
+                    cache_debug_log(" - Vars: ".print_r(get("cache_vars"), true));
+                    */
+                    // CACHE-DEBUG ------------------------>
+                    
+                    fwrite($cache_file, $content);
+                    fclose($cache_file);            
+                }
+                else if (!has("ajax"))
+                {
+                    if ("html" == get("doctype",false)) echo eol().comment("Could not generate cache! " . get("cache_filename"));
+                }
             }
             
             ob_end_flush();
@@ -7044,7 +7076,13 @@
 
                 return  raw_html('<!doctype html>'.comment(get("code-intro-comment", "🏳️‍⚧️🏳️‍🌈▲ Welcome my fellow web developer!")).'<html'.attributes_as_string($attributes).'>'.' ').
                         $html.eol().$debug_console.
-                        raw_html('</html>'.comment("DOM.PHP ".version));
+                        raw_html('</html>'.
+                        
+                            comment("DOM.PHP ".version).
+
+                            comment("VARIABLES".PHP_EOL.print_r(get_all(), true)).
+
+                        "");
             }
             else
             {
