@@ -123,8 +123,8 @@
     function server_http_host                   ($default = "127.0.0.1")            { return        at(get_server_vars(), 'HTTP_HOST',                          $default);  }
     function server_remote_addr                 ($default = "127.0.0.1")            { return        at(get_server_vars(), 'REMOTE_ADDR',       server_http_host($default)); }
     function server_http_do_not_track           ()                                  { return   1 == at(get_server_vars(), 'HTTP_DNT',                           0);         }
-    function server_http_user_agent             ($default = "Unknwon user agent")   { return        at(get_server_vars(), 'HTTP_USER_AGENT',                    $default);  }
-    function server_http_referer                ($default = "Unknwon referer")      { return        at(get_server_vars(), 'HTTP_REFERER',                       $default);  }
+    function server_http_user_agent             ($default = "Unknown user agent")   { return        at(get_server_vars(), 'HTTP_USER_AGENT',                    $default);  }
+    function server_http_referer                ($default = "Unknown referer")      { return        at(get_server_vars(), 'HTTP_REFERER',                       $default);  }
 
     function do_not_track($static_default = true)
     {
@@ -1494,7 +1494,7 @@
             if (false !== stripos($user_agent, 'Safari'))           return "safari";
         }
 
-        return 'unknwon';
+        return 'unknown';
     }
 
     #endregion
@@ -4995,6 +4995,8 @@
 
     function cache_global_reset($cache_dir = auto)
     {
+        del("action");
+
         if (auto === $cache_dir) $cache_dir = path(".cache");
 
         $profiler = debug_track_timing();
@@ -5007,6 +5009,8 @@
 
     function cache_page_reset()
     {
+        del("action");
+
         $cache_dir = path(".cache");
         
         $cache_basename = "";
@@ -5043,7 +5047,13 @@
             else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  $probable_spam = true;
         }
 
-        if (!!get("cache") && !$probable_spam)
+        $no_cache_specials = false;
+        {
+                 if (!$no_cache_specials && 0 === stripos($url_branch, "~")) $no_cache_specials = true; // URLs like http://example.com/~username/ are handled by Apache’s mod_userdir
+            else if (!$no_cache_specials && 0 === stripos($url_branch, ".")) $no_cache_specials = true;
+        }
+
+        if (!!get("cache") && !$probable_spam && !$no_cache_specials)
         {
             if (auto === $cache_dir) $cache_dir = path(".cache");
 
@@ -5077,7 +5087,7 @@
                 set("cache_filename", $cache_filename);
 
                 // CACHE-DEBUG ------------------------>
-                set("cache_url_branch", $url_branch);
+                //set("cache_url_branch", $url_branch);
                 //set("cache_url",        url(true));
                 //set("cache_vars",       get_all());
                 // CACHE-DEBUG ------------------------>
@@ -5139,10 +5149,10 @@
                 {   
                     // CACHE-DEBUG ------------------------>
                     
-                    cache_debug_log("Write cache: ".get("cache_filename"));
+                    //cache_debug_log("Write cache: ".get("cache_filename"));
                     //cache_debug_log(" - URL&params: ".get("cache_url"));
                     //cache_debug_log(" - Content: ".($content == "" ? "<EMPTY>" : substr($content, 0, 128)));
-                    cache_debug_log(" - Path: ".get("cache_url_branch"));
+                    //cache_debug_log(" - Path: ".get("cache_url_branch"));
                     //cache_debug_log(" - URL: ".get("cache_url"));
                     //cache_debug_log(" - Vars: ".print_r(get("cache_vars"), true));
                     
@@ -7056,7 +7066,7 @@
             $html = parse_delayed_components($html);
             
             if (!!get("debug")) $html = "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre>$html";
-            if (!!get("debug")) $html .= $debug_console;
+            if (!!get("debug")) $html .= $debug_console.print_r($_SERVER, true);
 
             return $html;
         }
