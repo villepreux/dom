@@ -8878,6 +8878,10 @@
 
     function link_style($link, $media = "screen", $async = false, $attributes = false)
     {
+        $media      = (auto === $media)         ? "screen"  : $media;
+        $async      = (auto === $async)         ? false     : $async;
+        $attributes = (auto === $attributes)    ? false     : $attributes;
+
         if (!!get("no_css"))             return '';
         if (!!get("include_custom_css")) return style_file($link, false, true);
 
@@ -8978,6 +8982,9 @@
 
     function style_file($filename = "", $force_minify = false, $silent_errors = auto, $attributes = false)
     {
+        $force_minify   = (auto === $force_minify)  ? false : $force_minify;
+        $attributes     = (auto === $attributes)    ? false : $attributes;
+
         $profiler = debug_track_timing();
         if (!$filename || $filename == "") return '';
         $filename = path($filename);
@@ -11219,6 +11226,8 @@
     {
         global $__style_css_hooks;
 
+        //bye($__style_css_hooks);
+
         $styles = [];
         {
             $css_bundles = [];
@@ -13453,6 +13462,9 @@
     function char_glue()                { return !!get("gemini") ? ""  : "&#8288;"; }
     function char_unsec()               { return !!get("gemini") ? " " : " "; }
     function char_amp()                 { return !!get("gemini") ? "&" : "&amp;";  }
+
+    function lt() { return "&lt;"; }
+    function gt() { return "&gt;"; }
    
     function nbsp($count_or_text = 1) { return is_string($count_or_text) ? str_replace(" ", nbsp(1), $count_or_text) : ($count_or_text == 1 ? char_unsec() : str_repeat(char_unsec(), $count_or_text)); }
     function glue() { return char_glue(); }
