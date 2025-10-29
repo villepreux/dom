@@ -133,6 +133,8 @@ function array_user_following($host = false, $username = false, $user_id = false
     $next_batch_max_id = false;
 
     $url = url_user_following($host, $username, $user_id);
+
+    $following = [];
     
     while (true)
     {

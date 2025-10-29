@@ -907,9 +907,9 @@ if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod || !!$cmdlin
 
         return $timestamp_comments;
     }
-
-    $backup_11ty_index_html_file_comments = [];
 }
+
+$backup_11ty_index_html_file_comments = [];
 
 if (!!$cmdline_option_villa11ty || !!$cmdline_option_villa11ty_prod)
 {
@@ -1618,18 +1618,20 @@ if (!!$cmdline_option_compile)
         $dependencies_could_have_been_modified = false;
         
         $roots = array(array($main_src, $main_dst));
+    
+        $file_index = 0;
 
         while (count($roots) > 0)
         {
             $dir = array_shift($roots);
-
+        
             $src = $dir[0];
             $dst = $dir[1];
-
+        
             foreach (deploy_scan($src) as $name)
             {
                 if (is_dir("$src/$name")) { $roots[] = array("$src/$name", "$dst/$name"); continue; }
-
+        
                 $pathinfo  = pathinfo("$src/$name");
                 $extension = array_key_exists("extension", $pathinfo) ? $pathinfo["extension"] : "";
                 
@@ -1662,7 +1664,7 @@ if (!!$cmdline_option_compile)
                             }
                         }
                     }
-
+        
                     $file_index += 1 + count($derivatives);                
                 }        
             }
@@ -1705,10 +1707,13 @@ if (!!$cmdline_option_compile)
                     $mt_contexts[]   = base64_encode($mt_context_json);
                     
                     if ($cmdline_option_compare_dates && !$dependencies_could_have_been_modified)
-                    {
+                    {   
+                        // ADDED RECENTLY                        
+                        $deploy_name = str_replace(".php", ".$target_ext", $name);                          
+
                         $t_from = filemtime("$src/$name");
                         $t_to   = is_file("$dst/$deploy_name") ? filemtime("$dst/$deploy_name") : 0;
-                        
+
                         if ($t_to >= $t_from) 
                         {
                             /*if (!!$cmdline_option_verbose)

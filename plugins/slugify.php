@@ -82,7 +82,7 @@ class Slugify {
     public function addRule($character, $replacement): self { $this->rules[$character] = $replacement; return $this; } 
     public function addRules(/*array*/ $rules): self { foreach ($rules as $character => $replacement) { $this->addRule($character, $replacement); } return $this; } 
     public function activateRuleSet($ruleSet): self { return $this->addRules($this->provider->getRules($ruleSet)); } 
-    public static function create(/*array*/ $options = []): self { return new static($options); } 
+    //public static function create(/*array*/ $options = []): self { return new static($options); } 
 }
 
 function slugify($str, $separator = '-')

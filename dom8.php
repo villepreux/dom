@@ -593,7 +593,7 @@
     function include_backup($context_cwd = false, $no_echo = false, $context_restore_globals = true)
     {
         $cwd = false; if (!!$context_cwd) { $cwd = getcwd(); chdir($context_cwd); }
-        $globals = false; if ($context_restore_globals) $globals = [ "GET" => $_GET ?? null, "POST" => $_POST ?? null, "SESSION" => $_SESSION ?? null ];
+        $globals = false; if ($context_restore_globals) $globals = [ "GET" => $_GET/* ?? null*/, "POST" => $_POST/* ?? null*/, "SESSION" => $_SESSION ?? null ];
         if ($no_echo) $no_echo = ob_start();
 
         return [ $context_cwd, $cwd, $no_echo, $context_restore_globals, $globals ]; 
@@ -866,11 +866,11 @@
     #region CONFIG : INTERNALS
     ######################################################################################################################################
 
+    if (!defined("DOM_AJAX_PARAMS_SEPARATOR1")) define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
+    if (!defined("DOM_AJAX_PARAMS_SEPARATOR2")) define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
+    
     function init_internals()
-    {
-        if (!defined("DOM_AJAX_PARAMS_SEPARATOR1")) define("DOM_AJAX_PARAMS_SEPARATOR1", "-_-");
-        if (!defined("DOM_AJAX_PARAMS_SEPARATOR2")) define("DOM_AJAX_PARAMS_SEPARATOR2", "_-_");
-        
+    {   
         if (has("rand_seed")) { mt_srand(get("rand_seed")); }
     }
 
@@ -1502,7 +1502,7 @@
     ######################################################################################################################################
     
     define("DOM_I18N_SHARE", T("Share"));
-    
+
     function client_language()
     {
         return  at("" == get("http-accept-language",  "")      ? false : explode(",", get("http-accept-language")           ), 0,
@@ -1855,7 +1855,7 @@
                     $curl_options[CURLOPT_URL]            = $url;
                     $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
                     $curl_options[CURLOPT_FOLLOWLOCATION] = true;                    
-                    $curl_options[CURLOPT_HEADERFUNCTION] = function($curl, $header_entry) use ($url, &$headers) {
+                    $curl_options[CURLOPT_HEADERFUNCTION] = function($curl, $header_entry) use (&$headers) {
 
                         $len = strlen($header_entry);
 
@@ -1954,7 +1954,7 @@
             if (/*$method == "GET" &&*/ !$force_no_url_params && count($params) > 0)
             {
               //$url_params = "/?".http_build_query($params, "", null, PHP_QUERY_RFC3986);
-                $url_params = "/?".implode("&", array_map(function ($key, $val) use ($url, $params, $force_no_url_params) { 
+                $url_params = "/?".implode("&", array_map(function ($key, $val) /*use ($url, $params, $force_no_url_params)*/ { 
                     if (is_object($val)) return null;
                     if (is_array($val)) {
                         //if ($url=="statuses") die(PHP_EOL."array val: ".print_r($params, true));
@@ -2387,25 +2387,28 @@
             $end = strpos($text, '}', $bgn); if ($end === false) break;
             
             $hashtag = substr($text, $bgn + 1, $end - $bgn - 1);
+
+            $url = false;
+            {            
+                if (is_callable($fn_url_search))
+                {
+                    $url = call_user_func($fn_url_search, $hashtag, $fn_url_search_userdata);
+                }
+                else if (is_callable("dom\\$fn_url_search"))
+                {
+                    $url = call_user_func("dom\\$fn_url_search", $hashtag, $fn_url_search_userdata);
+                }
+                else if (is_callable("url_".$fn_url_search."_search_by_tags"))
+                {
+                    $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
+                }
+                else if (is_callable("dom\\url_".$fn_url_search."_search_by_tags"))
+                {
+                    $url = call_user_func("dom\\url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
+                }
+            }
             
-            if (is_callable($fn_url_search))
-            {
-                $url = call_user_func($fn_url_search, $hashtag, $fn_url_search_userdata);
-            }
-            else if (is_callable("dom\\$fn_url_search"))
-            {
-                $url = call_user_func("dom\\$fn_url_search", $hashtag, $fn_url_search_userdata);
-            }
-            else if (is_callable("url_".$fn_url_search."_search_by_tags"))
-            {
-                $url = call_user_func("url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
-            }
-            else if (is_callable("dom\\url_".$fn_url_search."_search_by_tags"))
-            {
-                $url = call_user_func("dom\\url_".$fn_url_search."_search_by_tags", $hashtag, $fn_url_search_userdata);
-            }
-            
-            $hashtag = a('#'.$hashtag, $url, "hashtag", external_link);
+            $hashtag = $url ? a('#'.$hashtag, $url, "hashtag", external_link) : "";
             
             $text = substr($text, 0, $bgn) . $hashtag . substr($text, $end + 1);
         }
@@ -4094,7 +4097,7 @@
             $hack = get("filter", "default");
             set("filter", "HACK");
             
-            $posts = array_instagram_posts($username, $post_id, $tags_in, $tags_out, false, false);
+            $posts = array_instagram_posts($username, $post_id, $tags_in, $tags_out, false);
             
             set("filter", $hack);
             
@@ -4273,7 +4276,7 @@
     
     function array_flickr_thumbs($username, $post_filter = "", $tags_in = false, $tags_out = false)
     {   
-        $posts = array_flickr_posts($username, $post_filter, $tags_in, $tags_out, false);     
+        $posts = array_flickr_posts($username, $post_filter, $tags_in, $tags_out);
 
         foreach ($posts as &$post)
         {
@@ -6904,7 +6907,7 @@
     }
     function diff($old, $new){
         $matrix = [];
-        $maxlen = 0;
+        $maxlen = $omax = $nmax = 0;
         foreach($old as $oindex => $ovalue){
             $nkeys = array_keys($new, $ovalue);
             foreach($nkeys as $nindex){
@@ -7095,9 +7098,8 @@
                         raw_html('</html>'.
                         
                             comment("DOM.PHP ".version).
-
-                            comment("SERVER VARIABLES". PHP_EOL.print_r(get_server_vars(),  true)).
-                            comment("DOM VARIABLES".    PHP_EOL.print_r(get_all(),          true)).
+                            //comment("SERVER VARIABLES". PHP_EOL.print_r(get_server_vars(),  true)).
+                            //comment("DOM VARIABLES".    PHP_EOL.print_r(get_all(),          true)).
 
                         "");
             }
@@ -8526,6 +8528,8 @@
         if ($type === false && false !== stripos($name,"apple"))                                         $type = "apple-touch-icon";
         if ($type === false)                                                                             $type = "icon";
 
+        $media_clean = false;
+
         if (!!$size)
         {
             $size = is_int($size) ? ($size."x".$size) : $size;
@@ -8572,7 +8576,7 @@
 
         if (!!$size)                            $attributes["sizes"] = $size;
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext".(($ext=="svg")?"+xml":"");
-        if (!!$media)                           $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
+        if (!!$media_clean)                     $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
 
         $path = path($name.".".$ext);
 
@@ -8596,6 +8600,8 @@
         if ($type === false && false !== stripos($name,"apple") && false !== stripos($name, "startup"))  $type = "apple-touch-startup-image";
         if ($type === false && false !== stripos($name,"apple"))                                         $type = "apple-touch-icon";
         if ($type === false)                                                                             $type = "icon";
+
+        $media_clean = false;
 
         if (!!$size)
         {
@@ -8642,7 +8648,7 @@
 
         if (!!$size)                            $attributes["sizes"] = $size;
         if (false === stripos($type, "apple"))  $attributes["type"]  = "image/$ext".(($ext=="svg")?"+xml":"");
-        if (!!$media)                           $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
+        if (!!$media_clean)                     $attributes["media"] = "(device-width: ".$media_clean["width"]."px) and (device-height: ".$media_clean["height"]."px) and (-webkit-device-pixel-ratio: ".$media_clean["ratio"].") and (orientation: ".$media_clean["orientation"].")";
 
         $path = path($name.".".$ext);
 
@@ -8826,16 +8832,22 @@
 
             .   eol().comment("'Fav' Icons")
 
-            .   link_rel_icon(array(
-             
-                    get("icons_path")."favicon",
-                    get("icons_path")."android-icon",
-                    get("icons_path")."apple-icon",
-                    get("icons_path")."apple-touch-icon"),
+            .   link_rel_icon(
+                
+                    array( // $name = "favicon"
+                
+                        get("icons_path")."favicon",
+                        get("icons_path")."android-icon",
+                        get("icons_path")."apple-icon",
+                        get("icons_path")."apple-touch-icon"),
 
-                    array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512),
+                    array(16,32,57,60,72,76,96,114,120,144,152,180,192,196,310,512),    // $size = false
                     
-                    false, false, false, false, $alternate = true)
+                    false,  // $media   = false
+                    false,  // $ext     = "png"
+                    false,  // $type    = auto
+                    $alternate = true
+                )
                     
             /* --------- FAVICONS -------- */
 
@@ -13782,6 +13794,24 @@
         return tag('img', $content, $attributes, false, $content == '');
     }
         
+    if (!function_exists("\dom\img_gif_define"))
+    {
+        function img_gif_define()
+        {
+            HSTART(-1) ?><html><?= HERE() ?>
+
+            <!-- img-gif web component definition script after last img-gif component on the page //--> 
+
+            <script>
+
+                customElements.define("img-gif", ImgGif);
+
+            </script>
+
+            <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
+        }
+    }
+        
     function gif($path, $w = false, $h = false, $attributes = false, $alt = false, $precompute_size = auto)
     {
         // Image path. Deduce ext and alt if not provided (bad)
@@ -13889,24 +13919,6 @@
                     </style>
 
                     <?= HERE("raw_html") ?></html><?php $pre_html = HSTOP();
-                        
-                    if (!function_exists("\dom\img_gif_define"))
-                    {
-                        function img_gif_define()
-                        {
-                            HSTART(-1) ?><html><?= HERE() ?>
-
-                            <!-- img-gif web component definition script after last img-gif component on the page //--> 
-
-                            <script>
-
-                                customElements.define("img-gif", ImgGif);
-
-                            </script>
-
-                            <?= HERE("raw_html") ?></html><?php return HSTOP(null, false, false);
-                        }
-                    }
                 }
             }
         }
@@ -14171,10 +14183,10 @@
             eol().comment("Base-Brands").(
                 
                 is_callable("dom\\css_brands") 
-            
-                ? (layered_style("default", css_root(css_vars_color_scheme_screen_brands  ()), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css).
-                   layered_style("default", css_root(css_vars_color_scheme_print_brands   ()), $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css).
-                   layered_style("default", css_brands(),                                      $force_minify, $attributes, $trim, $order, $media, $layer_already_in_css) )
+
+                ? (layered_style("default", css_root(css_vars_color_scheme_screen_brands  ()), $force_minify, $attributes, $trim, $order, $media).
+                   layered_style("default", css_root(css_vars_color_scheme_print_brands   ()), $force_minify, $attributes, $trim, $order, $media).
+                   layered_style("default", css_brands(),                                      $force_minify, $attributes, $trim, $order, $media) )
                 
                 : ""
             ).
@@ -14744,7 +14756,7 @@
                     )
                 ).
             eol().card_media  (at($data,"content")).
-            eol().card_text   (at($data, "desc", false, true)).
+            eol().card_text   (at($data, "desc", false)).
             eol().card_actions(false),
             
             $attributes
@@ -15654,8 +15666,8 @@
         return dlist($html, attributes_add($attributes, attributes(attr("class", "footnotes"))));
     }
       
-    function address($html)     { return tag("address", $html); }
-    function author($author)    { return address(span($author, url_top(), array("rel" => "author")), array("class" => "author")); }
+    function address($html,  $attributes = false)   { return tag("address", $html, $attributes); }
+    function author($author, $url = auto)           { return address(a($author, auto === $url ? url_top() : $url, [ "rel" => "author" ]), "author"); }
 
     function h_card($photo = auto, $bio = auto, $name = auto, $url = auto, $attributes = false, $me = false)
     {
