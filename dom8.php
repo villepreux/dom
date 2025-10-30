@@ -12451,142 +12451,178 @@
     function bring_attention        ($html = "", $attributes = false) { return b    ($html, $attributes); }
     function non_textual_annotation ($html = "", $attributes = false) { return u    ($html, $attributes); }
 
-    /* <figure>   -  https://dbushell.com/2025/11/01/better-alt-text/
- 
-
-
-
-    figure:has(img,[popover],figcaption) {
-
-        inline-size:        fit-content;
-        max-inline-size:    none;
-        display:            block;
-    }
-
-    */
-
-    /* <figure><img>
-
-    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
-        figure:has(img,[popover],figcaption) img {
-            anchor-name: attr(id type(<custom-ident>), none);
-        }
-    }
-
-    figure:has(img,[popover],figcaption) :is(img,video) {
-        background-color: oklch(var(--db-black) / .2);
-        border: var(--border-size-2) solid oklch(var(--color-background));
-        border-radius: var(--radius-2);
-        box-shadow: -4px 0 0 -2px oklch(var(--color-secondary)), 3px 3px 0 0 oklch(0% 0 0 / .15);
-        position: relative;
-        overflow: clip;
-    }
-
-    */
-
-    /* <figure><button>
-
-    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
-        figure:has(img,[popover],figcaption) button[data-anchor] {
-            font-size: 12px;
-            font-weight: var(--font-weight-4);
-            text-transform: uppercase;
-            line-height: 1;
-            display: block;
-            inset-block-end: calc(anchor(
-    end) + var(--size-1));
-            inset-inline-end: calc(anchor(
-    end) + var(--size-1));
-        }
-    }
-
-    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
-        figure:has(img,[popover],figcaption) [data-anchor] {
-            --offset: calc(-100% - var(--size-1));
-            border-radius: var(--radius-1);
-            color: oklch(var(--db-white));
-            padding: var(--size-0);
-            position-anchor: attr(data-anchor type(<custom-ident>), none);
-            background-color: oklch(0% 0 0 / .7);
-            margin: 0;
-            position: absolute;
-        }
-    }
-    figure:has(img,[popover],figcaption) [data-anchor] {
-        display: none;
-    }
-
-    */
-
-    /* <figure><p popover>
-
-        @supports (anchor-name:attr(id type(<custom-ident>), none)) {
-            figure:has(img,[popover],figcaption) p[data-anchor] {
-                backdrop-filter: blur(5px);
-                font-size: var(--font-size-0);
-                font-weight: var(--font-weight-2);
-                max-inline-size: calc(anchor-size(inline) - 2 * var(--size-1));
-                opacity: 0;
-                padding-inline: var(--size-1);
-                transition: display 80ms allow-discrete, opacity 80ms;
-                inset-block-end: calc(anchor(end) + var(--size-1));
-                inset-inline-start: calc(anchor(start) + var(--size-1));
-            }
-        }
-
-        @supports (anchor-name:attr(id type(<custom-ident>), none)) {
-            figure:has(img,[popover],figcaption) [data-anchor] {
-                --offset: calc(-100% - var(--size-1));
-                border-radius: var(--radius-1);
-                color: oklch(var(--db-white));
-                padding: var(--size-0);
-                position-anchor: attr(data-anchor type(<custom-ident>), none);
-                background-color: oklch(0% 0 0 / .7);
-                margin: 0;
-                position: absolute;
-            }
-        }
-        figure:has(img,[popover],figcaption) [data-anchor] {
-            display: none;
-        }
-
-    */
-
-    /*  <figure><figcaption>
-    
-        figure:has(img,[popover],figcaption) figcaption {
-            margin-block-start: var(--size-1);
-        }
-
-*/
-
-
-    function figure_img_alt_caption($img_src, $img_w, $img_h, $alt, $caption)
+    function figure_img_alt_caption_css()
     {
-        $uuid = md5(json_encode(debug_backtrace()));
-        
-        return '
-        
-        <figure>
-        
-            <img src="'.$img_src.'" alt="'.$alt.'" width="'.$img_w.'" height="'.$img_h.'" decoding="async" fetchpriority="low" loading="lazy" id="--img-'.$uuid.'">
-            <button type="button" data-anchor="--img-'.$uuid.'" popovertarget="--alt-'.$uuid.'" popovertargetaction="toggle" aria-label="alternate text">Alt</button>
-            <p popover="" id="--alt-'.$uuid.'" data-anchor="--img-'.$uuid.'">'.$alt.'</p>
-            <figcaption>'.$caption.'</figcaption>
-            
-        </figure>
-        
-        ';
+        // https://dbushell.com/2025/11/01/better-alt-text
+
+        HSTART() ?><style><?= HERE() ?>
+
+            figure:has(img, img-gif):has([popover]):has(figcaption) {
+
+                inline-size:        fit-content;
+                max-inline-size:    none;
+                display:            block;
+
+                :is(img,img-gif,video) {
+
+                    position:   relative;
+                    overflow:   clip;
+                }
+
+                [data-anchor] {
+
+                    display: none;
+                }
+
+                figcaption {
+                    
+                    margin-block-start: 1rem;
+                }
+            }
+
+            @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+
+                figure:has(img, img-gif):has([popover]):has(figcaption) {
+
+                    img,img-gif,video {
+                        
+                        anchor-name: attr(id type(<custom-ident>), none);
+                    }
+
+                    button[data-anchor] {
+
+                        font-size:          12px;
+                        font-weight:        400;
+                        text-transform:     uppercase;
+                        line-height:        1;
+                        display:            block;
+                        inset-block-end:    calc(anchor(end) + 1rem);
+                        inset-inline-end:   calc(anchor(end) + 1rem);
+                    }
+
+                    [data-anchor] /* button and popover */ {
+
+                        --offset:           calc(-100% - 1rem);
+                        background-color:   black;
+                        color:              white;
+                        padding:            .5rem;
+                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
+                        margin:             0;
+                        position:           absolute;
+                    }
+
+                    p[data-anchor] {
+
+                        backdrop-filter:    blur(5px);
+                        font-size:          1em;
+                        font-weight:        400;
+                        max-inline-size:    calc(anchor-size(inline) - 2rem);
+                        opacity:            0;
+                        padding-inline:     1rem;
+                        transition:         display 80ms allow-discrete, opacity 80ms;
+                        inset-block-end:    calc(anchor(end)   + 1rem);
+                        inset-inline-start: calc(anchor(start) + 1rem);
+                    }
+                }
+            }
+
+        <?= HERE("raw_css") ?></style><?php return HSTOP();
+
     }
 
+    function figure_img_alt_caption(
+        
+        $img_src, $img_w = false, $img_h = false, $attributes_img = auto,               // img
+        $html_alt = false,                                                              // common to img and alt-button-popover     
+        $html_caption = auto, $atributes_caption = auto,                                // figcaption   
+        $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
+        $atributes_figure = auto                                                        // figure
+        )
+    {
+        return figure(
 
+            figure_img($img_src, $img_w, $img_h, $attributes_img, $html_alt).
+            figure_img_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button).
+            figure_caption($html_caption, $atributes_caption).
 
+            "", $atributes_figure);
+    }
 
-    
+    $__last_img_generated_id = false;
 
-    function clearfix       () { return div("","clearfix"); }
+    function __figure_img_last_id()
+    {
+        global $__last_img_generated_id;
+        return $__last_img_generated_id;
+    }
 
-    function excerpt        ($html = "", $attributes = false) { hook_excerpt($html); return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
+    function figure_img_alt_uuid()
+    {        
+        global $__last_img_generated_id;
+        $__last_img_generated_id = md5(json_encode(debug_callstack()));
+        return $__last_img_generated_id;
+    }
+
+    function figure_img(...$args)
+    {
+        if (count($args) < 2) $args[] = false; // $w
+        if (count($args) < 3) $args[] = false; // $h
+        if (count($args) < 4) $args[] = false; // $attributes
+
+        $args[3] = attributes_add($args[3], [ "id" => ("--img-".figure_img_alt_uuid()) ]);
+        
+        return img(...$args);
+    }
+
+    function figure_gif(...$args)
+    {
+        if (count($args) < 2) $args[] = false; // $w
+        if (count($args) < 3) $args[] = false; // $h
+        if (count($args) < 4) $args[] = false; // $attributes
+
+        $args[3] = attributes_add($args[3], [ "id" => ("--img-".figure_img_alt_uuid()) ]);
+        
+        return gif(...$args);
+    }
+
+    function figure_img_alt($html_alt, $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto, $uuid = auto)
+    {
+        $uuid                   = (auto === $uuid)                  ? __figure_img_last_id()    : $uuid;
+        $html_button            = (auto === $html_button)           ? T("Alt")                  : $html_button;
+        $atributes_alt_popover  = (auto === $atributes_alt_popover) ? []                        : $atributes_alt_popover;
+        $atributes_button       = (auto === $atributes_button)      ? []                        : $atributes_button;
+
+        return 
+        
+            button($html_button, array_merge($atributes_button, [ 
+                
+                "type"                  => "button",
+                "data-anchor"           => "--img-$uuid", 
+                "popovertarget"         => "--alt-$uuid", 
+                "popovertargetaction"   => "toggle",
+                "aria-label"            => T("alternate text"), 
+            ])).
+
+            p($html_alt, array_merge($atributes_alt_popover, [ 
+
+                "popover"       => "auto",
+                "id"            => "--alt-$uuid",
+                "data-anchor"   => "--img-$uuid",
+            ])).
+            
+            "";
+    }
+
+    function figure_caption($html, $atributes = auto)
+    {
+        if (false === $html || auto === $html) return "";
+        $atributes = (auto === $atributes) ? false : $atributes;
+        return figcaption($html, $atributes);
+    }    
+
+    function clearfix() { return div("","clearfix"); }
+
+    function excerpt($html = "", $attributes = false) { hook_excerpt($html); return div($html, attributes_add($attributes, attributes(attr("class", "excerpt")))); }
 
     $__dom_is_first_main = true;
 
@@ -13825,7 +13861,6 @@
         return [ $w, $h ];
     }
 
-    
     /**
      * Image component
      */
@@ -13893,9 +13928,13 @@
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
+        $alt = strip_tags($alt);
+
              if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
         else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
         else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
+
+        // From here, $attributes is an array
 
              if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
         else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
@@ -14075,7 +14114,7 @@
 
             <?php if ($has_video) { ?>
 
-                <video controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $w ?>" height="<?= $h ?>" style="--width: <?= $w ?>; --height: <?= $h ?>"> 
+                <video <?= $attributes ?> controls loop muted playsinline aria-labelledby="<?= $clip ?>-video-label" width="<?= $w ?>" height="<?= $h ?>" style="--width: <?= $w ?>; --height: <?= $h ?>"> 
 
                     <?php if ($has_webm) { ?><source type="video/webm" src="<?= $clip ?>.webm" ><?php } ?> 
                     <?php if ($has_mp4)  { ?><source type="video/mp4"  src="<?= $clip ?>.mp4"  ><?php } ?> 
@@ -14916,10 +14955,10 @@
     
     function progressbar($caption = "")
     {
-        return figure
-        (
-            div
-            (
+        return figure(
+        
+            div(
+            
                 div("", component_class("div", "progressbar-buffer-dots"))
             .   div("", component_class("div", "progressbar-buffer"))
 
