@@ -10483,8 +10483,8 @@
                 border-color:     var(--border-color, currentColor);
             }
     
-            strong { color: var(--accent-color) }
-            u      { text-decoration: var(--accent-color, #f00) wavy underline; }
+            strong:not(button strong) { color: var(--accent-color) }
+            u { text-decoration: var(--accent-color, #f00) wavy underline; }
     
             :is(button, [type="button"], [type="submit"]).transparent {
                 background-color: transparent;
