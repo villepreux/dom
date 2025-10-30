@@ -12450,6 +12450,138 @@
     function bring                  ($html = "", $attributes = false) { return b    ($html, $attributes); }
     function bring_attention        ($html = "", $attributes = false) { return b    ($html, $attributes); }
     function non_textual_annotation ($html = "", $attributes = false) { return u    ($html, $attributes); }
+
+    /* <figure>   -  https://dbushell.com/2025/11/01/better-alt-text/
+ 
+
+
+
+    figure:has(img,[popover],figcaption) {
+
+        inline-size:        fit-content;
+        max-inline-size:    none;
+        display:            block;
+    }
+
+    */
+
+    /* <figure><img>
+
+    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+        figure:has(img,[popover],figcaption) img {
+            anchor-name: attr(id type(<custom-ident>), none);
+        }
+    }
+
+    figure:has(img,[popover],figcaption) :is(img,video) {
+        background-color: oklch(var(--db-black) / .2);
+        border: var(--border-size-2) solid oklch(var(--color-background));
+        border-radius: var(--radius-2);
+        box-shadow: -4px 0 0 -2px oklch(var(--color-secondary)), 3px 3px 0 0 oklch(0% 0 0 / .15);
+        position: relative;
+        overflow: clip;
+    }
+
+    */
+
+    /* <figure><button>
+
+    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+        figure:has(img,[popover],figcaption) button[data-anchor] {
+            font-size: 12px;
+            font-weight: var(--font-weight-4);
+            text-transform: uppercase;
+            line-height: 1;
+            display: block;
+            inset-block-end: calc(anchor(
+    end) + var(--size-1));
+            inset-inline-end: calc(anchor(
+    end) + var(--size-1));
+        }
+    }
+
+    @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+        figure:has(img,[popover],figcaption) [data-anchor] {
+            --offset: calc(-100% - var(--size-1));
+            border-radius: var(--radius-1);
+            color: oklch(var(--db-white));
+            padding: var(--size-0);
+            position-anchor: attr(data-anchor type(<custom-ident>), none);
+            background-color: oklch(0% 0 0 / .7);
+            margin: 0;
+            position: absolute;
+        }
+    }
+    figure:has(img,[popover],figcaption) [data-anchor] {
+        display: none;
+    }
+
+    */
+
+    /* <figure><p popover>
+
+        @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+            figure:has(img,[popover],figcaption) p[data-anchor] {
+                backdrop-filter: blur(5px);
+                font-size: var(--font-size-0);
+                font-weight: var(--font-weight-2);
+                max-inline-size: calc(anchor-size(inline) - 2 * var(--size-1));
+                opacity: 0;
+                padding-inline: var(--size-1);
+                transition: display 80ms allow-discrete, opacity 80ms;
+                inset-block-end: calc(anchor(end) + var(--size-1));
+                inset-inline-start: calc(anchor(start) + var(--size-1));
+            }
+        }
+
+        @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+            figure:has(img,[popover],figcaption) [data-anchor] {
+                --offset: calc(-100% - var(--size-1));
+                border-radius: var(--radius-1);
+                color: oklch(var(--db-white));
+                padding: var(--size-0);
+                position-anchor: attr(data-anchor type(<custom-ident>), none);
+                background-color: oklch(0% 0 0 / .7);
+                margin: 0;
+                position: absolute;
+            }
+        }
+        figure:has(img,[popover],figcaption) [data-anchor] {
+            display: none;
+        }
+
+    */
+
+    /*  <figure><figcaption>
+    
+        figure:has(img,[popover],figcaption) figcaption {
+            margin-block-start: var(--size-1);
+        }
+
+*/
+
+
+    function figure_img_alt_caption($img_src, $img_w, $img_h, $alt, $caption)
+    {
+        $uuid = md5(json_encode(debug_backtrace()));
+        
+        return '
+        
+        <figure>
+        
+            <img src="'.$img_src.'" alt="'.$alt.'" width="'.$img_w.'" height="'.$img_h.'" decoding="async" fetchpriority="low" loading="lazy" id="--img-'.$uuid.'">
+            <button type="button" data-anchor="--img-'.$uuid.'" popovertarget="--alt-'.$uuid.'" popovertargetaction="toggle" aria-label="alternate text">Alt</button>
+            <p popover="" id="--alt-'.$uuid.'" data-anchor="--img-'.$uuid.'">'.$alt.'</p>
+            <figcaption>'.$caption.'</figcaption>
+            
+        </figure>
+        
+        ';
+    }
+
+
+
+
     
 
     function clearfix       () { return div("","clearfix"); }
