@@ -12457,71 +12457,56 @@
 
         HSTART() ?><style><?= HERE() ?>
 
-            figure:has(img, img-gif):has([popover]):has(figcaption) {
+            figure:has([popover]):has(button[data-anchor]) {
 
-                inline-size:        fit-content;
-                max-inline-size:    none;
-                display:            block;
-
-                :is(img,img-gif,video) {
-
-                    position:   relative;
-                    overflow:   clip;
-                }
-
-                [data-anchor] {
+                button[data-anchor] {
 
                     display: none;
-                }
-
-                figcaption {
-                    
-                    margin-block-start: 1rem;
                 }
             }
 
             @supports (anchor-name:attr(id type(<custom-ident>), none)) {
 
-                figure:has(img, img-gif):has([popover]):has(figcaption) {
+                figure:has([popover]):has(button[data-anchor]) {
 
-                    img,img-gif,video {
+                    img, video {
                         
                         anchor-name: attr(id type(<custom-ident>), none);
                     }
 
                     button[data-anchor] {
 
-                        font-size:          12px;
-                        font-weight:        400;
-                        text-transform:     uppercase;
-                        line-height:        1;
                         display:            block;
+
+                        position:           absolute;
+                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
+                        padding:            .5rem;
+                        margin:             0;
                         inset-block-end:    calc(anchor(end) + 1rem);
                         inset-inline-end:   calc(anchor(end) + 1rem);
+                        
+                        background-color:   var(--background-darker-color);
+                        color:              var(--text-on-background-darker-color);
+
+                        font-size:          0.75rem;
+                        text-transform:     uppercase;
+                        line-height:        1;
                     }
 
-                    [data-anchor] /* button and popover */ {
+                    [popover][data-anchor] {
 
-                        --offset:           calc(-100% - 1rem);
-                        background-color:   black;
-                        color:              white;
-                        padding:            .5rem;
-                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
-                        margin:             0;
                         position:           absolute;
-                    }
-
-                    p[data-anchor] {
-
-                        backdrop-filter:    blur(5px);
-                        font-size:          1em;
-                        font-weight:        400;
-                        max-inline-size:    calc(anchor-size(inline) - 2rem);
-                        opacity:            0;
-                        padding-inline:     1rem;
-                        transition:         display 80ms allow-discrete, opacity 80ms;
+                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
+                        padding:            .5rem 1rem;
+                        margin:             0;
+                        max-inline-size:    calc(anchor-size(inline) - 2rem - 3rem); /* 3rem = approx size of the button */
+                        inset:              unset; /* Needed as popover browser defaults set it */
                         inset-block-end:    calc(anchor(end)   + 1rem);
                         inset-inline-start: calc(anchor(start) + 1rem);
+                        
+                        background-color:   color-mix(in srgb, var(--background-color) 70%, transparent);
+                        backdrop-filter:    blur(4px);
+                        color:              var(--text-on-background-darker-color);
                     }
                 }
             }
@@ -12542,6 +12527,24 @@
         return figure(
 
             figure_img($img_src, $img_w, $img_h, $attributes_img, $html_alt).
+            figure_img_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button).
+            figure_caption($html_caption, $atributes_caption).
+
+            "", $atributes_figure);
+    }
+
+    function figure_gif_alt_caption(
+        
+        $img_src, $img_w = false, $img_h = false, $attributes_img = auto,               // img
+        $html_alt = false,                                                              // common to img and alt-button-popover     
+        $html_caption = auto, $atributes_caption = auto,                                // figcaption   
+        $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
+        $atributes_figure = auto                                                        // figure
+        )
+    {
+        return figure(
+
+            figure_gif($img_src, $img_w, $img_h, $attributes_img, $html_alt).
             figure_img_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button).
             figure_caption($html_caption, $atributes_caption).
 
@@ -12603,7 +12606,7 @@
                 "aria-label"            => T("alternate text"), 
             ])).
 
-            p($html_alt, array_merge($atributes_alt_popover, [ 
+            div($html_alt, array_merge($atributes_alt_popover, [ 
 
                 "popover"       => "auto",
                 "id"            => "--alt-$uuid",
@@ -14093,6 +14096,8 @@
                 }
             }
         }
+
+        $alt = strip_tags($alt);
         
         HSTART() ?><html><?= HERE() ?>
         
