@@ -811,7 +811,7 @@
             
         set("carousel",                         true);
 
-        set("cache-duration",                   24*60*60); // 24h
+        set("cache-duration",                   7*24*60*60); // 1 week
 
         set("forwarded_flags",                  array("no_js","no_css","rss","wip"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
@@ -11715,7 +11715,7 @@
       
             function scan_images() 
             {   /*
-                dom.log("Scanning images");*/
+                dom.log("Scanning images"); */
 
                 /* Handle images loading errors */
                 document.querySelectorAll("img").forEach(function (e) { 
@@ -11725,7 +11725,7 @@
 
                 /* Scan for lazy elements and make them observed elements */
                 if (interaction_observer) {
-                    
+
                     /* (re)create images intersection observer */
                     var options = { rootMargin: '0px 0px 0px 0px' };
                     interaction_observer = new IntersectionObserver(img_observer_callback, options);
@@ -11749,7 +11749,7 @@
                 <?php if (get("script-images-loading-auto-scan-on-ajax", true)) { ?>
                 on_ajax(scan_images);
                 <?php } ?>
-            
+
                 });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -12462,61 +12462,55 @@
 
         HSTART() ?><style><?= HERE() ?>
 
-            figure:has([popover]):has(button[data-anchor]) {
+            button[data-alt-anchor] {
 
-                button[data-anchor] {
-
-                    display: none;
-                }
+                display: none;
             }
 
-            @supports (anchor-name:attr(data-anchor type(<custom-ident>), none)) {
+            @supports (anchor-name:attr(data-alt-anchor type(<custom-ident>), none)) {
 
-                figure:has([popover]):has(button[data-anchor]) {
+                img[data-alt-anchor], video[data-alt-anchor] {
+                    
+                    anchor-name: attr(data-alt-anchor type(<custom-ident>), none);
+                }
 
-                    img, video {
-                        
-                        anchor-name: attr(data-anchor type(<custom-ident>), none);
-                    }
+                button[data-alt-anchor] {
 
-                    button[data-anchor] {
+                    display:            block;
 
-                        display:            block;
+                    position:           absolute;
+                    position-anchor:    attr(data-alt-anchor type(<custom-ident>), none);
+                    padding:            .5rem;
+                    margin:             0;
+                    inset-block-end:    calc(anchor(end) + 1rem);
+                    inset-inline-end:   calc(anchor(end) + 1rem);
+                    
+                    background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
+                    color:              var(--text-on-background-darker-color);
 
-                        position:           absolute;
-                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
-                        padding:            .5rem;
-                        margin:             0;
-                        inset-block-end:    calc(anchor(end) + 1rem);
-                        inset-inline-end:   calc(anchor(end) + 1rem);
-                        
-                        background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
-                        color:              var(--text-on-background-darker-color);
+                    font-size:          0.75rem;
+                    text-transform:     uppercase;
+                    line-height:        1;
 
-                        font-size:          0.75rem;
-                        text-transform:     uppercase;
-                        line-height:        1;
+                    &:hover { background-color: var(--background-darker-color); }
+                }
 
-                        &:hover { background-color: var(--background-darker-color); }
-                    }
+                [popover][data-alt-anchor] {
 
-                    [popover][data-anchor] {
+                    position:           absolute;
+                    position-anchor:    attr(data-alt-anchor type(<custom-ident>), none);
+                    padding:            .5rem 1rem;
+                    margin:             0;
+                    max-inline-size:    min(70ch, calc(anchor-size(inline) - 2rem - 3rem)); /* 3rem = approx size of the button */
+                    inset:              unset; /* Needed as popover browser defaults set it */
+                    inset-block-end:    calc(anchor(end)   + 1rem);
+                    inset-inline-start: calc(anchor(start) + 1rem);
+                    
+                    background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
+                    backdrop-filter:    blur(4px);
+                    color:              var(--text-on-background-darker-color);
 
-                        position:           absolute;
-                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
-                        padding:            .5rem 1rem;
-                        margin:             0;
-                        max-inline-size:    min(70ch, calc(anchor-size(inline) - 2rem - 3rem)); /* 3rem = approx size of the button */
-                        inset:              unset; /* Needed as popover browser defaults set it */
-                        inset-block-end:    calc(anchor(end)   + 1rem);
-                        inset-inline-start: calc(anchor(start) + 1rem);
-                        
-                        background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
-                        backdrop-filter:    blur(4px);
-                        color:              var(--text-on-background-darker-color);
-
-                        &:hover { background-color: var(--background-darker-color); }
-                    }
+                    &:hover { background-color: var(--background-darker-color); }
                 }
             }
 
@@ -12624,10 +12618,10 @@
         return $__last_img_generated_id;
     }
 
-    function figure_img_alt_uuid()
+    function figure_img_alt_uuid($additionnal_seed = false)
     {        
         global $__last_img_generated_id;
-        $__last_img_generated_id = md5(json_encode(debug_callstack()));
+        $__last_img_generated_id = md5(json_encode([debug_callstack(), $additionnal_seed]));
         return $__last_img_generated_id;
     }
 
@@ -12635,7 +12629,7 @@
     {
         $uuid = (auto === $uuid) ? figure_img_alt_uuid() : $uuid;
 
-        $attributes = attributes_add($attributes, [ "data-anchor" => "--img-$uuid" ]);
+        $attributes = attributes_add($attributes, [ "data-alt-anchor" => "--img-$uuid" ]);
 
         return img($path, $w, $h, $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images);
     }
@@ -12644,7 +12638,7 @@
     {
         $uuid = (auto === $uuid) ? figure_img_alt_uuid() : $uuid;
 
-        $attributes = attributes_add($attributes, [ "data-anchor" => "--img-$uuid" ]);
+        $attributes = attributes_add($attributes, [ "data-alt-anchor" => "--img-$uuid" ]);
         
         return gif($path, $w, $h, $attributes, $alt, $precompute_size);
     }
@@ -12656,32 +12650,34 @@
         $atributes_alt_popover  = (auto === $atributes_alt_popover) ? []                        : $atributes_alt_popover;
         $atributes_button       = (auto === $atributes_button)      ? []                        : $atributes_button;
 
+        if (false === $html_button) return "";
+
         return 
         
             button($html_button, array_merge($atributes_button, [ 
                 
                 "type"                  => "button",
-                "data-anchor"           => "--img-$uuid", 
+                "data-alt-anchor"       => "--img-$uuid", 
                 "popovertarget"         => "--alt-$uuid", 
                 "popovertargetaction"   => "toggle",
                 "aria-label"            => T("alternate text"), 
-            ])).
+            ]))./*
 
             script('
-                document.querySelectorAll(\'button[data-anchor="'."--img-$uuid".'"]\').forEach((button) => {
+                document.querySelectorAll(\'button[data-alt-anchor="'."--img-$uuid".'"]\').forEach((button) => {
                     dom.log("Register click on ", button);
                     button.addEventListener("click", (event) => { 
                         dom.log("Stop propagation on ", button);
                         event.stopPropagation(); 
                     });
                 });
-            ').
+            ').*/
 
             div($html_alt, array_merge($atributes_alt_popover, [ 
 
-                "popover"       => "auto",
-                "id"            => "--alt-$uuid",
-                "data-anchor"   => "--img-$uuid",
+                "popover"           => "auto",
+                "id"                => "--alt-$uuid",
+                "data-alt-anchor"   => "--img-$uuid",
             ])).
             
             "";
@@ -13945,12 +13941,11 @@
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
-        if (auto === $lazy_src)         $lazy_src       = false;
-        if (auto === $content)          $content        = '';
-        if (auto === $src_attribute)    $src_attribute  = 'src';
+        if (auto === $lazy_src)      $lazy_src      = false;
+        if (auto === $content)       $content       = '';
+        if (auto === $src_attribute) $src_attribute = 'src';
 
         $img_nth = get("img_nth", 1);
-
         $preload = false;
             
         if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
@@ -13978,7 +13973,6 @@
         $ext        = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
         $codename   = urlencode(basename($path, $ext));
         $alt        = ($alt === false || $alt === "") ? $codename : $alt;
-            
         $lazy_src   = ($lazy !== false) ? (($lazy_src === false) ? url_img_loading() : $lazy_src) : false;
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
@@ -14004,15 +13998,17 @@
 
         $alt = strip_tags($alt);
 
-             if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
-        else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
-        else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
+        if (auto === $lazy && !!get("lazy-unload")) $lazy = true; // then js is needed
+
+             if (auto === $lazy) { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async" )); }
+        else if (true === $lazy) { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async" )); }
+        else                     { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async" )); }
 
         // From here, $attributes is an array
 
-             if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
-        else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
-        else                      { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+             if (auto === $lazy) { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+        else if (true === $lazy) {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
+        else                     { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
 
         if ($preload && $img_nth == 1) {
         
@@ -14493,7 +14489,7 @@
     function url_img_blank   () { return get("url_img_blank",   path("img/blank.gif") ); }
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
-//  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
+  //function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
     function unsplash_url()             { return "https://unsplash.com";        }
     function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
