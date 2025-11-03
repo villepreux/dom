@@ -10009,6 +10009,21 @@
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
+
+    function css_nth($max = 128)
+    {
+        $css = eol().":root { --nth-child: 0; --nth-of-type: 0; --count-child: 0; --count-of-type: 0 }";
+
+        for ($i = 1; $i <= $max; ++$i)
+        {
+            $css .= eol().":nth-child($i)   { --nth-child:   $i; :has(&) { --count-child:   $i; } }";
+            $css .= eol().":nth-of-type($i) { --nth-of-type: $i; :has(&) { --count-of-type: $i; } }";
+        }
+
+        $css .= eol();
+
+        return " @layer nth { $css } ";
+    }
     
     function css_pseudorandom()
     {
@@ -16591,7 +16606,7 @@
     {
         return (function() { HSTART() ?><style><?= HERE() ?>
             
-            [style*="--lqip:"]:is( :not(img), img[loading=lazy], .force-lqip ) {
+            [style*="--lqip:"]:is( :not(img), img[loading=lazy], img[data-src], .force-lqip ) {
 
                 --lqip-ca:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 18))), 4);
                 --lqip-cb:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 16))), 4);
