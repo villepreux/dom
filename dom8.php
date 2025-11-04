@@ -10466,7 +10466,11 @@
 
             /* Others */
     
-            u, del          { text-decoration-color: red; }
+            u, del { 
+                 
+                text-decoration-color:      var(--accent-color, red);
+                text-decoration-thickness:  2px;
+            }
             
             kbd {/*
                 border-color:       var(--background-darker-color, var(--border-color, currentColor));
@@ -12517,9 +12521,9 @@
                         font-size:          1em;
                         font-weight:        400;
                         max-inline-size:    calc(anchor-size(inline) - 2rem);
+                        padding-inline:     1rem;/*
                         opacity:            0;
-                        padding-inline:     1rem;
-                        transition:         display 80ms allow-discrete, opacity 80ms;
+                        transition:         display 80ms allow-discrete, opacity 80ms;*/
                         inset-block-end:    calc(anchor(end)   + 1rem);
                         inset-inline-start: calc(anchor(start) + 1rem);
                     }
