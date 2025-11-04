@@ -10460,12 +10460,12 @@
 
             /* Headlines */
          
-            h1              { color: var(--h1-color) }
-            h2              { color: var(--h2-color) }
-            h3              { color: var(--h3-color) }
-            h4              { color: var(--h4-color) }
-            h5              { color: var(--h5-color) }
-            h6              { color: var(--h6-color) }
+            h1 { color: var(--h1-color) }
+            h2 { color: var(--h2-color) }
+            h3 { color: var(--h3-color) }
+            h4 { color: var(--h4-color) }
+            h5 { color: var(--h5-color) }
+            h6 { color: var(--h6-color) }
             
             /* Links */
     
