@@ -811,7 +811,7 @@
             
         set("carousel",                         true);
 
-        set("cache-duration",                   24*60*60); // 24h
+        set("cache-duration",                   7*24*60*60); // 1 week
 
         set("forwarded_flags",                  array("no_js","no_css","rss","wip"));
         set("root_hints",                       array(".git", ".github", ".well-known"));
@@ -10009,6 +10009,21 @@
 
         <?php heredoc_flush("raw_css"); ?></style><?php return css_layer($layer, heredoc_stop(null));
     }
+
+    function css_nth($max = 128)
+    {
+        $css = eol().":root { --nth-child: 0; --nth-of-type: 0; --count-child: 0; --count-of-type: 0 }";
+
+        for ($i = 1; $i <= $max; ++$i)
+        {
+            $css .= eol().":nth-child($i)   { --nth-child:   $i; :has(&) { --count-child:   $i; } }";
+            $css .= eol().":nth-of-type($i) { --nth-of-type: $i; :has(&) { --count-of-type: $i; } }";
+        }
+
+        $css .= eol();
+
+        return " @layer nth { $css } ";
+    }
     
     function css_pseudorandom()
     {
@@ -10505,6 +10520,11 @@
                 color: var(--text-on-accent-lighter-color);
             }
             :is(button, [type="button"], [type="submit"]).transparent:hover {
+                cursor: pointer;
+            }
+
+            /* YES I KNOW THIS IS VERY BAD. BUT YOLO */
+            :is(button, [type="button"], [type="submit"]):hover {
                 cursor: pointer;
             }
 
@@ -11714,7 +11734,7 @@
       
             function scan_images() 
             {   /*
-                dom.log("Scanning images");*/
+                dom.log("Scanning images"); */
 
                 /* Handle images loading errors */
                 document.querySelectorAll("img").forEach(function (e) { 
@@ -11724,7 +11744,7 @@
 
                 /* Scan for lazy elements and make them observed elements */
                 if (interaction_observer) {
-                    
+
                     /* (re)create images intersection observer */
                     var options = { rootMargin: '0px 0px 0px 0px' };
                     interaction_observer = new IntersectionObserver(img_observer_callback, options);
@@ -11748,7 +11768,7 @@
                 <?php if (get("script-images-loading-auto-scan-on-ajax", true)) { ?>
                 on_ajax(scan_images);
                 <?php } ?>
-            
+
                 });
 
         <?php heredoc_flush("raw_js"); ?></script><?php return heredoc_stop(null);
@@ -12461,72 +12481,55 @@
 
         HSTART() ?><style><?= HERE() ?>
 
-            figure:has(img, img-gif):has([popover]):has(figcaption) {
+            button[data-alt-anchor] {
 
-                inline-size:        fit-content;
-                max-inline-size:    none;
-                display:            block;
-
-                :is(img,img-gif,video) {
-
-                    position:   relative;
-                    overflow:   clip;
-                }
-
-                [data-anchor] {
-
-                    display: none;
-                }
-
-                figcaption {
-                    
-                    margin-block-start: 1rem;
-                }
+                display: none;
             }
 
-            @supports (anchor-name:attr(id type(<custom-ident>), none)) {
+            @supports (anchor-name:attr(data-alt-anchor type(<custom-ident>), none)) {
 
-                figure:has(img, img-gif):has([popover]):has(figcaption) {
+                img[data-alt-anchor], video[data-alt-anchor] {
+                    
+                    anchor-name: attr(data-alt-anchor type(<custom-ident>), none);
+                }
 
-                    img,img-gif,video {
-                        
-                        anchor-name: attr(id type(<custom-ident>), none);
-                    }
+                button[data-alt-anchor] {
 
-                    button[data-anchor] {
+                    display:            block;
 
-                        font-size:          12px;
-                        font-weight:        400;
-                        text-transform:     uppercase;
-                        line-height:        1;
-                        display:            block;
-                        inset-block-end:    calc(anchor(end) + 1rem);
-                        inset-inline-end:   calc(anchor(end) + 1rem);
-                    }
+                    position:           absolute;
+                    position-anchor:    attr(data-alt-anchor type(<custom-ident>), none);
+                    padding:            .5rem;
+                    margin:             0;
+                    inset-block-end:    calc(anchor(end) + 1rem);
+                    inset-inline-end:   calc(anchor(end) + 1rem);
+                    
+                    background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
+                    color:              var(--text-on-background-darker-color);
 
-                    [data-anchor] /* button and popover */ {
+                    font-size:          0.75rem;
+                    text-transform:     uppercase;
+                    line-height:        1;
 
-                        --offset:           calc(-100% - 1rem);
-                        background-color:   black;
-                        color:              white;
-                        padding:            .5rem;
-                        position-anchor:    attr(data-anchor type(<custom-ident>), none);
-                        margin:             0;
-                        position:           absolute;
-                    }
+                    &:hover { background-color: var(--background-darker-color); }
+                }
 
-                    p[data-anchor] {
+                [popover][data-alt-anchor] {
 
-                        backdrop-filter:    blur(5px);
-                        font-size:          1em;
-                        font-weight:        400;
-                        max-inline-size:    calc(anchor-size(inline) - 2rem);
-                        padding-inline:     1rem;/*
-                        opacity:            0;
-                        transition:         display 80ms allow-discrete, opacity 80ms;*/
-                        inset-block-end:    calc(anchor(end)   + 1rem);
-                        inset-inline-start: calc(anchor(start) + 1rem);
-                    }
+                    position:           absolute;
+                    position-anchor:    attr(data-alt-anchor type(<custom-ident>), none);
+                    padding:            .5rem 1rem;
+                    margin:             0;
+                    max-inline-size:    min(70ch, calc(anchor-size(inline) - 2rem - 3rem)); /* 3rem = approx size of the button */
+                    inset:              unset; /* Needed as popover browser defaults set it */
+                    inset-block-end:    calc(anchor(end)   + 1rem);
+                    inset-inline-start: calc(anchor(start) + 1rem);
+                    
+                    background-color:   color-mix(in srgb, var(--background-darker-color) 50%, transparent);
+                    backdrop-filter:    blur(4px);
+                    color:              var(--text-on-background-darker-color);
+
+                    &:hover { background-color: var(--background-darker-color); }
                 }
             }
 
@@ -12540,16 +12543,90 @@
         $html_alt = false,                                                              // common to img and alt-button-popover     
         $html_caption = auto, $atributes_caption = auto,                                // figcaption   
         $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
-        $atributes_figure = auto                                                        // figure
+        $atributes_figure = auto,                                                       // figure
+
+        $img_uuid = auto,
+
+        $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto,       // img additional params
+        $src_attribute = auto, $preload_if_among_first_images = true                    //
         )
     {
         return figure(
 
-            figure_img($img_src, $img_w, $img_h, $attributes_img, $html_alt).
-            figure_img_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button).
+            figure_img($img_src, $img_w, $img_h, $attributes_img, $html_alt, $img_uuid, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images).
+            figure_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button, $img_uuid).
             figure_caption($html_caption, $atributes_caption).
 
             "", $atributes_figure);
+    }
+
+    function figure_gif_alt_caption(
+        
+        $img_src, $img_w = false, $img_h = false, $attributes_img = auto,               // img
+        $html_alt = false,                                                              // common to img and alt-button-popover     
+        $html_caption = auto, $atributes_caption = auto,                                // figcaption   
+        $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
+        $atributes_figure = auto,                                                       // figure
+
+        $img_uuid = auto,
+
+        $precompute_size = auto                                                         // img additional params
+        )
+    {
+        return figure(
+
+            figure_gif($img_src, $img_w, $img_h, $attributes_img, $html_alt, $img_uuid, $precompute_size).
+            figure_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button, $img_uuid).
+            figure_caption($html_caption, $atributes_caption).
+
+            "", $atributes_figure);
+    }
+
+    function figure_img_alt(
+        
+        $img_src, $img_w = false, $img_h = false, $attributes_img = auto,               // img
+        $html_alt = false,                                                              // common to img and alt-button-popover     
+        $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
+        $atributes_figure = auto,                                                       // figure
+
+        $img_uuid = auto,
+
+        $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto,       // img additional params
+        $src_attribute = auto, $preload_if_among_first_images = true                    //
+        )
+    {
+        $uuid = figure_img_alt_uuid();
+
+        return figure(
+
+            figure_img($img_src, $img_w, $img_h, $attributes_img, $html_alt, $img_uuid, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images).
+            figure_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button, $img_uuid).
+            figure_caption($html_alt, [ "id" => "fig-$uuid", "aria-hidden" => "true", "class" => "visually-hidden" ]).
+
+            "", attributes_add($atributes_figure, [ "aria-labelledby" => "fig-$uuid" ]));
+    }
+
+    function figure_gif_alt(
+        
+        $img_src, $img_w = false, $img_h = false, $attributes_img = auto,               // img
+        $html_alt = false,                                                              // common to img and alt-button-popover     
+        $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto,   // button-popover
+        $atributes_figure = auto,                                                       // figure
+
+        $img_uuid = auto,
+
+        $precompute_size = auto                                                         // img additional params
+        )
+    {
+        $uuid = figure_img_alt_uuid();
+
+        return figure(
+
+            figure_gif($img_src, $img_w, $img_h, $attributes_img, $html_alt, $img_uuid, $precompute_size).
+            figure_alt($html_alt, $html_button, $atributes_alt_popover, $atributes_button, $img_uuid).
+            figure_caption($html_alt, [ "id" => "fig-$uuid", "aria-hidden" => "true", "class" => "visually-hidden" ]).
+
+            "", attributes_add($atributes_figure, [ "aria-labelledby" => "fig-$uuid" ]));
     }
 
     $__last_img_generated_id = false;
@@ -12560,58 +12637,66 @@
         return $__last_img_generated_id;
     }
 
-    function figure_img_alt_uuid()
+    function figure_img_alt_uuid($additionnal_seed = false)
     {        
         global $__last_img_generated_id;
-        $__last_img_generated_id = md5(json_encode(debug_callstack()));
+        $__last_img_generated_id = md5(json_encode([debug_callstack(), $additionnal_seed]));
         return $__last_img_generated_id;
     }
 
-    function figure_img(...$args)
+    function figure_img($path, $w = false, $h = false, $attributes = false, $alt = false, $uuid = auto, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true)
     {
-        if (count($args) < 2) $args[] = false; // $w
-        if (count($args) < 3) $args[] = false; // $h
-        if (count($args) < 4) $args[] = false; // $attributes
+        $uuid = (auto === $uuid) ? figure_img_alt_uuid() : $uuid;
 
-        $args[3] = attributes_add($args[3], [ "id" => ("--img-".figure_img_alt_uuid()) ]);
-        
-        return img(...$args);
+        $attributes = attributes_add($attributes, [ "data-alt-anchor" => "--img-$uuid" ]);
+
+        return img($path, $w, $h, $attributes, $alt, $lazy, $lazy_src, $content, $precompute_size, $src_attribute, $preload_if_among_first_images);
     }
 
-    function figure_gif(...$args)
+    function figure_gif($path, $w = false, $h = false, $attributes = false, $alt = false, $uuid = auto, $precompute_size = auto)
     {
-        if (count($args) < 2) $args[] = false; // $w
-        if (count($args) < 3) $args[] = false; // $h
-        if (count($args) < 4) $args[] = false; // $attributes
+        $uuid = (auto === $uuid) ? figure_img_alt_uuid() : $uuid;
 
-        $args[3] = attributes_add($args[3], [ "id" => ("--img-".figure_img_alt_uuid()) ]);
+        $attributes = attributes_add($attributes, [ "data-alt-anchor" => "--img-$uuid" ]);
         
-        return gif(...$args);
+        return gif($path, $w, $h, $attributes, $alt, $precompute_size);
     }
 
-    function figure_img_alt($html_alt, $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto, $uuid = auto)
+    function figure_alt($html_alt, $html_button = auto, $atributes_alt_popover = auto, $atributes_button = auto, $uuid = auto)
     {
         $uuid                   = (auto === $uuid)                  ? __figure_img_last_id()    : $uuid;
         $html_button            = (auto === $html_button)           ? T("Alt")                  : $html_button;
         $atributes_alt_popover  = (auto === $atributes_alt_popover) ? []                        : $atributes_alt_popover;
         $atributes_button       = (auto === $atributes_button)      ? []                        : $atributes_button;
 
+        if (false === $html_button) return "";
+
         return 
         
             button($html_button, array_merge($atributes_button, [ 
                 
                 "type"                  => "button",
-                "data-anchor"           => "--img-$uuid", 
+                "data-alt-anchor"       => "--img-$uuid", 
                 "popovertarget"         => "--alt-$uuid", 
                 "popovertargetaction"   => "toggle",
                 "aria-label"            => T("alternate text"), 
-            ])).
+            ]))./*
 
-            p($html_alt, array_merge($atributes_alt_popover, [ 
+            script('
+                document.querySelectorAll(\'button[data-alt-anchor="'."--img-$uuid".'"]\').forEach((button) => {
+                    dom.log("Register click on ", button);
+                    button.addEventListener("click", (event) => { 
+                        dom.log("Stop propagation on ", button);
+                        event.stopPropagation(); 
+                    });
+                });
+            ').*/
 
-                "popover"       => "auto",
-                "id"            => "--alt-$uuid",
-                "data-anchor"   => "--img-$uuid",
+            div($html_alt, array_merge($atributes_alt_popover, [ 
+
+                "popover"           => "auto",
+                "id"                => "--alt-$uuid",
+                "data-alt-anchor"   => "--img-$uuid",
             ])).
             
             "";
@@ -13875,12 +13960,11 @@
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
-        if (auto === $lazy_src)         $lazy_src       = false;
-        if (auto === $content)          $content        = '';
-        if (auto === $src_attribute)    $src_attribute  = 'src';
+        if (auto === $lazy_src)      $lazy_src      = false;
+        if (auto === $content)       $content       = '';
+        if (auto === $src_attribute) $src_attribute = 'src';
 
         $img_nth = get("img_nth", 1);
-
         $preload = false;
             
         if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
@@ -13908,7 +13992,6 @@
         $ext        = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
         $codename   = urlencode(basename($path, $ext));
         $alt        = ($alt === false || $alt === "") ? $codename : $alt;
-            
         $lazy_src   = ($lazy !== false) ? (($lazy_src === false) ? url_img_loading() : $lazy_src) : false;
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
@@ -13934,15 +14017,17 @@
 
         $alt = strip_tags($alt);
 
-             if (auto === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async"  )); }
-        else if (true === $lazy)  { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async"  )); }
-        else                      { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async"  )); }
+        if (auto === $lazy && !!get("lazy-unload")) $lazy = true; // then js is needed
+
+             if (auto === $lazy) { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async" )); }
+        else if (true === $lazy) { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async" )); }
+        else                     { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h",                      "decoding" => "async" )); }
 
         // From here, $attributes is an array
 
-             if (auto === $lazy)  { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
-        else if (true === $lazy)  {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
-        else                      { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+             if (auto === $lazy) { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
+        else if (true === $lazy) {    $attributes = attributes_add($attributes, array("class" => /*"img lazy loading"*/ "lazy loading")); }
+        else                     { /* $attributes = attributes_add($attributes, array("class" => "img")); */ }
 
         if ($preload && $img_nth == 1) {
         
@@ -14097,6 +14182,8 @@
                 }
             }
         }
+
+        $alt = strip_tags($alt);
         
         HSTART() ?><html><?= HERE() ?>
         
@@ -14421,7 +14508,7 @@
     function url_img_blank   () { return get("url_img_blank",   path("img/blank.gif") ); }
  
     function url_img_instagram($short_code, $size_code = "l") { return "https://instagram.com/p/$short_code/media/?size=$size_code";      }
-//  function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
+  //function url_img_instagram($username = false, $index = 0) { $content = json_instagram_medias(($username === false) ? get("instagram_user") : $username); $n = count($content["items"]); if ($n == 0) return url_img_blank(); return $content["items"][$index % $n]["images"]["standard_resolution"]["url"]; }
 
     function unsplash_url()             { return "https://unsplash.com";        }
     function unsplash_url_author($id)   { return "https://unsplash.com/@".$id;  }
@@ -16523,7 +16610,7 @@
     {
         return (function() { HSTART() ?><style><?= HERE() ?>
             
-            [style*="--lqip:"]:is( :not(img), img[loading=lazy], .force-lqip ) {
+            [style*="--lqip:"]:is( :not(img), img[loading=lazy], img[data-src], .force-lqip ) {
 
                 --lqip-ca:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 18))), 4);
                 --lqip-cb:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 16))), 4);
