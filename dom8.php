@@ -5021,12 +5021,23 @@
             $cache_basename = url_branch(false);
             $cache_basename = slugify($cache_basename);
             if ("" == $cache_basename) $cache_basename = "index";
+            
+            foreach (scandir($cache_dir) as $item)
+            {
+                if ($item[0] == ".") continue;
+
+                if (0 === stripos($item, "$item.")) 
+                {
+                    $cache_filename = "$cache_dir/$item";
+                    @unlink($cache_filename);
+                }
+            }
+
             $cache_basename .= ".".md5(url(true));
             $cache_basename .= ".html";
         }
     
         $cache_filename = "$cache_dir/$cache_basename";
-
         @unlink($cache_filename);
     }
 
