@@ -9958,6 +9958,11 @@
   
                     margin-block-start: .2em;
                 }
+
+                li:has(> ul) {
+
+                    list-style: none;
+                }
                 
                 .grid {
 
@@ -10025,13 +10030,9 @@
         return " @layer nth { $css } ";
     }
     
-    function css_pseudorandom()
+    function css_pseudorandom($elements_selector = "*", $layer = "pseudorandom")
     {
-        return "@layer pseudorandom {
-        
-            :root { --pseudorand-prime-2: 1; --pseudorand-prime-3: 1; --pseudorand-prime-5: 1; --pseudorand-prime-7: 1; --pseudorand-prime-11: 1; --pseudorand-prime-13: 1; --pseudorand-prime-17: 1; --pseudorand-prime-19: 1; --pseudorand-prime-23: 1; --pseudorand-prime-29: 1; --pseudorand-prime-31: 1; --pseudorand-prime-37: 1; --pseudorand-prime-41: 1; --pseudorand-prime-43: 1; --pseudorand-prime-47: 1; --pseudorand-prime-53: 1; --pseudorand-prime-59: 1; --pseudorand-prime-61: 1; --pseudorand-prime-67: 1; --pseudorand-prime-71: 1; --pseudorand-prime-73: 1; --pseudorand-prime-79: 1; --pseudorand-prime-83: 1; --pseudorand-prime-89: 1; --pseudorand-prime-97: 1; --pseudorand-prime-101: 1; --pseudorand-prime-103: 1; --pseudorand-prime-107: 1; --pseudorand-prime-109: 1; --pseudorand-prime-113: 1; --pseudorand-prime-127: 1; --pseudorand-prime-131: 1; --pseudorand-prime-137: 1; --pseudorand-prime-139: 1; --pseudorand-prime-149: 1; --pseudorand-prime-151: 1; --pseudorand-prime-157: 1; --pseudorand-prime-163: 1; --pseudorand-prime-167: 1; --pseudorand-prime-173: 1; --pseudorand-prime-179: 1; --pseudorand-prime-181: 1; --pseudorand-prime-191: 1; --pseudorand-prime-193: 1; --pseudorand-prime-197: 1; --pseudorand-prime-199: 1; --pseudorand-prime-211: 1; --pseudorand-prime-223: 1; --pseudorand-prime-227: 1; --pseudorand-prime-229: 1; --pseudorand-prime-233: 1; --pseudorand-prime-239: 1; --pseudorand-prime-241: 1; }
-        
-            * { 
+        $css = " $elements_selector { 
             
                 &:nth-child(2n)   { --pseudorand-prime-2:     2; }
                 &:nth-child(4n)   { --pseudorand-prime-2:     4; }  
@@ -10102,10 +10103,15 @@
                 &:nth-child(239n) { --pseudorand-prime-239: 239; }  
                 &:nth-child(241n) { --pseudorand-prime-241: 241; }  
             
-                --rand: calc(1  * var(--pseudorand-prime-2)  * var(--pseudorand-prime-3)  * var(--pseudorand-prime-5)  * var(--pseudorand-prime-7)  * var(--pseudorand-prime-11)  * var(--pseudorand-prime-13)  * var(--pseudorand-prime-17)  * var(--pseudorand-prime-19)  * var(--pseudorand-prime-23)  * var(--pseudorand-prime-29)  * var(--pseudorand-prime-31)  * var(--pseudorand-prime-37)  * var(--pseudorand-prime-41)  * var(--pseudorand-prime-43)  * var(--pseudorand-prime-47)  * var(--pseudorand-prime-53)  * var(--pseudorand-prime-59)  * var(--pseudorand-prime-61)  * var(--pseudorand-prime-67)  * var(--pseudorand-prime-71)  * var(--pseudorand-prime-73)  * var(--pseudorand-prime-79)  * var(--pseudorand-prime-83)  * var(--pseudorand-prime-89)  * var(--pseudorand-prime-97)  * var(--pseudorand-prime-101)  * var(--pseudorand-prime-103)  * var(--pseudorand-prime-107)  * var(--pseudorand-prime-109)  * var(--pseudorand-prime-113)  * var(--pseudorand-prime-127)  * var(--pseudorand-prime-131)  * var(--pseudorand-prime-137)  * var(--pseudorand-prime-139)  * var(--pseudorand-prime-149)  * var(--pseudorand-prime-151)  * var(--pseudorand-prime-157)  * var(--pseudorand-prime-163)  * var(--pseudorand-prime-167)  * var(--pseudorand-prime-173)  * var(--pseudorand-prime-179)  * var(--pseudorand-prime-181)  * var(--pseudorand-prime-191)  * var(--pseudorand-prime-193)  * var(--pseudorand-prime-197)  * var(--pseudorand-prime-199)  * var(--pseudorand-prime-211)  * var(--pseudorand-prime-223)  * var(--pseudorand-prime-227)  * var(--pseudorand-prime-229)  * var(--pseudorand-prime-233)  * var(--pseudorand-prime-239)  * var(--pseudorand-prime-241));
-            }
+                --rand: calc(1 * var(--pseudorand-prime-2, 1) * var(--pseudorand-prime-3, 1) * var(--pseudorand-prime-5, 1) * var(--pseudorand-prime-7, 1) * var(--pseudorand-prime-11, 1) * var(--pseudorand-prime-13, 1) * var(--pseudorand-prime-17, 1) * var(--pseudorand-prime-19, 1) * var(--pseudorand-prime-23, 1) * var(--pseudorand-prime-29, 1) * var(--pseudorand-prime-31, 1) * var(--pseudorand-prime-37, 1) * var(--pseudorand-prime-41, 1) * var(--pseudorand-prime-43, 1) * var(--pseudorand-prime-47, 1) * var(--pseudorand-prime-53, 1) * var(--pseudorand-prime-59, 1) * var(--pseudorand-prime-61, 1) * var(--pseudorand-prime-67, 1) * var(--pseudorand-prime-71, 1) * var(--pseudorand-prime-73, 1) * var(--pseudorand-prime-79, 1) * var(--pseudorand-prime-83, 1) * var(--pseudorand-prime-89, 1) * var(--pseudorand-prime-97, 1) * var(--pseudorand-prime-101, 1) * var(--pseudorand-prime-103, 1) * var(--pseudorand-prime-107, 1) * var(--pseudorand-prime-109, 1) * var(--pseudorand-prime-113, 1) * var(--pseudorand-prime-127, 1) * var(--pseudorand-prime-131, 1) * var(--pseudorand-prime-137, 1) * var(--pseudorand-prime-139, 1) * var(--pseudorand-prime-149, 1) * var(--pseudorand-prime-151, 1) * var(--pseudorand-prime-157, 1) * var(--pseudorand-prime-163, 1) * var(--pseudorand-prime-167, 1) * var(--pseudorand-prime-173, 1) * var(--pseudorand-prime-179, 1) * var(--pseudorand-prime-181, 1) * var(--pseudorand-prime-191, 1) * var(--pseudorand-prime-193, 1) * var(--pseudorand-prime-197, 1) * var(--pseudorand-prime-199, 1) * var(--pseudorand-prime-211, 1) * var(--pseudorand-prime-223, 1) * var(--pseudorand-prime-227, 1) * var(--pseudorand-prime-229, 1) * var(--pseudorand-prime-233, 1) * var(--pseudorand-prime-239, 1) * var(--pseudorand-prime-241, 1));
+            } ";
 
-        }";
+        if (!!$layer)
+        {
+            $css = " @layer $layer { $css } ";
+        }
+
+        return $css;
     }
 
     #endregion
