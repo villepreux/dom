@@ -5006,8 +5006,18 @@
 
         foreach (array_diff(@scandir($cache_dir), array('.','..')) as $basename) 
         {
-            @unlink("$cache_dir/$basename");
+            $cache_filename = "$cache_dir/$basename";
+            @unlink($cache_filename);
+
+            debug_log($cache_filename);
         }
+
+        if (!!get("debug")) 
+        {
+            return false;            
+        }
+
+        return true;
     }
 
     function cache_page_reset()
@@ -5018,18 +5028,24 @@
         
         $cache_basename = "";
         {
-            $cache_basename = url_branch(false);
+            $cache_basename = url_branch(false); 
             $cache_basename = slugify($cache_basename);
             if ("" == $cache_basename) $cache_basename = "index";
+
+            //debug_log("Removing cache files that are prefixed by '$cache_basename.'...");
             
             foreach (scandir($cache_dir) as $item)
             {
                 if ($item[0] == ".") continue;
 
-                if (0 === stripos($item, "$item.")) 
+                //debug_log("Testing '$item' vs '$cache_basename.'...");
+
+                if (0 === stripos($item, "$cache_basename.")) 
                 {
                     $cache_filename = "$cache_dir/$item";
                     @unlink($cache_filename);
+
+                    //debug_log("Removing $cache_filename");
                 }
             }
 
@@ -5039,6 +5055,16 @@
     
         $cache_filename = "$cache_dir/$cache_basename";
         @unlink($cache_filename);
+
+        //debug_log($cache_filename);
+
+        if (!!get("debug")) 
+        {
+            //bye(debug_log().debug_console());
+            return false;            
+        }
+
+        return true;
     }
 
     function cache_debug_log($text)
@@ -5075,69 +5101,82 @@
             {
                 if ("cache-reset" == get("action")) 
                 {
-                    cache_global_reset();
-                    redirect(".");
-                }
-
-                if ("cache-page-reset" == get("action")) 
-                {
-                    cache_page_reset();
-                    redirect(".");
-                }
-
-                $cache_basename = "";
-                {
-                    $cache_basename = $url_branch;
-                    $cache_basename = slugify($cache_basename);
-                    if ("" == $cache_basename) $cache_basename = "index";
-                    $cache_basename .= ".".md5(url(true));
-                    $cache_basename .= ".html";
-                }
-
-                $cache_filename         = "$cache_dir/$cache_basename";
-                $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
-                $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 24*60*60)) < filemtime($cache_filename));
-                
-                set("cache_filename", $cache_filename);
-
-                // CACHE-DEBUG ------------------------>
-                //set("cache_url_branch", $url_branch);
-                //set("cache_url",        url(true));
-                //set("cache_vars",       get_all());
-                // CACHE-DEBUG ------------------------>
-                
-                if ($cache_file_exists && $cache_file_uptodate) 
-                {
-                    $cache_file = @fopen($cache_filename, 'r');
-                    
-                    if (!!$cache_file)
-                    {                   
-                        echo fread($cache_file, filesize($cache_filename));
-                        fclose($cache_file);            
-
-                        if ("html" == get("doctype"))
-                        {
-                            echo    eol().
-                                    comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
-                                    footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?action=cache-page-reset", [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
-                                    
-                                    (!get("debug") ? "" : (debug_log().debug_console())).
-
-                                    "";
-                        }
+                    if (cache_global_reset())
+                    {
+                        redirect(".");
                     }
                     else
                     {
-                        if ("html" == get("doctype"))
-                        {
-                            echo eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
-                        }
+                        del("cache");
+                    }
+                }
+                else if ("cache-page-reset" == get("action")) 
+                {
+                    if (cache_page_reset())
+                    {
+                        redirect(".");
+                    }
+                    else
+                    {
+                        del("cache");
+                    }
+                }
+                else 
+                {
+                    $cache_basename = "";
+                    {
+                        $cache_basename = $url_branch;
+                        $cache_basename = slugify($cache_basename);
+                        if ("" == $cache_basename) $cache_basename = "index";
+                        $cache_basename .= ".".md5(url(true));
+                        $cache_basename .= ".html";
                     }
 
-                    exit;
-                }
+                    $cache_filename         = "$cache_dir/$cache_basename";
+                    $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
+                    $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 24*60*60)) < filemtime($cache_filename));
+                    
+                    set("cache_filename", $cache_filename);
 
-                ob_start();
+                    // CACHE-DEBUG ------------------------>
+                    //set("cache_url_branch", $url_branch);
+                    //set("cache_url",        url(true));
+                    //set("cache_vars",       get_all());
+                    // CACHE-DEBUG ------------------------>
+                    
+                    if ($cache_file_exists && $cache_file_uptodate) 
+                    {
+                        $cache_file = @fopen($cache_filename, 'r');
+                        
+                        if (!!$cache_file)
+                        {                   
+                            echo fread($cache_file, filesize($cache_filename));
+                            fclose($cache_file);            
+
+                            if ("html" == get("doctype"))
+                            {
+                                echo    eol().
+                                        comment("Cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename))).
+                                        footer(div(p("Cached copy (".date('Y-m-d H:i', filemtime($cache_filename))." UTC) ".a("♻︎", "?action=cache-page-reset".(!!get("debug") ? "&debug=1" : ""), [ "class" => "emoticon", "aria-label" => "Generate fresh page version" ])))).
+                                        
+                                        (!get("debug") ? "" : (debug_log().debug_console())).
+
+                                        "";
+                            }
+                        }
+                        else
+                        {
+                            if ("html" == get("doctype"))
+                            {
+                                echo eol().comment("Could not read cached copy, $cache_filename, generated ".date('Y-m-d H:i', filemtime($cache_filename)));
+                            }
+                        }
+
+                        exit;
+                    }
+
+                    ob_start();
+                }
             }
             else
             {
