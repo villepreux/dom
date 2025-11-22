@@ -2842,24 +2842,65 @@
         }
 
         global $hook_images;
-
         $found = false; foreach ($hook_images as $image) { if ($src == $image["src"]) { $found = true; break; } }
-
-        if ($found) return false;
-
-        $hook_images[] = [ "src" => $src, "alt" => $alt ];
+        if (!$found) $hook_images[] = [ "src" => $src, "alt" => $alt ];
 
         if ($preload)
         {
-            global $hook_image_preloads;
-
-            if (!in_array($src, $hook_image_preloads) && false === stripos($src, ".svg"))
-            {
-                $hook_image_preloads[] = $src_srcset_sizes;
-            }
+            hook_img_preload($src_srcset_sizes);
         }
 
         return true;
+    }
+    
+    function hook_img_preload($src_srcset_sizes, $min_width = false)
+    {
+        if ($src_srcset_sizes === false) return;
+        
+        if (is_array($src_srcset_sizes))
+        {
+            $src = at($src_srcset_sizes, "url", at($src_srcset_sizes, "src", at($src_srcset_sizes, 0)));
+        }
+        else
+        {
+            $src = $src_srcset_sizes;
+        }
+
+        if (false !== stripos($src, ".svg"))
+        {
+            return false;
+        }
+
+        if (is_array($src_srcset_sizes))
+        {
+            if (!!$min_width)    
+            {
+                if (count($src_srcset_sizes) < 3) bye("INTERNAL ERROR 2878");
+
+                $src_srcset_sizes["min-width"] = $min_width;
+            }
+        }
+        else
+        {
+            $src_srcset_sizes = [ 
+
+                "src"       => $src_srcset_sizes,
+                "srcset"    => false,
+                "sizes"     => false,
+                "min-width" => $min_width,
+            ];
+        }
+
+        global $hook_image_preloads;
+
+        if (!in_array($src,              $hook_image_preloads)
+        &&  !in_array($src_srcset_sizes, $hook_image_preloads))
+        {
+            $hook_image_preloads[] = $src_srcset_sizes;
+            return true;
+        }
+
+        return false;
     }
 
     function link_rel_image_preloads() { return delayed_component("_".__FUNCTION__); }
@@ -4961,6 +5002,7 @@
 
     function minify_html($html)
     {
+        //$html = str_replace_all("\r\n  ", "\r\n ", $html); // Not possible for <pre>
         return trim(str_replace_all(array("\r\n","\r","\t","\n",'  ','    ','     '), ' ', $html));
     }
 
@@ -4968,20 +5010,47 @@
     {
         if (false !== stripos(str_replace("https://", "https:XX", str_replace("http://", "http:XX", $js)), "//")) return $js;
         
-        $js = str_replace_all("\r\n  ",   "\r\n ",  $js);
-        $js = str_replace_all("\n  ",   "\n ",  $js);
-        $js = str_replace_all(PHP_EOL,  " ",    $js);
-        $js = str_replace_all("\n",     " ",    $js);
-        $js = str_replace_all("\r",     " ",    $js);
+        // Lines breaks
+
+        foreach ([ "\r\n", PHP_EOL, "\n" ] as $eol) {
+
+            $js = str_replace_all($eol."  ", $eol, $js);
+            $js = str_replace_all($eol.$eol, $eol, $js);
+            $js = str_replace_all($eol,      " ",  $js);
+        }
+
+        // Common code patterns
+
+        $js = str_replace_all("  = ",   " = ",   $js);
+        $js = str_replace_all("  == ",  " == ",  $js);
+        $js = str_replace_all("  === ", " === ", $js);
+        $js = str_replace_all("  {",    " {",    $js);
+        $js = str_replace_all("  }",    " }",    $js);
+        $js = str_replace_all("  (",    " (",    $js);
+        $js = str_replace_all("  )",    " )",    $js);
+        $js = str_replace_all(";  ",    "; ",    $js);
+        $js = str_replace_all(",  ",    ", ",    $js);
         
         return $js;
     }
 
     function minify_css($css)
     {
-        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!',                        '',  $css);
-        $css =  str_replace(array("\r\n", "\r", "\n", "\t", '  ', '    ', '    '),  ' ', $css);
-        $css =  str_replace('  ',                                                   ' ', $css);
+        // Lines breaks, tabs & spacing
+
+        foreach ([ "\r\n", PHP_EOL, "\n" ] as $eol) {
+
+            $css = str_replace_all($eol."  ", $eol, $css);
+            $css = str_replace_all($eol.$eol, $eol, $css);
+            $css = str_replace_all($eol,      " ",  $css);
+        }
+
+        $css = str_replace_all("\t", " ", $css);
+        $css = str_replace_all("  ", " ", $css);
+        
+        // Smart rules
+
+        $css = preg_replace('!/\*[^*]*\*+([^/][^*]*\*+)*/!', '', $css);
 
         return $css;
     }
@@ -7447,15 +7516,16 @@
         return link_rel("prefetch", $url);
     }
 
-    function link_rel_image_preload($url, $srcset = false, $sizes = false)
+    function link_rel_image_preload($url, $srcset = false, $sizes = false, $min_width = false)
     {
         if (is_array($url))
         {
             $_ = $url;
 
-            $url    = array_shift($_);
-            $srcset = at($_, "srcset", at($_, 0));
-            $sizes  = at($_, "sizes",  at($_, 1));
+            $url       = array_shift($_);
+            $srcset    = at($_, "srcset",     at($_, 0));
+            $sizes     = at($_, "sizes",      at($_, 1));
+            $min_width = at($_, "min-width",  at($_, 2));
         }
 
         $mime = "image/png";
@@ -7475,7 +7545,12 @@
             }
         }
 
-        $attributes = [ "as" => "image", "type" => $mime ];
+        $attributes = [ "as" => "image", "type" => $mime, "fetchpriority" => "high" ];
+
+        if (!!$min_width)
+        {
+            $attributes["media"] = "(min-width: ".$min_width."px)";
+        }
 
         // ex. imagesrcset="wolf_400px.jpg 400w, wolf_800px.jpg 800w, wolf_1600px.jpg 1600w" imagesizes="50vw">
 
@@ -11337,7 +11412,7 @@
     
             foreach ($css_bundles as $css_bundle)
             {
-                $css = implode(eol().eol(), $css_bundle["css"]);
+                $css = implode(cosmetic_css(eol().eol(), " "), $css_bundle["css"]);
 
                 $styles[] = tag('style', eol().$css.eol(), $css_bundle["attributes"]);
             }
@@ -11354,13 +11429,14 @@
     function script_google_analytics_snippet()
     {
         if (!defined("TOKEN_GOOGLE_ANALYTICS")) return "";
-        
+
         if (do_not_track())
         {
             return comment("Google analytics is disabled in accordance to user's 'do-not-track' preferences");
         }
 
         return
+
             script_src("https://www.googletagmanager.com/gtag/js?id=".constant("TOKEN_GOOGLE_ANALYTICS"), false, 'async').
             script(
 
@@ -12382,10 +12458,9 @@
         ;
     }
 
-    function cosmetic($html)
-    {
-        return !!get("minify") ? '' : $html;
-    }
+    function cosmetic($html,    $fallback = "")  { return  !!get("minify")                         ? $fallback : $html; }
+    function cosmetic_css($css, $fallback = " ") { return (!!get("minify") || !!get("minify_css")) ? $fallback : $css;  }
+    function cosmetic_js($js,   $fallback = " ") { return (!!get("minify") || !!get("minify_js"))  ? $fallback : $js;   }
     
 //  HTML tags
         
