@@ -2853,7 +2853,7 @@
         return true;
     }
     
-    function hook_img_preload($src_srcset_sizes, $min_width = false)
+    function hook_img_preload($src_srcset_sizes, $min_width = false, $max_width = false, $priority = false, $fetchpriority = "auto")
     {
         if ($src_srcset_sizes === false) return;
         
@@ -2873,12 +2873,17 @@
 
         if (is_array($src_srcset_sizes))
         {
-            if (!!$min_width)    
+            if (false !== $min_width || false !== $max_width || false !== $priority)
             {
-                if (count($src_srcset_sizes) < 3) bye("INTERNAL ERROR 2878");
-
-                $src_srcset_sizes["min-width"] = $min_width;
+                if (count($src_srcset_sizes) < 3) 
+                {
+                    bye("INTERNAL ERROR 2878");
+                }
             }
+
+            if (false !== $min_width) { $src_srcset_sizes["min-width"] = $min_width; }
+            if (false !== $max_width) { $src_srcset_sizes["max-width"] = $min_width; }
+            if (false !== $priority)  { $src_srcset_sizes["priority"]  = $priority;  }
         }
         else
         {
@@ -2888,8 +2893,12 @@
                 "srcset"    => false,
                 "sizes"     => false,
                 "min-width" => $min_width,
+                "max-width" => $max_width,
+                "priority"  => $priority,
             ];
         }
+
+        $src_srcset_sizes["fetchpriority"] = "$fetchpriority";
 
         global $hook_image_preloads;
 
@@ -2897,6 +2906,18 @@
         &&  !in_array($src_srcset_sizes, $hook_image_preloads))
         {
             $hook_image_preloads[] = $src_srcset_sizes;
+
+            usort($hook_image_preloads, function($ss1, $ss2) {
+
+                $p1 = at($ss1, "priority", at($ss1, 5)); if (false === $p1) $p1 = PHP_INT_MAX;
+                $p2 = at($ss2, "priority", at($ss1, 5)); if (false === $p2) $p2 = PHP_INT_MAX;
+
+                if ($p1 < $p2) return -1;
+                if ($p1 > $p2) return  1;
+
+                return 0;
+            });
+
             return true;
         }
 
@@ -7434,10 +7455,10 @@
             eol().head_user_preferences(). // Only addition to date to capo ordering. Here to prevent any FOUC effect
             eol().head_preconnect_hints().
             eol().head_asynchronous_scripts($scripts).
+            eol().head_preload_hints(). // Should go after head_synchronous_styles
             eol().head_import_styles().
             eol().head_synchronous_scripts($scripts).
             eol().head_synchronous_styles($async_css, $styles).
-            eol().head_preload_hints().
             eol().head_deferred_scripts($scripts).
             eol().head_prefetch_and_prerender_hints($async_css).
             eol().head_everything_else($scripts).
@@ -7516,16 +7537,18 @@
         return link_rel("prefetch", $url);
     }
 
-    function link_rel_image_preload($url, $srcset = false, $sizes = false, $min_width = false)
+    function link_rel_image_preload($url, $srcset = false, $sizes = false, $min_width = false, $max_width = false, $fetchpriority = false)
     {
         if (is_array($url))
         {
             $_ = $url;
 
-            $url       = array_shift($_);
-            $srcset    = at($_, "srcset",     at($_, 0));
-            $sizes     = at($_, "sizes",      at($_, 1));
-            $min_width = at($_, "min-width",  at($_, 2));
+            $url            = array_shift($_);
+            $srcset         = at($_, "srcset",          at($_, 0));
+            $sizes          = at($_, "sizes",           at($_, 1));
+            $min_width      = at($_, "min-width",       at($_, 2));
+            $max_width      = at($_, "max-width",       at($_, 3));
+            $fetchpriority  = at($_, "fetchpriority",   at($_, 4));
         }
 
         $mime = "image/png";
@@ -7545,12 +7568,11 @@
             }
         }
 
-        $attributes = [ "as" => "image", "type" => $mime, "fetchpriority" => "high" ];
+        $attributes = [ "as" => "image", "type" => $mime ];
 
-        if (!!$min_width)
-        {
-            $attributes["media"] = "(min-width: ".$min_width."px)";
-        }
+        if (!!$fetchpriority)   { $attributes["fetchpriority"]  = "$fetchpriority";                 }
+        if (!!$min_width)       { $attributes["media"]          = "(min-width: ".$min_width."px)";  }
+        if (!!$max_width)       { $attributes["media"]          = "(max-width: ".$max_width."px)";  }
 
         // ex. imagesrcset="wolf_400px.jpg 400w, wolf_800px.jpg 800w, wolf_1600px.jpg 1600w" imagesizes="50vw">
 
