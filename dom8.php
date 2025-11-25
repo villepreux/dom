@@ -9167,8 +9167,12 @@
         if (!!get("no_js"))    return '';
         if (!$js || $js == "") return '';
 
+        if (auto === $type || false === $type || true === $type) $type = "text/javascript";
+
         if ($type != "text/javascript")
+        {
             $attributes = attributes_add($attributes, array("type" => $type));
+        }
 
         return tag('script', eol().$js.eol(), $attributes);
     }
@@ -9176,7 +9180,7 @@
     function script($js = "", $type = "text/javascript",  $force_minify = false, $trim = auto)
     {
         $profiler = debug_track_timing();         
-        if (!$js || $js == "") return ''; 
+        if (!$js || $js == "") return '';     
 
         return script_js_as_is(raw_js($js, $force_minify, $trim), $type);
     }
@@ -14103,6 +14107,35 @@
         return [ $w, $h ];
     }
 
+    function img_src($path, $lazy = auto, $preload_if_among_first_images = true)
+    {
+        if (!get("script-images-loading") && $lazy === true) $lazy = auto;
+        if (!!get("nolazy")) $lazy = false;
+
+        $img_nth = get("img_nth", 1);
+            
+        if ($preload_if_among_first_images && $img_nth <= get("img_lazy_loading_after"))
+        {
+            $lazy = false;
+        }
+
+        $info = explode('?', $path);
+        $info = $info[0];
+        $info = pathinfo($info);
+        $ext  = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+        $mime = ltrim($ext,".");
+        $mime = ("svg" == $mime) ? "svg+xml" : $mime;
+
+        $src = $path;
+
+        if (true !== $lazy && !!get("embeded-images"))
+        {
+            $src = "data:image/$mime;base64,".base64_encode(file_get_contents($path));
+        }
+
+        return $src;
+    }
+
     /**
      * Image component
      */
@@ -14163,7 +14196,9 @@
 
         if (true !== $lazy && !!get("embeded-images"))
         {
-            $src = "data:image/".ltrim($ext,".").";base64,".base64_encode(file_get_contents($path));
+            $mime = ltrim($ext,".");
+            $mime = ("svg" == $mime) ? "svg+xml" : $mime;
+            $src  = "data:image/$mime;base64,".base64_encode(file_get_contents($path));
         }
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
