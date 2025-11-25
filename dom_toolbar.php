@@ -64,7 +64,7 @@ function css_toolbar_layout($layer = [ "default", "component", "toolbar" ])
         .toolbar-row-nav li *                           { min-height: var(--line-height); }
         .toolbar-row-nav .toolbar-cell-left .menu-list  { flex-direction: column; align-items: stretch; }
 
-        .toolbar-row-nav :not(:is(section,div,ul,img)):not([hidden], .hidden)  { display: block; }
+        .toolbar-row-nav :not(:is(section,div,ul,img,a>nav)):not([hidden], .hidden)  { display: block; }
         
         .toolbar-row-nav .toolbar-cell-left             { width: clamp(calc(var(--header-toolbar-height) - var(--gap)), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)); }
 

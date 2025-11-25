@@ -3011,11 +3011,11 @@
 
     function link_rel_prefetchs() { return delayed_component("_".__FUNCTION__); }
     function _link_rel_prefetchs()
-    {
+    {   
         if (!!get("auto_prefetch") && !get("not_prefetch"))
         {
             global $hook_prefetch_links;
-            return wrap_each($hook_prefetch_links, "", "hooked_link_rel_prefetch", false);
+            return eol().comment("Prefetched pages").wrap_each($hook_prefetch_links, "", "hooked_link_rel_prefetch", false);
         }
         
         return "";
@@ -5029,6 +5029,7 @@
 
     function minify_js($js)
     {
+        // Do not minify if "//" comments are found
         if (false !== stripos(str_replace("https://", "https:XX", str_replace("http://", "http:XX", $js)), "//")) return $js;
         
         // Lines breaks
@@ -7393,10 +7394,11 @@
             ( !$styles    ? "" : styles()).
             ( !$path_css  ? "" : (
 
-                eol().
-                eol().comment("Project-specific main stylesheet").                                           (!get("htaccess_rewrite_php") ? (
-                style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "all" ]).         "") : (
-                link_style($path_css, "screen", false, [ "layer" => "app"  ]).                          "")).
+                // Below "Project-specific main stylesheet" comment removed on style_file as those styles are (if layered) hooked, bundled, and reinjected in above styles() invocation 
+
+                eol().                                                                                                                                    (!get("htaccess_rewrite_php") ? (
+              /*eol().comment("Project-specific main stylesheet").*/style_file($path_css, false,    auto,  [ "layer" => "app", "media" => "all" ]).   "") : (
+                eol().comment("Project-specific main stylesheet").  link_style($path_css, "screen", false, [ "layer" => "app"  ]).                    "")).
 
             ""));
     }
@@ -7424,7 +7426,6 @@
     function head_prefetch_and_prerender_hints($async_css = false)
     {
         return  eol().comment("Prefetch and prerender hints").
-                eol().comment("Prefetched pages").
                 link_rel_prefetchs().
 
                 (!$async_css ? "" : link_styles($async_css)). // if $async_css == true otherwise move to #5
@@ -9105,10 +9106,23 @@
 
     function style_css_as_is($css = "", $attributes = false, $order = auto)
     {
-        if (!$css || $css == "") return '';
-        //return tag('style',  eol().$css.eol(), $attributes);
-
         global $__style_css_hooks;
+
+        if (!$css || $css == "") return '';
+        if (false === $__style_css_hooks) return tag('style',  eol().$css.eol(), $attributes);
+
+        // Prevent duplicates
+
+        foreach ($__style_css_hooks as list($existing_css, $existing_attributes))
+        {
+            if ($existing_css == $css && $existing_attributes == $attributes)
+            {
+                return "";
+            }
+        }
+
+        // Save CSS for later bundling
+
         if (-1 === $order)
             $__style_css_hooks = array_merge([ [ $css, $attributes ] ], $__style_css_hooks);
         else
@@ -11391,7 +11405,7 @@
             $styles .= eol().layered_style("default",   css_default(false),   auto,  auto,  auto, auto, /*media*/"screen" );
         }
 
-        $scripts .= eol().script((function () { HSTART(-2) ?><script><?= HERE() ?>
+        $scripts .= eol().comment("Dynamic handling of CSS top layer").eol().script((function () { HSTART(-2) ?><script><?= HERE() ?>
         
             dom.disable_all_layers = function()      { document.querySelectorAll("style[layer]"             ).forEach(function(e) { var data_media = e.getAttribute("data-media"); var media = e.getAttribute("media"); if (null === data_media && null !== media) { e.setAttribute("data-media", e.getAttribute("media")); }   e.setAttribute("media", "none"     ); }); };
             dom.enable_layer       = function(layer) { document.querySelectorAll('style[layer="'+layer+'"]' ).forEach(function(e) { var data_media = e.getAttribute("data-media");                                      if (null === data_media)                   { data_media = "screen"; }                                   e.setAttribute("media", data_media ); }); };
