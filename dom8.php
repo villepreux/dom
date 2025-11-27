@@ -7297,7 +7297,11 @@
                     }
                 }
 
-            <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
+            <?= HERE("raw_js") ?></script><?php return HSTOP(); })()).
+                                                                            (!get("origin-trial") ? "" : (
+            eol().meta_http_equiv("origin-trial", get("origin-trial")).     "")).
+            
+            "";
     }
 
     /**
@@ -9012,6 +9016,8 @@
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2688" , array( 414,  896, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1125x2436" , array( 375,  812, 3)  )
             .   link_rel_icon(get("icons_path")."apple-splash", "1242x2208" , array( 414,  736, 3)  )
+
+
             ;
     }
     
