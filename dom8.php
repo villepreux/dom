@@ -5872,24 +5872,28 @@
         
         $screenshots = array_slice($screenshots, 0, $screenshots_count_max);
         
-        $widest_screenshot_index = false;
-        $widest_screenshot_ratio = 0;
-
-        foreach ($screenshots as $s => $screenshot)
         {
-            list($w, $h) = explode("x", at($screenshot, "sizes"));
-            $ratio = $w / $h;
-            
-            if ($ratio > $widest_screenshot_ratio)
+            // Beware! widest screenshot might be the one automatically chosen by Web Application installation popup
+
+            $widest_screenshot_index = false;
+            $widest_screenshot_ratio = 0;
+
+            foreach ($screenshots as $s => $screenshot)
             {
-                $widest_screenshot_index = $s;
-                $widest_screenshot_ratio = $ratio;
+                list($w, $h) = explode("x", at($screenshot, "sizes"));
+                $ratio = $w / $h;
+                
+                if ($ratio > $widest_screenshot_ratio)
+                {
+                    $widest_screenshot_index = $s;
+                    $widest_screenshot_ratio = $ratio;
+                }
             }
-        }
 
-        if (false !== $widest_screenshot_index)
-        {
-            $screenshots[$widest_screenshot_index]["form_factor"] = "wide";
+            if (false !== $widest_screenshot_index)
+            {
+                $screenshots[$widest_screenshot_index]["form_factor"] = "wide";
+            }
         }
 
         $json = [];
