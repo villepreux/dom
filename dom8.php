@@ -7298,8 +7298,6 @@
                 }
 
             <?= HERE("raw_js") ?></script><?php return HSTOP(); })()).
-                                                                            (!get("origin-trial") ? "" : (
-            eol().meta_http_equiv("origin-trial", get("origin-trial")).     "")).
             
             "";
     }
@@ -7309,10 +7307,11 @@
      */
     function head_pragma_directives()
     {
-        return  eol().comment("Pragma directives") 
-            .   eol().meta_charset('utf-8')
-            .   eol().meta('viewport', 'width=device-width,initial-scale=1')
-            ;        
+        return  eol().comment("Pragma directives").
+                eol().meta_charset('utf-8').
+                eol().meta('viewport', 'width=device-width,initial-scale=1').   (!get("origin-trial") ? "" : (
+                eol().meta_http_equiv("origin-trial", get("origin-trial")).     "")).
+                "";
     }
 
     /* 10 Title */
