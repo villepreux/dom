@@ -5823,55 +5823,52 @@
 
         global $hook_images;
             
-        $screenshots = false;
+        $screenshots = [];
         {
-            if (!$screenshots) { $screenshots = get("screenshots"); }
-            if (!$screenshots) { $screenshots = get("support_header_backgrounds"); }
-            if (!$screenshots) { $screenshots = []; foreach ($hook_images as $image) $screenshots[] = $image["src"]; }
+            if (count($screenshots) < $screenshots_count_max) { $new_screenshots = get("screenshots");                  if (!is_array($new_screenshots)) $new_screenshots = explode(",", $new_screenshots); $screenshots = array_merge($screenshots, $new_screenshots); }
+            if (count($screenshots) < $screenshots_count_max) { $new_screenshots = get("support_header_backgrounds");   if (!is_array($new_screenshots)) $new_screenshots = explode(",", $new_screenshots); $screenshots = array_merge($screenshots, $new_screenshots); }
+            if (count($screenshots) < $screenshots_count_max) { $new_screenshots = []; foreach ($hook_images as $image) $new_screenshots[] = $image["src"];                                                 $screenshots = array_merge($screenshots, $new_screenshots); }
 
-            if (!!$screenshots)
+            $clean_screenshots = [];
+            foreach ($screenshots as $path) if (!!$path) $clean_screenshots[] = $path;
+            $screenshots = $clean_screenshots;
+
+            foreach ($screenshots as $s => &$src)
             {
-                if (!is_array($screenshots)) $screenshots = explode(",", $screenshots);
+                $src = array("src" => $src, "sizes" => [], "type" => false);
+            }
 
-                foreach ($screenshots as $s => &$src)
+            foreach ($screenshots as $s => &$img)
+            {
+                $size = cached_getimagesize($img["src"]);
+                
+                if (false === $size || !is_array($size) || count($size) < 2)
                 {
-                    $src = array("src" => $src, "sizes" => [], "type" => false);
+                    unset($screenshots[$s]);
                 }
-
-                if (count($screenshots) > 0)
+                else
                 {
-                    foreach ($screenshots as $s => &$img)
+                    list($w,$h) = array_values($size);
+                    
+                    if ($w < 320 || $h < 320 || $w > 3840 || $h > 3840
+                    || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
                     {
-                        $size = cached_getimagesize($img["src"]);
-                        
-                        if (false === $size || !is_array($size) || count($size) < 2)
-                        {
-                            unset($screenshots[$s]);
-                        }
-                        else
-                        {
-                            list($w,$h) = array_values($size);
-                            
-                            if ($w < 320 || $h < 320 || $w > 3840 || $h > 3840
-                            || ((($w > $h) ? ($w / $h) : ($h / $w)) > 2.3))
-                            {
-                                unset($screenshots[$s]);
-                            }
-                            else
-                            {
-                                $img["sizes"] = $w."x".$h;
-                                $img["type"]  = $size["mime"];
-                            }
-                        }
+                        unset($screenshots[$s]);
+                    }
+                    else
+                    {
+                        $img["sizes"] = $w."x".$h;
+                        $img["type"]  = $size["mime"];
                     }
                 }
-
-                $screenshots = array_values($screenshots);
             }
+
+            $screenshots = array_values($screenshots);
         }
         
         $screenshots = array_slice($screenshots, 0, $screenshots_count_max);
-        
+
+        // Tag widest one
         {
             // Beware! widest screenshot might be the one automatically chosen by Web Application installation popup
 
