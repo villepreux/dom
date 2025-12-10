@@ -1758,7 +1758,13 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false, &$headers = null)
+    function curl_get($url, $timeout = 7)
+    {
+        $headers = null;
+        return content($url, $timeout, false, false, "curl", false, $headers, false);
+    }
+
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false, &$headers = null, $auto_detect_error_pages_outout = true)
     {
         $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : /*$urls*/false);
 
@@ -1904,12 +1910,15 @@
                 }
             }
             
-            if (!!$content && "" != $content && false !== stripos($content, '<title>403 Forbidden</title>'              )) $content = false;
-            if (!!$content && "" != $content && false !== stripos($content, '<title>404 Not found</title>'              )) $content = false;
-            if (!!$content && "" != $content && false !== stripos($content, '<title>401 Unauthorized</title>'           )) $content = false;
-            if (!!$content && "" != $content && false !== stripos($content, '<title>500 Interval server error</title>'  )) $content = false;
-            if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
-            if (!!$content && "" != $content && false !== stripos($content, 'error code: 520'                           )) $content = false;
+            if ($auto_detect_error_pages_outout)
+            {
+                if (!!$content && "" != $content && false !== stripos($content, '<title>403 Forbidden</title>'              )) $content = false;
+                if (!!$content && "" != $content && false !== stripos($content, '<title>404 Not found</title>'              )) $content = false;
+                if (!!$content && "" != $content && false !== stripos($content, '<title>401 Unauthorized</title>'           )) $content = false;
+                if (!!$content && "" != $content && false !== stripos($content, '<title>500 Interval server error</title>'  )) $content = false;
+                if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
+                if (!!$content && "" != $content && false !== stripos($content, 'error code: 520'                           )) $content = false;
+            }
         }
 
         if ($auto_fix)
