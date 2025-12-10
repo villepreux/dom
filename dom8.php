@@ -1506,30 +1506,28 @@
     function client_language()
     {
         return  at("" == get("http-accept-language",  "")      ? false : explode(",", get("http-accept-language")           ), 0,
-                at("" == server_http_accept_language('en-US')  ? false : explode(",", server_http_accept_language('en-US')  ), 0,
-                "en-US")
-                );
+                at("" == server_http_accept_language('en-US')  ? false : explode(",", server_http_accept_language('en-US')  ), 0, "en-US"));
     }
 
-    function client_language_short()
+    function html_language()
     {
-        return get( "lang", at("" == client_language() ? false : explode("-", client_language()), 0, "en"));
+        return  at("" == get("html-language",        "")      ? false : explode(",", get("html-language")                  ), 0,
+                at("" == get("content-language",     "")      ? false : explode(",", get("content-language")               ), 0,
+                at("" == get("http-accept-language", "")      ? false : explode(",", get("http-accept-language")           ), 0,
+                at("" == server_http_accept_language('en-US') ? false : explode(",", server_http_accept_language('en-US')  ), 0, "en-US"))));
     }
 
     function content_language()
     {
-        return  /*get( "lang",*/
-                at("" == get("content-language", "")    ? false : explode(",", get("content-language")  ), 0,
-                at("" == get("html-language",    "")    ? false : explode(",", get("html-language")     ), 0,
-                at("" == client_language()              ? false : explode(",", client_language()        ), 0,
-                "en-US")
-                ))/*)*/;
+        return  at("" == get("content-language",      "")      ? false : explode(",", get("content-language")               ), 0,
+                at("" == get("html-language",         "")      ? false : explode(",", get("html-language")                  ), 0,
+                at("" == get("http-accept-language",  "")      ? false : explode(",", get("http-accept-language")           ), 0,
+                at("" == server_http_accept_language('en-US')  ? false : explode(",", server_http_accept_language('en-US')  ), 0, "en-US"))));
     }
 
-    function content_language_short()
-    {
-        return at("" == content_language() ? false : explode("-", content_language()), 0, "en");
-    }
+    function client_language_short()  { return get("lang", at("" == client_language()  ? false : explode("-", client_language()),  0, "en")); }
+    function html_language_short()    { return             at("" == html_language()    ? false : explode("-", html_language()),    0, "en");  }
+    function content_language_short() { return             at("" == content_language() ? false : explode("-", content_language()), 0, "en");  }
 
     function span_lang($lang, $html = "", $attributes = false)
     {
@@ -5705,7 +5703,7 @@
       //$profiler = debug_track_timing($src);
         $profiler = debug_track_timing();
 
-        if (!is_string($src)) return 0;
+        if (!is_string($src) || "" == $src) return 0;
 
         global $__cached_getimagesize;
 
@@ -7233,14 +7231,14 @@
                 $html = parse_delayed_components($html);
 
                 // Clean html
-                                        $attributes = attributes_add($attributes, attributes(attr("lang",   get("html-language", content_language()))   ));
-             /* if (get("modernizr"))*/ $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                                    ));
+                                        $attributes = attributes_add($attributes, attributes(attr("lang",   html_language())                ));
+             /* if (get("modernizr"))*/ $attributes = attributes_add($attributes, attributes(attr("class",  "no-js")                        ));
 
-                if (!!get("no_css"))    $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed")                         ));
-                if (!!get("no_js"))     $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed")                          ));
+                if (!!get("no_css"))    $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed")             ));
+                if (!!get("no_js"))     $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed")              ));
 
-                if (!!get("css-naked")) $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed-naked-day")               ));
-                if (!!get("js-naked"))  $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed-naked-day")                ));
+                if (!!get("css-naked")) $attributes = attributes_add($attributes, attributes(attr("class",  "data-css-removed-naked-day")   ));
+                if (!!get("js-naked"))  $attributes = attributes_add($attributes, attributes(attr("class",  "data-js-removed-naked-day")    ));
 
                 //  Return html
 
@@ -9682,8 +9680,7 @@
 
                             article {
 
-                                border:  1px solid color-mix(in srgb, currentColor 25%, transparent); /*
-                                padding: var(--gap); */
+                                border:  1px solid color-mix(in srgb, currentColor 25%, transparent); // TODO: SHOULD AT LEAST MOVE TO default LAYER
                             }
                         }
                     }
@@ -9977,7 +9974,7 @@
                 a:visited { color: var(--VisitedText);  }
                 a:hover   { color: var(--ActiveText);   }
 
-                :where(h1,h2,h3,h4,h5,h6):has(a.anchor[href^="#"]) {
+                :where(h1,h2,h3,h4,h5,h6):has(a.anchor[href^="#"]) { // TODO: SHOULD AT LEAST MOVE TO default LAYER
 
                     :where(a):not(
                     
@@ -10107,7 +10104,7 @@
                 }
 
                 /* pre.code container */
-                :has(> pre > code):not(body, main, header, footer) {
+                :has(> pre > code):not(body, main, header, footer) { // TODO: SHOULD AT LEAST MOVE TO default LAYER
                     
                     --max-width:    960px;                
                     max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
@@ -10126,7 +10123,7 @@
                     --max-width:    960px;
                     max-width:      calc(min(100cqi, var(--max-width, 960px)) - 2rem);
                     margin-inline:  auto;*/
-                    margin-inline:  clamp(min(4vw, var(--gap)), calc(50% - .5 * min(100%, 960px)), 50%);
+                    margin-inline:  clamp(min(4vw, var(--gap)), calc(50% - .5 * min(100%, 960px)), 50%); // TODO: SHOULD AT LEAST MOVE TO default LAYER
 
                     .logo & {
 
@@ -11379,6 +11376,8 @@
 
     function css_default($layer = "default")
     {
+        if (!!get("no_css_default")) return "";
+
         $grid = ":is(.grid, *:has(> .card + .card))";
 
         HSTART() ?><style><?= HERE() ?>
@@ -13761,7 +13760,18 @@
     {
         if ($url                 === false
         &&  $external_attributes === false
-        &&  $target              === false) $url = strip_tags($html);
+        &&  $target              === false)
+        { 
+            if (false !== stripos($html, "@")
+            ||  0     !== stripos($html, "+")) 
+            {
+                $url = strip_tags($html);
+            }
+            else
+            {
+                $url = slugify($html);
+            }
+        }
 
         if ($url == "#*") $url = "#".anchor_name($html);
 
@@ -14080,15 +14090,25 @@
         return tag('picture', $html, $attributes);
     }
 
-    function source($path, $attributes = false)
+    function source($path, $attributes = false, $auto_type = true, $prefers_color_scheme = false)
     {
-        $src    = explode('?', $path);
-        $src    = $src[0];
-        $info   = pathinfo($src);
-        $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
-        $type   = substr($ext,1); // ! TODO Find better solution
+        $attributes = attributes_add($attributes, array("srcset" => $path));
 
-        $attributes = attributes_add($attributes, array("type" => "image/$type", "srcset" => $path));
+        if (!!$auto_type || auto === $auto_type)
+        {
+            $src    = explode('?', $path);
+            $src    = $src[0];
+            $info   = pathinfo($src);
+            $ext    = array_key_exists('extension', $info) ? '.'.$info['extension'] : false;
+            $type   = substr($ext,1); // ! TODO Find better solution
+
+            $attributes = attributes_add($attributes, array("type" => "image/$type"));
+        }
+
+        if (!!$prefers_color_scheme)
+        {
+            $attributes = attributes_add($attributes, array("media" => "(prefers-color-scheme: $prefers_color_scheme)"));
+        }
 
         return tag("source", "", $attributes, false, true);
     }
@@ -14129,10 +14149,9 @@
         if (!$w) $w = get("default_image_ratio_w", $fallback_max_w);
         if (!$h) $h = get("default_image_ratio_h", $fallback_max_h);
 
-
         if ($w > $max_w) { $h = (int)($h * $max_w / $w); $w = $max_w; }
         if ($h > $max_h) { $w = (int)($w * $max_h / $h); $h = $max_h; }
-
+    
         return [ $w, $h ];
     }
 
@@ -14168,13 +14187,15 @@
     /**
      * Image component
      */
-    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true)
+    function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true, $precompute_size_fallback_max_w = 900, $precompute_size_fallback_max_h = 450)
     {
         $debug_this = (false !== stripos($path, "coryd") && auto !== $lazy);
 
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
 
+        if (auto === $w)             $w             = false;
+        if (auto === $h)             $h             = false;
         if (auto === $lazy_src)      $lazy_src      = false;
         if (auto === $content)       $content       = '';
         if (auto === $src_attribute) $src_attribute = 'src';
@@ -14211,7 +14232,7 @@
 
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
-        list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size);
+        list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size, $precompute_size_fallback_max_w, $precompute_size_fallback_max_h);
         $lqip_css = !get("lqip", true) ? "" : cached_lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
@@ -14657,7 +14678,7 @@
 
     function brand_styles($force_minify = auto, $attributes = auto, $trim = auto, $order = auto, $media = auto, $layer_already_in_css = false)
     {
-        return (!!get("no_css_brands") ? "" : (
+        return ((!!get("no_css_brands") || !!get("no_css_default")) ? "" : (
 
             eol().comment("Base-Brands").(
                 
