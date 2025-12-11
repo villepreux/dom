@@ -178,14 +178,14 @@ function css_toolbar_colors($layer = [ "default", "component", "toolbar" ])
 
 // ICONS
 
-function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false, $encrypted = false, $category = false)
+function icon_entry($icon, $label = "", $link = "JAVASCRIPT_VOID", $attributes = false, $target = false, $id = false, $encrypted = false, $category = false, $comment = false)
 {
     $link = ("JAVASCRIPT_VOID" == $link) ? url_void() : $link;
     
     if (($attributes === internal_link || $attributes === external_link) && $target === false) { $target = $attributes; $attributes = false; }
     if ($target === false) { $target = internal_link; }
     
-    return array($icon, $label, $link, $id, $target, $attributes, $encrypted, $category);
+    return array($icon, $label, $link, $id, $target, $attributes, $encrypted, $category, $comment);
 }
 
 function icon_entry_to_link($icon_entry, $default_target = internal_link)

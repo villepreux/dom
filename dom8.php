@@ -12965,6 +12965,8 @@
             }
         }
 
+        $html = str_replace_all([ "<ul></ul>", "<ul>\r</ul>", "<ul>".PHP_EOL."</ul>", "<ul>\n</ul>", "<ul> </ul>" ], "", $html);
+
         return $html;
     }
 
@@ -12973,6 +12975,7 @@
         function extract_toc_from_html($html, $max_depth = 3, $list_tag = "ul", $list_item_tag = "li", $list_item_wrapper_tag = "span")
         {
             // Based on Terence Eden's https://shkspr.mobi/blog/2025/03/create-a-table-of-contents-based-on-html-heading-elements/
+            // with adaptation & modifications
 
             $dom = new \DOMDocument();
             libxml_use_internal_errors( true );
@@ -14223,7 +14226,7 @@
 
         // TODO if EXTERNAL LINK add crossorigin="anonymous"
 
-        $alt = strip_tags($alt);
+        $alt = $alt == "" ? "" : trim(strip_tags($alt));
 
         if (auto === $lazy && !!get("lazy-unload")) $lazy = true; // then js is needed
 
