@@ -158,6 +158,11 @@
     $__profiling_timeline   = [];
     $__debug_logs           = [];
 
+    function debug_log_tab($depth = 0)
+    {
+        return str_repeat(nbsp()."|".nbsp().nbsp(), $depth);
+    }
+
     function debug_log($msg = "")
     {
         if (is_array($msg))
@@ -172,7 +177,7 @@
 
         $t    = mb_str_pad(number_format($t, 2), 6, nbsp(), STR_PAD_LEFT);
         $tab  = str_repeat(nbsp(), 6);
-        $tree = str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
+        $tree = debug_log_tab($__profiling_level);
 
         $msg = htmlentities($msg);
 
@@ -329,7 +334,7 @@
     {
         public $profiling = [];
 
-        function __construct($annotation = false, $function = false, $timeline_log = false)
+        function __construct($annotation = false, $function = false, $timeline_log = true)
         {
             $annotation = is_array($annotation) ? json_encode($annotation) : $annotation;
 
@@ -368,11 +373,11 @@
 
             if ($timeline_log)
             {
-              //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
+              //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level);
                 $__profiling_timeline[] = '<details class="debug-console-line"><summary class="debug-console-line">';
-                $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+                $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
                 $__profiling_timeline[] = "</summary>";
-                $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
+                $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level).nbsp()."|".nbsp();
             }
 
             ++$__profiling_level;
@@ -402,15 +407,15 @@
             {
                 $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
                                             str_repeat(nbsp(), 6) . nbsp() . 
-                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
+                                            debug_log_tab($__profiling_level).nbsp()."|".nbsp();
                 
                 $__profiling_timeline[] =   mb_str_pad(number_format($this->profiling["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
                                             mb_str_pad(number_format($this->profiling["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
-                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+                                            debug_log_tab($__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
                 /*
                 $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
                                             str_repeat(nbsp(), 6) . nbsp() . 
-                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level)."";*/
+                                            debug_log_tab($__profiling_level)."";*/
 
                 $__profiling_timeline[] = "</details>";
             }     
@@ -440,7 +445,7 @@
         $__profiling_enabled  = $enable;
     }
 
-    function debug_track_timing($annotation = false, $function = false, $timeline_log = false)
+    function debug_track_timing($annotation = false, $function = false, $timeline_log = true)
     {
         global $__profiling_enabled;
         return $__profiling_enabled ? new debug_track_delta_scope($annotation, $function, $timeline_log) : null;
