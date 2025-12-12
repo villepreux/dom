@@ -160,6 +160,12 @@
 
     function debug_log($msg = "")
     {
+        if (is_array($msg))
+        {
+            foreach ($msg as $_msg) debug_log($_msg);
+            return "";
+        }
+
         global $__profiling_timeline, $__profiling_level, $__dom_t0, $__debug_logs;
 
         $t = microtime(true) - $__dom_t0;
@@ -167,6 +173,8 @@
         $t    = mb_str_pad(number_format($t, 2), 6, nbsp(), STR_PAD_LEFT);
         $tab  = str_repeat(nbsp(), 6);
         $tree = str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
+
+        $msg = htmlentities($msg);
 
         $__profiling_timeline[] = "$t $tab $tree $msg";
         $__debug_logs[]         = "$t $msg";
@@ -321,7 +329,7 @@
     {
         public $profiling = [];
 
-        function __construct($annotation = false, $function = false)
+        function __construct($annotation = false, $function = false, $timeline_log = false)
         {
             $annotation = is_array($annotation) ? json_encode($annotation) : $annotation;
 
@@ -340,16 +348,17 @@
             global $__profiling;
 
             $this->profiling = array(
-                "level"     => $__profiling_level,
-                "tag"       => $annotation,
-                "callstack" => $functions_callstack_string,
-                "function"  => $function,
-                "dt"        => 0,
-                "t"         => $t
+                "level"         => $__profiling_level,
+                "tag"           => $annotation,
+                "callstack"     => $functions_callstack_string,
+                "function"      => $function,
+                "timeline_log"  => $timeline_log,
+                "dt"            => 0,
+                "t"             => $t
                 );
             
             global $__profiling;
-            $__profiling[] = $this->profiling;
+            //$__profiling[] = $this->profiling;
             
             $id_key = "callstack";
 
@@ -357,11 +366,14 @@
             
             $t = number_format($this->profiling["t"], 2);
 
-          //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
-            $__profiling_timeline[] = '<details class="debug-console-line"><summary class="debug-console-line">';
-            $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-            $__profiling_timeline[] = "</summary>";
-            $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
+            if ($timeline_log)
+            {
+              //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level);
+                $__profiling_timeline[] = '<details class="debug-console-line"><summary class="debug-console-line">';
+                $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+                $__profiling_timeline[] = "</summary>";
+                $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
+            }
 
             ++$__profiling_level;
         }
@@ -386,20 +398,22 @@
             $t  = number_format($this->profiling["t"],  2);
             $dt = number_format($this->profiling["dt"], 2);
 
-            $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
-                                        str_repeat(nbsp(), 6) . nbsp() . 
-                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
-            
-            $__profiling_timeline[] =   mb_str_pad(number_format($this->profiling["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
-                                        mb_str_pad(number_format($this->profiling["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
-                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-            /*
-            $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
-                                        str_repeat(nbsp(), 6) . nbsp() . 
-                                        str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level)."";*/
+            if ($this->profiling["timeline_log"])
+            {
+                $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
+                                            str_repeat(nbsp(), 6) . nbsp() . 
+                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."|".nbsp();
+                
+                $__profiling_timeline[] =   mb_str_pad(number_format($this->profiling["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                            mb_str_pad(number_format($this->profiling["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
+                /*
+                $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
+                                            str_repeat(nbsp(), 6) . nbsp() . 
+                                            str_repeat(nbsp()."|".nbsp().nbsp(), $__profiling_level)."";*/
 
-            $__profiling_timeline[] = "</details>";
-            
+                $__profiling_timeline[] = "</details>";
+            }     
             
             global $__profiling;
             $__profiling[] = $this->profiling;
@@ -426,10 +440,10 @@
         $__profiling_enabled  = $enable;
     }
 
-    function debug_track_timing($annotation = false, $function = false)
+    function debug_track_timing($annotation = false, $function = false, $timeline_log = false)
     {
         global $__profiling_enabled;
-        return $__profiling_enabled ? new debug_track_delta_scope($annotation, $function) : null;
+        return $__profiling_enabled ? new debug_track_delta_scope($annotation, $function, $timeline_log) : null;
     }
 
     #endregion
@@ -1808,6 +1822,8 @@
 
         foreach ($methods_order as $method)
         {        
+            $profiler = debug_track_timing(!!$profiling_annotation ? ("$profiling_annotation/$method") : $method, false, true);
+
             if ($method == "file_get_contents" && (!$content || $content == ""))
             {      
                 if (!!$header)      
@@ -5696,13 +5712,258 @@
         return tag("badge", false, array("value" => "available"), true, true);
     }
 
+    /**
+     * FastImage - Copyright (c) 2012 Tom Moor - http://tommoor.com - MIT Licensed
+     * Based on the Ruby Implementation by Steven Sykes (https://github.com/sdsykes/fastimage)
+     */
+    class FastImage
+    {
+        private $strpos = 0;
+        private $str = "";
+        private $type;
+        private $handle;
+        
+        public function __construct($uri = null)
+        {
+            if ($uri) $this->load($uri);
+        }
+
+        public function load($uri)
+        {
+            if ($this->handle) $this->close();
+            
+            $this->handle = @fopen($uri, 'r');
+        }
+
+
+        public function close()
+        {
+            if ($this->handle)
+            {
+                fclose($this->handle);
+                $this->handle = null;
+                $this->type = null;
+                $this->str = null;
+            }
+        }
+
+
+        public function getSize()
+        {
+            if (!$this->handle) return false;
+
+            $this->strpos = 0;
+
+            if ($this->getType())
+            {
+                return array_values($this->parseSize());
+            }
+            
+            return false;
+        }
+
+
+        public function getType()
+        {
+            if (!$this->handle) return false;
+
+            $this->strpos = 0;
+            
+            if (!$this->type)
+            {
+                switch ($this->getChars(2))
+                {
+                    case "BM":                  return $this->type = 'bmp';
+                    case "GI":                  return $this->type = 'gif';
+                    case chr(0xFF).chr(0xd8):   return $this->type = 'jpeg';
+                    case chr(0x89).'P':         return $this->type = 'png';
+
+                    default: return false;
+                }
+            }
+
+            return $this->type;
+        }
+
+
+        private function parseSize()
+        {	
+            $this->strpos = 0;
+            
+            switch ($this->type)
+            {
+                case 'png':
+                    return $this->parseSizeForPNG();
+                case 'gif':
+                    return $this->parseSizeForGIF();
+                case 'bmp':
+                    return $this->parseSizeForBMP();
+                case 'jpeg':
+                    return $this->parseSizeForJPEG();	    
+            }
+            
+            return null;
+        }
+
+
+        private function parseSizeForPNG()
+        {
+            $chars = $this->getChars(25);
+
+            return unpack("N*", substr($chars, 16, 8));
+        }
+
+
+        private function parseSizeForGIF()
+        {
+            $chars = $this->getChars(11);
+
+            return unpack("S*", substr($chars, 6, 4));
+        }
+
+
+        private function parseSizeForBMP()
+        {
+            $chars = $this->getChars(29);
+            $chars = substr($chars, 14, 14);
+            $type = unpack('C', $chars);
+            
+            return (reset($type) == 40) ? unpack('L*', substr($chars, 4)) : unpack('L*', substr($chars, 4, 8));
+        }
+
+
+        private function parseSizeForJPEG()
+        {
+            $state = null;
+            $i = 0;
+
+            while (true)
+            {
+                switch ($state)
+                {
+                    default:
+                        $this->getChars(2);
+                        $state = 'started';
+                        break;
+                        
+                    case 'started':
+                        $b = $this->getByte();
+                        if ($b === false) return false;
+                        
+                        $state = $b == 0xFF ? 'sof' : 'started';
+                        break;
+                        
+                    case 'sof':
+                        $b = $this->getByte();
+                        if (in_array($b, range(0xe0, 0xef)))
+                        {
+                            $state = 'skipframe';
+                        }
+                        elseif (in_array($b, array_merge(range(0xC0,0xC3), range(0xC5,0xC7), range(0xC9,0xCB), range(0xCD,0xCF))))
+                        {
+                            $state = 'readsize';
+                        }
+                        elseif ($b == 0xFF)
+                        {
+                            $state = 'sof';
+                        }
+                        else
+                        {
+                            $state = 'skipframe';
+                        }
+                        break;
+                        
+                    case 'skipframe':
+                        $skip = $this->readInt($this->getChars(2)) - 2;
+                        $state = 'doskip';
+                        break;
+                        
+                    case 'doskip':
+                        $this->getChars($skip);
+                        $state = 'started';
+                        break;
+                        
+                    case 'readsize':
+                        $c = $this->getChars(7);
+                        
+                        return array($this->readInt(substr($c, 5, 2)), $this->readInt(substr($c, 3, 2)));
+                }
+            }
+        }
+
+
+        private function getChars($n)
+        {
+            $response = null;
+            
+            // do we need more data?		
+            if ($this->strpos + $n -1 >= strlen($this->str))
+            {
+                $end = ($this->strpos + $n);
+
+                while (strlen($this->str) < $end && $response !== false)
+                {
+                    // read more from the file handle
+                    $need = $end - ftell($this->handle);
+
+                    if ($response = fread($this->handle, $need))
+                    {
+                        $this->str .= $response;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }	
+            }
+            
+            $result = substr($this->str, $this->strpos, $n);
+            $this->strpos += $n;
+            
+            return $result;
+        }
+
+
+        private function getByte()
+        {
+            $c = $this->getChars(1);
+            $b = unpack("C", $c);
+            
+            return reset($b);
+        }
+
+
+        private function readInt($str)
+        {
+            $size = unpack("C*", $str);
+            
+            return ($size[1] << 8) + $size[2];
+        }
+
+
+        public function __destruct()
+        {
+            $this->close();
+        }
+    }
+
+    
+    function fast_get_image_size($src)
+    {
+        $profiler = debug_track_timing();
+
+        //$size = @getimagesize($src);
+        $image = new FastImage($src);
+        $size  = $image->getSize();
+        if (!$size) $size = @getimagesize($src);
+
+        return $size;
+    }
+
     $__cached_getimagesize = [];
 
     function cached_getimagesize($src)
     {
-      //$profiler = debug_track_timing($src);
-        $profiler = debug_track_timing();
-
         if (!is_string($src) || "" == $src) return 0;
 
         global $__cached_getimagesize;
@@ -5744,13 +6005,8 @@
             
             if ($size === false)
             {
-                $size = @getimagesize($src);
+                $size = fast_get_image_size($src);
             }
-            
-            /*if ($size === false)
-            {
-                $size = array(get("default_image_ratio_w", 300), get("default_image_ratio_h", 200));
-            }*/
 
             $__cached_getimagesize[$src] = $size;
         }
@@ -9610,7 +9866,7 @@
                     -webkit-font-smoothing:  antialiased; 
                     -moz-osx-font-smoothing: grayscale; 
                     
-                    line-sizing:            normal;
+                  /*line-sizing:            normal;*/
                     hanging-punctuation:    first allow-end last; 
                     font-size:              var(--root-font-size);
                     line-height:            var(--line-height); 
@@ -10788,11 +11044,11 @@
                 inherits: true;
                 initial-value: 0px; 
             }
-
+            /* ISSUE: https://github.com/w3c/csswg-drafts/issues/9003#issue-1772177852
             html {
 
-                /* container-type: size; */  /* ISSUE: https://github.com/w3c/csswg-drafts/issues/9003#issue-1772177852 */
-            }
+                container-type: size; 
+            }*/
 
             /* My own base/remedy css  */
 
@@ -11071,11 +11327,11 @@
                 margin-block-start: 1.2em;
                 margin-block-end: 1.0em;*/
                 scroll-margin: 4em;
-            }            
-            h4, h5, h6 {/*
+            }  /*          
+            h4, h5, h6 {
                 margin-block-start: 1.0em;
-                margin-block-end: 0.8em;*/
-            }
+                margin-block-end: 0.8em;
+            }*/
     
             h2 { text-transform: uppercase; }
 
@@ -12998,6 +13254,20 @@
 
             foreach ($headings as $heading) 
             {
+                if (!is_a($heading, "DOMElement")) 
+                {
+                    if (is_localhost())
+                    {
+                        bye([ "error" => "INTERNAL ERROR", "found" => $heading ]);
+                    }
+                    else
+                    {
+                        bye("INTERNAL ERROR 13009");
+                    }
+
+                    continue;
+                }
+
                 $element = $heading->nodeName;  //  e.g. h2, h3, h4, etc
 
                 $text = trim($heading->textContent);
@@ -14128,9 +14398,7 @@
      * Image intrinsic size
      */
     function preprocess_img_size($path, $w, $h, $precompute_size = auto, $fallback_max_w = 600, $fallback_max_h = 400)
-    {   
-        $profiler = debug_track_timing();
-
+    {
         $max_w = !$w ? $fallback_max_w : $w;
         $max_h = !$h ? $fallback_max_h : $h;
 
@@ -14236,7 +14504,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size, $precompute_size_fallback_max_w, $precompute_size_fallback_max_h);
-        $lqip_css = !get("lqip", true) ? "" : cached_lqip_css($path);
+        $lqip_css = !get("lqip") ? "" : cached_lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -16901,7 +17169,14 @@
 
         if (!is_string($path)) 
         {
-            bye("INTERNAL ERROR 16239");
+            if (is_localhost())
+            {
+                bye([ "error" => "INTERNAL ERROR 16239", "path" => $path, "callstack" => debug_callstack() ]); 
+            }
+            else
+            {
+                bye("INTERNAL ERROR 16239"); 
+            }
             return "";
         }
 
