@@ -13947,12 +13947,29 @@
     function a_author           ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_author()           )); }
     function a_category         ($html,     $attributes = false)    { return a(             $html, url(), attributes_add($attributes, attr_category()         )); }
     function span_name          ($html,     $attributes = false)    { return span(          $html,        attributes_add($attributes, attr_name()             )); }
-    function time_datepublished ($date, $t, $attributes = false)    { return tag("time",    $date,        attributes_add($attributes, attr_datepublished($t)  )); }
     
     function div_articlebody    ($html,     $attributes = false)    { return div(           $html,        attributes_add($attributes, attr_articlebody()      )); }
     function section_articlebody($html,     $attributes = false)    { return section(       $html,        attributes_add($attributes, attr_articlebody()      )); }
     function main_articlebody   ($html,     $attributes = false)    { return main(          $html,        attributes_add($attributes, attr_articlebody()      )); }
 
+    function time_datepublished ($date, $t = auto, $attributes = false) 
+    {
+        if (auto === $t || false === $t || true === $t) 
+        {
+            $t = strtotime($date);
+        }
+        else if (!is_numeric($t) && is_string($t))
+        {
+            $t = str_ireplace("DD/MM/YYYY", "d/m/Y", $t); // Special case of unsupported format we use at some places
+
+            $format = $t;
+            $t      = date_create_from_format("!$format", $date); // "!" neeeded in order to "zero" fields not in format
+            $t      = !!$t ? $t->getTimestamp() : strtotime($date);
+        }
+
+        return tag("time", $date, attributes_add($attributes, attr_datepublished($t)));
+    }
+    
     // LINKS
 
     $__includes = [];
@@ -15372,10 +15389,10 @@
 
         return div(
 
-            (!$author   ? "" : a_author(get("author"))                      ).
-            (!$category ? "" : a_category($category)                        ).
-            (!$date     ? "" : time_datepublished($date, strtotime($date))  ).
-            (!$url      ? "" : a($url, $url, attr_url())                    ).
+            (!$author   ? "" : a_author(get("author"))      ).
+            (!$category ? "" : a_category($category)        ).
+            (!$date     ? "" : time_datepublished($date)    ).
+            (!$url      ? "" : a($url, $url, attr_url())    ).
             
             "", [ "class" => "card-properties", "hidden" => "hidden" ]);
     }
@@ -15713,11 +15730,20 @@
         if (!is_array($item_info)) $item_info = explode(',', $item_info);
         
         if (!is_array(at($item_info,"img_url",false))) $item_info["img_url"] = array(at($item_info,"img_url"));
+
+        $guid = get("canonical");
+        {
+            $pos_params = stripos($guid, "?"); if (false !== $pos_params) $guid = substr($guid, 0, $pos_params);
+            $guid = strtolower($guid);
+            $guid = str_replace([ "https://", "http://" ], "", $guid);
+            $guid = slugify($guid);
+        }
         
-        $rss =  rss_title       (at($item_info, "title",        get("title")        )).eol().
-                rss_link        (at($item_info, "link",         get("canonical")    )).eol().
-                rss_description (at($item_info, "description",  ""                  )).eol().
-                rss_pubDate     (at($item_info, "timestamp",    0                   ));
+        $rss =  rss_title       (at($item_info, "title",        get("title")        )       ).eol().
+                rss_link        (at($item_info, "link",         get("canonical")    )       ).eol().
+                rss_guid        (at($item_info, "guid",         $guid               ), false).eol().
+                rss_description (at($item_info, "description",  ""                  )       ).eol().
+                rss_pubDate     (at($item_info, "timestamp",    0                   )       );
         
         foreach ($item_info["img_url"] as $img_url)
         {       
@@ -15744,6 +15770,7 @@
     function rss_url            ($html = "")                        { return tag('url',                          $html,  false,         true); }
     function rss_item           ($html = "")                        { return tag('item',                         $html,  false,         true); }
     function rss_link           ($html = "")                        { return tag('link',                         $html,  false,         true); }
+    function rss_guid           ($html = "", $is_permalink = false) { return tag('guid',                         $html, $is_permalink ? [ "isPermaLink" => "true" ] : (!$is_permalink ? [ "isPermaLink" => "false" ] : false), true); }
     function rss_title          ($html = "")                        { return tag('title',       rss_sanitize($html), false,         true); }
     function rss_description    ($html = "", $attributes = false)   { return tag('description', rss_sanitize($html), $attributes,   true); }
 
