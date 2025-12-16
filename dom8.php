@@ -2066,11 +2066,11 @@
 
         //if ($url == "statuses") die(print_r($curl_options[CURLOPT_POSTFIELDS], true));
 
-        $curl           =           curl_init();
-        $result_opt     =           curl_setopt_array($curl, $curl_options);
-        $response       =           curl_exec($curl);
-        $code           = (string)  curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error          =           curl_error($curl);
+        $curl           =       curl_init();
+        $result_opt     =       curl_setopt_array($curl, $curl_options);
+        $response       =       curl_exec($curl);
+        $code           = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error          =       curl_error($curl);
         $error_details  = [ "url" => $curl_url, "options" => $curl_options, "error" => $error, "code" => $code ];
 
         //update_dependency_graph($curl_url);
@@ -5352,15 +5352,28 @@
         return "<html><head><meta http-equiv=\"refresh\" content=\"0; URL='".href($url)."'\"></head></html>";
     }
 
+    function redirect_refresh($url, $die = false)
+    {
+        echo html_refresh_page($url);
+        if (!!$die) die();
+        return true;
+    }
+
+    function redirect_location($url, $die = false)
+    {
+        \header("Location: ".href($url)); 
+        if (!!$die) die();
+        return true;
+    }
+
     function redirect($url)
     {
-        if (is_embeded()) return true;
-        /*
+        if (is_embeded()) return true; /*
         if ("dependency-graph" == get("doctype")) die("[]");*/
 
-        if (!!get("static")) { echo html_refresh_page($url);     return true; }
-        if (!headers_sent()) { \header("Location: ".href($url)); return true; }
-                               echo html_refresh_page($url);     return true;
+        if (!!get("static")) { return redirect_refresh($url);  }
+        if (!headers_sent()) { return redirect_location($url); }
+                               return redirect_refresh($url);
 
         return false;
     }
@@ -8425,7 +8438,7 @@
             //update_dependency_graph($url);
 
             return array(
-                'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
+                'code' => (int)curl_getinfo($ch, CURLINFO_HTTP_CODE),
                 'headers' => self::_parse_headers(trim($response)),
                 'url' => curl_getinfo($ch, CURLINFO_EFFECTIVE_URL)
             );
@@ -8458,7 +8471,7 @@
 
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             return array(
-                'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
+                'code' => (int)curl_getinfo($ch, CURLINFO_HTTP_CODE),
                 'headers' => self::_parse_headers(trim(substr($response, 0, $header_size))),
                 'body' => substr($response, $header_size),
                 'url' => curl_getinfo($ch, CURLINFO_EFFECTIVE_URL)
@@ -8495,7 +8508,7 @@
             self::_debug($response);
             $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
             return array(
-                'code' => curl_getinfo($ch, CURLINFO_HTTP_CODE),
+                'code' => (int)curl_getinfo($ch, CURLINFO_HTTP_CODE),
                 'headers' => self::_parse_headers(trim(substr($response, 0, $header_size))),
                 'body' => substr($response, $header_size)
             );
