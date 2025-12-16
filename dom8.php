@@ -5622,7 +5622,7 @@
 
     function output($doc = "", $attributes = false)
     {   
-        if (!!get("binary"))    die($doc);        
+        if (!!get("binary"))    die($doc);
         if (has("main"))        die();        
         if (is_embeded())       return;
 
@@ -17560,4 +17560,34 @@ class JsConverter
 function js_object_string_decode_to_array($js)
 {
     return JsConverter::convertToArray($js);
+}
+
+// SIMPLE PHP JS FETCH COMPONENT
+
+function simple_fetch_endpoint($codename, $callback)
+{
+    if (slugify($codename, true, "-") == get("fetch"))
+    {
+        response($callback(), "text");
+    }
+}
+
+function simple_fetch_placeholder($codename, $interval_s = 30)
+{
+    $tag = slugify($codename, true, "-");
+    $fun = slugify($codename, true, "_");
+
+    return tag("$tag", "Loading status...").script((function () use ($tag, $fun, $interval_s) { HSTART() ?><script><?= HERE() ?>
+    
+        async function fetch_<?= $fun ?>() {
+
+            var response = await fetch("?fetch=<?= $tag ?>");
+            document.querySelector("<?= $tag ?>").innerHTML = await response.text();
+
+            setTimeout(fetch_<?= $fun ?>, <?= $interval_s ?> * 1000);
+        }
+
+        fetch_<?= $fun ?>();
+
+    <?= HERE("raw_js") ?></script><?php return HSTOP(); })());
 }
