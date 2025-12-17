@@ -136,6 +136,57 @@
     }
     
     #endregion
+    #region HELPERS : CACHE
+    ######################################################################################################################################
+
+    $_CACHE = [];
+
+    function cache_array_get()
+    {
+        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        return $_CACHE;
+    }
+
+    function cache_array_set($a)
+    {
+        global $_CACHE;
+        $_CACHE = $a;
+    }
+    
+    function cache_set($value, $key = auto)
+    {
+        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        if (auto === $key) { $key = at(debug_callstack(-2), 0, []); $key["args"] = json_encode($key["args"]); $key = implode(",", $key); $key = url().getcwd().$key; }
+        return $_CACHE[$key] = $value;
+    }
+
+    function cache_get(&$value, $key = auto)
+    {
+        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        if (auto === $key) { $key = at(debug_callstack(-2), 0, []); $key["args"] = json_encode($key["args"]); $key = implode(",", $key); $key = url().getcwd().$key; }
+        if (!array_key_exists($key, $_CACHE)) { return false; }
+        $value = $_CACHE[$key];
+        return true;
+    }
+
+    function cache_write($path)
+    {
+        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        file_put_contents($path, '<?php \dom\HSTART() ?><script><?= \dom\HERE() ?>'.PHP_EOL.json_encode($_CACHE).PHP_EOL.'<?= \dom\HERE("raw_js") ?></script><?php \dom\cache_array_set(json_decode(\dom\HSTOP(), true)); ');
+        return;
+
+        $php = [];
+        foreach ($_CACHE as $key => $value) {
+                 if (false === $value)  $value = "false";
+            else if (true  === $value)  $value = "false";
+            else if (null  === $value)  $value = "null";
+            else if (is_string($value)) $value = "'$value'";
+            $php[] = "\dom\cache_set($value, '$key');";
+        }
+        file_put_contents($path, "<?php".PHP_EOL.implode(PHP_EOL, $php));
+    }
+
+    #endregion
     #region HELPERS : DEVELOPMENT ENVIRONMENT
     ######################################################################################################################################
 
@@ -189,6 +240,13 @@
 
     function debug_console_line($line = "")
     {
+        if (is_array($line))
+        {
+            $html = "";
+            foreach ($line as $_line) $html .= debug_console_line($_line);
+            return $html;
+        }
+
         if ($line == "") $line = nbsp();
         if (0 === stripos($line, "<")) return eol().$line;
         return div($line, "debug-console-line");
@@ -266,6 +324,38 @@
 
             if (is_array($report) && count($report) > 0)
             {
+                foreach ($report as $i => $line)
+                {
+                    if (is_array($line) && array_key_exists("type", $line))
+                    {
+                        if ($line["type"] == "track_start")
+                        {
+                            $report[$i] = $line = [
+
+                                '<details class="debug-console-line"><summary class="debug-console-line">',
+                                mb_str_pad($line["t"], 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($line["profiling_level"]).nbsp()."+-".nbsp().$line["profiling"][$line["id_key"]] . ((false !== $line["profiling"]["tag"]) ? ("(".$line["profiling"]["tag"].")") : ""),
+                                "</summary>",
+                                str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($line["profiling_level"]).nbsp()."|".nbsp(),
+                            ];
+                        }
+                        else if ($line["type"] == "track_end")
+                        {
+                            $report[$i] = $line = [
+                            
+                                str_repeat(nbsp(), 6) . nbsp() . 
+                                str_repeat(nbsp(), 6) . nbsp() . 
+                                debug_log_tab($line["profiling_level"]).nbsp()."|".nbsp(),
+
+                                mb_str_pad(number_format($line["profiling"]["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                mb_str_pad(number_format($line["profiling"]["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
+                                debug_log_tab($line["profiling_level"]).nbsp()."+-".nbsp().$line["profiling"][$line["id_key"]] . ((false !== $line["profiling"]["tag"]) ? ("(".$line["profiling"]["tag"].")") : ""),
+
+                                "</details>",
+                            ];
+                        }
+                    }
+                }
+
                 $html .= wrap_each($report, "", "debug_console_line");
             }
         }
@@ -313,7 +403,14 @@
                      ((PHP_VERSION_ID >= 50205) ? debug_backtrace(true)                               : 
                                                   debug_backtrace()                                   )));
 
-        if ($shift_current_call) array_shift($callstack);
+             if (false === $shift_current_call) $shift_current_call =  0;
+        else if (true  === $shift_current_call) $shift_current_call = -1;
+
+        for ($i = 0; $i < -$shift_current_call; ++$i)
+        {
+            array_shift($callstack);
+        }
+
         return $callstack;
     }
     
@@ -372,12 +469,8 @@
             $t = number_format($this->profiling["t"], 2);
 
             if ($timeline_log)
-            {
-              //$__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level);
-                $__profiling_timeline[] = '<details class="debug-console-line"><summary class="debug-console-line">';
-                $__profiling_timeline[] = mb_str_pad($t, 6, nbsp(), STR_PAD_LEFT).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-                $__profiling_timeline[] = "</summary>";
-                $__profiling_timeline[] = str_repeat(nbsp(), 6).nbsp().str_repeat(nbsp(), 6).nbsp().debug_log_tab($__profiling_level).nbsp()."|".nbsp();
+            {   
+                $__profiling_timeline[] = [ "type" => "track_start", "t" => $t, "id_key" => $id_key, "profiling_level" => $__profiling_level, "profiling" => $this->profiling ];
             }
 
             ++$__profiling_level;
@@ -404,20 +497,8 @@
             $dt = number_format($this->profiling["dt"], 2);
 
             if ($this->profiling["timeline_log"])
-            {
-                $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
-                                            str_repeat(nbsp(), 6) . nbsp() . 
-                                            debug_log_tab($__profiling_level).nbsp()."|".nbsp();
-                
-                $__profiling_timeline[] =   mb_str_pad(number_format($this->profiling["t"],  2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
-                                            mb_str_pad(number_format($this->profiling["dt"], 2), 6, nbsp(), STR_PAD_LEFT) . nbsp() . 
-                                            debug_log_tab($__profiling_level).nbsp()."+-".nbsp().$this->profiling[$id_key] . ((false !== $this->profiling["tag"]) ? ("(".$this->profiling["tag"].")") : "");
-                /*
-                $__profiling_timeline[] =   str_repeat(nbsp(), 6) . nbsp() . 
-                                            str_repeat(nbsp(), 6) . nbsp() . 
-                                            debug_log_tab($__profiling_level)."";*/
-
-                $__profiling_timeline[] = "</details>";
+            {   
+                $__profiling_timeline[] = [ "type" => "track_end", "id_key" => $id_key, "profiling_level" => $__profiling_level, "profiling" => $this->profiling ];
             }     
             
             global $__profiling;
@@ -474,23 +555,18 @@
         global $__path_prefix_hook;
         $__path_prefix_hook = $path_prefix_hook;
     }
-
-    $__path_cache = [];
-            
+      
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {   
-        $profiler = debug_track_timing();
+        $result = null; if (!!cache_get($result)) { return $result; }
 
-        // Early return if in cache
-        global $__path_cache;
-        $path_cache_key = "$path0".($default?"1":"0").($search?"1":"0").($depth0===auto?"auto":($depth0?"1":"0"))."$max_depth-$offset_path0".($bypass_root_hints?"1":"0");
-        if (is_array($__path_cache) && array_key_exists($path_cache_key, $__path_cache)) { return $__path_cache[$path_cache_key]; }
+        //$profiler = debug_track_timing();
 
         // Early return if invalid
-        if ($path0 == "" || !$path0) return false;
+        if ($path0 == "" || !$path0) return cache_set(false);
 
         // Early return if URL
-        if (strlen($path0) >= 6 && ($path0[4] == ':' || $path0[5] == ':')) { $__path_cache[$path_cache_key] = $path0; return $path0; }
+        if (strlen($path0) >= 6 && ($path0[4] == ':' || $path0[5] == ':')) { return cache_set($path0); }
 
         global $__path_prefix_hook;
 
@@ -512,7 +588,7 @@
         $iterations = 0;
 
         while (count($searches) > 0 && ++$iterations < 99)
-        {
+        {   
             $path = $searches[0][0]; $depth = $searches[0][1]; $offset_path = $searches[0][2];
             array_shift($searches);
     
@@ -520,31 +596,31 @@
 
             if (false !== stripos($path, "\n") 
             ||  false !== stripos($path, "{")  
-            ||  false !== stripos($path, "\"") ) { $__path_cache[$path_cache_key] = $default; return $default; }
+            ||  false !== stripos($path, "\"") ) return cache_set($default);
         
             // If URL format then keep it as-is
 
             if ((strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/")
-            ||  (0 === stripos($path, "http"))) { $__path_cache[$path_cache_key] = $path.$param; return $path.$param; }
+            ||  (0 === stripos($path, "http"))) return cache_set($path.$param);
 
             // If path exists then directly return it
 
-          //if (@is_dir($__path_prefix_hook.$path))                                         { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
-            if (@file_exists($__path_prefix_hook.$path))                                    { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
-            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
-          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+          //if (@is_dir($__path_prefix_hook.$path))                                         return cache_set($__path_prefix_hook.$path.$param);
+            if (@file_exists($__path_prefix_hook.$path))                                    return cache_set($__path_prefix_hook.$path.$param);
+            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            return cache_set($__path_prefix_hook.$path.$param);
+          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  return cache_set($__path_prefix_hook.$path.$param);
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists($__path_prefix_hook."$path.php"))                          { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
-                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  { $__path_cache[$path_cache_key] = $__path_prefix_hook.$path.$param; return $__path_prefix_hook.$path.$param; }
+                if (@file_exists($__path_prefix_hook."$path.php"))                          return cache_set($__path_prefix_hook.$path.$param);
+                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  return cache_set($__path_prefix_hook.$path.$param);
             }
-
+            
             // If we have already searched too many times then return fallback
 
             if ($depth <= 0) 
             {
-                { $__path_cache[$path_cache_key] = $default; return $default; }
+                { return cache_set($default); }
             }
 
             // If beyond root then stop here
@@ -555,17 +631,14 @@
             }
 
             // If requested then search in parent folder
-
+         
             if ($search)
             {
                 $searches[] = array("../$path", $depth - 1, "../$offset_path");
             }
         }
 
-        //if (false !== stripos($path0, "autoload.php"))    bye("PATH = ", $path0);
-        //if ($default == false)                            bye("PATH = ", $path0);
-
-        { $__path_cache[$path_cache_key] = $default; return $default; }
+        return cache_set($default);
     }
 
     function path_coalesce()
@@ -5982,7 +6055,9 @@
 
     function cached_getimagesize($src)
     {
-        if (!is_string($src) || "" == $src) return 0;
+        $result = null; if (!!cache_get($result)) { return $result; }
+
+        if (!is_string($src) || "" == $src) return cache_set(0);
 
         global $__cached_getimagesize;
 
@@ -6029,7 +6104,7 @@
             $__cached_getimagesize[$src] = $size;
         }
         
-        return $__cached_getimagesize[$src];
+        return cache_set($__cached_getimagesize[$src]);
     }
 
     function array_manifest()
@@ -14539,7 +14614,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size, $precompute_size_fallback_max_w, $precompute_size_fallback_max_h);
-        $lqip_css = !get("lqip") ? "" : cached_lqip_css($path);
+        $lqip_css = !get("lqip", true) ? "" : cached_lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -17164,7 +17239,7 @@
     {
         return (function() { HSTART() ?><style><?= HERE() ?>
             
-            [style*="--lqip:"]:is( :not(img), img[loading=lazy], img[data-src], .force-lqip ) {
+            [style*="--lqip:"]:is( :not(img), img[loading=lazy], img[data-src], .force-lqip, :not(:target img) ) {
 
                 --lqip-ca:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 18))), 4);
                 --lqip-cb:  mod(round(down, calc((var(--lqip) + pow(2, 19)) / pow(2, 16))), 4);
@@ -17196,7 +17271,7 @@
                 background-image: radial-gradient(50% 75% at 16.67% 25%, var(--lqip-ca-clr), rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-ca-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-ca-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 50% 25%, var(--lqip-cb-clr), rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cb-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cb-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 83.33% 25%, var(--lqip-cc-clr), rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cc-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cc-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 16.67% 75%, var(--lqip-cd-clr), rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cd-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cd-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 50% 75%, var(--lqip-ce-clr), rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-ce-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-ce-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), radial-gradient(50% 75% at 83.33% 75%, var(--lqip-cf-clr), rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop10))) 10%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop20))) 20%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop30))) 30%, rgb(from var(--lqip-cf-clr) r g b / calc(100% - var(--lqip-stop40))) 40%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop40))) 60%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop30))) 70%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop20))) 80%, rgb(from var(--lqip-cf-clr) r g b / calc(var(--lqip-stop10))) 90%, transparent), linear-gradient(0deg, var(--lqip-base-clr), var(--lqip-base-clr));
             }
 
-            [style*="--color:"] {
+            [style*="--color:"]:is( :not(:target img) ) {
 
                 background-color: var(--color);
 
@@ -17210,6 +17285,8 @@
 
     function cached_lqip_css($path)
     {
+        $result = null; if (!!cache_get($result)) { return $result; }
+
         $profiler = debug_track_timing();
 
         if (!is_string($path)) 
@@ -17222,7 +17299,7 @@
             {
                 bye("INTERNAL ERROR 16239"); 
             }
-            return "";
+            return cache_set("");
         }
 
         global $__cached_lqip_css;
@@ -17232,7 +17309,7 @@
             $__cached_lqip_css[$path] = !!get("debug") ? lqip_css($path) : @lqip_css($path);
         }
         
-        return $__cached_lqip_css[$path];
+        return cache_set($__cached_lqip_css[$path]);
     }
 
     ######################################################################################################################################
