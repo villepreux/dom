@@ -12799,7 +12799,7 @@
         $h += is_integer(get("main",         0)) ? get("main",         0) : 0;
         $h += is_integer(get("main-include", 0)) ? get("main-include", 0) : 0;
 
-        $title = trim(strip_tags($html));
+        $title = str_replace([ "{{", "}}" ], "", trim(strip_tags($html)));
         
         if ($headline_hook)
         {
