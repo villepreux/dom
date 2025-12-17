@@ -164,7 +164,7 @@
     {
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
         if (auto === $key) { $key = at(debug_callstack(-2), 0, []); $key["args"] = json_encode($key["args"]); $key = implode(",", $key); $key = url().getcwd().$key; }
-        if (!array_key_exists($key, $_CACHE)) { return false; }
+        if (!array_key_exists($key, $_CACHE)) return false;
         $value = $_CACHE[$key];
         return true;
     }
@@ -558,9 +558,9 @@
       
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {   
-        $result = null; if (!!cache_get($result)) { return $result; }
+        $profiler = debug_track_timing(false, false, false);
 
-        //$profiler = debug_track_timing();
+        $result = null; if (!!cache_get($result)) { return $result; }
 
         // Early return if invalid
         if ($path0 == "" || !$path0) return cache_set(false);
@@ -1898,9 +1898,11 @@
 
         if (!is_array($methods_order)) $methods_order = [ $methods_order ];
 
+        $sub_profiler =  [];
+
         foreach ($methods_order as $method)
         {        
-            $profiler = debug_track_timing(!!$profiling_annotation ? ("$profiling_annotation/$method") : $method, false, true);
+            $sub_profiler[$method] = debug_track_timing(!!$profiling_annotation ? ("$profiling_annotation/$method") : $method, false, true);
 
             if ($method == "file_get_contents" && (!$content || $content == ""))
             {      
@@ -2011,6 +2013,8 @@
                 if (!!$content && "" != $content && false !== stripos($content, '<title>503 Service unavailable</title>'    )) $content = false;
                 if (!!$content && "" != $content && false !== stripos($content, 'error code: 520'                           )) $content = false;
             }
+
+            $sub_profiler[$method] = null;
         }
 
         if ($auto_fix)
