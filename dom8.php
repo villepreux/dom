@@ -139,7 +139,8 @@
     #region HELPERS : CACHE
     ######################################################################################################################################
 
-    $_CACHE = [];
+    $_CACHE             = [];
+    $__cache_key_stack  = [];
 
     function cache_array_get()
     {
@@ -153,6 +154,19 @@
         $_CACHE = $a;
     }
 
+    function cache_clean_key($key)
+    {
+        return str_replace([ 
+            
+            "D:\\wamp\\www\\", 
+            "http:\/\/localhost\/",
+            "https:\/\/",
+            "http://localhost/",
+            "https://",
+        
+            ], "", $key);
+    }
+
     function cache_key($key = auto)
     {
         if (auto === $key) 
@@ -163,14 +177,12 @@
             array_shift($callstack);
 
             $file = $callstack[0]["file"];
-          //$line = $callstack[0]["line"];
 
             array_shift($callstack);
 
             $key = $callstack[0];
 
             $key["file"] = $file;
-          //$key["line"] = $line;
 
             unset(  $key["line"]);
                     $key["args"]    = json_encode($key["args"], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE | JSON_PARTIAL_OUTPUT_ON_ERROR); 
@@ -178,53 +190,75 @@
                     $key["getcwd"]  = getcwd();
 
             $key = implode(",", $key);
+            $key = cache_clean_key($key);
         }
 
         return $key;
     }
     
-    function cache_set($value, $key = auto)
+    function cache_set($value)
     {
+        if (has("no-php-cache")) return $value;
+
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
 
-        $key = cache_key($key);
+        // WE CACHE_SET ONLY AFTER A CACHE_GET HAS RETURNED FALSE (not cached)
+        //$key = cache_key($key);
+        global $__cache_key_stack; if (!$__cache_key_stack) $__cache_key_stack = [];
+        $key = array_pop($__cache_key_stack);        
+        
+        if (array_key_exists($key, $_CACHE)) bye("INTERNAL ERROR CS");
 
         $_CACHE[$key] = $value;
-
         return $value;
     }
 
     function cache_get(&$value, $key = auto, $debug_arg = false)
     {
+        if (has("no-php-cache")) return false;
+
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
 
         $key = cache_key($key);
 
         if (!array_key_exists($key, $_CACHE)) 
-        {
-            if (!!get("debug") && false !== $debug_arg && is_string($debug_arg)) debug_log("NOT CACHED: $debug_arg (key=$key)");
+        {        
+            // A CACHE_SET WILL FOLLOW, SO STORE KEY FOR IT
+            global $__cache_key_stack; if (!$__cache_key_stack) $__cache_key_stack = [];
+            $__cache_key_stack[] = $key;
+
+            if (!!get("debug")) debug_log("NOT CACHED! ".json_encode($debug_arg)." (key=$key)");
             return false;
         }
 
         $value = $_CACHE[$key];
-
         return true;
     }
 
     function cache_load($path)
     {
-        //if (!has("no-php-cache")) 
-        {
-            @include($path);
-            //bye(cache_array_get());    
-        }
+        if (has("no-php-cache")) return;
+        @include($path);
+
+        //global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        //$_CACHE = array_combine(array_map(function($key) { return cache_clean_key($key); }, array_keys($_CACHE)), $_CACHE);
     }
 
     function cache_write($path)
     {
-        if (!has("generate-cache") && !is_localhost()) return;
+        if (!is_localhost())                    return; // concurrent file access is not handled
+        if (has("no-php-cache"))                return;
+        if ("html" != get("doctype", "html"))   return;
+        if (has("ajax"))                        return;
+        if (!!get("binary"))                    return;
+        if (has("main"))                        return;
+        if (is_embeded())                       return;
+
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
-        file_put_contents($path, '<?php \dom\HSTART() ?><script><?= \dom\HERE() ?>'.PHP_EOL.json_encode($_CACHE, is_localhost() ? JSON_PRETTY_PRINT : 0).PHP_EOL.'<?= \dom\HERE("raw_js") ?></script><?php \dom\cache_array_set(json_decode(\dom\HSTOP(), true)); ');
+        //$_CACHE = array_combine(array_map(function($key) { return cache_clean_key($key); }, array_keys($_CACHE)), $_CACHE);
+
+        if (!!get("debug")) debug_log("Writing cache to disk...");
+        file_put_contents($path, '<?php /*'.date(DATE_RSS).'*/ \dom\HSTART() ?><script><?= \dom\HERE() ?>'.PHP_EOL.json_encode($_CACHE, JSON_PRETTY_PRINT).PHP_EOL.'<?= \dom\HERE("raw_js") ?></script><?php \dom\cache_array_set(json_decode(\dom\HSTOP(), true)); ');
     }
 
     #endregion
@@ -666,9 +700,9 @@
       
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {   
-        $profiler = debug_track_timing(false, false, false);
-
         $result = null; if (!!cache_get($result, auto, $path0)) return $result;
+        
+        $profiler = debug_track_timing(false, false, false);
 
         // Early return if invalid
         if ($path0 == "" || !$path0) return cache_set(false);
@@ -720,8 +754,6 @@
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if ("../about" == $path0) bye("DEBUG 7");
-
                 if (@file_exists($__path_prefix_hook."$path.php"))                          return cache_set($__path_prefix_hook.$path.$param);
                 if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  return cache_set($__path_prefix_hook.$path.$param);
             }
@@ -730,8 +762,6 @@
 
             if ($depth <= 0) 
             {
-                if ("../about" == $path0) bye("DEBUG 8");
-
                 return cache_set($default);
             }
 
@@ -743,14 +773,12 @@
             }
 
             // If requested then search in parent folder
-         
+
             if ($search)
             {
                 $searches[] = array("../$path", $depth - 1, "../$offset_path");
             }
         }
-
-        if ("../about" == $path0) bye("DEBUG 666");
 
         return cache_set($default);
     }
@@ -983,6 +1011,10 @@
     function init_options_hard_defaults()
     {
         // Cannot be modified at browser URL level
+
+        if (!is_localhost()) {
+            set("no-php-cache"); // UNTIL IT'S DEBUGGED
+        }
 
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
@@ -1473,8 +1505,8 @@
         {
             $html = '';
             
-            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan[$i], ' ', 1); ++$i; } }
-            else                {         foreach ($attributes as $key => $value) { if (is_array($value)) { $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan,     ' ', 1);       } }
+            if (is_array($pan)) { $i = 0; foreach ($attributes as $key => $value) { if (is_array($value)) { $value = array_map(function($x) { return is_array($x) ? json_encode($x) : $x; }, $value); $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan[$i], ' ', 1); ++$i; } }
+            else                {         foreach ($attributes as $key => $value) { if (is_array($value)) { $value = array_map(function($x) { return is_array($x) ? json_encode($x) : $x; }, $value); $value = implode($key == "style" ? ";" : " ", $value); } $value = trim($value); if ($value != "") $html .= pan(' ' . $key . '=' . '"' . trim($value) . '"', $pan,     ' ', 1);       } }
             
             return $html;
         }
@@ -5387,6 +5419,8 @@
                  if (!$probable_spam && false !== stripos($url_branch, "index/"))        $probable_spam = true;
             else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    $probable_spam = true;
             else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  $probable_spam = true;
+
+            else if (false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   $probable_spam = true;
         }
 
         $no_cache_specials = false;
@@ -6164,60 +6198,51 @@
         return $size;
     }
 
-    $__cached_getimagesize = [];
-
     function cached_getimagesize($src)
     {
         $result = null; if (!!cache_get($result, auto, $src)) return $result;
 
         if (!is_string($src) || "" == $src) return cache_set(0);
 
-        global $__cached_getimagesize;
-
-        if (!array_key_exists($src, $__cached_getimagesize)) 
+        $size = false; // We need [width, height, mime]
+        
+        if ($size === false)
         {
-            $size = false; // We need [width, height, mime]
-            
-            if ($size === false)
+            //"https://source.unsplash.com/_noSmX8Kgoo/300x200?.jpg
+
+            if (false !== stripos($src, "source.unsplash.com"))
             {
-                //"https://source.unsplash.com/_noSmX8Kgoo/300x200?.jpg
+                $ext  = "png";
+                $pos  = strripos($src, "."); if (false !== $pos) $ext = substr($src, $pos + 1);
+                $mime = "image/$ext";
 
-                if (false !== stripos($src, "source.unsplash.com"))
+                $pos_end = strripos($src, "?");
+                if (false === $pos_end) $pos_end = strlen($src);
+
+                if (false !== $pos_end)
                 {
-                    $ext  = "png";
-                    $pos  = strripos($src, "."); if (false !== $pos) $ext = substr($src, $pos + 1);
-                    $mime = "image/$ext";
+                    $pos_bgn = strripos($src, "/");
 
-                    $pos_end = strripos($src, "?");
-                    if (false === $pos_end) $pos_end = strlen($src);
-
-                    if (false !== $pos_end)
+                    if (false !== $pos_bgn)
                     {
-                        $pos_bgn = strripos($src, "/");
+                        $width_height = substr($src, $pos_bgn + 1, $pos_end - $pos_bgn - 1);
+                        $width_height = explode("x", $width_height);
 
-                        if (false !== $pos_bgn)
+                        if (count($width_height) == 2)
                         {
-                            $width_height = substr($src, $pos_bgn + 1, $pos_end - $pos_bgn - 1);
-                            $width_height = explode("x", $width_height);
-
-                            if (count($width_height) == 2)
-                            {
-                                $size = array("width" => $width_height[0], "height" => $width_height[1], "mime" => $mime);
-                            }
-                        }                        
-                    }
+                            $size = array("width" => $width_height[0], "height" => $width_height[1], "mime" => $mime);
+                        }
+                    }                        
                 }
             }
-            
-            if ($size === false)
-            {
-                $size = fast_get_image_size($src);
-            }
-
-            $__cached_getimagesize[$src] = $size;
         }
         
-        return cache_set($__cached_getimagesize[$src]);
+        if ($size === false)
+        {
+            $size = fast_get_image_size($src);
+        }
+
+        return cache_set($size);
     }
 
     function array_manifest()
@@ -14199,7 +14224,7 @@
                 }
             }
             else
-            {
+            {   
                 $hash_pos = stripos($extended_link,"#");
 
                 $extended_link_hash = "";
@@ -14209,7 +14234,7 @@
                     $extended_link_hash = substr($extended_link,    $hash_pos);
                     $extended_link      = substr($extended_link, 0, $hash_pos);
                 }
-                
+
                 foreach (get("forwarded_flags", []) as $forward_flag)
                 {
                     if (get($forward_flag) !== false
@@ -16718,7 +16743,7 @@
             if (is_array($photo))
             {
                 // https://css-tricks.com/gifs-and-prefers-reduced-motion/
-
+                
                 $img = picture(
                     
                     source(
@@ -17336,6 +17361,8 @@
 
     function lqip_css($path)
     {
+        $profiler = debug_track_timing();
+
         $lqip   = 0;
         $color  = "#0000";
 
@@ -17395,35 +17422,12 @@
         <?= HERE("raw_css") ?></style><?php return HSTOP(); })();
     }
 
-    $__cached_lqip_css = [];
-
     function cached_lqip_css($path)
     {
         $result = null; if (!!cache_get($result, auto, $path)) return $result;
 
-        $profiler = debug_track_timing();
-
-        if (!is_string($path)) 
-        {
-            if (is_localhost())
-            {
-                bye([ "error" => "INTERNAL ERROR 16239", "path" => $path, "callstack" => debug_callstack() ]); 
-            }
-            else
-            {
-                bye("INTERNAL ERROR 16239"); 
-            }
-            return cache_set("");
-        }
-
-        global $__cached_lqip_css;
-
-        if (!array_key_exists($path, $__cached_lqip_css)) 
-        {
-            $__cached_lqip_css[$path] = !!get("debug") ? lqip_css($path) : @lqip_css($path);
-        }
-        
-        return cache_set($__cached_lqip_css[$path]);
+        $lqip_css = !!get("debug") ? lqip_css($path) : @lqip_css($path);
+        return cache_set($lqip_css);
     }
 
     ######################################################################################################################################
