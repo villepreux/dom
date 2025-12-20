@@ -25,10 +25,10 @@
     #endregion
     #region HELPERS : AUTORUN
     ######################################################################################################################################
-
+    
                                 @internal_include(path("tokens.php"));
     if (PHP_MAJOR_VERSION >= 8) @internal_include(path("vendor/autoload.php"));
-
+    
     #endregion
     #region HELPERS : CONFIG
     ######################################################################################################################################
@@ -198,7 +198,7 @@
     
     function cache_set($value)
     {
-        if (has("no-php-cache")) return $value;
+        if (!get("php-cache")) return $value;
 
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
 
@@ -215,7 +215,7 @@
 
     function cache_get(&$value, $key = auto, $debug_arg = false)
     {
-        if (has("no-php-cache")) return false;
+        if (!get("php-cache")) return false;
 
         global $_CACHE; if (!$_CACHE) $_CACHE = [];
 
@@ -237,7 +237,7 @@
 
     function cache_load($path)
     {
-        if (has("no-php-cache")) return;
+        if (!get("php-cache")) return;
         @include($path);
 
         //global $_CACHE; if (!$_CACHE) $_CACHE = [];
@@ -247,7 +247,7 @@
     function cache_write($path)
     {
         if (!is_localhost())                    return; // concurrent file access is not handled
-        if (has("no-php-cache"))                return;
+        if (!get("php-cache"))                  return;
         if ("html" != get("doctype", "html"))   return;
         if (has("ajax"))                        return;
         if (!!get("binary"))                    return;
@@ -1012,9 +1012,9 @@
     {
         // Cannot be modified at browser URL level
 
-        if (!is_localhost()) {
-            set("no-php-cache"); // UNTIL IT'S DEBUGGED
-        }
+        //if (!is_localhost()) {
+        //set("php-cache"); // UNTIL IT'S DEBUGGED
+        //}
 
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
@@ -5419,8 +5419,10 @@
                  if (!$probable_spam && false !== stripos($url_branch, "index/"))        $probable_spam = true;
             else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    $probable_spam = true;
             else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  $probable_spam = true;
+            else if (!$probable_spam && false !== stripos($url_branch, "brasserie"))     $probable_spam = true;
 
             else if (false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   $probable_spam = true;
+            else if (!url_exists(at($_SERVER, "SCRIPT_URI")))                                           $probable_spam = true;
         }
 
         $no_cache_specials = false;
