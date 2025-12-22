@@ -1984,7 +1984,7 @@
         if (is_array($headers) && (false !== stripos($headers[0], "200 OK")
                                 || false !== stripos($headers[0], "302 Found"))) return true;
 
-        if (false !== stripos($url, "https:")) bye([ "url" => $url, "headers" => $headers ]);
+        //if (false !== stripos($url, "https:")) bye([ "url" => $url, "headers" => $headers, "callstack" => debug_callstack() ]);
 
         return false;
     }
