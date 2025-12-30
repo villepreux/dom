@@ -139,32 +139,19 @@
     #region HELPERS : CACHE
     ######################################################################################################################################
 
-    $_CACHE             = [];
-    $__cache_key_stack  = [];
+    $_DOM_PRECOMPUTED_CACHE             = [];
+    $_DOM_PRECOMPUTED_CACHE_KEY_STACK   = [];
 
     function cache_array_get()
     {
-        global $_CACHE; if (!$_CACHE) $_CACHE = [];
-        return $_CACHE;
+        global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
+        return $_DOM_PRECOMPUTED_CACHE;
     }
 
     function cache_array_set($a)
     {
-        global $_CACHE;
-        $_CACHE = $a;
-    }
-
-    function cache_clean_key($key)
-    {
-        return str_replace([ 
-            
-            "D:\\wamp\\www\\", 
-            "http:\/\/localhost\/",
-            "https:\/\/",
-            "http://localhost/",
-            "https://",
-        
-            ], "", $key);
+        global $_DOM_PRECOMPUTED_CACHE;
+        $_DOM_PRECOMPUTED_CACHE = $a;
     }
 
     function cache_key($key = auto)
@@ -190,7 +177,17 @@
                     $key["getcwd"]  = getcwd();
 
             $key = implode(",", $key);
-            $key = cache_clean_key($key);
+
+            $key = str_replace([ 
+                
+                "D:\\Cyanide\\wamp\\www\\", 
+                "D:\\wamp\\www\\", 
+                "http:\/\/localhost\/",
+                "https:\/\/",
+                "http://localhost/",
+                "https://",
+            
+                ], "", $key);
         }
 
         return $key;
@@ -198,50 +195,60 @@
     
     function cache_set($value)
     {
-        if (!get("php-cache")) return $value;
-
-        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
         // WE CACHE_SET ONLY AFTER A CACHE_GET HAS RETURNED FALSE (not cached)
-        //$key = cache_key($key);
-        global $__cache_key_stack; if (!$__cache_key_stack) $__cache_key_stack = [];
-        $key = array_pop($__cache_key_stack);        
+        global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
+        $key = array_pop($_DOM_PRECOMPUTED_CACHE_KEY_STACK);        
         
-        if (array_key_exists($key, $_CACHE)) bye("INTERNAL ERROR CS");
+        if (array_key_exists($key, $_DOM_PRECOMPUTED_CACHE)) bye("INTERNAL ERROR CS");
 
-        $_CACHE[$key] = $value;
+        $_DOM_PRECOMPUTED_CACHE[$key] = $value;
         return $value;
     }
 
     function cache_get(&$value, $key = auto, $debug_arg = false)
     {
-        if (!get("php-cache")) return false;
-
-        global $_CACHE; if (!$_CACHE) $_CACHE = [];
+        global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
         $key = cache_key($key);
 
-        if (!array_key_exists($key, $_CACHE)) 
+        if (!array_key_exists($key, $_DOM_PRECOMPUTED_CACHE)) 
         {        
             // A CACHE_SET WILL FOLLOW, SO STORE KEY FOR IT
-            global $__cache_key_stack; if (!$__cache_key_stack) $__cache_key_stack = [];
-            $__cache_key_stack[] = $key;
-
+            global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
+            $_DOM_PRECOMPUTED_CACHE_KEY_STACK[] = $key;
             if (!!get("debug")) debug_log("NOT CACHED! ".json_encode($debug_arg)." (key=$key)");
             return false;
         }
 
-        $value = $_CACHE[$key];
+        $value = $_DOM_PRECOMPUTED_CACHE[$key];
         return true;
     }
 
     function cache_load($path)
     {
-        if (!get("php-cache")) return;
-        @include($path);
+        if (!get("php-cache")) return false;
+        global $_DOM_PRECOMPUTED_CACHE;
 
-        //global $_CACHE; if (!$_CACHE) $_CACHE = [];
-        //$_CACHE = array_combine(array_map(function($key) { return cache_clean_key($key); }, array_keys($_CACHE)), $_CACHE);
+        //$_DOM_PRECOMPUTED_CACHE = json_decode(file_get_contents($path), true);
+        
+        if (!file_exists($path) || !is_readable($path)) return false;
+    
+        $resource = fopen($path,'r');
+
+        if (!$resource)                             {                                               return false; }
+        if (!flock($resource, LOCK_EX | LOCK_NB))   {                            fclose($resource); return false; }
+        if (-1 === fseek($resource, 0))             { flock($resource, LOCK_UN); fclose($resource); return false; }
+
+        $contents = fread($resource, filesize($path));
+
+        flock($resource, LOCK_UN);
+        fclose($resource);
+
+        $_DOM_PRECOMPUTED_CACHE = json_decode($contents, true);
+
+        return true;
     }
 
     function cache_write($path)
@@ -254,11 +261,13 @@
         if (has("main"))                        return;
         if (is_embeded())                       return;
 
-        global $_CACHE; if (!$_CACHE) $_CACHE = [];
-        //$_CACHE = array_combine(array_map(function($key) { return cache_clean_key($key); }, array_keys($_CACHE)), $_CACHE);
+        global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
+
+        // If we want to share that cache between dev and prod envs, then some values should not be stored as they depend on environment
+        $_DOM_PRECOMPUTED_CACHE = array_filter($_DOM_PRECOMPUTED_CACHE, function($value) { if (is_string($value) && false !== stripos($value, "https:")) { return false; } return true; }); 
 
         if (!!get("debug")) debug_log("Writing cache to disk...");
-        file_put_contents($path, '<?php /*'.date(DATE_RSS).'*/ \dom\HSTART() ?><script><?= \dom\HERE() ?>'.PHP_EOL.json_encode($_CACHE, JSON_PRETTY_PRINT).PHP_EOL.'<?= \dom\HERE("raw_js") ?></script><?php \dom\cache_array_set(json_decode(\dom\HSTOP(), true)); ');
+        file_put_contents($path, json_encode($_DOM_PRECOMPUTED_CACHE, JSON_PRETTY_PRINT), LOCK_EX);
     }
 
     #endregion
@@ -811,17 +820,16 @@
         return $__dom_internal_included;
     }
 
-    function internal_include($path, $no_echo = false)
+    function internal_include($path, $no_echo = false, $return = false)
     {
         if ($no_echo) ob_start();
         global $__dom_internal_included; $__dom_internal_included = true;
         if (!!$path) include($path);
         $__dom_internal_included = false;
+        $doc = !$return ? "" : ob_get_contents();
         if ($no_echo) ob_end_clean();
-
         //update_dependency_graph($path);
-
-        return "";
+        return $doc;
     }
 
     function include_backup($context_cwd = false, $no_echo = false, $context_restore_globals = true)
@@ -1012,9 +1020,10 @@
     {
         // Cannot be modified at browser URL level
 
-        //if (!is_localhost()) {
-        //set("php-cache"); // UNTIL IT'S DEBUGGED
-        //}
+        if (is_localhost())
+        {
+            set("php-cache");
+        }
 
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
@@ -1852,18 +1861,36 @@
             if (is_array(at(func_get_args(), 0)))
             {
                 list($lang_texts) = func_get_args();
-
+                
                 if (!!get("static"))
                 {
                     $html = "";
-                    foreach ($lang_texts as $lang => $text) 
-                        $html .= span_lang(strtolower($lang), $text);
+
+                    if (!!get("gemini"))
+                    {
+                        foreach ($lang_texts as $lang => $text) {
+                            if (strtolower(client_language_short()) == strtolower($lang)) {
+                                $html .= span_lang(strtolower($lang), $text);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach ($lang_texts as $lang => $text) {
+                            $html .= span_lang(strtolower($lang), $text);
+                        }
+                    }
+
                     return $html;
                 }
                 else
                 {
-                    foreach ($lang_texts as $lang => $text) 
-                        if (strtolower(client_language_short()) == strtolower($lang)) return $text;
+                    foreach ($lang_texts as $lang => $text) {
+                        if (strtolower(client_language_short()) == strtolower($lang)) {
+                            return $text;
+                        }
+                    }
+                    
                     return at($lang_texts, 0, "");
                 }
             }
@@ -5791,9 +5818,10 @@
     {
         $profiler = debug_track_timing($placeholder);
 
+        if (!$replaced_by) $replaced_by = "";
+
         if (!get("static") || !!get("fast")) // TODO Taking this shortcut for now as below code is too slow
         {
-            if (!$replaced_by) $replaced_by = "";
             return str_replace(placeholder($placeholder), $replaced_by, $in);
         }
 
@@ -7708,6 +7736,20 @@
             
             if (!!get("debug")) $html = "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre>$html";
             if (!!get("debug")) $html .= $debug_console.print_r($_SERVER, true);
+
+            // UNINDENT ------------>
+            
+            $state = false;
+            $html  = implode(PHP_EOL, array_map(function($line) use(&$state) { 
+                if (0 === stripos($line, "```")) {
+                         if (false      === $state) { $state = "asciiart"; } 
+                    else if ("asciiart" === $state) { $state = false; }
+                }
+                if ("asciiart" ===  $state) { return $line; }
+                return ltrim($line); 
+            }, explode(PHP_EOL, $html)));
+
+            // UNINDENT ------------>
 
             return $html;
         }
@@ -9830,7 +9872,8 @@
 
     function settings($details = true, $fun = true, $layers = true, $themes = true)
     {
-        //if (!!get("no_js")) return "";
+        if (!!get("gemini")) return "";
+      //if (!!get("no_js"))  return "";
         
         $char_system = "💻︎"; // ⚙
         $char_dark   = "☾"; 
@@ -14710,7 +14753,7 @@
      */
     function img($path, $w = false, $h = false, $attributes = false, $alt = false, $lazy = auto, $lazy_src = auto, $content = auto, $precompute_size = auto, $src_attribute = auto, $preload_if_among_first_images = true, $precompute_size_fallback_max_w = 900, $precompute_size_fallback_max_h = 450)
     {
-        $debug_this = (false !== stripos($path, "coryd") && auto !== $lazy);
+        //$debug_this = (false !== stripos($path, "coryd") && auto !== $lazy);
 
         if (!get("script-images-loading") && $lazy === true) $lazy = auto;
         if (!!get("nolazy")) $lazy = false;
