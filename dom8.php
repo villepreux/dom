@@ -174,7 +174,7 @@
 
             unset(  $key["line"]);
                     $key["args"]    = json_encode($key["args"], JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE | JSON_PARTIAL_OUTPUT_ON_ERROR); 
-                    $key["url"]     = url();
+                    $key["url"]     = url("url");
                     $key["getcwd"]  = getcwd();
 
             $key = implode(",", $key);
@@ -1019,7 +1019,7 @@
 
     function host_url   ()                                                                                              { return rtrim("http".((server_https()=='on')?"s":"")."://".server_http_host(),"/"); }
     function url        ($params = false, $get = true, $post = true, $session = false, $url = false, $host = false)     { $host = !!$host ? $host : host_url(); $branch = url_branch($params, $get, $post, $session, $url); return ($branch == "") ? $host : "$host/$branch"; }
-    function url_branch ($params = false, $get = true, $post = true, $session = false, $url = false)                    { $url = !!$url ? $url : server_request_uri(); $uri = explode('?', $url, 2); $uri = $uri[0]; $uri = ltrim($uri, "/"); if ($params) { $uri .= "?"; foreach (get_all($get, $post, $session) as $key => $val) { if (!is_array($val) && !($val instanceof \Closure)) { $uri .= "&$key=$val"; } } } return trim($uri, "/"); }
+    function url_branch ($params = false, $get = true, $post = true, $session = false, $url = false)                    { $url = !!$url ? $url : server_request_uri(); $url_parts = explode('?', $url, 2); $uri = $url_parts[0]; $uri = ltrim($uri, "/"); $args = false; if ($params === "url") { $params = true; parse_str(at($url_parts, 1, ""), $args); if (!is_array($args)) $args = []; } if ($params) { $uri .= "?"; if (false === $args) { $args = get_all($get, $post, $session); } foreach ($args as $key => $val) { if (!is_array($val) && !($val instanceof \Closure)) { $uri .= "&$key=$val"; } } } return trim($uri, "/"); }
     function url_leaf   ($params = false, $get = true, $post = true, $session = false, $url = false)                    { $branch = url_branch($params, $get, $post, $session, $url); $sep = strripos($branch, "/"); return $sep === false ? $branch : substr($branch, $sep + 1); }    
 
     function live_url($params = false)
