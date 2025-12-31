@@ -139,6 +139,7 @@
     #region HELPERS : CACHE
     ######################################################################################################################################
 
+    $_DOM_PRECOMPUTED_CACHE_PATH        = false;
     $_DOM_PRECOMPUTED_CACHE             = [];
     $_DOM_PRECOMPUTED_CACHE_KEY_STACK   = [];
 
@@ -207,7 +208,7 @@
         return $value;
     }
 
-    function cache_get(&$value, $key = auto, $debug_arg = false)
+    function cache_get(&$value, $key = auto)
     {
         global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
@@ -218,7 +219,7 @@
             // A CACHE_SET WILL FOLLOW, SO STORE KEY FOR IT
             global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
             $_DOM_PRECOMPUTED_CACHE_KEY_STACK[] = $key;
-            if (!!get("debug")) debug_log("NOT CACHED! ".json_encode($debug_arg)." (key=$key)");
+            if (!!get("debug")) debug_log("NOT CACHED: $key");
             return false;
         }
 
@@ -228,8 +229,13 @@
 
     function cache_load($path)
     {
+        global $_DOM_PRECOMPUTED_CACHE_PATH;
+        $_DOM_PRECOMPUTED_CACHE_PATH = $path;
+
         if (!get("php-cache")) return false;
         global $_DOM_PRECOMPUTED_CACHE;
+        
+        if (!!get("debug")) debug_log("Loading cache from disk...");
 
         //$_DOM_PRECOMPUTED_CACHE = json_decode(file_get_contents($path), true);
         
@@ -248,11 +254,16 @@
 
         $_DOM_PRECOMPUTED_CACHE = json_decode($contents, true);
 
+        if (!!get("debug")) debug_log("Loading cache from disk... DONE");
+
         return true;
     }
 
-    function cache_write($path)
+    function cache_write()
     {
+        global $_DOM_PRECOMPUTED_CACHE_PATH;
+
+        if (!$_DOM_PRECOMPUTED_CACHE_PATH)      return;
         if (!is_localhost())                    return; // concurrent file access is not handled
         if (!get("php-cache"))                  return;
         if ("html" != get("doctype", "html"))   return;
@@ -267,7 +278,7 @@
         $_DOM_PRECOMPUTED_CACHE = array_filter($_DOM_PRECOMPUTED_CACHE, function($value) { if (is_string($value) && false !== stripos($value, "https:")) { return false; } return true; }); 
 
         if (!!get("debug")) debug_log("Writing cache to disk...");
-        file_put_contents($path, json_encode($_DOM_PRECOMPUTED_CACHE, JSON_PRETTY_PRINT), LOCK_EX);
+        file_put_contents($_DOM_PRECOMPUTED_CACHE_PATH, json_encode($_DOM_PRECOMPUTED_CACHE, JSON_PRETTY_PRINT), LOCK_EX);
     }
 
     #endregion
@@ -709,10 +720,10 @@
       
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {   
-        $result = null; if (!!cache_get($result, auto, $path0)) return $result;
-        
         $profiler = debug_track_timing(false, false, false);
 
+        $result = null; if (!!cache_get($result)) return $result;
+        
         // Early return if invalid
         if ($path0 == "" || !$path0) return cache_set(false);
 
@@ -5873,7 +5884,7 @@
     function output($doc = "", $attributes = false)
     {   
         if (!!get("binary"))    die($doc);
-        if (has("main"))        die();        
+        if (has("main"))        die();
         if (is_embeded())       return;
 
         if ("html" == get("doctype", false))
@@ -5908,6 +5919,8 @@
         $doc = placeholder_replace("DOM_HOOK_TILE_0"      , "", $doc);
 
         $doc .= generate_cleanup().generate_all();
+
+        cache_write();
 
         $compression = (get("compression") == "gzip" && !is_embeded());
 
@@ -6215,22 +6228,11 @@
         }
     }
 
-    
-    function fast_get_image_size($src)
+
+    function get_image_size($src)
     {
-        $profiler = debug_track_timing();
-
-        //$size = @getimagesize($src);
-        $image = new FastImage($src);
-        $size  = $image->getSize();
-        if (!$size) $size = @getimagesize($src);
-
-        return $size;
-    }
-
-    function cached_getimagesize($src)
-    {
-        $result = null; if (!!cache_get($result, auto, $src)) return $result;
+        $profiler = debug_track_timing(false, false, false);
+        $result   = null; if (!!cache_get($result)) return $result;
 
         if (!is_string($src) || "" == $src) return cache_set(0);
 
@@ -6269,7 +6271,9 @@
         
         if ($size === false)
         {
-            $size = fast_get_image_size($src);
+            $image = new FastImage($src);
+            $size  = $image->getSize();
+            if (!$size) $size = @getimagesize($src);
         }
 
         return cache_set($size);
@@ -6364,7 +6368,7 @@
 
             foreach ($screenshots as $s => &$img)
             {
-                $size = cached_getimagesize($img["src"]);
+                $size = get_image_size($img["src"]);
                 
                 if (false === $size || !is_array($size) || count($size) < 2)
                 {
@@ -8096,7 +8100,7 @@
 
         $mime = "image/png";
         {
-            $size = cached_getimagesize($url);
+            $size = get_image_size($url);
 
             if (is_array($size) && array_key_exists("mime", $size))
             {
@@ -14699,7 +14703,7 @@
 
         if ((!$w || !$h) && $precompute_size)
         {
-            $size = cached_getimagesize($path);
+            $size = get_image_size($path);
 
             if (is_array($size) && count($size) >= 2)
             {
@@ -14797,7 +14801,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size, $precompute_size_fallback_max_w, $precompute_size_fallback_max_h);
-        $lqip_css = !get("lqip", true) ? "" : cached_lqip_css($path);
+        $lqip_css = !get("lqip", true) ? "" : lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
@@ -17308,7 +17312,7 @@
       //list($width, $height) = getimagesize($path);
         $width = $height = false;
         {
-            $size = cached_getimagesize($path);
+            $size = get_image_size($path);
             
             if (false === $size || !is_array($size) || count($size) < 2)
             {
@@ -17406,19 +17410,21 @@
 
     function lqip_css($path)
     {
-        $profiler = debug_track_timing();
-
+        $profiler = debug_track_timing(false, false, false);
+        $result   = null; if (!!cache_get($result)) return $result;
+        
         $lqip   = 0;
         $color  = "#0000";
 
-        if (!get_lqip_info($path, $lqip, $color))
+        $css = "";
+
+        if (!!get_lqip_info($path, $lqip, $color))
         {
-            return "";
+            list($l, $a, $b) = $color;
+            $css = " --lqip: $lqip; --color: oklab($l $a $b); ";
         }
 
-        list($l, $a, $b) = $color;
-
-        return " --lqip: $lqip; --color: oklab($l $a $b); ";
+        return cache_set($css);
     }
 
     function lqip_global_css()
@@ -17465,14 +17471,6 @@
             }
 
         <?= HERE("raw_css") ?></style><?php return HSTOP(); })();
-    }
-
-    function cached_lqip_css($path)
-    {
-        $result = null; if (!!cache_get($result, auto, $path)) return $result;
-
-        $lqip_css = !!get("debug") ? lqip_css($path) : @lqip_css($path);
-        return cache_set($lqip_css);
     }
 
     ######################################################################################################################################
