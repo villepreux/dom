@@ -711,6 +711,34 @@
         return false;
     }
 
+    function scan_dir($path, $sorting_order = SCANDIR_SORT_ASCENDING, $contexts = null)
+    {
+        $result = null; if (!!cache_get($result)) return $result;
+        $scanned = scandir($path, $sorting_order, $contexts);
+        return cache_set($scanned);
+    }
+
+    function file_exists($path)
+    {
+        $result = null; if (!!cache_get($result)) return $result;
+        $exists = \file_exists($path);
+        return cache_set($exists);
+    }
+
+    function is_file($path)
+    {
+        $result = null; if (!!cache_get($result)) return $result;
+        $is_file = \is_file($path);
+        return cache_set($is_file);
+    }
+
+    function is_dir($path)
+    {
+        $result = null; if (!!cache_get($result)) return $result;
+        $is_dir = \is_dir($path);
+        return cache_set($is_dir);
+    }
+
     $__path_prefix_hook = "";
     function set_path_prefix_hook($path_prefix_hook)
     {
@@ -721,8 +749,7 @@
     function path($path0, $default = false, $search = true, $depth0 = auto, $max_depth = auto, $offset_path0 = ".", $bypass_root_hints = false)
     {   
         $profiler = debug_track_timing(false, false, false);
-
-        $result = null; if (!!cache_get($result)) return $result;
+        $result   = null; if (!!cache_get($result)) return $result;
         
         // Early return if invalid
         if ($path0 == "" || !$path0) return cache_set(false);
