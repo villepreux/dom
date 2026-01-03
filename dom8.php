@@ -202,6 +202,8 @@
         global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
         $key = array_pop($_DOM_PRECOMPUTED_CACHE_KEY_STACK);        
         
+        //if (".cache" === $value) bye(["value" => $value, "key" => $key, "callstack" => debug_callstack() ]);
+
         if (array_key_exists($key, $_DOM_PRECOMPUTED_CACHE)) bye("INTERNAL ERROR CS");
 
         $_DOM_PRECOMPUTED_CACHE[$key] = $value;
@@ -219,7 +221,7 @@
             // A CACHE_SET WILL FOLLOW, SO STORE KEY FOR IT
             global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
             $_DOM_PRECOMPUTED_CACHE_KEY_STACK[] = $key;
-            if (!!get("debug")) debug_log("NOT CACHED: $key");
+            if (!!get("php-cache") && !!get("debug")) debug_log("NOT CACHED: $key");
             return false;
         }
 
@@ -711,34 +713,6 @@
         return false;
     }
 
-    function scan_dir($path, $sorting_order = SCANDIR_SORT_ASCENDING, $contexts = null)
-    {
-        $result = null; if (!!cache_get($result)) return $result;
-        $scanned = scandir($path, $sorting_order, $contexts);
-        return cache_set($scanned);
-    }
-
-    function file_exists($path)
-    {
-        $result = null; if (!!cache_get($result)) return $result;
-        $exists = \file_exists($path);
-        return cache_set($exists);
-    }
-
-    function is_file($path)
-    {
-        $result = null; if (!!cache_get($result)) return $result;
-        $is_file = \is_file($path);
-        return cache_set($is_file);
-    }
-
-    function is_dir($path)
-    {
-        $result = null; if (!!cache_get($result)) return $result;
-        $is_dir = \is_dir($path);
-        return cache_set($is_dir);
-    }
-
     $__path_prefix_hook = "";
     function set_path_prefix_hook($path_prefix_hook)
     {
@@ -789,20 +763,24 @@
         
             // If URL format then keep it as-is
 
-            if ((strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/")
-            ||  (0 === stripos($path, "http"))) return cache_set($path.$param);
+            $is_url = ((strlen($path) >= 2 && $path[0] == "/" && $path[1] == "/") || (0 === stripos($path, "http")));
+        
+            if ($is_url) return cache_set($path.$param);
 
             // If path exists then directly return it
 
-          //if (@is_dir($__path_prefix_hook.$path))                                         return cache_set($__path_prefix_hook.$path.$param);
-            if (@file_exists($__path_prefix_hook.$path))                                    return cache_set($__path_prefix_hook.$path.$param);
-            if (($max_depth == $depth) && url_exists($__path_prefix_hook.$path))            return cache_set($__path_prefix_hook.$path.$param);
-          //if (($max_depth == $depth) && url_exists(url()."/".$__path_prefix_hook.$path))  return cache_set($__path_prefix_hook.$path.$param);
+            $with_prefix_path = $__path_prefix_hook.$path;
+            $with_prefix_is_url = ((strlen($with_prefix_path) >= 2 && $with_prefix_path[0] == "/" && $with_prefix_path[1] == "/") || (0 === stripos($with_prefix_path, "http")));
+        
+          //if (@is_dir($with_prefix_path))                                                     { return cache_set($with_prefix_path.$param); }
+            if (@file_exists($with_prefix_path))                                                { return cache_set($with_prefix_path.$param); }
+            if (($max_depth == $depth) && $with_prefix_is_url && url_exists($with_prefix_path)) { /*if (".cache" === $path0) bye(["depth" => $depth, "__path_prefix_hook" => $__path_prefix_hook, "path" => $path]);*/ return cache_set($with_prefix_path.$param); }
+          //if (($max_depth == $depth) && url_exists(url()."/".$with_prefix_path))              { return cache_set($with_prefix_path.$param); }
 
             if (!!get("htaccess_rewrite_php"))
             {
-                if (@file_exists($__path_prefix_hook."$path.php"))                          return cache_set($__path_prefix_hook.$path.$param);
-                if (($max_depth == $depth) && url_exists($__path_prefix_hook."$path.php"))  return cache_set($__path_prefix_hook.$path.$param);
+                if (@file_exists($__path_prefix_hook."$path.php"))                                                  return cache_set($with_prefix_path.$param);
+                if (($max_depth == $depth) && $with_prefix_is_url && url_exists($__path_prefix_hook."$path.php"))   return cache_set($with_prefix_path.$param);
             }
             
             // If we have already searched too many times then return fallback
@@ -1058,10 +1036,7 @@
     {
         // Cannot be modified at browser URL level
 
-        if (is_localhost())
-        {
-            set("php-cache");
-        }
+        set("php-cache",                        true);
 
         del("title");                                       // Will be deducted/overriden from document headlines, if any
 
@@ -2032,24 +2007,41 @@
         return slugify($str, $tolower, $separator = "_");
     }
 
-    function url_exists($url)
+    function url_exists($url, $answer_if_timeout = false, $timeout_ms = 1000)
     {
-        $context = stream_context_create( [ 'ssl' => [
+        $profiler = debug_track_timing();
 
-            'verify_peer'      => false,
-            'verify_peer_name' => false,
+        if (!$url) return false;
 
-        ], ]);
+        $ch = curl_init($url);
 
-        $headers = !$url ? false : @get_headers($url, false, $context);
-        if (is_array($headers) && (false !== stripos($headers[0], "200 OK")
-                                || false !== stripos($headers[0], "302 Found"))) return true;
-        
-        $headers = !$url ? false : @get_headers("$url/", false, $context);
-        if (is_array($headers) && (false !== stripos($headers[0], "200 OK")
-                                || false !== stripos($headers[0], "302 Found"))) return true;
+        curl_setopt_array($ch, [
 
-        //if (false !== stripos($url, "https:")) bye([ "url" => $url, "headers" => $headers, "callstack" => debug_callstack() ]);
+            CURLOPT_TIMEOUT_MS      => $timeout_ms,
+            CURLOPT_NOBODY          => true,
+            CURLOPT_RETURNTRANSFER  => true,
+            CURLOPT_FOLLOWLOCATION  => true,
+            CURLOPT_USERAGENT       => "Mozilla/5.0",
+            CURLOPT_SSL_VERIFYHOST  => false,
+            CURLOPT_SSL_VERIFYPEER  => false,
+
+        ]);
+
+        $res    = curl_exec($ch);
+        $errno  = curl_errno($ch);
+        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if ($errno == CURLE_OPERATION_TIMEOUTED)
+        {
+            return $answer_if_timeout;
+        }
+
+        if (($status >= 200 && $status < 300) || $status == 302) 
+        {
+            return true;
+        }
+
+        //if (!!$url && "tokens.php" != $url) bye([ "url" => $url, "errno" => $errno, "status" => $status, "callstack" => debug_callstack() ]);
 
         return false;
     }
@@ -2211,7 +2203,7 @@
                         $curl_debug_errors[] = to_string(curl_getinfo($curl));
                     }
 
-                    curl_close($curl);
+                    //curl_close($curl); // DEPRECATED in 8.5. Does nothing since 8.0
                 }
             }
             
@@ -2919,8 +2911,6 @@
 
     function lorem_ipsum($nb_paragraphs = 5, $tag = "p", $flavor = "lorem")
     {
-        $profiler = debug_track_timing();
-
         $html = "";
 
         $tag = !!$tag ? (function ($txt) use ($tag) { return tag($tag, $txt); }) : (function ($txt) { return PHP_EOL.$txt.PHP_EOL.PHP_EOL; });
@@ -5481,13 +5471,13 @@
 
         $probable_spam = false;
         {
-                 if (!$probable_spam && false !== stripos($url_branch, "index/"))        $probable_spam = true;
-            else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    $probable_spam = true;
-            else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  $probable_spam = true;
-            else if (!$probable_spam && false !== stripos($url_branch, "brasserie"))     $probable_spam = true;
+                 if (!$probable_spam && false !== stripos($url_branch, "index/"))        { $probable_spam = true;}
+            else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    { $probable_spam = true;}
+            else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  { $probable_spam = true;}
+            else if (!$probable_spam && false !== stripos($url_branch, "brasserie"))     { $probable_spam = true;}
 
-            else if (false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   $probable_spam = true;
-            else if (!url_exists(at($_SERVER, "SCRIPT_URI")))                                           $probable_spam = true;
+            else if (!$probable_spam && has($_SERVER, "SCRIPT_FILENAME") && has($_SERVER, "SCRIPT_NAME") && false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   { $probable_spam = true; }
+            else if (!$probable_spam && has($_SERVER, "SCRIPT_URI") && !url_exists(str_replace(":".at($_SERVER, "SERVER_PORT", ""), "", at($_SERVER, "SCRIPT_URI")), true, 100))               { $probable_spam = true; }
         }
 
         $no_cache_specials = false;
@@ -5495,6 +5485,8 @@
                  if (!$no_cache_specials && 0 === stripos($url_branch, "~")) $no_cache_specials = true; // URLs like http://example.com/~username/ are handled by Apache’s mod_userdir
             else if (!$no_cache_specials && 0 === stripos($url_branch, ".")) $no_cache_specials = true;
         }
+
+        //if ($probable_spam) bye([ "_SERVER" => $_SERVER, "url" => str_replace(":".at($_SERVER, "SERVER_PORT"), "", at($_SERVER, "SCRIPT_URI")), "cache_dir" => $cache_dir, "probable_spam" => $probable_spam, "no_cache_specials" => $no_cache_specials ]);
 
         if (!!get("cache") && !$probable_spam && !$no_cache_specials)
         {
@@ -5532,12 +5524,14 @@
                 }
                 else 
                 {
+                    debug_log("Get cache file info");
+
                     list($page_cache_dir, $page_cache_basename) = current_page_cache_info($cache_dir);
                     
                     $cache_filename         = "$page_cache_dir/$page_cache_basename";
                     $cache_file_exists      = (file_exists($cache_filename)) && (filesize($cache_filename) > 0);
-                    $cache_file_uptodate    = $cache_file_exists && ((time() - get("cache-duration", 24*60*60)) < filemtime($cache_filename));
-                    
+                    $cache_file_uptodate    = ($cache_file_exists && ((time() - get("cache-duration", 365*24*60*60)) < filemtime($cache_filename)));
+
                     set("cache_filename", $cache_filename);
 
                     // CACHE-DEBUG ------------------------>
@@ -5548,10 +5542,14 @@
                     
                     if ($cache_file_exists && $cache_file_uptodate) 
                     {
+                        debug_log("Open cache file");
+
                         $cache_file = @fopen($cache_filename, 'r');
                         
                         if (!!$cache_file)
                         {                   
+                            debug_log("Dump cache file");
+
                             echo fread($cache_file, filesize($cache_filename));
                             fclose($cache_file);            
 
@@ -5619,10 +5617,17 @@
                     
                     fwrite($cache_file, $content);
                     fclose($cache_file);            
+                    
+                    //bye("stop okay ".strlen($content)." written in $cache_filename");
+
                 }
                 else if (!has("ajax"))
                 {
                     if ("html" == get("doctype",false)) echo eol().comment("Could not generate cache! " . $cache_filename);
+                }
+                else
+                {
+                    bye("Could not create $cache_filename");
                 }
             }
             
@@ -13633,7 +13638,7 @@
         return tag("sup", $html, $attributes); 
     }
 
-    function footer     ($html = "", $attributes = false) { $profiler = debug_track_timing(); return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
+    function footer     ($html = "", $attributes = false) { return tag('footer', $html, attributes_add_class(   $attributes,    component_class('footer')) ); }
     
     function icon           ($icon, $attributes = false) { return i($icon, attributes_add_class($attributes, 'material-icons')); }
     function button_icon    ($icon, $label      = false) { return button(icon($icon, component_class('i', 'action-button-icon')), array("class" => component_class("button","action-button"), "aria-label" => (($label === false) ? $icon : $label))); }
@@ -16361,8 +16366,6 @@
 
     function calculate_luminosity_ratio($color1, $color2, $fallback1 = 1.0, $fallback2 = 0.0) {
 
-        //$profiler = debug_track_timing();
-        
         $l1 = calculate_luminosity($color1, $fallback1);
         $l2 = calculate_luminosity($color2, $fallback2);
 
@@ -16371,8 +16374,6 @@
 
     function calculate_luminosity_ratio_dec_rgb($color1_r, $color1_g, $color1_b, $color2_r, $color2_g, $color2_b) {
 
-        $profiler = debug_track_timing();
-        
         $l1 = calculate_luminosity_dec_rgb($color1_r, $color1_g, $color1_b);
         $l2 = calculate_luminosity_dec_rgb($color2_r, $color2_g, $color2_b);
 
@@ -16386,8 +16387,6 @@
 
     function color_modify_lightness($color, $factor, $debug = false)
     {
-        $profiler = debug_track_timing();
-
         $rrggbb = ltrim($color, "#");        
         if (!ctype_xdigit($rrggbb)) return "#".$rrggbb;
 
@@ -16473,8 +16472,6 @@
 
         )
     {
-        $profiler = debug_track_timing();
-
         global $__dom_corrected_colors_cache;
 
         if (is_array($__dom_corrected_colors_cache))
@@ -16568,8 +16565,6 @@
         &$ratio                 = null,
         $debug                  = false)
     {
-        $profiler = debug_track_timing();
-        
         if (is_array($color))
         {
             $corrected = $color;
@@ -16661,7 +16656,7 @@
     
         if (!$display_vars)
         {
-            $tag_bgn = "<h2>PHP Variables";
+            $tag_bgn = "<h2>    ";
             $tag_end = "<h1>";
             $pos_bgn = stripos($phpinfo, $tag_bgn);             if (false !== $pos_bgn) {
             $pos_end = stripos($phpinfo, $tag_end, $pos_bgn);   if (false !== $pos_end) {
@@ -16716,8 +16711,6 @@
 
     function init_footnotes()
     {
-        $profiler = debug_track_timing();
-
         if (has("ajax")) 
         {
           //session_start([ 'read_and_close' => true ]);
