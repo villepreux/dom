@@ -221,7 +221,7 @@
             // A CACHE_SET WILL FOLLOW, SO STORE KEY FOR IT
             global $_DOM_PRECOMPUTED_CACHE_KEY_STACK; if (!$_DOM_PRECOMPUTED_CACHE_KEY_STACK) $_DOM_PRECOMPUTED_CACHE_KEY_STACK = [];
             $_DOM_PRECOMPUTED_CACHE_KEY_STACK[] = $key;
-            if (!!get("php-cache") && !!get("debug")) debug_log("NOT CACHED: $key");
+            //if (!!get("php-cache") && !!get("debug")) debug_log("NOT CACHED: $key");
             return false;
         }
 
@@ -234,15 +234,11 @@
         global $_DOM_PRECOMPUTED_CACHE_PATH;
         $_DOM_PRECOMPUTED_CACHE_PATH = $path;
 
-        if (!get("php-cache")) return false;
-        global $_DOM_PRECOMPUTED_CACHE;
-        
+        if (!get("php-cache"))                          return false;
+        if (!file_exists($path) || !is_readable($path)) return false;
+            
         if (!!get("debug")) debug_log("Loading cache from disk...");
 
-        //$_DOM_PRECOMPUTED_CACHE = json_decode(file_get_contents($path), true);
-        
-        if (!file_exists($path) || !is_readable($path)) return false;
-    
         $resource = fopen($path,'r');
 
         if (!$resource)                             {                                               return false; }
@@ -254,7 +250,8 @@
         flock($resource, LOCK_UN);
         fclose($resource);
 
-        $_DOM_PRECOMPUTED_CACHE = json_decode($contents, true);
+        global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
+        $_DOM_PRECOMPUTED_CACHE = array_merge($_DOM_PRECOMPUTED_CACHE, json_decode($contents, true));
 
         if (!!get("debug")) debug_log("Loading cache from disk... DONE");
 
@@ -2012,6 +2009,20 @@
         $profiler = debug_track_timing();
 
         if (!$url) return false;
+
+        /*$domain = get("php_domain");
+
+        if (!!$domain)
+        {
+            if ($url == $domain)            return true;
+            if ($url == "/")                return true;
+            if ($url == "http://$domain")   return true;
+            if ($url == "https://$domain")  return true;
+            if ($url == "http://$domain/")  return true;
+            if ($url == "https://$domain/") return true;
+        }*/
+
+        extra_debug_log("url_exists", json_encode([ "url" => $url, "callstack" => debug_functions_callstack() ]));
 
         $ch = curl_init($url);
 
@@ -5456,10 +5467,29 @@
         return remove_dir($page_cache_dir);
     }
 
+    function extra_debug_log($filename, $text)
+    {
+        file_put_contents(path(".logs")."/$filename.log", @file_get_contents(path(".logs")."/$filename.log").PHP_EOL.$text, LOCK_EX);
+    }
+
     function cache_debug_log($text)
     {
-        file_put_contents(path(".logs")."/cache.log", @file_get_contents(path(".logs")."/cache.log").PHP_EOL.$text);
-    }                
+        extra_debug_log("cache", $text);
+    }
+
+    function this_html_page_access_is_probably_spam()
+    {
+        $url_branch = url_branch(false);
+
+        if (false !== stripos($url_branch, "index/"))        return true;
+        if (false !== stripos($url_branch, "index.php/"))    return true;
+        if (false !== stripos($url_branch, "function.php"))  return true;
+        if (false !== stripos($url_branch, "brasserie"))     return true;
+        if (has($_SERVER, "SCRIPT_FILENAME") && has($_SERVER, "SCRIPT_NAME") && false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   return true;
+      //if (has($_SERVER, "SCRIPT_URI") && !url_exists(str_replace(":".at($_SERVER, "SERVER_PORT", ""), "", at($_SERVER, "SCRIPT_URI")), true, 100))               return true; //Comment this for now as we suspect it of being source of lot of url access (and flooding logs)
+
+        return false;
+    }
 
     function cache_start($cache_dir = auto)
     {
@@ -5469,16 +5499,7 @@
 
         $url_branch = url_branch(false);
 
-        $probable_spam = false;
-        {
-                 if (!$probable_spam && false !== stripos($url_branch, "index/"))        { $probable_spam = true;}
-            else if (!$probable_spam && false !== stripos($url_branch, "index.php/"))    { $probable_spam = true;}
-            else if (!$probable_spam && false !== stripos($url_branch, "function.php"))  { $probable_spam = true;}
-            else if (!$probable_spam && false !== stripos($url_branch, "brasserie"))     { $probable_spam = true;}
-
-            else if (!$probable_spam && has($_SERVER, "SCRIPT_FILENAME") && has($_SERVER, "SCRIPT_NAME") && false === stripos(at($_SERVER, "SCRIPT_FILENAME"), at($_SERVER, "SCRIPT_NAME")))   { $probable_spam = true; }
-            else if (!$probable_spam && has($_SERVER, "SCRIPT_URI") && !url_exists(str_replace(":".at($_SERVER, "SERVER_PORT", ""), "", at($_SERVER, "SCRIPT_URI")), true, 100))               { $probable_spam = true; }
-        }
+        $probable_spam = this_html_page_access_is_probably_spam();
 
         $no_cache_specials = false;
         {
@@ -5830,7 +5851,13 @@
                 if (!!$content_encoding) \header('Content-Encoding: '.$content_encoding);
                                          \header('Content-Disposition: inline');/*
                 if (!!$charset_encoding) \header('Content-type: text/plain; charset='.$charset_encoding);*/
-                if (!!$charset_encoding) \header('Content-type: text/gemini; charset='.$charset_encoding);
+                if (!!$charset_encoding) {
+                    if ("text" == get("format") || "txt" == get("format")) {
+                        \header('Content-type: text/plain; charset='.$charset_encoding);
+                    } else {
+                        \header('Content-type: text/gemini; charset='.$charset_encoding);
+                    }
+                }
             }
             else
             {
@@ -6418,7 +6445,7 @@
                     else
                     {
                         $img["sizes"] = $w."x".$h;
-                        $img["type"]  = $size["mime"];
+                        $img["type"]  = at($size, "mime");
                     }
                 }
             }
