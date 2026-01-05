@@ -10922,21 +10922,18 @@
             --screen-link-color-accent:                         light-dark(<?= user_color("light", [ "link_color_accent", "link_color", "accent_color" ], "var(--screen-accent-color, var(--accent-color, #cc1133))") ?>, <?= user_color("dark", [ "link_color_accent", "link_color", "accent_color" ], "var(--screen-accent-color, var(--accent-color, #64DEFE))") ?>); 
             --screen-link-color-on-background-lighter-color:    light-dark(<?= user_color("light", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #aa4455))") ?>, <?= user_color("dark", [                      "link_color", "theme_color"  ], "var(--screen-theme-color,  var(--theme-color,  #FF91FF))") ?>);
             
-            --screen-text-on-background-darker-color:           light-dark(<?= "#000000" ?>, <?= "#e5e5e5" ?>);
-            --screen-text-on-background-color:                  light-dark(<?= "#0d0d0d" ?>, <?= "#f2f2f2" ?>);
-            --screen-text-on-background-lighter-color:          light-dark(<?= "#1a1a1a" ?>, <?= "#ffffff" ?>);
-
-            --screen-background-darker-color:                   light-dark(<?= "#e5e5e5FF" ?>, <?= "#040404FF" ?>);
-            --screen-background-color:                          light-dark(<?= "#ffffffAA" ?>, <?= "#1A1A1A99" ?>);
-            --screen-background-lighter-color:                  light-dark(<?= "#ffffffFF" ?>, <?= "#202024FF" ?>);
-
-            --screen-text-on-theme-darker-color:                light-dark(<?= "#e5e5e5" ?>, <?= "#000000" ?>);
-            --screen-text-on-theme-color:                       light-dark(<?= "#f2f2f2" ?>, <?= "#0d0d0d" ?>);
-            --screen-text-on-theme-lighter-color:               light-dark(<?= "#ffffff" ?>, <?= "#1a1a1a" ?>);
-
-            --screen-text-on-accent-darker-color:               light-dark(<?= "#e5e5e5" ?>, <?= "#000000" ?>);
-            --screen-text-on-accent-color:                      light-dark(<?= "#f2f2f2" ?>, <?= "#0d0d0d" ?>);
-            --screen-text-on-accent-lighter-color:              light-dark(<?= "#ffffff" ?>, <?= "#1a1a1a" ?>);
+            --screen-text-on-background-darker-color:           light-dark(var(--light-text-on-background-darker-color,     <?= "#000000"   ?>), var(--dark-text-on-background-darker-color,    <?= "#e5e5e5"   ?>));
+            --screen-text-on-background-color:                  light-dark(var(--light-text-on-background-color,            <?= "#0d0d0d"   ?>), var(--dark-text-on-background-color,           <?= "#f2f2f2"   ?>));
+            --screen-text-on-background-lighter-color:          light-dark(var(--light-text-on-background-lighter-color,    <?= "#1a1a1a"   ?>), var(--dark-text-on-background-lighter-color,   <?= "#ffffff"   ?>));
+            --screen-background-darker-color:                   light-dark(var(--light-background-darker-color,             <?= "#e5e5e5FF" ?>), var(--dark-background-darker-color,            <?= "#040404FF" ?>));
+            --screen-background-color:                          light-dark(var(--light-background-color,                    <?= "#ffffffAA" ?>), var(--dark-background-color,                   <?= "#1A1A1A99" ?>));
+            --screen-background-lighter-color:                  light-dark(var(--light-background-lighter-color,            <?= "#ffffffFF" ?>), var(--dark-background-lighter-color,           <?= "#202024FF" ?>));
+            --screen-text-on-theme-darker-color:                light-dark(var(--light-text-on-theme-darker-color,          <?= "#e5e5e5"   ?>), var(--dark-text-on-theme-darker-color,         <?= "#000000"   ?>));
+            --screen-text-on-theme-color:                       light-dark(var(--light-text-on-theme-color,                 <?= "#f2f2f2"   ?>), var(--dark-text-on-theme-color,                <?= "#0d0d0d"   ?>));
+            --screen-text-on-theme-lighter-color:               light-dark(var(--light-text-on-theme-lighter-color,         <?= "#ffffff"   ?>), var(--dark-text-on-theme-lighter-color,        <?= "#1a1a1a"   ?>));
+            --screen-text-on-accent-darker-color:               light-dark(var(--light-text-on-accent-darker-color,         <?= "#e5e5e5"   ?>), var(--dark-text-on-accent-darker-color,        <?= "#000000"   ?>));
+            --screen-text-on-accent-color:                      light-dark(var(--light-text-on-accent-color,                <?= "#f2f2f2"   ?>), var(--dark-text-on-accent-color,               <?= "#0d0d0d"   ?>));
+            --screen-text-on-accent-lighter-color:              light-dark(var(--light-text-on-accent-lighter-color,        <?= "#ffffff"   ?>), var(--dark-text-on-accent-lighter-color,       <?= "#1a1a1a"   ?>));
 
         <?php heredoc_flush("raw_css"); ?>}</style><?php return heredoc_stop(null);
     }
@@ -12007,7 +12004,7 @@
         $styles .= eol().style(css_layers(), false, false, auto, -1); // Ensure 1st rule!
 
         if (!get("wip"))
-        {        
+        {   
             $styles .= eol().layered_style("spec",      css_spec(false),      false, false, auto, auto, /*media*/"none"   );
             $styles .= eol().layered_style("browser",   css_browser(false),   auto,  auto,  auto, auto, /*media*/"all"    );
             $styles .= eol().layered_style("normalize", css_normalize(false), auto,  auto,  auto, auto, /*media*/"all"    );
