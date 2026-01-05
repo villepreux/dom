@@ -13891,9 +13891,14 @@
         return $html;
     }
   
-    function wikipedia($page, $lang = "fr")
+    function wikipedia($page, $lang = auto)
     {
+        $lang = strtolower(substr((auto === $lang) ? html_language() : $lang, 0, 2));
+
+        $api_endpoint = "https://$lang.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1";
+
         return         
+            comment($api_endpoint).
             div(            
                 style((function () { HSTART(); ?><style><?php HERE() ?>
 
@@ -13919,7 +13924,7 @@
                 str_replace_all('href="',  'target="_blank" hxrxexf="', 
                     offset_html_headlines(
                         at(at(
-                            array_open_url("https://$lang.wikipedia.org/w/api.php?action=parse&formatversion=2&page=$page&prop=text&format=json&redirects=1"), 
+                            array_open_url($api_endpoint), 
                             "parse"), "text"),
                         1
                         )
@@ -14860,7 +14865,7 @@
         if (is_array($attributes) && !array_key_exists("class", $attributes)) $attributes["class"] = "";
 
         list($w, $h) = preprocess_img_size($path, $w, $h, $precompute_size, $precompute_size_fallback_max_w, $precompute_size_fallback_max_h);
-        $lqip_css = !get("lqip", true) ? "" : lqip_css($path);
+        $lqip_css = !get("lqip") ? "" : lqip_css($path);
 
         if (!!get("no_js") && $lazy === true) $lazy = auto;
 
