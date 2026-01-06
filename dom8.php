@@ -7777,6 +7777,8 @@
 
     function html($html = "", $attributes = false)
     {
+        if (is_embeded()) return "";
+
         debug_log();
         $debug_console = !get("debug") ? "" : debug_console();
 
@@ -12974,6 +12976,8 @@
     {
         $profiler = debug_track_timing();
         
+        if (is_embeded()) return;
+
         $properties_organization = array
         (
             "@context"  => "https://schema.org", 
@@ -13037,6 +13041,8 @@
     function body_boilerplate_end($html_post_scripts = "")
     {
         $profiler = debug_track_timing();
+
+        if (is_embeded()) return;
 
         $attributes = false;
 
