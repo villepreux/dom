@@ -7034,12 +7034,14 @@
     #region API : CSS snippets
     ######################################################################################################################################
     
-    function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)")
+    function css_gradient($from = "var(--text-color)", $to = "var(--theme-color)", $color = auto)
     {
+        $color = (auto === $color) ? $from : $color;
+
         return "/* Text gradient */".
 
             " "."background: linear-gradient(-45deg, $to 0%, $from 100%);".
-            " "."color: $from;".
+            " "."color: $color;".
             
         //  " "."display: inline-block;".
             " "."width: fit-content;".
