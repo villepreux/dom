@@ -13811,20 +13811,23 @@
         ');
     }
 
-    function codepen($url, $title, $w = false, $h = false, $lazy = auto)
+    function codepen($url, $title, $w = false, $h = false, $lazy = auto, $id = false)
     {
+        $attributes      = (false === $id) ? "codepen"        : [ "class" => "codepen", "id" => $id ];
+        $iframe_selector = (false === $id) ? "iframe.codepen" : "iframe.codepen#$id";
+
         return (!!get("no_js")) 
         
             ? iframe($url, $title, "codepen", $w, $h, $lazy)
 
-            : ( iframe(path("empty.html"), $title, "codepen", $w, $h, $lazy).
-                script_lazy_load($url, "iframe.codepen")
+            : ( iframe(path("empty.html"), $title, $attributes, $w, $h, $lazy).
+                script_lazy_load($url, $iframe_selector)
             );
     }
 
     function user_codepen($id, $title, $w = false, $h = false, $lazy = auto)
     {
-        return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy);
+        return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy, "pen-$id");
     }
         
     function google_map($embed_url, $w = false, $h = false, $lazy = auto)
