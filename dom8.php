@@ -9581,12 +9581,11 @@
             .   delayed_component("_meta_rss_alternates")
 
             .   eol().comment("Icons")
+   
+            .   link_rel_icon("img/icon.svg") // First and last - As it's our favorite one, and we don't know how browsers choose the one they display in the tab
 
-            .   link_rel_icon("img/icon.svg")
             .   link_rel_icon(get("image"), false, false, false, false, $alternate = true)
             
-            /* --------- FAVICONS -------- */
-
             .   eol().comment("'Fav' Icons")
 
             .   link_rel_icon(
@@ -9606,8 +9605,7 @@
                     $alternate = true
                 )
                     
-            /* --------- FAVICONS -------- */
-
+            .   link_rel_icon("img/icon.svg") // First and last - As it's our favorite one, and we don't know how browsers choose the one they display in the tab
 
             .   eol().comment("Apple-splash icons")
 
