@@ -12749,6 +12749,8 @@
 
     function gemini_tag($tag, $html, $attributes)
     {
+        if (!$html) return "";
+
         $attributes = to_attributes($attributes);
 
         debug_log(json_encode(["tag" => $tag, "html" => $html, "attributes" => $attributes]));
@@ -12759,7 +12761,7 @@
         if (in_array($tag, [ "hr", "br" ])) return PHP_EOL;
 
         if ($tag == "picture")  return "<pic>";
-        if ($tag == "img")      return "<img>";
+        if ($tag == "img")      return "<img>"; 
 
         if ("" == trim($html)) return "";
 
@@ -12953,10 +12955,15 @@
     function body($html = "", $html_post_scripts = "", $dark_theme = auto)
     {
         $profiler = debug_track_timing();
+
+        $body = $html;
         
-        $body = body_boilerplate_start().
-                $html.
-                body_boilerplate_end($html_post_scripts);
+        if (!get("gemini"))
+        {
+            $body = body_boilerplate_start().
+                    $body.
+                    body_boilerplate_end($html_post_scripts);
+        }
 
         if (auto === $dark_theme) $dark_theme = get("dark_theme", false);
 
