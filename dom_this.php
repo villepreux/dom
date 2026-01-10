@@ -1,6 +1,6 @@
 <?php require_once(__DIR__."/dom.php");
 
-use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer, layered_style};
+use function dom\{bye,HSTART,HSTOP,HERE,get,card_title,card_text,header,div,pre,style,debug_track_timing,comment,unindent,details,summary,p,css_layer, layered_style,attributes_add_class,attributes_add};
 use const dom\auto;
 
 define("CODE_RE_INDENT", false);
@@ -180,7 +180,7 @@ function code_section($code, $client_source_url, $title = false, $attributes = f
     }
     else
     {
-        return layered_style("app", code_css()).div(($has_title ? header($title) : "").$code.$view_compile_source, $attributes);
+        return layered_style("app", code_css()).div(($has_title ? header($title) : "").$code.$view_compile_source, $attributes, false);
     }
 }
 
@@ -221,7 +221,7 @@ function highlight($code, $lang)
     $code = htmlentities($code);
 }
 
-function code_highlight($code, $lang = "php")
+function code_highlight($code, $lang = "php", $attributes = false)
 {
     $profiler = debug_track_timing();
 
@@ -270,8 +270,10 @@ function code_highlight($code, $lang = "php")
         }
     }
 
+    $attributes = attributes_add($attributes, [ "class" => "language-$lang", "spellcheck" => false ]);
+
     $code = highlight($code, $lang);
-    $code = dom\code($code, [ "class" => "language-$lang", "spellcheck" => false ]);
+    $code = dom\code($code, $attributes);
 
     if ($lang == "php")
     {
@@ -302,7 +304,7 @@ function code_highlight($code, $lang = "php")
     return pre($code, "language-$lang line-numbers");
 }
 
-function code($code, $title = false, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = auto)
+function code($code, $title = false, $attributes = false, $lang = "php", $syntax_highlight = auto, $client_source_url = false, $code_sanitize = auto, $code_attributes = false)
 {
     $profiler = debug_track_timing();
 
@@ -316,12 +318,14 @@ function code($code, $title = false, $attributes = false, $lang = "php", $syntax
 
     if ($syntax_highlight)
     {
-        $code = code_highlight($code, $lang);
+        $code = code_highlight($code, $lang, $code_attributes);
     }
     else
     {
+        $code_attributes = attributes_add_class($code_attributes, "language-$lang");
+
         $code = htmlentities($code);
-        $code = pre(dom\code($code, "language-$lang"));
+        $code = pre(dom\code($code, $code_attributes));
     }
 
     if (CODE_RE_INDENT)

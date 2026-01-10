@@ -13169,7 +13169,7 @@
     function noscript       ($html = "", $attributes = false) {                             return  tag('noscript',                   $html,                                                $attributes                                                         );                      }
     function aside          ($html = "", $attributes = false) {                             return  tag('aside',                      $html,                                                $attributes                                                         );                      }
     function nav            ($html = "", $attributes = false) {                             return  tag('nav',                        $html,                                                $attributes                                                         );                      }
-    function div            ($html = "", $attributes = false) {                             return  tag('div',                        $html,                                                $attributes                                                         );                      }
+    function div            ($html = "", $attributes = false, $indent = auto) {             return  tag('div',             indent(    $html, $indent),                                      $attributes                                                         );                      }
     function pre            ($html = "", $attributes = false) {                             return  tag('pre',                        $html,                                                $attributes                                                         );                      }
     function code           ($html = "", $attributes = false) {                             return  tag('code',                       $html,                                                $attributes                                                         );                      }
     function ul             ($html = "", $attributes = false) {                             return  tag('ul',                         $html,                                                $attributes                                                         );                      }
@@ -16963,7 +16963,7 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true, $callback_response = null)
+    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true, $callback_response = null, $callback_debug = null)
     { 
         $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
         $header  = is_array($options) ? at($options, "header",  []) : [];
@@ -17108,13 +17108,37 @@
                     ($callback_before_pendings)($urls);
                 }
 
-                while ($active && $mrc == CURLM_OK) 
+                $num_iterations_max = 100;
+
+                while ($active && $mrc == CURLM_OK && --$num_iterations_max >= 0) 
                 {
-                    if (curl_multi_select($curl_multi_handle) != -1) 
+                    if ($callback_debug && is_callable($callback_debug))
                     {
+                        ($callback_debug)("curl_multi_select");
+                    }
+
+                    $select = curl_multi_select($curl_multi_handle);
+
+                    if ($select != -1) 
+                    {
+                        if ($callback_debug && is_callable($callback_debug))
+                        {
+                            ($callback_debug)("curl_multi_select => $select");
+                        }
+                        
                         do 
                         {
+                            if ($callback_debug && is_callable($callback_debug))
+                            {
+                                ($callback_debug)("curl_multi_exec");
+                            }
+                            
                             $mrc = curl_multi_exec($curl_multi_handle, $active);
+
+                            if ($callback_debug && is_callable($callback_debug))
+                            {
+                                ($callback_debug)("curl_multi_exec => $mrc");
+                            }
                                         
                             if ($prev_active != $active)
                             {
