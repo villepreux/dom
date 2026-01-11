@@ -7062,13 +7062,18 @@
 
     function css_clamp($min_size_px = 16, $max_size_px = 20, $min_vw_px = 600, $max_vw_px = 1200, $base_font_size_px = 16)
     {
-        return
-            "clamp(".
-                "calc(calc(min($min_size_px, $max_size_px) / $base_font_size_px) * 1rem), ".
-                "calc(calc(calc((($max_vw_px * $min_size_px) - ($min_vw_px * $max_size_px)) / ($base_font_size_px * ($max_vw_px - $min_vw_px))) * 1rem) + ".
-                "calc(calc(($max_size_px - $min_size_px) / ($max_vw_px - $min_vw_px)) * 100vw)), ".
-                "calc(calc(max($min_size_px, $max_size_px) / $base_font_size_px) * 1rem)".
-            ")";
+        $px2rem = function($px) use ($base_font_size_px) { return "calc(calc($px / $base_font_size_px) * 1rem)"; };
+
+        $a_rem = $px2rem($min_size_px);
+        $b_rem = $px2rem($max_size_px);
+        
+        $slope   = "calc(($max_size_px - $min_size_px) / ($max_vw_px - $min_vw_px))";
+        $size_px = "($slope * 100vw) + ($a_rem - ($slope * $min_vw_px * 1px))"; // y = ax + b
+
+        $min_rem = $px2rem("min($min_size_px, $max_size_px)");
+        $max_rem = $px2rem("max($min_size_px, $max_size_px)");
+        
+        return "clamp($min_rem, $size_px, $max_rem)";
     }
 
     #endregion
@@ -10140,14 +10145,17 @@
                     --1rem:   1rem; --unitless-rem:             tan(atan2(var(--1rem),  1px));
 
                     /*
-                    --fluid-font-size-min-viewport-width:  320; --fluid-font-size-min: 1.0rem;
-                    --fluid-font-size-max-viewport-width: 1600; --fluid-font-size-max: 1.5rem; 
-                    --fluid-font-size-viewport-ratio: clamp(0, calc((var(--unitless-viewport-width) - var(--fluid-font-size-min-viewport-width)) / (var(--fluid-font-size-max-viewport-width) - var(--fluid-font-size-min-viewport-width))), 1);
-                    --fluid-font-size-eased-viewport-ratio: sin(var(--fluid-font-size-viewport-ratio) * 3.14159 / 2);
-                    --fluid-font-size: clamp(var(--fluid-font-size-min), var(--fluid-font-size-min) + ( var(--fluid-font-size-eased-viewport-ratio) * (var(--fluid-font-size-max) - var(--fluid-font-size-min)) ), var(--fluid-font-size-max));
-                    --root-font-size: var(--fluid-font-size);*/
+                    --root-font-size-min-size-px: 16.0;
+                    --root-font-size-max-size-px: 20.0;
+                    --root-font-size-min-vw-px:  600.0;
+                    --root-font-size-max-vw-px: 1200.0;
+                    --root-font-size-base-px:     16.0;
+                    
+                    --root-font-size: <?= css_clamp("var(--root-font-size-min-size-px)", "var(--root-font-size-max-size-px)", "var(--root-font-size-min-vw-px)", "var(--root-font-size-max-vw-px)", "var(--root-font-size-base-px)") ?>;
+                    */
 
                     --root-font-size: <?= css_clamp(16.0, 20.0, 600, 1200, 16) ?>;
+                    
 
                     --h1-font-size: 2.00rem;
                     --h2-font-size: 1.50rem;
@@ -10169,7 +10177,7 @@
                     --tab-size: 4;
                     --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
-                    --gap: min(1rem, 16px);
+                    --gap: clamp(8px, 2vw, min(1rem, 16px));
                     --h1-block-start-margin: 0.67em;
                 }
 
@@ -10208,8 +10216,8 @@
                     -moz-osx-font-smoothing: grayscale; 
                     
                   /*line-sizing:            normal;*/
-                    hanging-punctuation:    first allow-end last; 
-                    font-size:              var(--root-font-size);
+                    hanging-punctuation:    first allow-end last; /*
+                    font-size:              clamp(16px, var(--root-font-size, 2.5vw), 20px);*/
                     line-height:            var(--line-height); 
                     tab-size:               var(--tab-size); 
 
@@ -10217,6 +10225,7 @@
                 }
 
                 body { 
+                    font-size:      clamp(16px, var(--root-font-size, 2.5vw), 20px);
                     /*
                     min-height:     100%;
                     min-height:     -webkit-fill-available;
@@ -11402,7 +11411,7 @@
                 --left-text-margin-ratio:   0.5;
                 --right-text-margin-ratio:  calc(1.0 - var(--left-text-margin-ratio));
 
-                --gap:                      16px; /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
+                --gap:                      clamp(8px, 2vw, 16px); /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
                 --scrollbar-width:          calc(100vw - 100cqw);
                 --scrollbar-width-unitless: tan(atan2(var(--scrollbar-width),1px));
                 --scroll-margin:            var(--gap);
@@ -11545,7 +11554,7 @@
     
             /* Typography */
             
-            html                    { hanging-punctuation: first allow-end last; font-size: var(--root-font-size); line-height: var(--line-height); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+            html                    { hanging-punctuation: first allow-end last; font-size: clamp(16px, var(--root-font-size, 2.5vw), 20px); line-height: var(--line-height); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
             body                    { text-underline-offset: 0.24em; } /* .24 and not .25 to accomodate line heights of 1.25em with hidden overflow */
     
