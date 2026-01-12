@@ -7067,8 +7067,8 @@
         $a_rem = $px2rem($min_size_px);
         $b_rem = $px2rem($max_size_px);
         
-        $slope   = "calc(($max_size_px - $min_size_px) / ($max_vw_px - $min_vw_px))";
-        $size_px = "($slope * 100vw) + ($a_rem - ($slope * $min_vw_px * 1px))"; // y = ax + b
+        $slope   = "calc(calc($max_size_px - $min_size_px) / calc($max_vw_px - $min_vw_px))";
+        $size_px = "calc($slope * 100vw) + calc($a_rem - calc($slope * $min_vw_px * 1px))"; // y = ax + b
 
         $min_rem = $px2rem("min($min_size_px, $max_size_px)");
         $max_rem = $px2rem("max($min_size_px, $max_size_px)");
@@ -10444,6 +10444,10 @@
                     */
                     > summary {
 
+                        &::marker {
+
+                            font-family: system-ui; /* TEST FOR SAFARI */
+                        }
                 
                         display: list-item;
                         cursor:  pointer;
@@ -16972,7 +16976,20 @@
         die($boilerplate_prefix.$args[0].$boilerplate_encode($args[1]).$boilerplate_suffix);
     }
 
-    function multi_fetch($urls, $callback_fetch = null, $callback_pending = null, $callback_before_fetches = null, $callback_before_pendings = null, $options = 7, $parallelize = true, $callback_response = null, $callback_debug = null)
+    function multi_fetch(
+        
+        $urls, 
+        $callback_fetch = null, 
+        $callback_pending = null, 
+        $callback_before_fetches = null, 
+        $callback_before_pendings = null, 
+        $options = 7, 
+        $parallelize = true, 
+        $callback_response = null, 
+        $callback_debug = null, 
+        $callback_failure = null
+        
+        )
     { 
         $timeout = is_array($options) ? at($options, "timeout", 7 ) : $options;
         $header  = is_array($options) ? at($options, "header",  []) : [];
@@ -17117,7 +17134,8 @@
                     ($callback_before_pendings)($urls);
                 }
 
-                $num_iterations_max = 100;
+                $num_iterations_limit = 100;
+                $num_iterations_max   = $num_iterations_limit;
 
                 while ($active && $mrc == CURLM_OK && --$num_iterations_max >= 0) 
                 {
@@ -17156,10 +17174,19 @@
                                 if ($callback_pending && is_callable($callback_pending))
                                 {
                                     ($callback_pending)($active, $urls);
+                                    $num_iterations_max = $num_iterations_limit;
                                 }
                             }
                         }
                         while ($mrc == CURLM_CALL_MULTI_PERFORM);
+                    }
+                }
+
+                if ($num_iterations_max <= 0)
+                {
+                    if ($callback_failure && is_callable($callback_failure))
+                    {
+                        ($callback_failure)($active, $urls);
                     }
                 }
 
