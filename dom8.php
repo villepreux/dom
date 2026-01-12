@@ -5763,9 +5763,9 @@
     
     class DOMInit {
         
-        function output($doc = "", $attributes = false) 
+        function output($doc = "", $attributes = false, $json_pretty_print = false) 
         {
-            \dom\output($doc, $attributes);
+            \dom\output($doc, $attributes, $json_pretty_print);
             return $this;
         }
     }
@@ -5940,7 +5940,7 @@
         return $in;
     }
 
-    function output($doc = "", $attributes = false)
+    function output($doc = "", $attributes = false, $json_pretty_print = false)
     {   
         if (!!get("binary"))    die($doc);
         if (has("main"))        die();
@@ -5953,7 +5953,7 @@
         
         if ("json" == get("doctype", false) && is_array($doc))
         {
-            $json = json_encode($doc);
+            $json = json_encode($doc, $json_pretty_print ? JSON_PRETTY_PRINT : 0);
 
             if (false === $json && is_array($doc)) { foreach ($doc as &$value) if (is_string($value)) $value = mb_convert_encoding($value, 'UTF-8', 'UTF-8'); $json = json_encode($doc); }
             if (false === $json) { $doc = "{}"; /*die("could not encode doc (".json_last_error_msg().")");*/ }
@@ -6001,9 +6001,9 @@
         }
     }
 
-    function response($response, $type = "json")
+    function response($response, $type = "json", $json_pretty_print = false)
     { 
-        $ret = init($type)->output($response);
+        $ret = init($type)->output($response, false, $json_pretty_print);
         if (is_int($ret) && $ret >= 0 && $ret <  255) die($ret);
         die;
     }
