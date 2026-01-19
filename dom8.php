@@ -5772,8 +5772,12 @@
 
     $__dom_init = new DOMInit();
 
-    function init($doctype = auto, $encoding = auto, $content_encoding_header = true, $attachement_basename = false, $attachement_length = false)
+    function init($doctype = auto, $encoding = auto, $content_encoding_header = auto, $attachement_basename = auto, $attachement_length = auto)
     {
+        $content_encoding_header = (auto !== $content_encoding_header ) ? $content_encoding_header : !!get("content-encoding-header", true    );
+        $attachement_basename    = (auto !== $attachement_basename    ) ? $attachement_basename    :   get("attachement-basename",    false   );
+        $attachement_length      = (auto !== $attachement_length      ) ? $attachement_length      :   get("attachement-length",      false   );
+
         global $__dom_init;
 
         init_options_from_precedent_options();
@@ -5823,15 +5827,33 @@
         ,   "html"      => 'text/html'
         ,   "css"       => 'text/css'
         ,   "js"        => 'text/javascript'
-        ,   "csv"       => 'text/csv'           . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.csv') : '')
-        ,   "zip"       => 'application/zip'    . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.zip') : '')
+        ,   "csv"       => 'text/csv'         /*  . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.csv"') : '') */
+        ,   "zip"       => 'application/zip'  /*  . (($attachement_basename !== false) ? ('; name="'      . $attachement_basename . '.zip"') : '') */
         );
-    
+
+        if ($attachement_basename !== false)
+        {
+            foreach ($types as $ext => $mime_type)
+            {
+                $types[$ext] .= '; name="'.$attachement_basename.'.'.$ext.'"';
+            }
+        }
+
         $dispositions = array
         (
-            "csv"   => 'attachment'         . (($attachement_basename !== false) ? ('; filename="'  . $attachement_basename . '.csv"') : '')
-        ,   "zip"   => 'attachment'         . (($attachement_basename !== false) ? ('; filename="'  . $attachement_basename . '.zip"') : '')
+            "csv"   => 'attachment' /*. (($attachement_basename !== false) ? ('; filename="' . $attachement_basename . '.csv"') : '') */
+        ,   "zip"   => 'attachment' /*. (($attachement_basename !== false) ? ('; filename="' . $attachement_basename . '.zip"') : '') */
         );
+
+        if ($attachement_basename !== false)
+        {
+            $dispositions = $types;
+
+            foreach ($dispositions as $ext => $attachement)
+            {
+                $dispositions[$ext] = 'attachment; filename="' . $attachement_basename . '.'.$ext.'"';
+            }
+        }
 
         $type = !!$doctype ? $doctype : "html";
         {
@@ -12729,7 +12751,7 @@
         if (has("ajax")) return "";
 
         global $hook_need_lazy_loding;
-        $images_loading = !!get("script-images-loading", true) && (count($hook_need_lazy_loding) > 0 || !!get("script-images-loading", false));
+        $images_loading = !get("no_js") && !!get("script-images-loading", true) && (count($hook_need_lazy_loding) > 0 || !!get("script-images-loading", false));
 
         return  script_third_parties              ().
                 script(js_ajax_body               ()).
@@ -14913,8 +14935,8 @@
 
         $alt = $alt == "" ? "" : trim(strip_tags($alt));
 
-        if (auto === $lazy && !!get("lazy-unload")) $lazy = true; // then js is needed
-        if (!!get("no-lazy-unload"))                $lazy = auto;
+        if (auto === $lazy && !!get("lazy-unload") && !get("no_js"))    $lazy = true; // then js is needed
+        if (!!get("no-lazy-unload"))                                    $lazy = auto;
 
              if (auto === $lazy) { $attributes = attributes_add($attributes, array($src_attribute =>                          $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "lazy", "decoding" => "async" )); }
         else if (true === $lazy) { $attributes = attributes_add($attributes, array($src_attribute => $lazy_src, "data-src" => $src, "alt" => $alt, "width" => $w, "height" => $h, "style" => "--width: $w; --height: $h", "loading" => "auto", "decoding" => "async" )); }

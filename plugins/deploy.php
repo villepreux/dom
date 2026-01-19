@@ -52,12 +52,14 @@ $cmdline_option_blogroll                = arg_state("blogroll");
 $cmdline_option_minify                  = arg_state("minify", 1, !arg_state("beautify"));
 $cmdline_option_include                 = arg_array("include");
 $cmdline_option_exclude                 = array_merge(arg_array("exclude"), array(".netlify", ".static", ".gemini"));
+
 $domain_src                             = arg_value("domain-src",       substr(trim(trim(getcwd()), "/\\"), max(strripos(trim(trim(getcwd()), "/\\"), "/"), strripos(trim(trim(getcwd()), "/\\"), "\\")) + 1));
 $domain_dst                             = arg_value("domain-dst",      "$domain_src/$cmdline_option_output");
 $main_src                               = arg_value("main-src",     "../$domain_src");
 $main_dst                               = arg_value("main-dst",     "../$domain_dst");
 $server_name                            = arg_value("server-name",      $domain_dst);
 $server_http_host                       = arg_value("server-http-host", $domain_dst);
+
 $cmdline_option_process                 = arg_value("process",          "1/1");
 $cmdline_option_mt                      = arg_state("mt");
 $cmdline_option_mt_context              = arg_value("context", "");
@@ -688,7 +690,7 @@ $cmdline_values = [
     "main_dst"                     ,
 ];
 
-if (!$cmdline_option_compile_one)
+if (!$cmdline_option_compile_one && $cmdline_option_verbose)
 {
     foreach ($cmdline_values as $cmdline_value)      deploy_log("[i] Generate static site from cmd CLI option $cmdline_value=".json_encode(${$cmdline_value}));
     foreach (explode(" ", $php_args_common) as $arg) deploy_log("[i] Generate static site php cmd-line option $arg");
