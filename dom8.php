@@ -5818,8 +5818,9 @@
 
         $types = array
         (
-            "xml"       => 'text/xml'    
+            "xml"       => 'text/xml'
         ,   "rss"       => 'text/xml'
+        ,   "txt"       => 'text/plain'
         ,   "tile"      => 'text/xml'
         ,   "png"       => 'image/png'
         ,   "jpg"       => 'image/jpeg'
