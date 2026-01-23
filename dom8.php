@@ -11742,7 +11742,7 @@
 
                 --max-width: var(--max-text-width); max-width: initial; /* Undo normalization way to do the same thing */
 
-                --mobile-no-margin-breakpoint: 400px;
+                --mobile-no-margin-breakpoint: 413px;
                 --margin-gap: clamp(0px, calc(100vw - var(--mobile-no-margin-breakpoint)), var(--gap));
     
                 --max-text-width-margin-inline: clamp(var(--margin-gap), calc(var(--left-text-margin-ratio) * calc(100% - var(--max-text-width))), calc(var(--left-text-margin-ratio) * 100%)) 
@@ -13856,11 +13856,11 @@
     {
                    $attributes = attributes_add($attributes, [ "class" => "codepen" ]);
         if (!!$id) $attributes = attributes_add($attributes, [ "id"    => $id ]);
-        
+
         $iframe_selector = (false === $id) ? "iframe.codepen" : "iframe.codepen#$id";
 
         return (!!get("no_js")) 
-        
+
             ? iframe($url, $title, "codepen", $w, $h, $lazy)
 
             : ( iframe(path("empty.html"), $title, $attributes, $w, $h, $lazy).
