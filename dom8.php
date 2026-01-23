@@ -13852,9 +13852,11 @@
         ');
     }
 
-    function codepen($url, $title, $w = false, $h = false, $lazy = auto, $id = false)
+    function codepen($url, $title, $w = false, $h = false, $lazy = auto, $id = false, $attributes = false)
     {
-        $attributes      = (false === $id) ? "codepen"        : [ "class" => "codepen", "id" => $id ];
+                   $attributes = attributes_add($attributes, [ "class" => "codepen" ]);
+        if (!!$id) $attributes = attributes_add($attributes, [ "id"    => $id ]);
+        
         $iframe_selector = (false === $id) ? "iframe.codepen" : "iframe.codepen#$id";
 
         return (!!get("no_js")) 
@@ -13866,9 +13868,9 @@
             );
     }
 
-    function user_codepen($id, $title, $w = false, $h = false, $lazy = auto)
+    function user_codepen($id, $title, $w = false, $h = false, $lazy = auto, $attributes = false)
     {
-        return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy, "pen-$id");
+        return codepen(url_codepen_user()."/embed/preview/$id?default-tab=result", $title, $w, $h, $lazy, "pen-$id", $attributes);
     }
         
     function google_map($embed_url, $w = false, $h = false, $lazy = auto)
