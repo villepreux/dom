@@ -6025,7 +6025,7 @@
     }
 
     function response($response, $type = "json", $json_pretty_print = false)
-    { 
+    {
         $ret = init($type)->output($response, false, $json_pretty_print);
         if (is_int($ret) && $ret >= 0 && $ret <  255) die($ret);
         die;
@@ -6856,17 +6856,17 @@
 
     $__generated = array(
 
-        array("path" => "manifest.json",                 "generate" => false, "function" => "string_manifest"               ),
-        array("path" => "browserconfig.xml",             "generate" => false, "function" => "string_ms_browserconfig"       ),
-        array("path" => "badge.xml",                     "generate" => false, "function" => "string_ms_badge"               ),
-        array("path" => "robots.txt",                    "generate" => false, "function" => "string_robots"                 ),
-        array("path" => "human.txt",                     "generate" => false, "function" => "string_human"                  ),
-        array("path" => ".well-known/gpc.json",          "generate" => false, "function" => "string_gpc"                    ),
-        array("path" => ".well-known/dnt-policy.txt",    "generate" => false, "function" => "string_dnt_policy"             ),
-        array("path" => "loading.svg",                   "generate" => false, "function" => "string_loading_svg"            ),
-        array("path" => "offline.html",                  "generate" => false, "function" => "string_offline_html"           ),
-        array("path" => "sw.js",                         "generate" => false, "function" => "string_service_worker"         ),
-        array("path" => "install-service-worker.html",   "generate" => false, "function" => "string_service_worker_install" ),
+        array("path" => "manifest.json",               "generate" => false, "function" => "string_manifest"               ),
+        array("path" => "browserconfig.xml",           "generate" => false, "function" => "string_ms_browserconfig"       ),
+        array("path" => "badge.xml",                   "generate" => false, "function" => "string_ms_badge"               ),
+        array("path" => "robots.txt",                  "generate" => false, "function" => "string_robots"                 ),
+        array("path" => "human.txt",                   "generate" => false, "function" => "string_human"                  ),
+        array("path" => ".well-known/gpc.json",        "generate" => false, "function" => "string_gpc"                    ),
+        array("path" => ".well-known/dnt-policy.txt",  "generate" => false, "function" => "string_dnt_policy"             ),
+        array("path" => "loading.svg",                 "generate" => false, "function" => "string_loading_svg"            ),
+        array("path" => "offline.html",                "generate" => false, "function" => "string_offline_html"           ),
+        array("path" => "sw.js",                       "generate" => false, "function" => "string_service_worker"         ),
+        array("path" => "install-service-worker.html", "generate" => false, "function" => "string_service_worker_install" ),
 
         );
 
@@ -10200,7 +10200,7 @@
                     --tab-size: 4;
                     --line-height: clamp(1.3, 1.6 + 0.017 * var(--unitless-viewport-width), 1.5); /* 1.5 */
 
-                    --gap: clamp(8px, 2vw, min(1rem, 16px));
+                    --gap: clamp(12px, 2vw, min(1rem, 20px));
                     --h1-block-start-margin: 0.67em;
                 }
 
@@ -11438,12 +11438,12 @@
                 --left-text-margin-ratio:   0.5;
                 --right-text-margin-ratio:  calc(1.0 - var(--left-text-margin-ratio));
 
-                --gap:                      clamp(8px, 2vw, 16px); /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
+                --gap:                      clamp(12px, 2vw, 20px); /* No rem nor em since we want to keep that spacing when user changes font size at browser level */
                 --scrollbar-width:          calc(100vw - 100cqw);
                 --scrollbar-width-unitless: tan(atan2(var(--scrollbar-width),1px));
                 --scroll-margin:            var(--gap);
                 --margin-gap:               var(--gap);
-                
+                 
                 --grid-default-min-width:   calc(var(--line-height) + var(--gap));
 
             }
@@ -17084,7 +17084,7 @@
                 curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, $timeout);
                 curl_setopt($curl_handle, CURLOPT_FOLLOWLOCATION, true);
                 
-                $responses[$key] = curl_exec($curl_handle);
+                $responses["$key"] = curl_exec($curl_handle);
             
                 $active = count($urls) - $index;
 
@@ -17095,7 +17095,7 @@
 
                 if ($callback_response && is_callable($callback_response))
                 {
-                    ($callback_response)($key, $responses[$key], $active, $urls);
+                    ($callback_response)($key, $responses["$key"], $active, $urls);
                 }
             }
 
@@ -17103,6 +17103,51 @@
         }
         else
         {
+            $max_batch_size = 256;
+
+            if (!!$parallelize && count($urls) > $max_batch_size)
+            {
+                $aggregated_responses = [];
+                $offset = 0;
+
+                while ($offset < count($urls))
+                {
+                    $batch_urls = array_slice($urls, $offset, $max_batch_size, true);
+
+                    $batch_callback_fetch           = function($batch_key, $batch_url, $batch_index, $batch_urls)       use ($urls, $max_batch_size, $offset, $callback_fetch           ) { if (is_callable($callback_fetch           )) $callback_fetch           ($batch_key, $batch_url, $batch_index, $batch_urls)      ; /* ($batch_key, $batch_url, $offset + $batch_index, $urls);                                                               */  };
+                    $batch_callback_pending         = function($batch_active, $batch_urls)                              use ($urls, $max_batch_size, $offset, $callback_pending         ) { if (is_callable($callback_pending         )) $callback_pending         ($batch_active, $batch_urls)                             ; /* ((count($urls) - count($batch_urls) + $batch_active - $offset * $max_batch_size), $urls);                              */  };
+                    $batch_callback_before_fetches  = function($batch_urls)                                             use ($urls, $max_batch_size, $offset, $callback_before_fetches  ) { if (is_callable($callback_before_fetches  )) $callback_before_fetches  ($batch_urls)                                            ; /* ($urls);                                                                                                               */  };
+                    $batch_callback_before_pendings = function($batch_urls)                                             use ($urls, $max_batch_size, $offset, $callback_before_pendings ) { if (is_callable($callback_before_pendings )) $callback_before_pendings ($batch_urls)                                            ; /* ($urls);                                                                                                               */  };
+                    $batch_callback_response        = function($batch_key, $batch_response, $batch_active, $batch_urls) use ($urls, $max_batch_size, $offset, $callback_response        ) { if (is_callable($callback_response        )) $callback_response        ($batch_key, $batch_response, $batch_active, $batch_urls); /* ($batch_key, $batch_response, (count($urls) - count($batch_urls) + $batch_active - $offset * $max_batch_size), $urls); */  };
+                    $batch_callback_debug           = function($batch_error_msg)                                        use ($urls, $max_batch_size, $offset, $callback_debug           ) { if (is_callable($callback_debug           )) $callback_debug           ($batch_error_msg)                                       ; /* ($batch_error_msg);                                                                                                    */  };
+                    $batch_callback_failure         = function($batch_active, $batch_urls)                              use ($urls, $max_batch_size, $offset, $callback_failure         ) { if (is_callable($callback_failure         )) $callback_failure         ($batch_active, $batch_urls)                             ; /* ((count($urls) - count($batch_urls) + $batch_active - $offset * $max_batch_size), $urls);                              */  };
+                    
+                    $batch_responses = multi_fetch(
+                        
+                        $batch_urls, 
+
+                        $batch_callback_fetch, 
+                        $batch_callback_pending, 
+                        $batch_callback_before_fetches, 
+                        $batch_callback_before_pendings, 
+
+                        $options, 
+                        true, 
+                        
+                        $batch_callback_response, 
+                        $batch_callback_debug, 
+                        $batch_callback_failure
+                        
+                        );
+
+                    $aggregated_responses = $aggregated_responses + $batch_responses; // Union (instead of array_merge to avoid problem with integer keys)
+
+                    $offset += $max_batch_size;
+                }
+
+                return $aggregated_responses;
+            }
+
             $curl_multi_handle = curl_multi_init();
             $curl_handles      = [];
 
@@ -17222,12 +17267,12 @@
                     ++$index;
                     $active = count($urls) - $index;
 
-                    $responses[$key] = curl_multi_getcontent($ch);                
+                    $responses["$key"] = curl_multi_getcontent($ch);                
                     curl_multi_remove_handle($curl_multi_handle, $ch);
 
                     if ($callback_response && is_callable($callback_response))
                     {
-                        ($callback_response)($key, $responses[$key], $active, $urls);
+                        ($callback_response)($key, $responses["$key"], $active, $urls);
                     }
                 }
                 
