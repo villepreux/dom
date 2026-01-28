@@ -17,14 +17,14 @@ Proof Of Concept
 
   * Writing web documents/pages quickly.
   * Using HTML known markup syntax.
-  * Mainly semanticaly
+  * Write semanticaly
   * Without having to worry about latest, state of the art, boilerplate code
   * Automaticaly generating derived content (jsonfeed, RSS, sitemap, favicons, service worker...)
-  * Independently of chooosen component/styling/whatever framework (normalize vs sanitize vs reset, material vs bootstrap vs spectre vs..., react vs 11ty vs..., ~~AMP or not,~~...)
+  * No framework
   * Having access to comonly used predefined components (videos, social-media cards, maps, ...)
   * Being able to create and/or compose new components with ease
   * Compiling into fast code
-  * Compiling into valid markup (HTML, CSS, JSON~~, AMP~~...)
+  * Compiling into valid markup (HTML, CSS, JSON...)
   * Compiling into good SEO
   * Rendering well without CSS nor JS
   * Not needed JS at all if wanted or when disabled
@@ -48,9 +48,9 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
 ## Known issues
 
   * Codebase: It's a proof of concept at this stage. So need to be rewritten. Currently has very long line lengths & extrem single-line functions use: Hard to read.
-  * ~~Codebase: Naming conventions: Missing lot of lib prefixes~~ => Now having its namespace
   * Features: Social networks content scrapping: Broken in many cases => TODO : kill feature or go the API way
   * Too much default CSS => Needs cleanup while keeping out of the box nice and complete "hello world" or mardown based websites
+
 
 ## TODO List
 
@@ -63,7 +63,6 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
   * Convert default parameters to "auto" parameters where appropriate
   * Where possible, use named, unordered & optional parameters => Upgrade to php 8 to use native named parameters?
   * Use heredoc syntax where possible
-  * ~~Remove jquery internal usage~~ DONE
   * Document the code
   * Remove framework bindings for framework that are no more on top of the frameworks leaderboards
   * Design a new framework binding mechanism (would markup + classes bindings & transformations be enough?)
@@ -75,5 +74,6 @@ The standard [Hello World](https://github.com/villepreux/dom/tree/master/example
 
 ![Build](https://github.com/villepreux/dom/workflows/Build/badge.svg)
 [![justforfunnoreally.dev badge](https://img.shields.io/badge/justforfunnoreally-dev-9ff)](https://justforfunnoreally.dev)
+
 
 © Antoine Villepreux 2020-20XX

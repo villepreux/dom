@@ -2032,7 +2032,7 @@
             CURLOPT_NOBODY          => true,
             CURLOPT_RETURNTRANSFER  => true,
             CURLOPT_FOLLOWLOCATION  => true,
-            CURLOPT_USERAGENT       => "Mozilla/5.0",
+            CURLOPT_USERAGENT       => user_agent(),
             CURLOPT_SSL_VERIFYHOST  => false,
             CURLOPT_SSL_VERIFYPEER  => false,
 
@@ -2062,13 +2062,28 @@
         return trim($title, "!?;.,: \t\n\r\0\x0B");
     }
 
-    function curl_get($url, $timeout = 7)
+    function user_agent($user_agent = auto)
     {
-        $headers = null;
-        return content($url, $timeout, false, false, "curl", false, $headers, false);
+        if (auto === $user_agent)
+        {
+            return server_http_user_agent(user_agent(144));
+        }
+
+        if ($user_agent === 144) return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36';
+        if ($user_agent ===  65) return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36';
+        if ($user_agent ===  77) return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
+        if ($user_agent ===   5) return "Mozilla/5.0";
+
+        return $user_agent;
     }
 
-    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false, &$headers = null, $auto_detect_error_pages_outout = true)
+    function curl_get($url, $timeout = 7, $user_agent = auto)
+    {
+        $headers = null;
+        return content($url, $timeout, false, false, "curl", false, $headers, false, $user_agent);
+    }
+
+    function content($urls, $options = 7, $auto_fix = true, $debug_error_output = true, $methods_order = [ "file_get_contents", "curl" ], $profiling_annotation = false, &$headers = null, $auto_detect_error_pages_outout = true, $user_agent = auto)
     {
         $profiler = debug_track_timing(!!$profiling_annotation ? $profiling_annotation : /*$urls*/false);
 
@@ -2164,7 +2179,7 @@
 
                     $curl_options[CURLOPT_SSL_VERIFYHOST] = false;
                     $curl_options[CURLOPT_SSL_VERIFYPEER] = false;                
-                    $curl_options[CURLOPT_USERAGENT]      = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
+                    $curl_options[CURLOPT_USERAGENT]      = user_agent($user_agent);
                     $curl_options[CURLOPT_RETURNTRANSFER] = true;
                     $curl_options[CURLOPT_URL]            = $url;
                     $curl_options[CURLOPT_CONNECTTIMEOUT] = $timeout;
@@ -2252,8 +2267,7 @@
 
     function post($api, $url, $params = [], $options = [], $method = auto, $usr = false, $pwd = false, $user_agent = auto, &$code = null, &$error = null, &$error_details = null, $force_no_url_params = false, $body_type = "array")
     {
-        $curl_user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0';
-      //$curl_user_agent = $user_agent === auto ? "DOM" : $user_agent; // Unused for now
+      //$curl_user_agent = user_agent($user_agent); // Unused for now
 
         $method = (auto === $method)                                          ? "GET" : $method;
         $params = (auto === $params || true === $params || false === $params) ? []    : $params;
@@ -3766,7 +3780,7 @@
         
     function json_facebook_from_content($url)
     {/*
-        $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
+        $options = array('http' => array('user_agent' => user_agent()));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
     */
@@ -3864,7 +3878,7 @@
         
     function json_facebook_articles_from_content($url)
     {
-        $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
+        $options = array('http' => array('user_agent' => user_agent()));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
 
@@ -3891,7 +3905,7 @@
         
     function json_facebook_article_from_content($url)
     {
-        $options = array('http' => array('user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36'));
+        $options = array('http' => array('user_agent' => user_agent()));
         $context = stream_context_create($options);
         $html    = @file_get_contents($url, false, $context);
 
@@ -6816,6 +6830,7 @@
                     <meta charset="utf-8">
                     <meta name="format-detection" content="telephone=no">
                     <meta name="viewport" content="width=device-width,initial-scale=1">
+                    <meta name="text-scale"> 
                     <meta http-equiv="refresh" content="3">
                 </head>
                 <body style="margin: 0; width: 100vw; text-align: center; color: #DDD; background-color: rgb(30,30,30); font-family: <?= string_system_font_stack("\'") ?>; padding-top: calc(50vh - 2em - 64px);">
@@ -7943,6 +7958,7 @@
     {
         return  eol().comment("Pragma directives").
                 eol().meta_charset('utf-8').
+                eol().meta('text-scale').
                 eol().meta('viewport', 'width=device-width,initial-scale=1').   (!get("origin-trial") ? "" : (
                 eol().meta_http_equiv("origin-trial", get("origin-trial")).     "")).
                 "";
@@ -9654,7 +9670,7 @@
     
     function meta($p0, $p1 = false, $pan = 0)
     {
-        return ($p1 === false) // Legacy. Means all passed as an array        
+        return ($p1 === false) // Legacy. Means all passed as an array         
             ? (eol().'<meta'.attributes_as_string($p0, $pan).'>') 
             : meta_name($p0,$p1); // Otherwise with 2 params we mean <meta name="..." content="...">
     }
@@ -17012,7 +17028,8 @@
         $parallelize = true, 
         $callback_response = null, 
         $callback_debug = null, 
-        $callback_failure = null
+        $callback_failure = null,
+        $user_agent = auto
         
         )
     { 
@@ -17078,7 +17095,7 @@
 
                 curl_setopt($curl_handle, CURLOPT_SSL_VERIFYHOST, false);
                 curl_setopt($curl_handle, CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($curl_handle, CURLOPT_USERAGENT,      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                curl_setopt($curl_handle, CURLOPT_USERAGENT,      user_agent($user_agent));
                 curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl_handle, CURLOPT_URL,            $url);
                 curl_setopt($curl_handle, CURLOPT_CONNECTTIMEOUT, $timeout);
@@ -17176,7 +17193,7 @@
 
                 curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYHOST, false);
                 curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
-                curl_setopt($curl_handles[$key], CURLOPT_USERAGENT,      'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0');
+                curl_setopt($curl_handles[$key], CURLOPT_USERAGENT,      user_agent($user_agent));
                 curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($curl_handles[$key], CURLOPT_URL,            $url);
                 curl_setopt($curl_handles[$key], CURLOPT_CONNECTTIMEOUT, $timeout);
@@ -18005,7 +18022,7 @@ function simple_fetch_endpoint($codename, $callback)
     }
 }
 
-function simple_fetch_placeholder($codename, $interval_s = 30)
+function simple_fetch_placeholder($codename, $interval_s = -1)
 {
     $tag = slugify($codename, true, "-");
     $fun = slugify($codename, true, "_");
@@ -18017,7 +18034,9 @@ function simple_fetch_placeholder($codename, $interval_s = 30)
             var response = await fetch("?fetch=<?= $tag ?>");
             document.querySelector("<?= $tag ?>").innerHTML = await response.text();
 
+            <?php if ($interval_s >= 0) { ?>
             setTimeout(fetch_<?= $fun ?>, <?= $interval_s ?> * 1000);
+            <?php } ?>
         }
 
         fetch_<?= $fun ?>();
