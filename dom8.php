@@ -2156,9 +2156,9 @@
                         }, array_keys($header), array_values($header));
 
                         $curl_options[CURLOPT_HTTPHEADER] = $curl_http_header;
+                        
+                        //bye([ "trace" => debug_callstack(), "curl_http_header" => $curl_http_header ]);
                     }
-
-                    //bye($curl_http_header);
 
                     $headers = [];
 
