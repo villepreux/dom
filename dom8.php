@@ -1010,7 +1010,7 @@
             $url_branch = trim($url_branch, "/");
         }
     
-        $url = (is_localhost() ? 'http' : 'https').'://'.live_domain();
+        $url = (is_localhost() ? 'http://localhost/' : 'https://').live_domain();
         if ($url_branch != "") $url .= "/$url_branch";
 
         return $url;
@@ -7166,6 +7166,55 @@
     ';
 
     */
+
+    function button_share($title = auto, $text = auto, $url = auto, $html = "Share", $attributes = false) 
+    {
+        $title = $title !== auto ? $title : \dom\live_domain();
+        $text  = $text  !== auto ? $text  : "Happy to share!";
+        $url   = $url   !== auto ? $url   : \dom\live_url();
+ 
+        $attributes = attributes_add_class($attributes, "share");
+
+        return button($html, $attributes).script((function() use ($title, $text, $url) { HSTART() ?><script><?= HERE() ?>
+
+            const shareData = {
+
+                title:  "<?=  $title ?>",
+                text:   "<?=  $text  ?>",
+                url:    "<?=  $url   ?>",
+            };
+
+            document.querySelectorAll("button.share").forEach(function(button) {
+
+                button.addEventListener("click", async function(event) {
+
+                    if (!navigator.canShare) {
+
+                        dom.log("Error", "navigator.canShare() not supported");
+
+                    } else if (!navigator.canShare(shareData)) {
+
+                        dom.log("Error", "Specified data cannot be shared", shareData);
+                    
+                    } else {
+                    
+                        try {
+
+                            /*await*/ navigator.share(shareData);
+                            event.preventDefault();
+                            /*resultPara.textContent = "MDN shared successfully";*/
+
+                        } catch (err) {
+
+                            /*resultPara.textContent = ("Error: " + err);*/
+                        }
+                    }
+                });
+            });
+        
+            <?=  HERE("raw_js") ?></script><?php return HSTOP(); })());
+    }
+
 
     function url_pinterest_user             ($username = false)                                 { $username = ($username === false) ? get("pinterest_user")     : $username;                                                                            return "https://www.pinterest.com/$username"; }
     function url_pinterest_board            ($username = false, $board = false)                 { $username = ($username === false) ? get("pinterest_user")     : $username; $board     = ($board === false) ? get("pinterest_board")       : $board;   return "https://www.pinterest.com/$username".($board != "" ? "/$board" : "")."/"; }
