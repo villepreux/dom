@@ -251,7 +251,8 @@
         fclose($resource);
 
         global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
-        $_DOM_PRECOMPUTED_CACHE = array_merge($_DOM_PRECOMPUTED_CACHE, json_decode($contents, true));
+        $_DOM_PRECOMPUTED_CACHE = @array_merge($_DOM_PRECOMPUTED_CACHE, @json_decode($contents, true));
+        if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
         if (!!get("debug")) debug_log("Loading cache from disk... DONE");
 
@@ -274,7 +275,8 @@
         global $_DOM_PRECOMPUTED_CACHE; if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
         // If we want to share that cache between dev and prod envs, then some values should not be stored as they depend on environment
-        $_DOM_PRECOMPUTED_CACHE = array_filter($_DOM_PRECOMPUTED_CACHE, function($value) { if (is_string($value) && false !== stripos($value, "https:")) { return false; } return true; }); 
+        $_DOM_PRECOMPUTED_CACHE = @array_filter($_DOM_PRECOMPUTED_CACHE, function($value) { if (is_string($value) && false !== stripos($value, "https:")) { return false; } return true; }); 
+        if (!$_DOM_PRECOMPUTED_CACHE) $_DOM_PRECOMPUTED_CACHE = [];
 
         if (!!get("debug")) debug_log("Writing cache to disk...");
         file_put_contents($_DOM_PRECOMPUTED_CACHE_PATH, json_encode($_DOM_PRECOMPUTED_CACHE, JSON_PRETTY_PRINT), LOCK_EX);
@@ -14655,7 +14657,7 @@
             $script = "document.getElementById('".$id."').setAttribute('href', 'mailto:".preg_replace("/\"/","\\\"",$email)."');document.getElementById('".$id."').innerHTML = '".$text."';";
             $crypted_script = ""; for ($i=0; $i < strlen($script); $i++) { $crypted_script = $crypted_script.'%'.bin2hex(substr($script, $i, 1)); }
 
-            $html = a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("".$id) ], $target).script("eval(unescape('".$crypted_script."'))");
+            $html = script("if (false) { $script }").a(str_repeat("x", strlen(strip_tags($text))), url_void(), [ "aria-label" => "E-mail", "id" => ("".$id) ], $target).script("eval(unescape('".$crypted_script."'))");
         }
 
         if (!!$no_js && $force_js)
